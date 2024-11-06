@@ -1085,11 +1085,22 @@ struct boss_headless_horseman : public ScriptedAI
         if (type == WAYPOINT_MOTION_TYPE)
         {
             if (point == 0)
+            {
                 me->CastSpell(me, SPELL_HEAD_VISUAL, true);
+                me->SetCanFly(true);
+                me->SetDisableGravity(true);
+            }
+            else if (point > 0 && point < 11)
+            {
+                me->SetCanFly(true);
+                me->SetDisableGravity(true);
+            }
             else if (point == 11)
             {
                 me->ReplaceAllUnitFlags(UNIT_FLAG_NONE);
                 me->StopMoving();
+                me->SetCanFly(false);
+                me->SetDisableGravity(false);
 
                 me->SetInCombatWithZone();
                 inFight = true;
