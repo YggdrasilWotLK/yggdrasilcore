@@ -401,8 +401,8 @@ int MySQLConnection::ExecuteTransaction(std::shared_ptr<TransactionBase> transac
                 }
                 catch (const std::bad_variant_access& ex)
                 {
-                    LOG_FATAL("sql.sql", "> PreparedStatementBase not found in SQLElementData. {}", ex.what());
-                    ABORT();
+                    LOG_ERROR("sql.sql", "> PreparedStatementBase not found in SQLElementData. {}", ex.what());
+                    /*ABORT();*/
                 }
 
                 ASSERT(stmt);
@@ -426,8 +426,8 @@ int MySQLConnection::ExecuteTransaction(std::shared_ptr<TransactionBase> transac
                 }
                 catch (const std::bad_variant_access& ex)
                 {
-                    LOG_FATAL("sql.sql", "> std::string not found in SQLElementData. {}", ex.what());
-                    ABORT();
+                    LOG_ERROR("sql.sql", "> std::string not found in SQLElementData. {}", ex.what());
+                    /*ABORT();*/
                 }
 
                 ASSERT(!sql.empty());
@@ -583,9 +583,9 @@ bool MySQLConnection::_HandleMySQLErrno(uint32 errNo, char const* err, uint8 att
                 if (!this->PrepareStatements())
                 {
                     str = "Could not re-prepare statements!";
-                    LOG_FATAL("sql.sql", "{}", str);
-                    std::this_thread::sleep_for(10s);
-                    ABORT("{}\n\n[{}] {}", str, errNo, err);
+                    LOG_ERROR("sql.sql", "{}", str);
+                    /*std::this_thread::sleep_for(10s);
+                    ABORT("{}\n\n[{}] {}", str, errNo, err);*/
                 }
 
                 LOG_INFO("sql.sql", "Successfully reconnected to {} @{}:{} ({}).",
@@ -601,11 +601,11 @@ bool MySQLConnection::_HandleMySQLErrno(uint32 errNo, char const* err, uint8 att
                 // Shut down the server when the mysql server isn't
                 // reachable for some time
                 str = "Failed to reconnect to the MySQL server, terminating the server to prevent data corruption!";
-                LOG_FATAL("sql.sql", "{}", str);
+                LOG_ERROR("sql.sql", "{}", str);
 
                 // We could also initiate a shutdown through using std::raise(SIGTERM)
-                std::this_thread::sleep_for(10s);
-                ABORT("{}\n\n[{}] {}", str, errNo, err);
+                /*std::this_thread::sleep_for(10s);
+                ABORT("{}\n\n[{}] {}", str, errNo, err);*/
             }
             else
             {
@@ -629,15 +629,15 @@ bool MySQLConnection::_HandleMySQLErrno(uint32 errNo, char const* err, uint8 att
         case ER_BAD_FIELD_ERROR:
         case ER_NO_SUCH_TABLE:
             str = "Your database structure is not up to date. Please make sure you've executed all queries in the sql/updates folders.";
-            LOG_FATAL("sql.sql", "{}", str);
-            std::this_thread::sleep_for(10s);
-            ABORT("{}\n\n[{}] {}", str, errNo, err);
+            LOG_ERROR("sql.sql", "{}", str);
+            /*std::this_thread::sleep_for(10s);
+            ABORT("{}\n\n[{}] {}", str, errNo, err);*/
             return false;
         case ER_PARSE_ERROR:
             str = "Error while parsing SQL. Core fix required.";
-            LOG_FATAL("sql.sql", "{}", str);
-            std::this_thread::sleep_for(10s);
-            ABORT("{}\n\n[{}] {}", str, errNo, err);
+            LOG_ERROR("sql.sql", "{}", str);
+            /*std::this_thread::sleep_for(10s);
+            ABORT("{}\n\n[{}] {}", str, errNo, err);*/
             return false;
         default:
             LOG_ERROR("sql.sql", "Unhandled MySQL errno {}. Unexpected behaviour possible.", errNo);
