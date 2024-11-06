@@ -218,7 +218,7 @@ public:
                         if (me->GetHealth() < std::max(0.0f, float(me->GetMaxHealth() * (1.0f - (IsHeroic() ? 0.2f : 0.334f)*float(BoatNum + 1)))))
                         {
                             events.DelayEvents(12000);
-                            me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                            // me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE); // Boss should be attackable at all times. Removed by mostly nick 2024-11-03
                             me->InterruptNonMeleeSpells(true);
                             me->CastSpell(me, SPELL_SCREAMS_OF_THE_DEAD, true);
                             me->GetMotionMaster()->Clear();
@@ -267,7 +267,7 @@ public:
                             me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                             king->CastSpell(me, SPELL_CHANNEL_SPIRIT_TO_YMIRON, true);
                             summons.Summon(king);
-                            king->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                            // king->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE); // Boss should be attackable at all times. Removed by mostly nick 2024-11-03
                             king->SetDisableGravity(true);
                             me->RemoveUnitFlag(UNIT_FLAG_DISABLE_MOVE);
                             me->GetMotionMaster()->MoveChase(me->GetVictim());
