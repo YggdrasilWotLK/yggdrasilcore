@@ -448,7 +448,13 @@ public:
                     me->GetMotionMaster()->MoveFall(me->GetEntry());
                 }
                 else
-                    Talk(2);
+                {
+                    Player* player = ObjectAccessor::GetPlayer(*me, playerGUID);
+                    if (player)
+                    {
+                        player->GetSession()->SendAreaTriggerMessage("Your Grip is Failing!");
+                    }
+                }
             }
         }
 
@@ -510,7 +516,7 @@ public:
                     {
                         if (Player* player = GetValidPlayer())
                         {
-                            Talk(3);
+                            player->GetSession()->SendAreaTriggerMessage("Wild Wrynn shrieks in pain and twists around, grabbing you with his mouth!");
                             switching = true;
                             me->RemoveAllAuras();
                             me->CastSpell(me, SPELL_JAWS_OF_DEATH, true);
@@ -556,7 +562,11 @@ public:
             if (announceAttackTimer >= 7000)
             {
                 announceAttackTimer = urand(0, 3000);
-                Talk(0);
+                Player* player = ObjectAccessor::GetPlayer(*me, playerGUID);
+                if (player)
+                {
+                    player->GetSession()->SendAreaTriggerMessage("Wild Wrynn swipes at you with his claws!");
+                }
                 attackTimer = 1;
             }
             if (attackTimer)
@@ -567,7 +577,7 @@ public:
                     attackTimer = 0;
                     Player* player = ObjectAccessor::GetPlayer(*me, playerGUID);
                     if (player && player->HasAura(SPELL_DODGE_CLAWS))
-                        Talk(1);
+                        player->GetSession()->SendAreaTriggerMessage("DODGED!");
                     else if (player)
                         me->AttackerStateUpdate(player);
                     else
