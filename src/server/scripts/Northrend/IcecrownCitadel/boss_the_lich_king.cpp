@@ -866,10 +866,37 @@ public:
                 case NPC_RAGING_SPIRIT:
                     summon->SetHomePosition(CenterPosition);
                     break;
-                case NPC_VILE_SPIRIT:
+                    case NPC_VILE_SPIRIT:
                     {
                         summon->SetReactState(REACT_PASSIVE);
-                        summon->GetMotionMaster()->MoveRandom(10.0f);
+                        summon->SetDisableGravity(true);
+                        
+                        // Initial Z movement
+                        float x = summon->GetPositionX();
+                        float y = summon->GetPositionY();
+                        summon->GetMotionMaster()->MovePoint(0, x, y, 853.4f);
+
+                        // Some random wander with reapplication of no gravity (flight) to prevent stutters
+                        summon->m_Events.AddEventAtOffset([summon] {
+                            summon->SetDisableGravity(true);
+                            summon->GetMotionMaster()->MovePoint(0, summon->GetPositionX() + frand(-5, 5), summon->GetPositionY() + frand(-5, 5), 853.4);
+                        }, 3s);
+
+                        summon->m_Events.AddEventAtOffset([summon] {
+                            summon->SetDisableGravity(true);
+                            summon->GetMotionMaster()->MovePoint(0, summon->GetPositionX() + frand(-5, 5), summon->GetPositionY() + frand(-5, 5), 853.4);
+                        }, 6s);
+
+                        summon->m_Events.AddEventAtOffset([summon] {
+                            summon->SetDisableGravity(true);
+                            summon->GetMotionMaster()->MovePoint(0, summon->GetPositionX() + frand(-5, 5), summon->GetPositionY() + frand(-5, 5), 853.4);
+                        }, 9s);
+
+                        summon->m_Events.AddEventAtOffset([summon] {
+                            summon->SetDisableGravity(true);
+                            summon->GetMotionMaster()->MovePoint(0, summon->GetPositionX() + frand(-5, 5), summon->GetPositionY() + frand(-5, 5), 853.4);
+                        }, 12s);
+
                         if (_phase == PHASE_THREE)
                             summon->m_Events.AddEvent(new VileSpiritActivateEvent(summon), summon->m_Events.CalculateTime(15000));
                         break;
