@@ -5778,8 +5778,8 @@ void Player::CheckAreaExploreAndOutdoor()
 
     if (!areaEntry)
     {
-        LOG_ERROR("entities.player", "Player '{}' ({}) discovered unknown area (x: {} y: {} z: {} map: {})",
-                       GetName(), GetGUID().ToString(), GetPositionX(), GetPositionY(), GetPositionZ(), GetMapId());
+        //LOG_ERROR("entities.player", "Player '{}' ({}) discovered unknown area (x: {} y: {} z: {} map: {})",
+        //               GetName(), GetGUID().ToString(), GetPositionX(), GetPositionY(), GetPositionZ(), GetMapId());
         return;
     }
 
