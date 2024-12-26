@@ -765,7 +765,7 @@ void Creature::Update(uint32 diff)
             }
 
             Unit* owner = GetCharmerOrOwner();
-            if (IsCharmed() && owner && GetAreaId() != owner->GetAreaId() && !IsWithinDistInMap(owner, GetMap()->GetVisibilityRange(), true, false))
+            if (HasAuraType(SPELL_AURA_MOD_CHARM) && owner && GetAreaId() != owner->GetAreaId() && !IsWithinDistInMap(owner, GetMap()->GetVisibilityRange(), true, false))
             {
                 RemoveCharmAuras();
                 if (Creature* creature = ToCreature())
