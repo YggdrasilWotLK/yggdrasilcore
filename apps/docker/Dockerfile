@@ -79,11 +79,11 @@ ARG CACHEBUST=1
 WORKDIR /azerothcore/build
 
 RUN --mount=type=cache,target=/ccache,sharing=locked \
-    # This may seem silly (and it is), but AzerothCore wants the git repo at
-    # build time. The git repo is _huge_ and it's not something that really
-    # makes sense to mount into the container, but this way we can let the build
-    # have the information it needs without including the hundreds of megabytes
-    # of git repo into the container.
+                                                                            
+                                                                           
+                                                                                
+                                                                               
+                                     
     --mount=type=bind,target=/azerothcore/.git,source=.git \
     git config --global --add safe.directory /azerothcore \
     && cmake /azerothcore \
@@ -118,8 +118,11 @@ ENV ACORE_COMPONENT=undefined
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       libmysqlclient21 libreadline8 \
-      gettext-base default-mysql-client && \
+      gettext-base default-mysql-client \
+      gdb gdbserver && \
     rm -rf /var/lib/apt/lists/*
+
+COPY apps/startup-scripts/gdb.conf /azerothcore/gdb.conf
 
 COPY --from=build /azerothcore/env/dist/etc/ /azerothcore/env/ref/etc
 
@@ -129,12 +132,16 @@ ENV PATH="/azerothcore/env/dist/bin:$PATH"
 
 RUN groupadd --gid "$GROUP_ID"  "$DOCKER_USER" && \
     useradd -d /azerothcore --uid "$USER_ID"  --gid "$GROUP_ID"  "$DOCKER_USER" && \
-    passwd -d "$DOCKER_USER" && \
-    chown -R "$DOCKER_USER:$DOCKER_USER" /azerothcore
+    passwd -d "$DOCKER_USER"
+                                                     
 
-COPY --chown=$USER_ID:$GROUP_ID \
+COPY --chown=$DOCKER_USER:$DOCKER_USER \
      --chmod=755 \
      apps/docker/entrypoint.sh /azerothcore/entrypoint.sh
+
+RUN mkdir -p /azerothcore/env/dist/logs && \
+    chown -R "$DOCKER_USER:$DOCKER_USER" /azerothcore && \
+    chmod -R 755 /azerothcore/env/dist/logs
 
 USER $DOCKER_USER
 
