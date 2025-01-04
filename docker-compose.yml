@@ -6,18 +6,18 @@
 # changes there instead.
 
 services:
-  ac-database:
-    container_name: ac-database
-    image: mysql:8.4
+  yggdrasilcore-database:
+    container_name: yggdrasilcore-database
+    image: mysql:8.3
     networks:
-      - ac-network
+      - yggdrasilcore-network
     ports:
       - ${DOCKER_DB_EXTERNAL_PORT:-3306}:3306
     environment:
       - MYSQL_ROOT_PASSWORD=${DOCKER_DB_ROOT_PASSWORD:-password}
     volumes:
       - type: volume
-        source: ac-database
+        source: yggdrasilcore-database
         target: /var/lib/mysql
     restart: unless-stopped
     healthcheck:
@@ -26,11 +26,11 @@ services:
       timeout: 10s
       retries: 40
 
-  ac-db-import:
-    container_name: ac-db-import
-    image: acore/ac-wotlk-db-import:${DOCKER_IMAGE_TAG:-master}
+  yggdrasilcore-db-import:
+    container_name: yggdrasilcore-db-import
+    image: acore/yggdrasilcore-wotlk-db-import:${DOCKER_IMAGE_TAG:-master}
     networks:
-      - ac-network
+      - yggdrasilcore-network
     build:
       context: .
       target: db-import
@@ -42,20 +42,21 @@ services:
     environment:
       AC_DATA_DIR: "/azerothcore/env/dist/data"
       AC_LOGS_DIR: "/azerothcore/env/dist/logs"
-      AC_LOGIN_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
-      AC_WORLD_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_world"
-      AC_CHARACTER_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_characters"
+      AC_LOGIN_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
+      AC_WORLD_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_world"
+      AC_CHARACTER_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_characters"
     volumes:
       - ${DOCKER_VOL_ETC:-./env/dist/etc}:/azerothcore/env/dist/etc
       # [osxfs optimization]: https://stackoverflow.com/a/63437557/1964544
       - ${DOCKER_VOL_LOGS:-./env/dist/logs}:/azerothcore/env/dist/logs:delegated
     depends_on:
-      ac-database:
+      yggdrasilcore-database:
         condition: service_healthy
-
-  ac-worldserver:
-    container_name: ac-worldserver
-    image: acore/ac-wotlk-worldserver:${DOCKER_IMAGE_TAG:-master}
+        
+  yggdrasilcore-worldserver:
+    command: gdb -x /azerothcore/gdb.conf --batch /azerothcore/env/dist/bin/worldserver
+    container_name: yggdrasilcore-worldserver
+    image: acore/yggdrasilcore-wotlk-worldserver:${DOCKER_IMAGE_TAG:-master}
     build:
       context: .
       target: worldserver
@@ -65,7 +66,7 @@ services:
         GROUP_ID: ${DOCKER_GROUP_ID:-1000}
         DOCKER_USER: ${DOCKER_USER:-acore}
     networks:
-      - ac-network
+      - yggdrasilcore-network
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -74,10 +75,10 @@ services:
     environment:
       AC_DATA_DIR: "/azerothcore/env/dist/data"
       AC_LOGS_DIR: "/azerothcore/env/dist/logs"
-      AC_LOGIN_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
-      AC_WORLD_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_world"
-      AC_CHARACTER_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_characters"
-      AC_PLAYERBOTS_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_playerbots"
+      AC_LOGIN_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
+      AC_WORLD_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_world"
+      AC_CHARACTER_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_characters"
+      AC_PLAYERBOTS_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_playerbots"
     ports:
       - ${DOCKER_WORLD_EXTERNAL_PORT:-8085}:8085
       - ${DOCKER_SOAP_EXTERNAL_PORT:-7878}:7878
@@ -86,18 +87,18 @@ services:
       # [osxfs optimization]: https://stackoverflow.com/a/63437557/1964544
       - ${DOCKER_VOL_LOGS:-./env/dist/logs}:/azerothcore/env/dist/logs:delegated
       # client data
-      - ${DOCKER_VOL_DATA:-ac-client-data}:/azerothcore/env/dist/data/:ro
+      - ${DOCKER_VOL_DATA:-yggdrasilcore-client-data}:/azerothcore/env/dist/data/:ro
     depends_on:
-      ac-database:
+      yggdrasilcore-database:
         condition: service_healthy
-      ac-db-import:
+      yggdrasilcore-db-import:
         condition: service_completed_successfully
-      ac-client-data-init:
+      yggdrasilcore-client-data-init:
         condition: service_completed_successfully
 
-  ac-authserver:
-    container_name: ac-authserver
-    image: acore/ac-wotlk-authserver:${DOCKER_IMAGE_TAG:-master}
+  yggdrasilcore-authserver:
+    container_name: yggdrasilcore-authserver
+    image: acore/yggdrasilcore-wotlk-authserver:${DOCKER_IMAGE_TAG:-master}
     build:
       context: .
       target: authserver
@@ -107,7 +108,7 @@ services:
         GROUP_ID: ${DOCKER_GROUP_ID:-1000}
         DOCKER_USER: ${DOCKER_USER:-acore}
     networks:
-      - ac-network
+      - yggdrasilcore-network
     tty: true
     restart: unless-stopped
     env_file:
@@ -115,7 +116,7 @@ services:
     environment:
       AC_LOGS_DIR: "/azerothcore/env/dist/logs"
       AC_TEMP_DIR: "/azerothcore/env/dist/temp"
-      AC_LOGIN_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
+      AC_LOGIN_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
     volumes:
       - ${DOCKER_VOL_ETC:-./env/dist/etc}:/azerothcore/env/dist/etc
       # [osxfs optimization]: https://stackoverflow.com/a/63437557/1964544
@@ -123,14 +124,14 @@ services:
     ports:
       - ${DOCKER_AUTH_EXTERNAL_PORT:-3724}:3724
     depends_on:
-      ac-database:
+      yggdrasilcore-database:
         condition: service_healthy
-      ac-db-import:
+      yggdrasilcore-db-import:
         condition: service_completed_successfully
 
-  ac-client-data-init:
-    container_name: ac-client-data-init
-    image: acore/ac-wotlk-client-data:${DOCKER_IMAGE_TAG:-master}
+  yggdrasilcore-client-data-init:
+    container_name: yggdrasilcore-client-data-init
+    image: acore/yggdrasilcore-wotlk-client-data:${DOCKER_IMAGE_TAG:-master}
     build:
       context: .
       target: client-data
@@ -140,13 +141,13 @@ services:
         GROUP_ID: ${DOCKER_GROUP_ID:-1000}
         DOCKER_USER: ${DOCKER_USER:-acore}
     volumes:
-      - ${DOCKER_VOL_DATA:-ac-client-data}:/azerothcore/env/dist/data
+      - ${DOCKER_VOL_CLIENT_DATA:-yggdrasilcore-client-data}:/azerothcore/env/dist/data
 
   # used for extracting maps from files shipped with game client
   # Most of the time this shouldn't be needed
-  ac-tools:
-    container_name: ac-tools
-    image: acore/ac-wotlk-tools:${DOCKER_IMAGE_TAG:-master}
+  yggdrasilcore-tools:
+    container_name: yggdrasilcore-tools
+    image: acore/yggdrasilcore-wotlk-tools:${DOCKER_IMAGE_TAG:-master}
     build:
       context: .
       target: tools
@@ -170,9 +171,9 @@ services:
   #
   # This is provided primarily for development, though it doesn't receive
   # first-class support
-  ac-dev-server:
+  yggdrasilcore-dev-server:
     tty: true
-    image: acore/ac-wotlk-dev-server:${DOCKER_IMAGE_TAG:-master}
+    image: acore/yggdrasilcore-wotlk-dev-server:${DOCKER_IMAGE_TAG:-master}
     build:
       context: .
       dockerfile: ./apps/docker/Dockerfile.dev-server
@@ -186,9 +187,9 @@ services:
     environment:
       AC_DATA_DIR: "/azerothcore/env/dist/data"
       AC_LOGS_DIR: "/azerothcore/env/dist/logs"
-      AC_LOGIN_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
-      AC_WORLD_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_world"
-      AC_CHARACTER_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_characters"
+      AC_LOGIN_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
+      AC_WORLD_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_world"
+      AC_CHARACTER_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_characters"
     ports:
       - ${DOCKER_AUTH_EXTERNAL_PORT:-3724}:3724
       - ${DOCKER_WORLD_EXTERNAL_PORT:-8085}:8085
@@ -196,22 +197,22 @@ services:
     volumes:
       - ${DOCKER_VOL_ROOT:-.}:/azerothcore:cached
       # [osxfs optimization]: https://stackoverflow.com/a/63437557/1964544
-      - ac-build-dev:/azerothcore/var/build
-      - ac-ccache-dev:/azerothcore/var/ccache
+      - yggdrasilcore-build-dev:/azerothcore/var/build
+      - yggdrasilcore-ccache-dev:/azerothcore/var/ccache
       # this is not the directory of the extracted data! It's the client folder used by the extractors
       - ${DOCKER_AC_CLIENT_FOLDER:-./var/client}:/azerothcore/env/dist/bin/Data
     # Activate with `docker compose --profile dev ...`
     profiles: [dev]
     depends_on:
-      ac-database:
+      yggdrasilcore-database:
         condition: service_healthy
 
 volumes:
-  ac-database:
-  ac-client-data:
+  yggdrasilcore-database:
+  yggdrasilcore-client-data:
   # Used for dev server
-  ac-build-dev:
-  ac-ccache-dev:
+  yggdrasilcore-build-dev:
+  yggdrasilcore-ccache-dev:
 
 networks:
-  ac-network:
+  yggdrasilcore-network:
