@@ -63,16 +63,7 @@ public:
             _initialSelection = true;
             _targetGUID.Clear();
         }
-
-        void MovementInform(uint32 type, uint32 point) override
-        {
-            if (type == POINT_MOTION_TYPE && point == 1)
-            {
-                me->SetCanFly(false);
-                me->SetDisableGravity(false);
-            }
-        }
-
+        
         void InitializeAI() override
         {
             ScriptedAI::InitializeAI();
@@ -92,9 +83,6 @@ public:
 
             me->SetCanFly(true);
             me->SetDisableGravity(true);
-
-            float tz = me->GetMapHeight(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), true, MAX_FALL_DISTANCE);
-            me->GetMotionMaster()->MoveCharge(me->GetPositionX(), me->GetPositionY(), tz, 7.0f, 1);
             me->AddUnitState(UNIT_STATE_NO_ENVIRONMENT_UPD);
             _selectionTimer = 2000;
             _initialCastTimer = 0;
