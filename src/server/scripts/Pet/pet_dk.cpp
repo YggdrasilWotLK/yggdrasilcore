@@ -81,6 +81,26 @@ public:
                     }
                 }
 
+            // Check for ceiling obstructions and adjust height
+            float desiredZ = owner->GetPositionZ() + 17.0f;
+            float safeZ = desiredZ;
+            
+            // Start checking from slightly above the player
+            float startZ = owner->GetPositionZ() + 2.0f;
+            
+            // Check in small increments up to desired height
+            for (float testZ = startZ; testZ <= desiredZ; testZ += 2.0f)
+            {
+                if (!owner->IsWithinLOS(me->GetPositionX(), me->GetPositionY(), testZ))
+                {
+                    // Found an obstruction, use last safe height
+                    safeZ = testZ - 2.0f;
+                    break;
+                }
+            }
+
+            me->NearTeleportTo(me->GetPositionX(), me->GetPositionY(), safeZ, me->GetOrientation());
+
             me->SetCanFly(true);
             me->SetDisableGravity(true);
             me->AddUnitState(UNIT_STATE_NO_ENVIRONMENT_UPD);
@@ -91,7 +111,15 @@ public:
         void MySelectNextTarget()
         {
             Unit* owner = me->GetOwner();
-            if (owner && owner->IsPlayer() && (!me->GetVictim() || me->GetVictim()->IsImmunedToSpell(sSpellMgr->GetSpellInfo(51963)) || !me->IsValidAttackTarget(me->GetVictim()) || !owner->CanSeeOrDetect(me->GetVictim())))
+            if (!owner || owner->GetTypeId() != TYPEID_PLAYER)
+                return;
+
+            // Only check combat for consecutive target changes, not initial selection
+            if (!_initialSelection && !owner->IsInCombat())
+                return;
+
+            if (!me->GetVictim() || me->GetVictim()->IsImmunedToSpell(sSpellMgr->GetSpellInfo(51963)) || 
+                !me->IsValidAttackTarget(me->GetVictim()) || !owner->CanSeeOrDetect(me->GetVictim()))
             {
                 Unit* selection = owner->ToPlayer()->GetSelectedUnit();
                 if (selection && selection != me->GetVictim() && me->IsValidAttackTarget(selection))
@@ -99,7 +127,6 @@ public:
                     me->GetMotionMaster()->Clear(false);
                     SetGazeOn(selection);
                 }
-
                 else if (!me->GetVictim() || !owner->CanSeeOrDetect(me->GetVictim()))
                 {
                     me->CombatStop(true);
