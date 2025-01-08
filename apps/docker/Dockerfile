@@ -13,7 +13,6 @@ ENV AC_FORCE_CREATE_DB=1
 RUN mkdir -pv \
         /azerothcore/bin                   \
         /azerothcore/data                  \
-        /azerothcore/monitor               \
         /azerothcore/deps                  \
         /azerothcore/env/dist/bin          \
         /azerothcore/env/dist/data/Cameras \
@@ -141,8 +140,10 @@ COPY --chown=$DOCKER_USER:$DOCKER_USER \
      apps/docker/entrypoint.sh /azerothcore/entrypoint.sh
 
 RUN mkdir -p /azerothcore/env/dist/logs && \
+    mkdir -p /azerothcore/monitor && \
     chown -R "$DOCKER_USER:$DOCKER_USER" /azerothcore && \
-    chmod -R 755 /azerothcore/env/dist/logs
+    chmod -R 755 /azerothcore/env/dist/logs && \
+    chmod -R 755 /azerothcore/monitor
 
 USER $DOCKER_USER
 
