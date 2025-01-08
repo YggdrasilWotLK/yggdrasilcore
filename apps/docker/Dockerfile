@@ -13,6 +13,7 @@ ENV AC_FORCE_CREATE_DB=1
 RUN mkdir -pv \
         /azerothcore/bin                   \
         /azerothcore/data                  \
+        /azerothcore/monitor               \
         /azerothcore/deps                  \
         /azerothcore/env/dist/bin          \
         /azerothcore/env/dist/data/Cameras \
