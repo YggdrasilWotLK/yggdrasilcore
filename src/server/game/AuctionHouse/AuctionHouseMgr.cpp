@@ -42,8 +42,16 @@ AuctionHouseMgr::AuctionHouseMgr() : _auctionHouseSearcher(new AuctionHouseSearc
 AuctionHouseMgr::~AuctionHouseMgr()
 {
     for (ItemMap::iterator itr = _mAitems.begin(); itr != _mAitems.end(); ++itr)
-        delete itr->second;
-
+    {
+        if (itr->second)
+        {
+            delete itr->second; 
+        }
+        else
+        {
+            LOG_ERROR("auctionHouse", "AuctionHouseMgr destructor: Invalid item pointer detected! Preventing deletion of item object to avoid worldserver crash.");
+        }
+    }
     delete _auctionHouseSearcher;
 }
 
