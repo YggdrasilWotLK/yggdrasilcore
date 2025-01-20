@@ -1275,14 +1275,19 @@ void WorldSession::HandleSetTitleOpcode(WorldPacket& recv_data)
 void WorldSession::HandleResetInstancesOpcode(WorldPacket& /*recv_data*/)
 {
     LOG_DEBUG("network", "WORLD: CMSG_RESET_INSTANCES");
-
     if (Group* group = _player->GetGroup())
     {
         if (group->IsLeader(_player->GetGUID()))
-            group->ResetInstances(INSTANCE_RESET_ALL, false, _player);
+        {
+            group->ResetInstances(INSTANCE_RESET_CHANGE_DIFFICULTY, false, _player);
+            group->ResetInstances(INSTANCE_RESET_CHANGE_DIFFICULTY, true, _player);
+        }
     }
     else
-        Player::ResetInstances(_player->GetGUID(), INSTANCE_RESET_ALL, false);
+    {
+        Player::ResetInstances(_player->GetGUID(), INSTANCE_RESET_CHANGE_DIFFICULTY, false);
+        Player::ResetInstances(_player->GetGUID(), INSTANCE_RESET_CHANGE_DIFFICULTY, true);
+    }
 }
 
 void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPacket& recv_data)
