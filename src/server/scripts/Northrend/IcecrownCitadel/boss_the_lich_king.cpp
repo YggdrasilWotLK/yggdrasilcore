@@ -2595,14 +2595,14 @@ public:
 						break;
 					}
 
-					grabbed = true;
-					_lastSpeed = me->GetSpeed(MOVE_WALK);
-					me->AddUnitState(UNIT_STATE_NO_ENVIRONMENT_UPD);
-					me->SetCanFly(false);
-					me->SetDisableGravity(false);
-					me->GetMotionMaster()->MovePoint(POINT_DROP_PLAYER, _destPoint, false);
-					me->SetDisableGravity(true, true);
-					me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                    grabbed = true;
+                    _lastSpeed = me->GetSpeed(MOVE_WALK);
+                    me->AddUnitState(UNIT_STATE_NO_ENVIRONMENT_UPD);
+                    me->SetCanFly(false);
+                    me->SetDisableGravity(false);
+                    me->GetMotionMaster()->MovePoint(POINT_DROP_PLAYER, _destPoint, FORCED_MOVEMENT_NONE, 0.f, false);
+                    me->SetDisableGravity(true);
+                    me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
 					break;
                 case EVENT_MOVE_TO_SIPHON_POS:
                     me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE); // just in case if passenger disappears so quickly that EVENT_MOVE_TO_DROP_POS is never executed
