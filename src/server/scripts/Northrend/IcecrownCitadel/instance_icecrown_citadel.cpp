@@ -235,14 +235,14 @@ public:
         void FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet) override
         {
 			packet.Worldstates.reserve(5);
-			packet.Worldstates.emplace_back(WORLDSTATE_SHOW_TIMER, BloodQuickeningState == IN_PROGRESS ? 1 : 0);
-			packet.Worldstates.emplace_back(WORLDSTATE_EXECUTION_TIME, BloodQuickeningMinutes);
+			packet.Worldstates.emplace_back(WORLD_STATE_ICECROWN_CITADEL_SHOW_TIMER, BloodQuickeningState == IN_PROGRESS ? 1 : 0);
+			packet.Worldstates.emplace_back(WORLD_STATE_ICECROWN_CITADEL_EXECUTION_TIME, BloodQuickeningMinutes);
 			if (instance->IsHeroic())
-				packet.Worldstates.emplace_back(WORLDSTATE_SHOW_ATTEMPTS, 1); // instance->IsHeroic() ? 1 : 0
+				packet.Worldstates.emplace_back(WORLD_STATE_ICECROWN_CITADEL_SHOW_ATTEMPTS, 1); // instance->IsHeroic() ? 1 : 0
 			else
-				packet.Worldstates.emplace_back(WORLDSTATE_SHOW_ATTEMPTS, 0); // instance->IsHeroic() ? 1 : 0
-			packet.Worldstates.emplace_back(WORLDSTATE_ATTEMPTS_REMAINING, HeroicAttempts);
-			packet.Worldstates.emplace_back(WORLDSTATE_ATTEMPTS_MAX, MaxHeroicAttempts);
+				packet.Worldstates.emplace_back(WORLD_STATE_ICECROWN_CITADEL_SHOW_ATTEMPTS, 0); // instance->IsHeroic() ? 1 : 0
+			packet.Worldstates.emplace_back(WORLD_STATE_ICECROWN_CITADEL_ATTEMPTS_REMAINING, HeroicAttempts);
+			packet.Worldstates.emplace_back(WORLD_STATE_ICECROWN_CITADEL_ATTEMPTS_MAX, MaxHeroicAttempts);
         }
 
         void OnPlayerAreaUpdate(Player* player, uint32  /*oldArea*/, uint32 newArea) override
