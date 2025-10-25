@@ -65,6 +65,9 @@ enum Events
     EVENT_SPELL_MIGHTY_KICK,
     EVENT_SPELL_SHADOW_BOLT,
     EVENT_SPECIAL,
+    EVENT_SPECIAL0,
+    EVENT_SPECIAL1,
+    EVENT_SPECIAL2,
     EVENT_SET_REACT_AGGRESSIVE,
 };
 
@@ -212,13 +215,14 @@ public:
 
                     break;
                 case EVENT_SPECIAL:
-                    switch (urand(0, 2))
+                    switch(urand(0, 2))
                     {
                         case 0: // Pursuit
                             if (Creature* k = GetKrick())
                                 k->AI()->Talk(SAY_CHASE);
                             if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 70.0f, true))
                                 me->CastSpell(target, SPELL_PURSUIT, false);
+                            events.RescheduleEvent(EVENT_SPECIAL0, 25s, 30s);
                             break;
                         case 1: // Poison Nova
                             if (Creature* k = GetKrick())
@@ -227,6 +231,7 @@ public:
                                 Talk(EMOTE_ICK_POISON_NOVA);
                             }
                             me->CastSpell(me, SPELL_POISON_NOVA, false);
+                            events.RescheduleEvent(EVENT_SPECIAL1, 25s, 30s);
                             break;
                         case 2: // Explosive Barrage
                             if (Creature* k = GetKrick())
@@ -239,9 +244,82 @@ public:
                                 me->CastSpell(me, SPELL_EXPLOSIVE_BARRAGE_ICK, false);
                             }
                             events.DelayEvents(20s);
+                            events.RescheduleEvent(EVENT_SPECIAL2, 25s, 30s);
                             break;
                     }
-                    events.Repeat(25s, 30s);
+                    break;
+                case EVENT_SPECIAL0:
+                    switch(urand(0, 1))
+                    {
+                        case 0: // Explosive Barrage
+                            if (Creature* k = GetKrick())
+                            {
+                                k->AI()->Talk(SAY_BARRAGE_1);
+                                k->AI()->Talk(SAY_BARRAGE_2);
+                                k->InterruptNonMeleeSpells(false);
+                                me->InterruptNonMeleeSpells(false);
+                                k->CastSpell(k, SPELL_EXPLOSIVE_BARRAGE_KRICK, false);
+                                me->CastSpell(me, SPELL_EXPLOSIVE_BARRAGE_ICK, false);
+                            }
+                            events.DelayEvents(20s);
+                            events.RescheduleEvent(EVENT_SPECIAL2, 25s, 30s);
+                            break;
+                        case 1: // Poison Nova
+                            if (Creature* k = GetKrick())
+                            {
+                                k->AI()->Talk(SAY_POISON_NOVA);
+                                Talk(EMOTE_ICK_POISON_NOVA);
+                            }
+                            me->CastSpell(me, SPELL_POISON_NOVA, false);
+                            events.RescheduleEvent(EVENT_SPECIAL1, 25s, 30s);
+                            break;
+                    }
+                    break;
+                case EVENT_SPECIAL1:
+                    switch(urand(0, 1))
+                    {
+                        case 0: // Pursuit
+                            if (Creature* k = GetKrick())
+                                k->AI()->Talk(SAY_CHASE);
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 70.0f, true))
+                                me->CastSpell(target, SPELL_PURSUIT, false);
+                            events.RescheduleEvent(EVENT_SPECIAL0, 25s, 30s);
+                            break;
+                        case 1: // Explosive Barrage
+                            if (Creature* k = GetKrick())
+                            {
+                                k->AI()->Talk(SAY_BARRAGE_1);
+                                k->AI()->Talk(SAY_BARRAGE_2);
+                                k->InterruptNonMeleeSpells(false);
+                                me->InterruptNonMeleeSpells(false);
+                                k->CastSpell(k, SPELL_EXPLOSIVE_BARRAGE_KRICK, false);
+                                me->CastSpell(me, SPELL_EXPLOSIVE_BARRAGE_ICK, false);
+                            }
+                            events.DelayEvents(20s);
+                            events.RescheduleEvent(EVENT_SPECIAL2, 25s, 30s);
+                            break;
+                    }
+                    break;
+                case EVENT_SPECIAL2:
+                    switch(urand(0, 1))
+                    {
+                        case 0: // Pursuit
+                            if (Creature* k = GetKrick())
+                                k->AI()->Talk(SAY_CHASE);
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 70.0f, true))
+                                me->CastSpell(target, SPELL_PURSUIT, false);
+                            events.RescheduleEvent(EVENT_SPECIAL0, 25s, 30s);
+                            break;
+                        case 1: // Poison Nova
+                            if (Creature* k = GetKrick())
+                            {
+                                k->AI()->Talk(SAY_POISON_NOVA);
+                                Talk(EMOTE_ICK_POISON_NOVA);
+                            }
+                            me->CastSpell(me, SPELL_POISON_NOVA, false);
+                            events.RescheduleEvent(EVENT_SPECIAL1, 25s, 30s);
+                            break;
+                    }
                     break;
             }
 

@@ -117,8 +117,13 @@ public:
     virtual bool IsInitialized();
     virtual void ForceChecks() = 0;
     virtual void RequestChecks() = 0;
+    virtual void SendPayload() = 0;
+    
     virtual void HandleData(ByteBuffer &buff) = 0;
     bool ProcessLuaCheckResponse(std::string const& msg);
+
+    // flag payload to be re-injected
+    void QueuePayload() { _sendPayload = true; };
 
     void SendModuleToClient();
     void RequestModule();
@@ -145,6 +150,8 @@ private:
     uint32 _checkTimer;                          // Timer for sending check requests
     uint32 _clientResponseTimer;                 // Timer for client response delay
     bool _dataSent;
+    bool _sendPayload;
+    
     ClientWardenModule* _module;
     bool _initialized;
     bool _interrupted;

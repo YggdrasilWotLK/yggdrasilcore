@@ -284,12 +284,13 @@ public:
             me->RemoveAurasDueToSpell(SPELL_BLOOD_POWER);
             DoCast(me, SPELL_BLOOD_POWER, true);
 
-            if (!instance->CheckRequiredBosses(DATA_DEATHBRINGER_SAURFANG, who->ToPlayer()))
-            {
-                EnterEvadeMode(EVADE_REASON_OTHER);
-                instance->DoCastSpellOnPlayers(LIGHT_S_HAMMER_TELEPORT);
-                return;
-            }
+            // Check sometimes fails if you start boss very fast after downing the gunship. Removing as it isn't immersion-breaking anyway.
+			// if (!instance->CheckRequiredBosses(DATA_DEATHBRINGER_SAURFANG, who->ToPlayer()))
+            // {
+            //    EnterEvadeMode(EVADE_REASON_OTHER);
+            //    instance->DoCastSpellOnPlayers(LIGHT_S_HAMMER_TELEPORT);
+            //    return;
+            // }
 
             // oh just screw intro, enter combat - no exploits please
             me->setActive(true);
@@ -393,75 +394,136 @@ public:
             }
         }
 
-        void UpdateAI(uint32 diff) override
-        {
-            if (!UpdateVictim())
-                return;
+		void UpdateAI(uint32 diff) override
+		{
+			if (!_introDone)
+			{
+				if (!UpdateVictim())
+					return;
+			}
+			else
+			{
+				if (me->IsEngaged())
+				{
+					std::vector<Player*> playersInArea;
+					Map::PlayerList const& pl = me->GetMap()->GetPlayers();
+					for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
+					{
+						if (Player* p = itr->GetSource())
+						{
+							if (p->IsAlive() && p->GetExactDist(-486.0f, 2211.0f, p->GetPositionZ()) <= 80.0f)
+								playersInArea.push_back(p);
+						}
+					}
 
-            events.Update(diff);
+					if (playersInArea.empty())
+					{
+						EnterEvadeMode(EVADE_REASON_OTHER);
+						return;
+					}
 
-            if (_transportCheckTimer <= diff)
-            {
-                _transportCheckTimer = 1000;
-                Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                    if (Player* p = itr->GetSource())
-                        if (p->GetTransport())
-                        {
-                            EnterEvadeMode(EVADE_REASON_OTHER);
-                            return;
-                        }
-            }
-            else
-                _transportCheckTimer -= diff;
+					Player* closestTarget = nullptr;
+					float closestDist = 999999.0f;
+					for (Player* player : playersInArea)
+					{
+						float dist = me->GetExactDist(player);
+						if (dist < closestDist)
+						{
+							closestDist = dist;
+							closestTarget = player;
+						}
+					}
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+					for (Player* player : playersInArea)
+					{
+						if (me->GetThreatMgr().GetThreat(player) <= 0.0f)
+						{
+							float threatToAdd = (player == closestTarget) ? 2.0f : 1.0f;
+							me->GetThreatMgr().AddThreat(player, threatToAdd);
+						}
+					}
 
-            if (uint32 eventId = events.ExecuteEvent())
-            {
-                switch (eventId)
-                {
-                    case EVENT_SUMMON_BLOOD_BEAST:
-                        for (uint32 i10 = 0; i10 < 2; ++i10)
-                            DoCast(me, SPELL_SUMMON_BLOOD_BEAST + i10);
-                        if (Is25ManRaid())
-                            for (uint32 i25 = 0; i25 < 3; ++i25)
-                                DoCast(me, SPELL_SUMMON_BLOOD_BEAST_25_MAN + i25);
-                        Talk(SAY_BLOOD_BEASTS);
-                        events.ScheduleEvent(EVENT_SUMMON_BLOOD_BEAST, 40s);
-                        if (IsHeroic())
-                            events.ScheduleEvent(EVENT_BLOOD_BEAST_SCENT_OF_BLOOD, 10s);
-                        break;
-                    case EVENT_BLOOD_BEAST_SCENT_OF_BLOOD:
-                        Talk(EMOTE_SCENT_OF_BLOOD);
-                        summons.DoAction(ACTION_GAIN_SCENT_OF_BLOOD);
-                        break;
-                    case EVENT_BLOOD_NOVA:
-                        {
-                            me->CastSpell((Unit*)nullptr, SPELL_BLOOD_NOVA_TRIGGER, false);
-                            events.ScheduleEvent(EVENT_BLOOD_NOVA, 20s, 25s);
-                            break;
-                        }
-                    case EVENT_RUNE_OF_BLOOD:
-                        DoCastVictim(SPELL_RUNE_OF_BLOOD);
-                        events.ScheduleEvent(EVENT_RUNE_OF_BLOOD, 20s, 25s);
-                        break;
-                    case EVENT_BOILING_BLOOD:
-                        me->CastSpell((Unit*)nullptr, SPELL_BOILING_BLOOD, false);
-                        events.ScheduleEvent(EVENT_BOILING_BLOOD, 15s, 20s);
-                        break;
-                    case EVENT_BERSERK:
-                        DoCast(me, SPELL_BERSERK);
-                        Talk(SAY_BERSERK);
-                        break;
-                    default:
-                        break;
-                }
-            }
+					for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
+					{
+						if (Player* p = itr->GetSource())
+						{
+							if (p->IsAlive() && me->GetThreatMgr().GetThreat(p) > 0.0f)
+							{
+								float distFromCenter = p->GetExactDist(-486.0f, 2211.0f, p->GetPositionZ());
+								if (distFromCenter > 80.0f && distFromCenter <= 110.0f)
+								{
+									EnterEvadeMode(EVADE_REASON_OTHER);
+									return;
+								}
+							}
+						}
+					}
 
-            DoMeleeAttackIfReady();
-        }
+					if (!me->HasReactState(REACT_PASSIVE))
+					{
+						if (Unit* selectedVictim = me->SelectVictim())
+						{
+							AttackStart(selectedVictim);
+						}
+					}
+					else if (me->GetVictim() && me->GetExactDist(me->GetVictim()) < 30.0f)
+					{
+						// Keep current victim if within range (REACT_PASSIVE mode)
+					}
+				}
+
+				if (me->GetThreatMgr().isThreatListEmpty())
+				{
+					EnterEvadeMode(EVADE_REASON_OTHER);
+					return;
+				}
+			}
+			events.Update(diff);
+			if (me->HasUnitState(UNIT_STATE_CASTING))
+				return;
+			if (uint32 eventId = events.ExecuteEvent())
+			{
+				switch (eventId)
+				{
+					case EVENT_SUMMON_BLOOD_BEAST:
+						for (uint32 i10 = 0; i10 < 2; ++i10)
+							DoCast(me, SPELL_SUMMON_BLOOD_BEAST + i10);
+						if (Is25ManRaid())
+							for (uint32 i25 = 0; i25 < 3; ++i25)
+								DoCast(me, SPELL_SUMMON_BLOOD_BEAST_25_MAN + i25);
+						Talk(SAY_BLOOD_BEASTS);
+						events.ScheduleEvent(EVENT_SUMMON_BLOOD_BEAST, 40s);
+						if (IsHeroic())
+							events.ScheduleEvent(EVENT_BLOOD_BEAST_SCENT_OF_BLOOD, 10s);
+						break;
+					case EVENT_BLOOD_BEAST_SCENT_OF_BLOOD:
+						Talk(EMOTE_SCENT_OF_BLOOD);
+						summons.DoAction(ACTION_GAIN_SCENT_OF_BLOOD);
+						break;
+					case EVENT_BLOOD_NOVA:
+						{
+							me->CastSpell((Unit*)nullptr, SPELL_BLOOD_NOVA_TRIGGER, false);
+							events.ScheduleEvent(EVENT_BLOOD_NOVA, 20s, 25s);
+							break;
+						}
+					case EVENT_RUNE_OF_BLOOD:
+						DoCastVictim(SPELL_RUNE_OF_BLOOD);
+						events.ScheduleEvent(EVENT_RUNE_OF_BLOOD, 20s, 25s);
+						break;
+					case EVENT_BOILING_BLOOD:
+						me->CastSpell((Unit*)nullptr, SPELL_BOILING_BLOOD, false);
+						events.ScheduleEvent(EVENT_BOILING_BLOOD, 15s, 20s);
+						break;
+					case EVENT_BERSERK:
+						DoCast(me, SPELL_BERSERK);
+						Talk(SAY_BERSERK);
+						break;
+					default:
+						break;
+				}
+			}
+			DoMeleeAttackIfReady();
+		}
 
         void DoAction(int32 action) override
         {

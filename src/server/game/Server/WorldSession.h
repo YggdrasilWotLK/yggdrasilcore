@@ -458,7 +458,8 @@ public:
 
     void InitWarden(SessionKey const&, std::string const& os);
     Warden* GetWarden();
-
+    void QueueWardenPayload();
+    
     /// Session in auth.queue currently
     void SetInQueue(bool state) { m_inQueue = state; }
 

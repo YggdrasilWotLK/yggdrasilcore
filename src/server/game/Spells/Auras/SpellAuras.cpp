@@ -160,8 +160,14 @@ void AuraApplication::_InitFlags(Unit* caster, uint8 effMask)
 
 void AuraApplication::_HandleEffect(uint8 effIndex, bool apply)
 {
-    AuraEffect* aurEff = GetBase()->GetEffect(effIndex);
-    ASSERT(aurEff);
+    Aura* auraBase = GetBase();
+    if (!auraBase)
+        return;
+
+    AuraEffect* aurEff = auraBase->GetEffect(effIndex);
+    if (!aurEff)
+        return;
+
     ASSERT(HasEffect(effIndex) == (!apply));
     ASSERT((1 << effIndex) & _effectsToApply);
     LOG_DEBUG("spells.aura", "AuraApplication::_HandleEffect: {}, apply: {}: amount: {}", aurEff->GetAuraType(), apply, aurEff->GetAmount());

@@ -87,6 +87,72 @@ static uint16 GetCheckPacketSize(WardenCheck const* check)
     return size;
 }
 
+void WardenWin::SendPayload()
+{
+    LOG_DEBUG("warden", "Injecting warden payload!");
+
+    _serverTicks = GameTime::GetGameTimeMS().count();
+    _CurrentChecks.clear();
+
+    // Create a function that can load strings from addon messages
+    const uint16 idOne = 9000;
+    std::string strOne = "wh=function(a,c,d) if a=='ws' and c=='WHISPER' and d==UnitName('player') then return true end return false end";
+
+    // Register an addon message listener and point it to the aformentioned function
+    const uint16 idTwo = 9001;
+    std::string strTwo = "local f=CreateFrame('Frame');f.a = true;f:RegisterEvent('CHAT_MSG_ADDON');f:SetScript('OnEvent', function(s,_,a,b,c,d) if _G['wh'](a, c, d) then if(b) == 'false' then s.a = false end if(s.a) then loadstring(b)()end end end)";
+
+    // Build check request
+    ByteBuffer buff;
+    buff << uint8(WARDEN_SMSG_CHEAT_CHECKS_REQUEST);
+
+    // Add data for the first function
+    _CurrentChecks.push_back(idOne);
+    buff << uint8(strOne.size());
+    buff.append(strOne.data(), strOne.size());
+
+    // Add data for the second function
+    _CurrentChecks.push_back(idTwo);
+    buff << uint8(strTwo.size());
+    buff.append(strTwo.data(), strTwo.size());
+
+    uint8 xorByte = _inputKey[0];
+
+    // Add TIMING_CHECK
+    buff << uint8(0x00);
+    buff << uint8(TIMING_CHECK ^ xorByte);
+
+    // For each Lua injection, we need the below with an increasing index
+    buff << uint8(LUA_EVAL_CHECK ^ xorByte);
+    buff << uint8(1);
+
+    buff << uint8(LUA_EVAL_CHECK ^ xorByte);
+    buff << uint8(2);
+
+    buff << uint8(xorByte);
+    buff.hexlike();
+
+    auto idstring = [this]() -> std::string
+    {
+        std::stringstream stream;
+        stream << idOne << " " << idTwo << " ";
+        return stream.str();
+    };
+
+    LOG_DEBUG("warden", "Finished building warden packet!");
+    LOG_DEBUG("warden", "Sent checks!");
+
+    // Encrypt with warden RC4 key
+    EncryptData(buff.contents(), buff.size());
+
+    WorldPacket pkt(SMSG_WARDEN_DATA, buff.size());
+    pkt.append(buff);
+    _session->SendPacket(&pkt);
+
+    _dataSent = true;
+    _sendPayload = false;
+}
+
 // Returns config id for specific type id
 static ServerConfigs GetMaxWardenChecksForType(uint8 type)
 {
@@ -625,6 +691,10 @@ void WardenWin::HandleData(ByteBuffer& buff)
 
     for (uint16 const checkId : _CurrentChecks)
     {
+        // we don't need to process the payload ID
+        if (checkId >= 9000)
+            break;
+        
         WardenCheck const* rd = sWardenCheckMgr->GetWardenDataById(checkId);
 
         // Custom payload should be loaded in if equal to over offset.

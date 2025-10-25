@@ -1086,12 +1086,21 @@ struct boss_headless_horseman : public ScriptedAI
         if (type == WAYPOINT_MOTION_TYPE)
         {
             if (point == 0)
+            {
                 me->CastSpell(me, SPELL_HEAD_VISUAL, true);
+                me->SetCanFly(true);
+                me->SetDisableGravity(true);
+            }
+            else if (point > 0 && point < 11)
+            {
+                me->SetCanFly(true);
+                me->SetDisableGravity(true);
+            }
             else if (point == 11)
             {
                 me->ReplaceAllUnitFlags(UNIT_FLAG_NONE);
                 me->StopMoving();
-
+                me->SetCanFly(false);
                 me->SetDisableGravity(false);
 
                 me->SetInCombatWithZone();
@@ -1190,7 +1199,6 @@ struct boss_headless_horseman : public ScriptedAI
                                 trigger->CastSpell(trigger, SPELL_EARTH_EXPLOSION, true);
                             break;
                         case 3:
-                            me->SetDisableGravity(true);
                             me->GetMotionMaster()->MovePath(236820, false);
                             me->CastSpell(me, SPELL_SHAKE_CAMERA_SMALL, true);
                             player->Say(TALK_PLAYER_FELT_DEATH);

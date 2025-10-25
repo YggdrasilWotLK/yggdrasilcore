@@ -25,20 +25,18 @@
 
 enum Spells
 {
-    // BASIC FIGHT
     SPELL_MIND_FLAY                         = 57941,
     SPELL_SHADOW_BOLT_VOLLEY                = 57942,
     SPELL_SHIVER                            = 57949,
 
-    // INSANITY
     SPELL_INSANITY                          = 57496, //Dummy
     INSANITY_VISUAL                         = 57561,
     SPELL_CLONE_PLAYER                      = 57507, //casted on player during insanity
-    SPELL_INSANITY_PHASING_1                = 57508,
-    SPELL_INSANITY_PHASING_2                = 57509,
-    SPELL_INSANITY_PHASING_3                = 57510,
-    SPELL_INSANITY_PHASING_4                = 57511,
-    SPELL_INSANITY_PHASING_5                = 57512,
+    SPELL_INSANITY_PHASING_1                = 57508, // Phase 16
+    SPELL_INSANITY_PHASING_2                = 57509, // Phase 32
+    SPELL_INSANITY_PHASING_3                = 57510, // Phase 64
+    SPELL_INSANITY_PHASING_4                = 57511, // Phase 128
+    SPELL_INSANITY_PHASING_5                = 57512, // Phase 256
 
     SPELL_WHISPER_AGGRO                     = 60291,
     SPELL_WHISPER_INSANITY                  = 60292,
@@ -90,22 +88,19 @@ struct boss_volazj : public BossAI
 {
     boss_volazj(Creature* pCreature) : BossAI(pCreature, DATA_HERALD_VOLAZJ),
         insanityTimes(0),
-        insanityPhase(false)
-        { }
+        insanityQueue(0),
+        insanityPhase(false),
+        insanityCheckTimer(0)
+    { }
 
     void InitializeAI() override
     {
         BossAI::InitializeAI();
-        // Visible for all players in insanity
-        me->SetPhaseMask((1 | 16 | 32 | 64 | 128 | 256), true);
     }
 
     void Reset() override
     {
         _Reset();
-        insanityTimes = 0;
-        insanityPhase = false;
-
         me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         me->SetControlled(false, UNIT_STATE_STUNNED);
         ResetPlayersPhaseMask();
@@ -115,6 +110,11 @@ struct boss_volazj : public BossAI
     void JustEngagedWith(Unit* /*who*/) override
     {
         _JustEngagedWith();
+        insanityTimes = 0;
+        insanityQueue = 0;
+        insanityPhase = false;
+        insanityCheckTimer = 0; // Reset insanityCheckTimer
+        
         events.ScheduleEvent(EVENT_HERALD_MIND_FLAY, 8s);
         events.ScheduleEvent(EVENT_HERALD_SHADOW, 5s);
         events.ScheduleEvent(EVENT_HERALD_SHIVER, 15s);
@@ -122,6 +122,7 @@ struct boss_volazj : public BossAI
         DoCastSelf(SPELL_WHISPER_AGGRO);
         instance->DoStartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_QUICK_DEMISE_START_EVENT);
         me->SetInCombatWithZone();
+        me->SetPhaseMask((1 | 16 | 32 | 64 | 128 | 256), true);
     }
 
     void JustDied(Unit* /*killer*/) override
@@ -134,17 +135,13 @@ struct boss_volazj : public BossAI
         switch (urand(0, 1))
         {
             case 0:
-            {
                 Talk(SAY_DEATH_1);
                 DoCastSelf(SPELL_WHISPER_DEATH_1, true);
                 break;
-            }
             case 1:
-            {
                 Talk(SAY_DEATH_2);
                 DoCastSelf(SPELL_WHISPER_DEATH_2, true);
                 break;
-            }
         }
     }
 
@@ -155,117 +152,285 @@ struct boss_volazj : public BossAI
             switch (urand(0, 2))
             {
                 case 0:
-                {
                     Talk(SAY_SLAY_1);
                     DoCastSelf(SPELL_WHISPER_SLAY_1);
                     break;
-                }
                 case 1:
-                {
                     Talk(SAY_SLAY_2);
                     DoCastSelf(SPELL_WHISPER_SLAY_2);
                     break;
-                }
                 case 2:
-                {
                     Talk(SAY_SLAY_3);
                     DoCastSelf(SPELL_WHISPER_SLAY_3);
                     break;
-                }
             }
-        }
-    }
-
-    void SetData(uint32 type, uint32 value) override
-    {
-        if (type == DATA_SET_INSANITY_PHASE)
-        {
-            insanityPhase = (value != 0);
         }
     }
 
     void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damagetype*/, SpellSchoolMask /*damageSchoolMask*/) override
     {
-        // Do not perform insanity recast if boss is casting Insanity already
-        if (me->FindCurrentSpellBySpellId(SPELL_INSANITY))
+        if (me->HealthBelowPctDamaged(66, damage) && insanityTimes == 0)
         {
-            return;
+            if (!me->HasUnitState(UNIT_STATE_CASTING))
+            {
+                if (insanityQueue == 0)
+                {
+                    DoCastSelf(SPELL_INSANITY);
+                    insanityQueue = 1;
+                }
+            }
+        }
+        else if (me->HealthBelowPctDamaged(33, damage) && insanityTimes == 1)
+        {
+            if (!me->HasUnitState(UNIT_STATE_CASTING))
+            {
+                if (insanityQueue == 0)
+                {
+                    DoCastSelf(SPELL_INSANITY);
+                    insanityQueue = 1;
+                }
+            }
+        }
+    }
+
+    void StartInsanity()
+    {
+        me->InterruptNonMeleeSpells(false);
+        insanityPhase = true;
+        insanityCheckTimer = 0;
+        
+        me->RemoveAllAuras();
+        DoCastSelf(INSANITY_VISUAL, true);
+        me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+        me->SetControlled(true, UNIT_STATE_STUNNED);
+
+        std::list<Player*> playerList;
+        Map::PlayerList const& players = me->GetMap()->GetPlayers();
+        for (auto const& i : players)
+        {
+            if (Player* player = i.GetSource())
+            {
+                if (player->IsAlive() && player->GetDistance(me) < 400)
+                    playerList.push_back(player);
+            }
+        }
+        
+        uint32 insanityCounter = 0;
+        uint8 playerCount = std::min(static_cast<uint8>(5), static_cast<uint8>(playerList.size()));
+
+        if (playerCount > 1)
+        {
+            // Step 1: Make all players spawn their clones before phasing, to ensure mirror image packet reaches all clients
+            std::unordered_map<Player*, std::vector<Creature*>> playerClones;
+            for (Player* activePlayer : playerList)
+            {
+                for (Player* target : playerList)
+                {
+                    if (target == activePlayer || !target->IsAlive() || !activePlayer->IsAlive()) // Don't clone own phase, and don't clone dead players
+                        continue;
+
+                    if (Creature* clone = me->SummonCreature(NPC_TWISTED_VISAGE, target->GetPosition(), TEMPSUMMON_CORPSE_DESPAWN))
+                    {
+                        activePlayer->CastSpell(clone, SPELL_CLONE_PLAYER, true);
+                        clone->SetUInt32Value(UNIT_FIELD_MINDAMAGE, target->GetUInt32Value(UNIT_FIELD_MINDAMAGE));
+                        clone->SetUInt32Value(UNIT_FIELD_MAXDAMAGE, target->GetUInt32Value(UNIT_FIELD_MAXDAMAGE));
+                        playerClones[activePlayer].push_back(clone);
+                    }
+                }
+            }
+
+            // Step 2: Phase players
+            for (Player* activePlayer : playerList)
+            {
+                if (!activePlayer->IsAlive()) // Failsafe to not phase dead players as the phase sticks after ress
+                    break;
+
+                if (insanityCounter >= MAX_INSANITY_TARGETS)
+                    break;
+
+                activePlayer->CastSpell(activePlayer, InsanitySpells[insanityCounter], true);
+                ++insanityCounter;
+            }
+
+            // Step 3: Assign the appropriate phases to all clones and set them in combat with their targets
+            uint32 phases1[] = {16, 32, 64, 128};
+            uint32 phases2[] = {32, 64, 128, 256};
+            uint32 phases3[] = {16, 64, 128, 256};
+            uint32 phases4[] = {16, 32, 128, 256};
+            uint32 phases5[] = {16, 32, 64, 256};
+
+            uint32* phases = phases1;
+            size_t phasesSize = 4;
+
+            for (auto& [activePlayer, clones] : playerClones)
+            {
+                switch (activePlayer->GetPhaseMask())
+                {
+                    case 16: phases = phases2; break;
+                    case 32: phases = phases3; break;
+                    case 64: phases = phases4; break;
+                    case 128: phases = phases5; break;
+                    case 256: phases = phases1; break;
+                    default: phases = phases1; break;
+                }
+                    
+                for (size_t i = 0; i < clones.size() && i < phasesSize; ++i)
+                {
+                    Creature* clone = clones[i];
+                    Player* target = *(std::next(playerList.begin(), i % playerList.size()));
+
+                    clone->SetPhaseMask(phases[i], true);
+                    clone->SetInCombatWith(target);
+                    target->SetInCombatWith(clone);
+                    clone->AddThreat(target, 0.0f);
+                }
+            }
         }
 
-        // First insanity
-        if (insanityTimes == 0 && me->HealthBelowPctDamaged(66, damage))
-        {
-            DoCastSelf(SPELL_INSANITY, false);
-            ++insanityTimes;
-        }
-        // Second insanity
-        else if (insanityTimes == 1 && me->HealthBelowPctDamaged(33, damage))
-        {
-            me->InterruptNonMeleeSpells(false);
-            DoCastSelf(SPELL_INSANITY, false);
-            ++insanityTimes;
-        }
+        Talk(SAY_INSANITY);
+        DoCastSelf(SPELL_WHISPER_INSANITY, true);
     }
 
     void UpdateAI(uint32 diff) override
     {
-        //Return since we have no target
         if (!UpdateVictim())
-        {
             return;
-        }
-
+        
         if (insanityPhase)
         {
-            if (!CheckPhaseMinions())
+            insanityCheckTimer += diff;
+            if (insanityCheckTimer >= 2000) // Check insanity phase status every 2 seconds to reduce load
             {
-                return;
+                insanityCheckTimer = 0;
+
+                uint32 phaseMasks[] = { 16, 32, 64, 128, 256 }; // Define the phase masks to check
+                bool phaseHasCreatures[5] = { false };
+                bool phaseHasPlayers[5] = { false };
+
+                // Check for clones in each phase
+                std::list<Creature*> summonedCreatures;
+                me->GetCreatureListWithEntryInGrid(summonedCreatures, NPC_TWISTED_VISAGE, 100.0f);
+
+                for (Creature* summon : summonedCreatures)
+                {
+                    for (uint32 i = 0; i < 5; ++i)
+                    {
+                        if (summon->GetPhaseMask() & phaseMasks[i])
+                            phaseHasCreatures[i] = true;
+                    }
+                }
+
+                // Check if any players are alive in each phase
+                Map::PlayerList const& players = me->GetMap()->GetPlayers();
+                for (auto const& i : players)
+                {
+                    if (Player* player = i.GetSource())
+                    {
+                        for (uint32 j = 0; j < 5; ++j)
+                        {
+                            if (player->GetPhaseMask() & phaseMasks[j] && player->IsAlive())
+                                phaseHasPlayers[j] = true;
+                        }
+                    }
+                }
+
+                // Move players between phases if their phase has no clones left
+                for (auto const& i : players)
+                {
+                    if (Player* player = i.GetSource())
+                    {
+                        uint32 currentPhaseMask = player->GetPhaseMask();
+                        bool currentPhaseHasCreatures = false;
+                        bool currentPhaseHasPlayers = false;
+
+                        for (uint32 l = 0; l < 5; ++l)
+                        {
+                            if (currentPhaseMask & phaseMasks[l])
+                            {
+                                currentPhaseHasCreatures = phaseHasCreatures[l];
+                                currentPhaseHasPlayers = phaseHasPlayers[l];
+                                break;
+                            }
+                        }
+
+                        // Condition 1: If the player is in a phase with no clones but other phases have clones
+                        if (!currentPhaseHasCreatures)
+                        {
+                            for (uint32 m = 0; m < 5; ++m)
+                            {
+                                if (phaseHasCreatures[m])
+                                {
+                                    player->SetPhaseMask(phaseMasks[m], true);
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Condition 2: If clones are in a phase with no living players, move players to that phase if those players' phase has no clones
+                        else if (currentPhaseHasCreatures && !currentPhaseHasPlayers)
+                        {
+                            for (uint32 n = 0; n < 5; ++n)
+                            {
+                                if (phaseHasCreatures[n] && !phaseHasPlayers[n])
+                                {
+                                    player->SetPhaseMask(phaseMasks[n], true);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (!phaseHasCreatures[0] && !phaseHasCreatures[1] && !phaseHasCreatures[2]
+                && !phaseHasCreatures[3] && !phaseHasCreatures[4])
+                {
+                    // Reset all players to phase 1 and remove insanity phase spell
+                    Map::PlayerList const& players = me->GetMap()->GetPlayers();
+                    for (auto const& i : players)
+                    {
+                        if (Player* player = i.GetSource())
+                            ResetPlayersPhaseMask();
+                    }
+
+                    insanityPhase = false;
+                    me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                    me->SetControlled(false, UNIT_STATE_STUNNED);
+                    me->RemoveAurasDueToSpell(INSANITY_VISUAL);
+                    insanityQueue = 0;
+                }
             }
-
-            insanityPhase = false;
-            me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-            me->SetControlled(false, UNIT_STATE_STUNNED);
-            me->RemoveAurasDueToSpell(INSANITY_VISUAL);
         }
 
-        events.Update(diff);
-        if (me->HasUnitState(UNIT_STATE_CASTING))
+        if ((insanityQueue == 1) && (!me->HasUnitState(UNIT_STATE_CASTING)))
         {
-            return;
+            insanityQueue = 2;
+            StartInsanity();
+            insanityTimes++;
         }
+        
+        events.Update(diff);
 
-        while (uint32 const eventId = events.ExecuteEvent())
+        while (uint32 eventId = events.ExecuteEvent())
         {
             switch (eventId)
             {
                 case EVENT_HERALD_MIND_FLAY:
-                {
-                    DoCastVictim(SPELL_MIND_FLAY, false);
+                    DoCastVictim(SPELL_MIND_FLAY);
                     events.Repeat(20s);
                     break;
-                }
                 case EVENT_HERALD_SHADOW:
-                {
-                    DoCastVictim(SPELL_SHADOW_BOLT_VOLLEY, false);
+                    DoCastVictim(SPELL_SHADOW_BOLT_VOLLEY);
                     events.Repeat(5s);
                     break;
-                }
                 case EVENT_HERALD_SHIVER:
-                {
-                    if (Unit* pTarget = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
-                    {
-                        DoCast(pTarget, SPELL_SHIVER, false);
-                    }
-
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random))
+                        DoCast(target, SPELL_SHIVER);
                     events.Repeat(15s);
                     break;
-                }
             }
 
             if (me->HasUnitState(UNIT_STATE_CASTING))
-            {
                 return;
-            }
         }
 
         DoMeleeAttackIfReady();
@@ -273,7 +438,9 @@ struct boss_volazj : public BossAI
 
 private:
     uint8 insanityTimes;
-    bool insanityPhase;     // Indicates if boss enter to insanity phase
+    uint8 insanityQueue;
+    bool insanityPhase;
+    uint32 insanityCheckTimer; // Granulation to reduce load of expensive script
 
     uint32 GetPlrInsanityAuraId(uint32 phaseMask) const
     {
@@ -290,7 +457,6 @@ private:
             case 256:
                 return SPELL_INSANITY_PHASING_5;
         }
-
         return 0;
     }
 
@@ -299,146 +465,19 @@ private:
         Map::PlayerList const& players = me->GetMap()->GetPlayers();
         for (auto const& i : players)
         {
-            if (Player* pPlayer = i.GetSource())
+            if (Player* player = i.GetSource())
             {
-                if (uint32 const insanityAura = GetPlrInsanityAuraId(pPlayer->GetPhaseMask()))
-                {
-                    pPlayer->RemoveAurasDueToSpell(insanityAura);
-                }
+                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_1);
+                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_2);
+                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_3);
+                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_4);
+                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_5);
+                player->SetPhaseMask(1, true);
             }
         }
-    }
-
-    bool CheckPhaseMinions()
-    {
-        summons.RemoveNotExisting();
-        if (summons.empty())
-        {
-            ResetPlayersPhaseMask();
-            return true;
-        }
-
-        uint32 phase = 1;
-        for (ObjectGuid const& summonGUID : summons)
-        {
-            if (Creature* summon = ObjectAccessor::GetCreature(*me, summonGUID))
-            {
-                phase |= summon->GetPhaseMask();
-            }
-        }
-
-        Map::PlayerList const& players = me->GetMap()->GetPlayers();
-        for (auto const& i : players)
-        {
-            Player* pPlayer = i.GetSource();
-            if (pPlayer && !(pPlayer->GetPhaseMask() & phase))
-            {
-                pPlayer->RemoveAurasDueToSpell(GetPlrInsanityAuraId(pPlayer->GetPhaseMask()));
-            }
-        }
-
-        return false;
     }
 };
 
-// 57496 Insanity
-class spell_herald_volzaj_insanity : public SpellScript
-{
-    PrepareSpellScript(spell_herald_volzaj_insanity);
-
-    bool Load() override { return GetCaster()->IsCreature(); }
-
-    void HandleDummyEffect(std::list<WorldObject*>& targets)
-    {
-        Unit* caster = GetCaster();
-        if (!caster)
-        {
-            targets.clear();
-            return;
-        }
-
-        if (!targets.empty())
-        {
-            targets.remove_if([this](WorldObject* targetObj) -> bool
-            {
-                return !targetObj || !targetObj->IsPlayer() || !GetCaster()->IsInCombatWith(targetObj->ToPlayer()) ||
-                        targetObj->GetDistance(GetCaster()) >= (MAX_VISIBILITY_DISTANCE * 2);
-            });
-        }
-
-        if (targets.empty())
-            return;
-
-        // Start channel visual and set self as unnattackable
-        caster->ToCreature()->AI()->Talk(SAY_INSANITY);
-        caster->CastSpell(caster, SPELL_WHISPER_INSANITY, true);
-        caster->RemoveAllAuras();
-        caster->CastSpell(caster, INSANITY_VISUAL, true);
-        caster->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-        caster->SetControlled(true, UNIT_STATE_STUNNED);
-
-        // Handle phase effect
-        uint32 insanityCounter = 0;
-        std::list<WorldObject*>::const_iterator itr = targets.begin();
-        while (itr != targets.end() && insanityCounter < MAX_INSANITY_TARGETS)
-        {
-            WorldObject* targetObj = *itr;
-            if (!targetObj)
-                continue;
-
-            Player* plrTarget = targetObj->ToPlayer();
-            // This should never happen, spell has attribute SPELL_ATTR3_ONLY_TARGET_PLAYERS
-            if (!plrTarget)
-                continue;
-
-            // phase mask
-            plrTarget->CastSpell(plrTarget, InsanitySpells.at(insanityCounter), true);
-
-            // Summon clone
-            for (std::list<WorldObject*>::const_iterator itr2 = targets.begin(); itr2 != targets.end(); ++itr2)
-            {
-                // Should not make clone of current player target
-                Player* plrClone = *itr2 ? (*itr2)->ToPlayer() : nullptr;
-                if (!plrClone || plrClone == plrTarget || !plrClone->IsAlive())
-                    continue;
-
-                if (Unit* summon = caster->SummonCreature(NPC_TWISTED_VISAGE, plrClone->GetPosition(), TEMPSUMMON_CORPSE_DESPAWN, 0))
-                {
-                    plrClone->CastSpell(summon, SPELL_CLONE_PLAYER, true);
-
-                    summon->AddThreat(plrTarget, 0.0f);
-                    summon->SetInCombatWith(plrTarget);
-                    plrTarget->SetInCombatWith(summon);
-                    summon->SetPhaseMask(1 | (1 << (4 + insanityCounter)), true);
-                    summon->SetUInt32Value(UNIT_FIELD_MINDAMAGE, plrClone->GetUInt32Value(UNIT_FIELD_MINDAMAGE));
-                    summon->SetUInt32Value(UNIT_FIELD_MAXDAMAGE, plrClone->GetUInt32Value(UNIT_FIELD_MAXDAMAGE));
-                }
-            }
-
-            ++insanityCounter;
-            ++itr;
-        }
-    }
-
-    void HandleAfterCast()
-    {
-        GetCaster()->ToCreature()->AI()->SetData(DATA_SET_INSANITY_PHASE, 1);
-    }
-
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_herald_volzaj_insanity::HandleDummyEffect, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-        AfterCast += SpellCastFn(spell_herald_volzaj_insanity::HandleAfterCast);
-    }
-};
-
-// 60291 Volazj Whisper: Aggro
-// 60292 Volazj Whisper: Insanity
-// 60293 Volazj Whisper: Slay 01
-// 60294 Volazj Whisper: Slay 02
-// 60295 Volazj Whisper: Slay 03
-// 60296 Volazj Whisper: Death 01
-// 60297 Volazj Whisper: Death 02
 class spell_volazj_whisper : public SpellScript
 {
     PrepareSpellScript(spell_volazj_whisper);
@@ -492,6 +531,5 @@ class spell_volazj_whisper : public SpellScript
 void AddSC_boss_volazj()
 {
     RegisterAhnKahetCreatureAI(boss_volazj);
-    RegisterSpellScript(spell_herald_volzaj_insanity);
     RegisterSpellScript(spell_volazj_whisper);
 }

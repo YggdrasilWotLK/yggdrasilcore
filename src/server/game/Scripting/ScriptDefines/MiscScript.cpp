@@ -18,6 +18,7 @@
 #include "MiscScript.h"
 #include "ScriptMgr.h"
 #include "ScriptMgrMacros.h"
+#include "World.h"
 
 void ScriptMgr::OnConstructObject(Object* origin)
 {
@@ -26,6 +27,12 @@ void ScriptMgr::OnConstructObject(Object* origin)
 
 void ScriptMgr::OnDestructObject(Object* origin)
 {
+    // Don't try to run script hooks during shutdown
+    if (!origin || (World::IsStopped()))
+    {
+        return;
+    }
+
     CALL_ENABLED_HOOKS(MiscScript, MISCHOOK_ON_DESTRUCT_OBJECT, script->OnDestructObject(origin));
 }
 

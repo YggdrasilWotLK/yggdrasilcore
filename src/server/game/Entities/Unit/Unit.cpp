@@ -9520,13 +9520,31 @@ bool Unit::HandleProcTriggerSpell(Unit* victim, uint32 damage, AuraEffect* trigg
             }
         // Persistent Shield (Scarab Brooch trinket)
         // This spell originally trigger 13567 - Dummy Trigger (vs dummy efect)
-        case 26467:
-            {
-                basepoints0 = int32(CalculatePct(damage, 15));
-                target = victim;
-                trigger_spell_id = 26470;
-                break;
-            }
+		// Changed by mostly nick :) to apply aura directly instead of casting spell on each player, change visual, and 25% instead of 15%
+		case 26467:
+			{
+				basepoints0 = int32(CalculatePct(damage, 25));
+				target = victim;
+				trigger_spell_id = 26470;
+
+				SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(trigger_spell_id);
+				if (!spellInfo)
+					return false;
+				
+				if (target)
+				{
+					if (Aura* aura = target->AddAura(trigger_spell_id, target))
+						if (AuraEffect* eff = aura->GetEffect(EFFECT_0))
+							eff->SetAmount(basepoints0); // Set the custom amount for the aura effect
+					else
+						return false;
+				}
+				else
+					return false;
+
+				return true;
+			}
+
         // Unyielding Knights (item exploit 29108\29109)
         case 38164:
             {

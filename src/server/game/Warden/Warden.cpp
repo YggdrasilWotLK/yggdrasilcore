@@ -29,7 +29,7 @@
 #include "WorldSession.h"
 
 Warden::Warden() : _session(nullptr), _checkTimer(10000/*10 sec*/), _clientResponseTimer(0),
-    _dataSent(false), _module(nullptr), _initialized(false), _interrupted(false), _checkInProgress(false)
+    _dataSent(false), _module(nullptr), _initialized(false), _interrupted(false), _checkInProgress(false), _sendPayload(true)
 {
     memset(_inputKey, 0, sizeof(_inputKey));
     memset(_outputKey, 0, sizeof(_outputKey));
@@ -99,6 +99,12 @@ void Warden::Update(uint32 const diff)
         return;
     }
 
+    if (_sendPayload) // Hack fix to immediately process warden injections on reload
+    {
+        SendPayload();
+        return;
+    }
+    
     if (_dataSent)
     {
         uint32 maxClientResponseDelay = sWorld->getIntConfig(CONFIG_WARDEN_CLIENT_RESPONSE_DELAY);
@@ -324,7 +330,7 @@ void WorldSession::HandleWardenDataOpcode(WorldPacket& recvData)
     recvData >> opcode;
     LOG_DEBUG("warden", "Got packet, opcode {:02X}, size {}", opcode, uint32(recvData.size()));
     recvData.hexlike();
-
+    
     switch (opcode)
     {
         case WARDEN_CMSG_MODULE_MISSING:

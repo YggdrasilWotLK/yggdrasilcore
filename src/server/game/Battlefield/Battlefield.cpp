@@ -522,6 +522,20 @@ void Battlefield::ShowNpc(Creature* creature, bool aggressive)
     }
 }
 
+void Battlefield::ShowWGNpc(Creature* creature, bool aggressive) // Clone of ShowNpc but without instant respawn, for WG
+{
+    creature->SetPhaseMask(1, false);
+    creature->SetVisible(true);
+    creature->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+    if (aggressive)
+        creature->SetReactState(REACT_AGGRESSIVE);
+    else
+    {
+        creature->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+        creature->SetReactState(REACT_PASSIVE);
+    }
+}
+
 // ****************************************************
 // ******************* Group System *******************
 // ****************************************************

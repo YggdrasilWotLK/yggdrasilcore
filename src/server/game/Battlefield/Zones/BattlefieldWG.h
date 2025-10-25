@@ -1339,7 +1339,7 @@ struct BfWGGameObjectBuilding
 
         for (GuidUnorderedSet::const_iterator itr = m_CreatureTopList[m_WG->GetAttackerTeam()].begin(); itr != m_CreatureTopList[m_WG->GetAttackerTeam()].end(); ++itr)
             if (Creature* creature = m_WG->GetCreature(*itr))
-                m_WG->ShowNpc(creature, true);
+                m_WG->ShowWGNpc(creature, true);
 
         for (GuidUnorderedSet::const_iterator itr = m_CreatureBottomList[m_WG->GetDefenderTeam()].begin(); itr != m_CreatureBottomList[m_WG->GetDefenderTeam()].end(); ++itr)
             if (Creature* creature = m_WG->GetCreature(*itr))
@@ -1347,7 +1347,7 @@ struct BfWGGameObjectBuilding
 
         for (GuidUnorderedSet::const_iterator itr = m_CreatureBottomList[m_WG->GetAttackerTeam()].begin(); itr != m_CreatureBottomList[m_WG->GetAttackerTeam()].end(); ++itr)
             if (Creature* creature = m_WG->GetCreature(*itr))
-                m_WG->ShowNpc(creature, true);
+                m_WG->ShowWGNpc(creature, true);
 
         for (GameObjectSet::const_iterator itr = m_GameObjectList[m_WG->GetDefenderTeam()].begin(); itr != m_GameObjectList[m_WG->GetDefenderTeam()].end(); ++itr)
             (*itr)->SetRespawnTime(RESPAWN_ONE_DAY);

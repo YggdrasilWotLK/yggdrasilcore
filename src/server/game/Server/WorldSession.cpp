@@ -1379,6 +1379,12 @@ void WorldSession::InitWarden(SessionKey const& k, std::string const& os)
     }
 }
 
+void WorldSession::QueueWardenPayload()
+{
+    if (_warden)
+        _warden->QueuePayload();
+}
+
 Warden* WorldSession::GetWarden()
 {
     return &(*_warden);

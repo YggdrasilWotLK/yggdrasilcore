@@ -371,7 +371,7 @@ void BattlefieldWG::OnBattleEnd(bool endByTimer)
 
     for (GuidUnorderedSet::const_iterator itr = KeepCreature[GetDefenderTeam()].begin(); itr != KeepCreature[GetDefenderTeam()].end(); ++itr)
         if (Creature* creature = GetCreature(*itr))
-            ShowNpc(creature, true);
+            ShowWGNpc(creature, true);
 
     // Change all npc out of keep
     for (GuidUnorderedSet::const_iterator itr = OutsideCreature[GetDefenderTeam()].begin(); itr != OutsideCreature[GetDefenderTeam()].end(); ++itr)
@@ -380,7 +380,7 @@ void BattlefieldWG::OnBattleEnd(bool endByTimer)
 
     for (GuidUnorderedSet::const_iterator itr = OutsideCreature[GetAttackerTeam()].begin(); itr != OutsideCreature[GetAttackerTeam()].end(); ++itr)
         if (Creature* creature = GetCreature(*itr))
-            ShowNpc(creature, true);
+            ShowWGNpc(creature, true);
 
     // Update all graveyard, control is to defender when no wartime
     for (uint8 i = 0; i < BATTLEFIELD_WG_GY_HORDE; i++)

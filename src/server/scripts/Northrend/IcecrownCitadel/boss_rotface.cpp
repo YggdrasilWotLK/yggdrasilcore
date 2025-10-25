@@ -65,6 +65,7 @@ enum Spells
     SPELL_UNSTABLE_OOZE_EXPLOSION           = 69839,
     SPELL_STICKY_OOZE                       = 69774,
     SPELL_UNSTABLE_OOZE_EXPLOSION_TRIGGER   = 69832,
+    SPELL_STUN                              = 61204,    // 2 sec freeze timer for newly summoned big ooze
 
     // Precious
     SPELL_MORTAL_WOUND                      = 71127,
@@ -86,6 +87,7 @@ enum Events
     EVENT_ROTFACE_VILE_GAS,
 
     EVENT_STICKY_OOZE,
+    EVENT_REMOVE_STUN,
 
     // Precious
     EVENT_DECIMATE,
@@ -468,7 +470,9 @@ public:
                 me->CastSpell(me, SPELL_RADIATING_OOZE, true);
                 me->CastSpell(me, SPELL_UNSTABLE_OOZE, true);
                 me->CastSpell(me, SPELL_GREEN_ABOMINATION_HITTIN__YA_PROC, true);
+                me->CastSpell(me, SPELL_STUN, true); // Freeze for 2 sec
                 events.Reset();
+                events.ScheduleEvent(EVENT_REMOVE_STUN, 2s); // Remove freeze
                 events.ScheduleEvent(EVENT_STICKY_OOZE, 5s);
                 DoResetThreatList();
                 me->SetInCombatWithZone();
@@ -486,6 +490,10 @@ public:
                 case EVENT_STICKY_OOZE:
                     me->CastSpell(me->GetVictim(), SPELL_STICKY_OOZE, false);
                     events.ScheduleEvent(EVENT_STICKY_OOZE, 15s);
+                    break;
+                case EVENT_REMOVE_STUN:
+                    me->RemoveAurasDueToSpell(SPELL_STUN);
+                    break;
                 default:
                     break;
             }

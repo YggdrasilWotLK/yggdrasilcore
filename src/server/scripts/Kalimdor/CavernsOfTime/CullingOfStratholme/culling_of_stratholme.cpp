@@ -570,13 +570,30 @@ public:
                     eventInRun = true;
                     break;
                 // Reached Town Hall
-                case 20:
-                    if (pInstance)
-                        pInstance->SetData(DATA_ARTHAS_EVENT, COS_PROGRESS_REACHED_TOWN_HALL);
-                    me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                    me->SetWalk(true);
-                    SetEscortPaused(true);
-                    break;
+				case 20:
+					if (me->IsInCombat())
+					{
+						me->GetThreatMgr().ClearAllThreat();
+						me->CombatStop(true);
+						
+						std::list<Creature*> creatureList;
+						me->GetCreaturesWithEntryInRange(creatureList, 10000.0f, 0);
+						
+						for (Creature* creature : creatureList)
+						{
+							if (creature && creature->IsAlive() && creature->IsInCombatWith(me))
+							{
+								creature->GetThreatMgr().ClearAllThreat();
+							}
+						}
+					}
+					
+					if (pInstance)
+						pInstance->SetData(DATA_ARTHAS_EVENT, COS_PROGRESS_REACHED_TOWN_HALL);
+					me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+					SetRun(false);
+					SetEscortPaused(true);
+					break;
                 // Inside Town Hall first scene pos
                 case 22:
                     actionEvents.ScheduleEvent(EVENT_ACTION_PHASE3, 0ms);

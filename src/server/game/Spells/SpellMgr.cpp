@@ -3381,7 +3381,9 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
             case 43138: // North Fleet Reservist Kill Credit
                 spellInfo->AttributesCu |= SPELL_ATTR0_CU_ALLOW_INFLIGHT_TARGET;
                 break;
+            case 3045: // Rapid Fire
             case 6197: // Eagle Eye
+            case 19577: // Intimidation
                 spellInfo->AttributesCu |= SPELL_ATTR0_CU_NO_INITIAL_THREAT;
                 break;
             case 50315: // Disco Ball

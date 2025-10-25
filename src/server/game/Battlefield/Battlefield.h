@@ -348,6 +348,7 @@ public:
 
     void HideNpc(Creature* creature);
     void ShowNpc(Creature* creature, bool aggressive);
+    void ShowWGNpc(Creature* creature, bool aggressive);
 
     GraveyardVect GetGraveyardVector() { return m_GraveyardList; }
 

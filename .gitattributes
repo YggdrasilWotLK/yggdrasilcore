@@ -28,3 +28,9 @@
 
 # Ignore sql/* files
 data/sql/*    linguist-documentation
+
+
+# We don't want any merge accidentally deleting our Docker setup (as opposed to overriding literally the whole docker compose)
+docker-compose.yml merge=ours
+/apps/docker/Dockerfile merge=ours
+/apps/startup-scripts/gdb.conf merge=ours

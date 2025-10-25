@@ -693,7 +693,7 @@ public:
 
         void JustEngagedWith(Unit* target) override
         {
-            if (!instance->CheckRequiredBosses(DATA_THE_LICH_KING, target->ToPlayer()) || !me->IsVisible())
+            if (!me->IsVisible()) // (!instance->CheckRequiredBosses(DATA_THE_LICH_KING, who->ToPlayer()) || !me->IsVisible())
             {
                 EnterEvadeMode(EVADE_REASON_OTHER);
                 instance->DoCastSpellOnPlayers(LIGHT_S_HAMMER_TELEPORT);
@@ -867,10 +867,37 @@ public:
                 case NPC_RAGING_SPIRIT:
                     summon->SetHomePosition(CenterPosition);
                     break;
-                case NPC_VILE_SPIRIT:
+                    case NPC_VILE_SPIRIT:
                     {
                         summon->SetReactState(REACT_PASSIVE);
-                        summon->GetMotionMaster()->MoveRandom(10.0f);
+                        summon->SetDisableGravity(true);
+                        
+                        // Initial Z movement
+                        float x = summon->GetPositionX();
+                        float y = summon->GetPositionY();
+                        summon->GetMotionMaster()->MovePoint(0, x, y, 853.4f);
+
+                        // Some random wander with reapplication of no gravity (flight) to prevent stutters
+                        summon->m_Events.AddEventAtOffset([summon] {
+                            summon->SetDisableGravity(true);
+                            summon->GetMotionMaster()->MovePoint(0, summon->GetPositionX() + frand(-5, 5), summon->GetPositionY() + frand(-5, 5), 853.4);
+                        }, 3s);
+
+                        summon->m_Events.AddEventAtOffset([summon] {
+                            summon->SetDisableGravity(true);
+                            summon->GetMotionMaster()->MovePoint(0, summon->GetPositionX() + frand(-5, 5), summon->GetPositionY() + frand(-5, 5), 853.4);
+                        }, 6s);
+
+                        summon->m_Events.AddEventAtOffset([summon] {
+                            summon->SetDisableGravity(true);
+                            summon->GetMotionMaster()->MovePoint(0, summon->GetPositionX() + frand(-5, 5), summon->GetPositionY() + frand(-5, 5), 853.4);
+                        }, 9s);
+
+                        summon->m_Events.AddEventAtOffset([summon] {
+                            summon->SetDisableGravity(true);
+                            summon->GetMotionMaster()->MovePoint(0, summon->GetPositionX() + frand(-5, 5), summon->GetPositionY() + frand(-5, 5), 853.4);
+                        }, 12s);
+
                         if (_phase == PHASE_THREE)
                             summon->m_Events.AddEventAtOffset(new VileSpiritActivateEvent(summon), 15s);
                         break;
@@ -2559,16 +2586,24 @@ public:
                         _events.ScheduleEvent(EVENT_GRAB_PLAYER, 2s);
                     }
                     break;
-                case EVENT_MOVE_TO_DROP_POS:
-                    grabbed = true;
-                    _lastSpeed = me->GetSpeed(MOVE_WALK);
-                    me->AddUnitState(UNIT_STATE_NO_ENVIRONMENT_UPD);
-                    me->SetCanFly(false);
-                    me->SetDisableGravity(false);
-                    me->GetMotionMaster()->MovePoint(POINT_DROP_PLAYER, _destPoint, FORCED_MOVEMENT_NONE, 0.f, false);
-                    me->SetDisableGravity(true);
-                    me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-                    break;
+				case EVENT_MOVE_TO_DROP_POS:
+					if (!me->HasAura(68985)) // Reciprocal vehicle aura
+					{
+						_events.Reset();
+						_events.ScheduleEvent(EVENT_GRAB_PLAYER, 500ms);
+						_grabbedPlayer.Clear();
+						break;
+					}
+
+					grabbed = true;
+					_lastSpeed = me->GetSpeed(MOVE_WALK);
+					me->AddUnitState(UNIT_STATE_NO_ENVIRONMENT_UPD);
+					me->SetCanFly(false);
+					me->SetDisableGravity(false);
+					me->GetMotionMaster()->MovePoint(POINT_DROP_PLAYER, _destPoint, false);
+					me->SetDisableGravity(true, true);
+					me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+					break;
                 case EVENT_MOVE_TO_SIPHON_POS:
                     me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE); // just in case if passenger disappears so quickly that EVENT_MOVE_TO_DROP_POS is never executed
                     { int32 bp0 = 80; me->CastCustomSpell(me, 1557, &bp0, nullptr, nullptr, true); }

@@ -771,9 +771,14 @@ void Creature::Update(uint32 diff)
             }
 
             Unit* owner = GetCharmerOrOwner();
-            if (IsCharmed() && !IsWithinDistInMap(owner, GetMap()->GetVisibilityRange(), true, false))
+            if (HasAuraType(SPELL_AURA_MOD_CHARM) && owner && GetAreaId() != owner->GetAreaId() && !IsWithinDistInMap(owner, GetMap()->GetVisibilityRange(), true, false))
             {
                 RemoveCharmAuras();
+                if (Creature* creature = ToCreature())
+                {
+                    creature->SetRespawnDelay(1);  // 1 second respawn
+                    creature->DespawnOrUnsummon();
+                }
             }
 
             if (Unit* victim = GetVictim())
