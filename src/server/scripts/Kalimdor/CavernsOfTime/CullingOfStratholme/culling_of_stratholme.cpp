@@ -591,7 +591,7 @@ public:
 					if (pInstance)
 						pInstance->SetData(DATA_ARTHAS_EVENT, COS_PROGRESS_REACHED_TOWN_HALL);
 					me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-					SetRun(false);
+					me->SetWalk(true);
 					SetEscortPaused(true);
 					break;
                 // Inside Town Hall first scene pos
