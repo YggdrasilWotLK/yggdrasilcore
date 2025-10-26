@@ -116,9 +116,6 @@ static ChatSubCommandMap COMMAND_MAP;
 
             if (cmd->_invoker && (cmd->_permission.RequiredLevel != secLevel))
             {
-                LOG_WARN("sql.sql", "Table `command` has permission {} for '{}' which does not match the core ({}). Overriding.",
-                    secLevel, name, cmd->_permission.RequiredLevel);
-
                 cmd->_permission.RequiredLevel = secLevel;
             }
 
@@ -138,9 +135,6 @@ static ChatSubCommandMap COMMAND_MAP;
 
 void Acore::Impl::ChatCommands::ChatCommandNode::ResolveNames(std::string name)
 {
-    if (_invoker && std::holds_alternative<std::monostate>(_help))
-        LOG_WARN("sql.sql", "Table `command` is missing help text for command '{}'.", name);
-
     _name = name;
 
     for (auto& [subToken, cmd] : _subCommands)
