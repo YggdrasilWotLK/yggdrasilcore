@@ -111,6 +111,7 @@ public:
             _isDead = false;
             _phase = PHASE_ALL;
             me->SetFaction(FACTION_FRIENDLY);
+            me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
             me->SummonCreatureGroup(1);
             me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
         }
