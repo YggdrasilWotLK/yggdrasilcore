@@ -526,7 +526,7 @@ void Map::UpdateNonPlayerObjects(uint32 const diff)
         for (uint32 i = 0; i < _updatableObjectList.size();)
         {
             WorldObject* obj = _updatableObjectList[i];
-            if (!obj->IsInWorld())
+            if (!obj || !obj->IsInWorld())
             {
                 ++i;
                 continue;
@@ -550,7 +550,7 @@ void Map::UpdateNonPlayerObjects(uint32 const diff)
         for (uint32 i = 0; i < _updatableObjectList.size(); ++i)
         {
             WorldObject* obj = _updatableObjectList[i];
-            if (!obj->IsInWorld())
+            if (!obj || !obj->IsInWorld())
                 continue;
 
             obj->Update(diff);
@@ -564,6 +564,8 @@ void Map::AddObjectToPendingUpdateList(WorldObject* obj)
         return;
 
     UpdatableMapObject* mapUpdatableObject = dynamic_cast<UpdatableMapObject*>(obj);
+    if (!mapUpdatableObject)
+        return;
     if (mapUpdatableObject->GetUpdateState() != UpdatableMapObject::UpdateState::NotUpdating)
         return;
 
@@ -575,8 +577,8 @@ void Map::AddObjectToPendingUpdateList(WorldObject* obj)
 void Map::_AddObjectToUpdateList(WorldObject* obj)
 {
     UpdatableMapObject* mapUpdatableObject = dynamic_cast<UpdatableMapObject*>(obj);
-    ASSERT(mapUpdatableObject && mapUpdatableObject->GetUpdateState() == UpdatableMapObject::UpdateState::PendingAdd);
-
+    if (!mapUpdatableObject || mapUpdatableObject->GetUpdateState() != UpdatableMapObject::UpdateState::PendingAdd)
+        return;
     mapUpdatableObject->SetUpdateState(UpdatableMapObject::UpdateState::Updating);
     mapUpdatableObject->SetMapUpdateListOffset(_updatableObjectList.size());
     _updatableObjectList.push_back(obj);
@@ -586,11 +588,14 @@ void Map::_AddObjectToUpdateList(WorldObject* obj)
 void Map::_RemoveObjectFromUpdateList(WorldObject* obj)
 {
     UpdatableMapObject* mapUpdatableObject = dynamic_cast<UpdatableMapObject*>(obj);
-    ASSERT(mapUpdatableObject && mapUpdatableObject->GetUpdateState() == UpdatableMapObject::UpdateState::Updating);
-
+    if (!mapUpdatableObject || mapUpdatableObject->GetUpdateState() != UpdatableMapObject::UpdateState::Updating)
+        return;
     if (obj != _updatableObjectList.back())
     {
-        dynamic_cast<UpdatableMapObject*>(_updatableObjectList.back())->SetMapUpdateListOffset(mapUpdatableObject->GetMapUpdateListOffset());
+        UpdatableMapObject* backObj = dynamic_cast<UpdatableMapObject*>(_updatableObjectList.back());
+        if (!backObj)
+            return;
+        backObj->SetMapUpdateListOffset(mapUpdatableObject->GetMapUpdateListOffset());
         std::swap(_updatableObjectList[mapUpdatableObject->GetMapUpdateListOffset()], _updatableObjectList.back());
     }
 
@@ -604,6 +609,8 @@ void Map::RemoveObjectFromMapUpdateList(WorldObject* obj)
         return;
 
     UpdatableMapObject* mapUpdatableObject = dynamic_cast<UpdatableMapObject*>(obj);
+    if (!mapUpdatableObject)
+        return;
     if (mapUpdatableObject->GetUpdateState() == UpdatableMapObject::UpdateState::PendingAdd)
         _pendingAddUpdatableObjectList.erase(obj);
     else if (mapUpdatableObject->GetUpdateState() == UpdatableMapObject::UpdateState::Updating)
