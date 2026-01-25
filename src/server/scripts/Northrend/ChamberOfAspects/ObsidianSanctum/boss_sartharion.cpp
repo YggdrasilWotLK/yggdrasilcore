@@ -175,6 +175,7 @@ enum Events
 
     EVENT_SARTHARION_BOUNDARY                   = 33,
     EVENT_MINIDRAKE_SPEECH                      = 34,
+    EVENT_SARTHARION_SETUP_DRAGONS              = 35,
 };
 
 const Position portalPos[4] =
@@ -226,10 +227,10 @@ const Position AreaTriggerSummonPos[MAX_AREA_TRIGGER_COUNT] =
 
 const float SartharionBoundary[MAX_BOUNDARY_POSITIONS] =
 {
-    3218.86f,   // South X
-    3275.69f,   // North X
-    484.68f,    // East Y
-    572.4f      // West Y
+    3186.0f,   // South X
+    3293.0f,   // North X
+    484.0f,    // East Y
+    592.0f      // West Y
 };
 
 const Position bigIslandMiddlePos = { 3242.822754f, 477.279816f, 57.430473f };
@@ -290,6 +291,18 @@ public:
             }
 
             _JustEngagedWith();
+
+            for (uint8 i = 0; i < MAX_DRAGONS; ++i)
+            {
+                if (Creature* dragon = ObjectAccessor::GetCreature(*me, instance->GetGuidData(dragons[i])))
+                {
+                    if (dragon->IsAlive() && instance->GetBossState(dragons[i]) != DONE)
+                    {
+                        dragon->SetImmuneToNPC(true);
+                    }
+                }
+            }
+
             DoCastSelf(SPELL_SARTHARION_PYROBUFFET, true);
             Talk(SAY_SARTHARION_AGGRO);
 
@@ -303,49 +316,7 @@ public:
             extraEvents.ScheduleEvent(EVENT_SARTHARION_LAVA_STRIKE, 5s);
             extraEvents.ScheduleEvent(EVENT_SARTHARION_BERSERK, 15min);
             extraEvents.ScheduleEvent(EVENT_SARTHARION_BOUNDARY, 250ms);
-
-            // Store dragons
-            for (uint8 i = 0; i < MAX_DRAGONS; ++i)
-            {
-                Creature* dragon = ObjectAccessor::GetCreature(*me, instance->GetGuidData(dragons[i]));
-                if (!dragon || !dragon->IsAlive() || instance->GetBossState(dragons[i]) == DONE)
-                {
-                    continue;
-                }
-
-                dragon->SetImmuneToNPC(true);
-                dragon->SetFullHealth();
-
-                ++dragonsCount;
-                me->AddLootMode(1 << dragonsCount);
-
-                switch (dragons[i])
-                {
-                    case DATA_TENEBRON:
-                    {
-                        dragon->CastSpell(dragon, SPELL_POWER_OF_TENEBRON, true);
-                        extraEvents.ScheduleEvent(EVENT_SARTHARION_CALL_TENEBRON, 10s);
-                        break;
-                    }
-                    case DATA_SHADRON:
-                    {
-                        dragon->CastSpell(dragon, SPELL_POWER_OF_SHADRON, true);
-                        extraEvents.ScheduleEvent(EVENT_SARTHARION_CALL_SHADRON, 65s);
-                        break;
-                    }
-                    case DATA_VESPERON:
-                    {
-                        dragon->CastSpell(dragon, SPELL_POWER_OF_VESPERON, true);
-                        extraEvents.ScheduleEvent(EVENT_SARTHARION_CALL_VESPERON, 115s);
-                        break;
-                    }
-                }
-            }
-
-            if (dragonsCount)
-            {
-                DoCastSelf(SPELL_WILL_OF_SARTHARION, true);
-            }
+            extraEvents.ScheduleEvent(EVENT_SARTHARION_SETUP_DRAGONS, 500ms);
 
             me->CallForHelp(500.0f);
         }
@@ -464,6 +435,50 @@ public:
             {
                 switch (eventId)
                 {
+                    case EVENT_SARTHARION_SETUP_DRAGONS:
+                    {
+                        for (uint8 i = 0; i < MAX_DRAGONS; ++i)
+                        {
+                            Creature* dragon = ObjectAccessor::GetCreature(*me, instance->GetGuidData(dragons[i]));
+                            if (!dragon || !dragon->IsAlive() || instance->GetBossState(dragons[i]) == DONE)
+                            {
+                                continue;
+                            }
+
+                            dragon->SetFullHealth();
+
+                            ++dragonsCount;
+                            me->AddLootMode(1 << dragonsCount);
+
+                            switch (dragons[i])
+                            {
+                                case DATA_TENEBRON:
+                                {
+                                    dragon->CastSpell(dragon, SPELL_POWER_OF_TENEBRON, true);
+                                    extraEvents.ScheduleEvent(EVENT_SARTHARION_CALL_TENEBRON, 10s);
+                                    break;
+                                }
+                                case DATA_SHADRON:
+                                {
+                                    dragon->CastSpell(dragon, SPELL_POWER_OF_SHADRON, true);
+                                    extraEvents.ScheduleEvent(EVENT_SARTHARION_CALL_SHADRON, 65s);
+                                    break;
+                                }
+                                case DATA_VESPERON:
+                                {
+                                    dragon->CastSpell(dragon, SPELL_POWER_OF_VESPERON, true);
+                                    extraEvents.ScheduleEvent(EVENT_SARTHARION_CALL_VESPERON, 115s);
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (dragonsCount)
+                        {
+                            DoCastSelf(SPELL_WILL_OF_SARTHARION, true);
+                        }
+                        break;
+                    }
                     case EVENT_SARTHARION_BOUNDARY:
                     {
                         if (!IsTargetInBounds(me->GetVictim()))
@@ -497,8 +512,6 @@ public:
                         SendLavaWaves(false);
                         return;
                     }
-                    // Handling of Drakes Events
-                    // Dragon Calls
                     case EVENT_SARTHARION_CALL_TENEBRON:
                     {
                         Talk(SAY_SARTHARION_CALL_TENEBRON);
@@ -688,7 +701,7 @@ public:
                     }
 
                     dragon->DespawnOrUnsummon();
-                    dragon->SetRespawnTime(5);
+                    dragon->Respawn();
                 }
             }
 
