@@ -908,6 +908,16 @@ public:
         {
             if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
             {
+                if (!me->SelectNearestPlayer(200.0f))
+                {
+                    if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
+                        _instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, FAIL);
+                    
+                    uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE ? SPELL_TELEPORT_PLAYERS_ON_RESET_H : SPELL_TELEPORT_PLAYERS_ON_RESET_A;
+                    me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, _instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)), 1ms);
+                    return;
+                }
+                
                 if (me->GetVictim())
                 {
                     if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
@@ -1244,6 +1254,16 @@ public:
         {
             if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
             {
+                if (!me->SelectNearestPlayer(200.0f))
+                {
+                    if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
+                        _instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, FAIL);
+                        
+                    uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE ? SPELL_TELEPORT_PLAYERS_ON_RESET_H : SPELL_TELEPORT_PLAYERS_ON_RESET_A;
+                    me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, _instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)), 1ms);
+                    return;
+                }
+                
                 if (me->GetVictim())
                 {
                     if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
