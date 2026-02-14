@@ -518,16 +518,79 @@ class ResetEncounterEvent : public BasicEvent
 public:
     ResetEncounterEvent(Unit* caster, uint32 spellId, ObjectGuid otherTransport) : _caster(caster), _spellId(spellId), _otherTransport(otherTransport) { }
 
+	bool Execute(uint64, uint32) override
+	{
+		//LOG_ERROR("scripts", "Gunship Battle: ResetEncounterEvent executing - casting teleport spell {}", _spellId);
+		
+		if (!_caster || !_caster->IsInWorld())
+		{
+			//LOG_ERROR("scripts", "Gunship Battle: ResetEncounterEvent - caster is null or not in world");
+			return true;
+		}
+		
+		_caster->GetMap()->DoForAllPlayers([](Player* player)
+		{
+			if (Transport* transport = player->GetTransport())
+				transport->RemovePassenger(player);
+		});
+		
+		_caster->CastSpell(_caster, _spellId, true);
+		
+		Transport* casterTransport = _caster->GetTransport();
+		Transport* otherTransport = ObjectAccessor::GetTransport(*_caster, _otherTransport);
+		
+		if (casterTransport)
+		{
+			if (MotionTransport* mt = casterTransport->ToMotionTransport())
+				mt->UnloadNonStaticPassengers();
+		}
+
+		if (otherTransport)
+		{
+			//LOG_ERROR("scripts", "Gunship Battle: Cleaning up other transport");
+			if (MotionTransport* mt = otherTransport->ToMotionTransport())
+				mt->UnloadNonStaticPassengers();
+		}
+		
+		if (casterTransport)
+			casterTransport->AddObjectToRemoveList();
+		
+		if (otherTransport)
+			otherTransport->AddObjectToRemoveList();
+
+		return true;
+	}
+
+private:
+    Unit* _caster;
+    uint32 _spellId;
+    ObjectGuid _otherTransport;
+};
+
+class VictoryTeleportEvent : public BasicEvent
+{
+public:
+    VictoryTeleportEvent(Unit* caster) : _caster(caster), _loopCount(0) { }
+
     bool Execute(uint64, uint32) override
     {
-        _caster->CastSpell(_caster, _spellId, true);
-        _caster->GetTransport()->ToMotionTransport()->UnloadNonStaticPassengers();
-        _caster->GetTransport()->AddObjectToRemoveList();
-
-        if (Transport* transport = ObjectAccessor::GetTransport(*_caster, _otherTransport))
+        if (!_caster || !_caster->IsInWorld())
+            return true;
+        
+        _caster->GetMap()->DoForAllPlayers([](Player* player)
         {
-            transport->ToMotionTransport()->UnloadNonStaticPassengers();
-            transport->AddObjectToRemoveList();
+            if (Transport* transport = player->GetTransport())
+                transport->RemovePassenger(player);
+        });
+        
+        _caster->CastSpell(_caster, SPELL_TELEPORT_PLAYERS_ON_VICTORY, true);
+        
+        _loopCount++;
+        
+        if (_loopCount < 4)
+        {
+            _caster->m_Events.AddEventAtOffset(this, 5s);
+            return false;
         }
 
         return true;
@@ -535,8 +598,7 @@ public:
 
 private:
     Unit* _caster;
-    uint32 _spellId;
-    ObjectGuid _otherTransport;
+    int32 _loopCount;
 };
 
 class npc_gunship : public CreatureScript
@@ -653,7 +715,7 @@ public:
 
                 if (Creature* ship = _instance->GetCreature(_teamIdInInstance == TEAM_HORDE ? DATA_ORGRIMS_HAMMER : DATA_THE_SKYBREAKER))
                 {
-                    ship->CastSpell(ship, SPELL_TELEPORT_PLAYERS_ON_VICTORY, true);
+                    ship->m_Events.AddEventAtOffset(new VictoryTeleportEvent(ship), 1ms);
                     ship->CastSpell(ship, SPELL_ACHIEVEMENT, true);
                     ship->CastSpell(ship, SPELL_AWARD_REPUTATION_BOSS_KILL, true);
                 }
@@ -904,19 +966,35 @@ public:
                 damage = me->GetHealth() - 1;
         }
 
-        void UpdateAI(uint32 diff) override
-        {
-            if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
-            {
-                if (!me->SelectNearestPlayer(200.0f))
-                {
-                    if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
-                        _instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, FAIL);
-                    
-                    uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE ? SPELL_TELEPORT_PLAYERS_ON_RESET_H : SPELL_TELEPORT_PLAYERS_ON_RESET_A;
-                    me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, _instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)), 1ms);
-                    return;
-                }
+		void UpdateAI(uint32 diff) override
+		{
+			if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
+			{
+				Player* nearestPlayer = me->SelectNearestPlayer(200.0f);
+				//LOG_ERROR("scripts", "Gunship Battle: Saurfang UpdateAI - encounter IN_PROGRESS, nearest player: {}", 
+					nearestPlayer ? nearestPlayer->GetName() : "nullptr");
+				
+				if (!nearestPlayer)
+				{
+					//LOG_ERROR("scripts", "Gunship Battle: No players found within 200 yards of captain {} (Map: {} X: {} Y: {} Z: {})",
+						me->GetName(), me->GetMapId(), me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+					
+					if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
+					{
+						//LOG_ERROR("scripts", "Gunship Battle: Setting encounter to FAIL, scheduling reset");
+						_instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, FAIL);
+					}
+					
+					uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE 
+						? SPELL_TELEPORT_PLAYERS_ON_RESET_H 
+						: SPELL_TELEPORT_PLAYERS_ON_RESET_A;
+					
+					//LOG_ERROR("scripts", "Gunship Battle: Scheduling ResetEncounterEvent with teleport spell {}", teleportSpellId);
+					
+					me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, 
+						_instance->GetGuidData(DATA_ENEMY_GUNSHIP)), 1ms);
+					return;
+				}
                 
                 if (me->GetVictim())
                 {
@@ -1250,19 +1328,38 @@ public:
                 damage = me->GetHealth() - 1;
         }
 
-        void UpdateAI(uint32 diff) override
-        {
-            if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
-            {
-                if (!me->SelectNearestPlayer(200.0f))
-                {
-                    if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
-                        _instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, FAIL);
-                        
-                    uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE ? SPELL_TELEPORT_PLAYERS_ON_RESET_H : SPELL_TELEPORT_PLAYERS_ON_RESET_A;
-                    me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, _instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)), 1ms);
-                    return;
-                }
+		void UpdateAI(uint32 diff) override
+		{
+			//LOG_ERROR("scripts", "Gunship Battle: Muradin UpdateAI called, encounter state: {}", 
+				_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE));
+			
+			if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
+			{
+				Player* nearestPlayer = me->SelectNearestPlayer(200.0f);
+				//LOG_ERROR("scripts", "Gunship Battle: Muradin - encounter IN_PROGRESS, nearest player: {}", 
+					nearestPlayer ? nearestPlayer->GetName() : "nullptr");
+				
+				if (!nearestPlayer)
+				{
+					//LOG_ERROR("scripts", "Gunship Battle: No players found within 200 yards of captain {} (Map: {} X: {} Y: {} Z: {})",
+						me->GetName(), me->GetMapId(), me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+					
+					if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
+					{
+						//LOG_ERROR("scripts", "Gunship Battle: Setting encounter to FAIL, scheduling reset");
+						_instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, FAIL);
+					}
+					
+					uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE 
+						? SPELL_TELEPORT_PLAYERS_ON_RESET_H 
+						: SPELL_TELEPORT_PLAYERS_ON_RESET_A;
+					
+					//LOG_ERROR("scripts", "Gunship Battle: Scheduling ResetEncounterEvent with teleport spell {}", teleportSpellId);
+					
+					me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, 
+						_instance->GetGuidData(DATA_ENEMY_GUNSHIP)), 1ms);
+					return;
+				}
                 
                 if (me->GetVictim())
                 {
