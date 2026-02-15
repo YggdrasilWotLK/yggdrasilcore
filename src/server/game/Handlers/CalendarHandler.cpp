@@ -780,7 +780,7 @@ void WorldSession::HandleSetSavedInstanceExtend(WorldPacket& recvData)
     recvData >> mapId >> difficulty >> toggleExtendOn;
 
     MapEntry const* entry = sMapStore.LookupEntry(mapId);
-    if (!entry || !entry->IsRaid())
+    if (!entry)
         return;
 
     InstancePlayerBind* instanceBind = sInstanceSaveMgr->PlayerGetBoundInstance(GetPlayer()->GetGUID(), mapId, Difficulty(difficulty));
