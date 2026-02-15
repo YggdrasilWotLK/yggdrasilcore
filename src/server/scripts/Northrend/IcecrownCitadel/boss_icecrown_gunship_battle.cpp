@@ -520,13 +520,9 @@ public:
 
 	bool Execute(uint64, uint32) override
 	{
-		//LOG_ERROR("scripts", "Gunship Battle: ResetEncounterEvent executing - casting teleport spell {}", _spellId);
 		
 		if (!_caster || !_caster->IsInWorld())
-		{
-			//LOG_ERROR("scripts", "Gunship Battle: ResetEncounterEvent - caster is null or not in world");
 			return true;
-		}
 		
 		_caster->GetMap()->DoForAllPlayers([](Player* player)
 		{
@@ -547,7 +543,6 @@ public:
 
 		if (otherTransport)
 		{
-			//LOG_ERROR("scripts", "Gunship Battle: Cleaning up other transport");
 			if (MotionTransport* mt = otherTransport->ToMotionTransport())
 				mt->UnloadNonStaticPassengers();
 		}
@@ -971,29 +966,20 @@ public:
 			if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
 			{
 				Player* nearestPlayer = me->SelectNearestPlayer(200.0f);
-				//LOG_ERROR("scripts", "Gunship Battle: Saurfang UpdateAI - encounter IN_PROGRESS, nearest player: {}", 
-					nearestPlayer ? nearestPlayer->GetName() : "nullptr");
 				
 				if (!nearestPlayer)
 				{
-					//LOG_ERROR("scripts", "Gunship Battle: No players found within 200 yards of captain {} (Map: {} X: {} Y: {} Z: {})",
-						me->GetName(), me->GetMapId(), me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
 					
 					if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
 					{
-						//LOG_ERROR("scripts", "Gunship Battle: Setting encounter to FAIL, scheduling reset");
 						_instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, FAIL);
 					}
 					
-					uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE 
-						? SPELL_TELEPORT_PLAYERS_ON_RESET_H 
-						: SPELL_TELEPORT_PLAYERS_ON_RESET_A;
+					uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE ? SPELL_TELEPORT_PLAYERS_ON_RESET_H : SPELL_TELEPORT_PLAYERS_ON_RESET_A;
 					
-					//LOG_ERROR("scripts", "Gunship Battle: Scheduling ResetEncounterEvent with teleport spell {}", teleportSpellId);
+					me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, _instance->GetGuidData(DATA_ENEMY_GUNSHIP)), 1ms);
 					
-					me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, 
-						_instance->GetGuidData(DATA_ENEMY_GUNSHIP)), 1ms);
-					return;
+                    return;
 				}
                 
                 if (me->GetVictim())
@@ -1330,34 +1316,19 @@ public:
 
 		void UpdateAI(uint32 diff) override
 		{
-			//LOG_ERROR("scripts", "Gunship Battle: Muradin UpdateAI called, encounter state: {}", 
-				_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE));
-			
 			if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
 			{
 				Player* nearestPlayer = me->SelectNearestPlayer(200.0f);
-				//LOG_ERROR("scripts", "Gunship Battle: Muradin - encounter IN_PROGRESS, nearest player: {}", 
-					nearestPlayer ? nearestPlayer->GetName() : "nullptr");
 				
 				if (!nearestPlayer)
-				{
-					//LOG_ERROR("scripts", "Gunship Battle: No players found within 200 yards of captain {} (Map: {} X: {} Y: {} Z: {})",
-						me->GetName(), me->GetMapId(), me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-					
+				{					
 					if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
-					{
-						//LOG_ERROR("scripts", "Gunship Battle: Setting encounter to FAIL, scheduling reset");
 						_instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, FAIL);
-					}
 					
-					uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE 
-						? SPELL_TELEPORT_PLAYERS_ON_RESET_H 
-						: SPELL_TELEPORT_PLAYERS_ON_RESET_A;
+					uint32 teleportSpellId = _instance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE ? SPELL_TELEPORT_PLAYERS_ON_RESET_H  : SPELL_TELEPORT_PLAYERS_ON_RESET_A;
 					
-					//LOG_ERROR("scripts", "Gunship Battle: Scheduling ResetEncounterEvent with teleport spell {}", teleportSpellId);
-					
-					me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, 
-						_instance->GetGuidData(DATA_ENEMY_GUNSHIP)), 1ms);
+					me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, _instance->GetGuidData(DATA_ENEMY_GUNSHIP)), 1ms);
+                        
 					return;
 				}
                 
