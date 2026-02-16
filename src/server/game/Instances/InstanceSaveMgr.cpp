@@ -359,7 +359,7 @@ void InstanceSaveMgr::LoadResetTimes()
             CharacterDatabase.DirectExecute("UPDATE instance_reset SET resettime = '{}' WHERE mapid = '{}' AND difficulty = '{}'", (uint32)t, mapid, difficulty);
         }
 
-        SetExtendedResetTimeFor(mapid, difficulty, t);
+        SetExtendedResetTimeFor(mapid, difficulty, t + period);
 
         // schedule the global reset/warning
         uint8 type;
