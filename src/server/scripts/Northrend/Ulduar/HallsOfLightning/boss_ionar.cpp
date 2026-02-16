@@ -74,7 +74,7 @@ struct boss_ionar : public BossAI
         _Reset();
         me->SetVisible(true);
 
-        ScheduleHealthCheckEvent(50, [&] {
+        ScheduleHealthCheckEvent(50, [this] {
             DoCastSelf(SPELL_DISPERSE);
         });
     }
@@ -135,7 +135,7 @@ struct boss_ionar : public BossAI
         }
 
         me->SetVisible(false);
-        me->SetControlled(true, UNIT_STATE_STUNNED);
+        me->SetControlled(true, UNIT_STATE_ROOT);
 
         events.SetPhase(2);
         events.ScheduleEvent(EVENT_CALL_SPARKS, 15s, 0, 2);
@@ -145,6 +145,9 @@ struct boss_ionar : public BossAI
     {
         if (!UpdateVictim())
             return;
+
+        if (me->GetHealthPct() > 50.0f && me->HasUnitState(UNIT_STATE_ROOT))
+            me->ClearUnitState(UNIT_STATE_ROOT);
 
         events.Update(diff);
 
@@ -173,7 +176,7 @@ struct boss_ionar : public BossAI
                 summons.DoAction(ACTION_SPARK_DESPAWN, pred);
 
                 me->SetVisible(true);
-                me->SetControlled(false, UNIT_STATE_STUNNED);
+                me->SetControlled(false, UNIT_STATE_ROOT);
                 ScheduleEvents(true);
                 return;
         }
