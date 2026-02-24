@@ -142,6 +142,7 @@ enum Events
     EVENT_CHECK_CORPOREALITY    = 23,
     EVENT_TWILIGHT_MENDING      = 24,
     EVENT_SEND_ENCOUNTER_UNIT   = 25,
+    EVENT_SYNC_HEALTH           = 26,
 
     // Halion Controller
     EVENT_START_INTRO           = 40,
@@ -151,19 +152,24 @@ enum Events
     EVENT_INTRO_PROGRESS_4      = 44
 };
 
+constexpr Milliseconds HEALTH_SYNC_INTERVAL = 200ms;
+
 enum Misc
 {
-    ACTION_SHOOT                = 1,
-    ACTION_CHECK_CORPOREALITY   = 2,
-    ACTION_RESET_ENCOUNTER      = 3,
+    ACTION_SHOOT                        = 1,
+    ACTION_CHECK_CORPOREALITY           = 2,
+    ACTION_RESET_ENCOUNTER              = 3,
 
-    DATA_TWILIGHT_DAMAGE_TAKEN  = 1,
-    DATA_MATERIAL_DAMAGE_TAKEN  = 2,
+    SEAT_NORTH                          = 0,
+    SEAT_SOUTH                          = 1,
+    SEAT_EAST                           = 2,
+    SEAT_WEST                           = 3
+};
 
-    SEAT_NORTH                  = 0,
-    SEAT_SOUTH                  = 1,
-    SEAT_EAST                   = 2,
-    SEAT_WEST                   = 3
+enum DamageAccumulator
+{
+    ACTION_ACCUMULATE_MATERIAL_DMG  = 4,
+    ACTION_ACCUMULATE_TWILIGHT_DMG  = 5
 };
 
 enum CorporealityEvent
@@ -199,7 +205,7 @@ public:
 
         WorldPacket data(SMSG_UPDATE_INSTANCE_ENCOUNTER_UNIT, 4);
         data << uint32(ENCOUNTER_FRAME_REFRESH_FRAMES);
-        _owner->GetSession()->SendPacket(&data);
+        _owner->SendDirectMessage(&data);
         return true;
     }
 
@@ -214,13 +220,19 @@ public:
 
     struct boss_halionAI : public BossAI
     {
-        boss_halionAI(Creature* creature) : BossAI(creature, DATA_HALION)
+        boss_halionAI(Creature* creature) : BossAI(creature, DATA_HALION),
+            _livingEmberCount(0), _corporeality(5), _materialDmg(0), _twilightDmg(0), _materialDmgTotal(0), _twilightDmgTotal(0)
         {
         }
 
         void Reset() override
         {
             _livingEmberCount = 0;
+            _corporeality = 5;
+            _materialDmg = 0;
+            _twilightDmg = 0;
+            _materialDmgTotal = 0;
+            _twilightDmgTotal = 0;
             BossAI::Reset();
             me->RemoveAurasDueToSpell(SPELL_TWILIGHT_PHASING);
             me->CastSpell(me, SPELL_CLEAR_DEBUFFS, false);
@@ -268,7 +280,7 @@ public:
         bool IsAnyPlayerValid()
         {
             Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-            for(Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
                 if (Player* player = itr->GetSource())
                     if (!player->IsGameMaster() && player->IsAlive() && me->GetHomePosition().GetExactDist2d(player) < 52.0f && me->IsWithinLOSInMap(player) && !player->HasInvisibilityAura() && !player->HasStealthAura() && !player->HasUnattackableAura() && !player->HasAura(5384))
                         return true;
@@ -290,6 +302,21 @@ public:
         {
             me->SetReactState(REACT_AGGRESSIVE);
             BossAI::AttackStart(who);
+        }
+
+        void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*type*/, SpellSchoolMask /*mask*/) override
+        {
+            _materialDmg += damage;
+            _materialDmgTotal += damage;
+        }
+
+        void SetData(uint32 type, uint32 value) override
+        {
+            if (type == ACTION_ACCUMULATE_TWILIGHT_DMG)
+            {
+                _twilightDmg += value;
+                _twilightDmgTotal += value;
+            }
         }
 
         void JustEngagedWith(Unit* who) override
@@ -333,16 +360,18 @@ public:
                     Unit::Kill(controller, controller);
         }
 
-        void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType, SpellSchoolMask) override
+        void DoAction(int32 action) override
         {
-            if (events.HasTimeUntilEvent(EVENT_CHECK_HEALTH))
-                return;
-
-            if (!attacker || !me->InSamePhase(attacker))
-                return;
-
-            if (Creature* controller = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_HALION_CONTROLLER)))
-                controller->AI()->SetData(DATA_MATERIAL_DAMAGE_TAKEN, damage);
+            if (action == ACTION_CHECK_CORPOREALITY)
+            {
+                _corporeality = 5;
+                _materialDmg = 0;
+                _twilightDmg = 0;
+                _materialDmgTotal = 0;
+                _twilightDmgTotal = 0;
+                _events2.ScheduleEvent(EVENT_CHECK_CORPOREALITY, 7s);
+                _events2.ScheduleEvent(EVENT_SYNC_HEALTH, HEALTH_SYNC_INTERVAL);
+            }
         }
 
         void UpdateAI(uint32 diff) override
@@ -359,12 +388,22 @@ public:
                     if (Creature* twilightHalion = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_TWILIGHT_HALION)))
                         twilightHalion->CastSpell(twilightHalion, SPELL_BERSERK, true);
                     break;
+                case EVENT_CHECK_CORPOREALITY:
+                    UpdateCorporeality();
+                    _events2.ScheduleEvent(EVENT_CHECK_CORPOREALITY, 10s);
+                    break;
+                case EVENT_SYNC_HEALTH:
+                    SyncHealth();
+                    _events2.ScheduleEvent(EVENT_SYNC_HEALTH, HEALTH_SYNC_INTERVAL);
+                    break;
+                case EVENT_TWILIGHT_MENDING:
+                    me->CastSpell((Unit*)nullptr, SPELL_TWILIGHT_MENDING, true);
+                    break;
             }
 
             if (!UpdateVictim())
                 return;
 
-            // Xinef: halion is invisible (second phase)
             if (me->GetDisplayId() != me->GetNativeDisplayId())
                 return;
 
@@ -417,8 +456,101 @@ public:
         }
 
     private:
+        void SyncHealth()
+        {
+            if (!instance->IsEncounterInProgress())
+                return;
+
+            Creature* twilightHalion = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_TWILIGHT_HALION));
+            if (!twilightHalion)
+                return;
+
+            if (!me->HasAura(SPELL_COPY_DAMAGE) && !twilightHalion->HasAura(SPELL_COPY_DAMAGE))
+            {
+                if (_twilightDmg > 0)
+                    me->SetHealth(std::max<uint32>(1, me->GetHealth() - _twilightDmg));
+                if (_materialDmg > 0)
+                    twilightHalion->SetHealth(std::max<uint32>(1, twilightHalion->GetHealth() - _materialDmg));
+            }
+
+            _materialDmg = 0;
+            _twilightDmg = 0;
+        }
+
+        void UpdateCorporeality()
+        {
+            static constexpr float CORPOREALITY_TOLERANCE = 2.0f;
+
+            if (!instance->IsEncounterInProgress())
+            {
+                _corporeality = 5;
+                _materialDmg = 0;
+                _twilightDmg = 0;
+                _materialDmgTotal = 0;
+                _twilightDmgTotal = 0;
+                return;
+            }
+
+            Creature* twilightHalion = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_TWILIGHT_HALION));
+            if (!twilightHalion)
+                return;
+
+            if (_materialDmgTotal == 0 || _twilightDmgTotal == 0)
+                _events2.ScheduleEvent(EVENT_TWILIGHT_MENDING, 4s);
+
+            float materialPct = me->GetMaxHealth() > 0 ? (float(_materialDmgTotal) / float(me->GetMaxHealth())) * 100.0f : 0.0f;
+            float twilightPct = twilightHalion->GetMaxHealth() > 0 ? (float(_twilightDmgTotal) / float(twilightHalion->GetMaxHealth())) * 100.0f : 0.0f;
+            float pctDiff = materialPct - twilightPct;
+
+            uint8 oldValue = _corporeality;
+            CorporealityEvent action = CORPOREALITY_NONE;
+            if (pctDiff > CORPOREALITY_TOLERANCE)
+                action = CORPOREALITY_DECREASE;
+            else if (-pctDiff > CORPOREALITY_TOLERANCE)
+                action = CORPOREALITY_INCREASE;
+
+            if (action != CORPOREALITY_NONE)
+            {
+                uint32 stacks = uint32(std::abs(pctDiff) / CORPOREALITY_TOLERANCE);
+                for (uint32 i = 0; i < stacks; ++i)
+                {
+                    if (action == CORPOREALITY_INCREASE)
+                    {
+                        if (_corporeality == (MAX_CORPOREALITY_STATE - 1))
+                            break;
+                        ++_corporeality;
+                    }
+                    else if (action == CORPOREALITY_DECREASE)
+                    {
+                        if (_corporeality == 0)
+                            break;
+                        --_corporeality;
+                    }
+                }
+
+                instance->DoUpdateWorldState(WORLD_STATE_RUBY_SANCTUM_CORPOREALITY_MATERIAL, _corporeality * 10);
+                instance->DoUpdateWorldState(WORLD_STATE_RUBY_SANCTUM_CORPOREALITY_TWILIGHT, 100 - _corporeality * 10);
+
+                twilightHalion->RemoveAurasDueToSpell(_corporealityReference[MAX_CORPOREALITY_STATE - 1 - oldValue]);
+                twilightHalion->CastSpell(twilightHalion, _corporealityReference[MAX_CORPOREALITY_STATE - 1 - _corporeality], true);
+                twilightHalion->AI()->Talk(oldValue < _corporeality ? EMOTE_CORPOREALITY_TOT : EMOTE_CORPOREALITY_TIT);
+
+                me->RemoveAurasDueToSpell(_corporealityReference[oldValue]);
+                me->CastSpell(me, _corporealityReference[_corporeality], true);
+                Talk(oldValue > _corporeality ? EMOTE_CORPOREALITY_POT : EMOTE_CORPOREALITY_PIP);
+            }
+
+            _materialDmgTotal = 0;
+            _twilightDmgTotal = 0;
+        }
+
         EventMap _events2;
         uint32 _livingEmberCount;
+        uint8 _corporeality;
+        uint32 _materialDmg;
+        uint32 _twilightDmg;
+        uint32 _materialDmgTotal;
+        uint32 _twilightDmgTotal;
     };
 
     CreatureAI* GetAI(Creature* creature) const override
@@ -457,7 +589,7 @@ public:
             me->SetReactState(REACT_DEFENSIVE);
         }
 
-        void JustEngagedWith(Unit*  /*who*/) override
+        void JustEngagedWith(Unit* /*who*/) override
         {
             _events.Reset();
             _events.ScheduleEvent(EVENT_CLEAVE, 8s, 10s);
@@ -504,13 +636,10 @@ public:
             me->CastSpell(me, SPELL_CLEAR_DEBUFFS, false);
         }
 
-        void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType, SpellSchoolMask) override
+        void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*type*/, SpellSchoolMask /*mask*/) override
         {
-            if (!attacker || !me->InSamePhase(attacker))
-                return;
-
-            if (Creature* controller = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(NPC_HALION_CONTROLLER)))
-                controller->AI()->SetData(DATA_TWILIGHT_DAMAGE_TAKEN, damage);
+            if (Creature* halion = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(NPC_HALION)))
+                halion->AI()->SetData(ACTION_ACCUMULATE_TWILIGHT_DMG, damage);
         }
 
         void UpdateAI(uint32 diff) override
@@ -596,35 +725,12 @@ public:
             _events.Reset();
         }
 
-        void SetData(uint32 id, uint32 value) override
-        {
-            if (!_events.HasTimeUntilEvent(EVENT_CHECK_CORPOREALITY))
-                return;
-
-            if (id == DATA_MATERIAL_DAMAGE_TAKEN)
-                _materialDamage += value;
-            else
-                _twilightDamage += value;
-        }
-
         void DoAction(int32 action) override
         {
             if (action == ACTION_INTRO_HALION)
                 _events.ScheduleEvent(EVENT_START_INTRO, 2s);
-            else if (action == ACTION_CHECK_CORPOREALITY)
-            {
-                _materialDamage = 1;
-                _twilightDamage = 1;
-                _corporeality = 5;
-                _events.ScheduleEvent(EVENT_CHECK_CORPOREALITY, 7s);
-            }
             else if (action == ACTION_RESET_ENCOUNTER)
-            {
                 _events.Reset();
-                _materialDamage = 1;
-                _twilightDamage = 1;
-                _corporeality = 5;
-            }
         }
 
         void UpdateAI(uint32 diff) override
@@ -632,7 +738,6 @@ public:
             _events.Update(diff);
             switch (_events.ExecuteEvent())
             {
-                // Intro
                 case EVENT_START_INTRO:
                     me->CastSpell(me, SPELL_COSMETIC_FIRE_PILLAR, false);
                     _events.ScheduleEvent(EVENT_INTRO_PROGRESS_1, 5s);
@@ -661,85 +766,12 @@ public:
                         halion->AI()->Talk(SAY_INTRO);
                     }
                     break;
-                case EVENT_TWILIGHT_MENDING:
-                    me->CastSpell((Unit*)nullptr, SPELL_TWILIGHT_MENDING, true);
-                    break;
-                case EVENT_CHECK_CORPOREALITY:
-                    UpdateCorporeality();
-                    _events.ScheduleEvent(EVENT_CHECK_CORPOREALITY, 10s);
-                    break;
             }
         }
 
     private:
-        void UpdateCorporeality()
-        {
-            if (!_instance->IsEncounterInProgress())
-            {
-                DoAction(ACTION_RESET_ENCOUNTER);
-                return;
-            }
-
-            uint8 oldValue = _corporeality;
-            float damageRatio = float(_materialDamage) / float(_twilightDamage);
-
-            if (_twilightDamage == 1 || _materialDamage == 1)
-                _events.ScheduleEvent(EVENT_TWILIGHT_MENDING, 4s);
-
-            _twilightDamage = 1;
-            _materialDamage = 1;
-
-            CorporealityEvent action = CORPOREALITY_NONE;
-            if (damageRatio < 0.98f)
-                action = CORPOREALITY_INCREASE;
-            else if (1.02f < damageRatio)
-                action = CORPOREALITY_DECREASE;
-            else
-                return;
-
-            switch (action)
-            {
-                case CORPOREALITY_INCREASE:
-                    {
-                        if (_corporeality == (MAX_CORPOREALITY_STATE - 1))
-                            return;
-                        ++_corporeality;
-                        break;
-                    }
-                case CORPOREALITY_DECREASE:
-                    {
-                        if (_corporeality == 0)
-                            return;
-                        --_corporeality;
-                        break;
-                    }
-                default:
-                    break;
-            }
-
-            _instance->DoUpdateWorldState(WORLD_STATE_RUBY_SANCTUM_CORPOREALITY_MATERIAL, _corporeality * 10);
-            _instance->DoUpdateWorldState(WORLD_STATE_RUBY_SANCTUM_CORPOREALITY_TWILIGHT, 100 - _corporeality * 10);
-
-            if (Creature* twilightHalion = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(NPC_TWILIGHT_HALION)))
-            {
-                twilightHalion->RemoveAurasDueToSpell(_corporealityReference[MAX_CORPOREALITY_STATE - 1 - oldValue]);
-                twilightHalion->CastSpell(twilightHalion, _corporealityReference[MAX_CORPOREALITY_STATE - 1 - _corporeality], true);
-                twilightHalion->AI()->Talk(oldValue < _corporeality ? EMOTE_CORPOREALITY_TOT : EMOTE_CORPOREALITY_TIT);
-            }
-
-            if (Creature* halion = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(NPC_HALION)))
-            {
-                halion->RemoveAurasDueToSpell(_corporealityReference[oldValue]);
-                halion->CastSpell(halion, _corporealityReference[_corporeality], true);
-                halion->AI()->Talk(oldValue > _corporeality ? EMOTE_CORPOREALITY_POT : EMOTE_CORPOREALITY_PIP);
-            }
-        }
-
         EventMap _events;
         InstanceScript* _instance;
-        uint8 _corporeality;
-        uint32 _materialDamage;
-        uint32 _twilightDamage;
     };
 
     CreatureAI* GetAI(Creature* creature) const override
@@ -1259,6 +1291,7 @@ class spell_halion_twilight_division : public SpellScript
         InstanceScript* instance = GetCaster()->GetInstanceScript();
         Creature* controller = ObjectAccessor::GetCreature(*GetCaster(), instance->GetGuidData(NPC_HALION_CONTROLLER));
         Creature* halion = ObjectAccessor::GetCreature(*GetCaster(), instance->GetGuidData(NPC_HALION));
+        Creature* twilightHalion = ObjectAccessor::GetCreature(*GetCaster(), instance->GetGuidData(NPC_TWILIGHT_HALION));
 
         if (!controller || !halion)
             return;
@@ -1268,9 +1301,13 @@ class spell_halion_twilight_division : public SpellScript
 
         controller->CastSpell(controller, SPELL_SUMMON_EXIT_PORTALS_NORMAL, true);
         controller->CastSpell(controller, SPELL_SUMMON_EXIT_PORTALS, true);
-        controller->AI()->DoAction(ACTION_CHECK_CORPOREALITY);
+        halion->AI()->DoAction(ACTION_CHECK_CORPOREALITY);
 
         halion->RemoveAurasDueToSpell(SPELL_TWILIGHT_PHASING);
+        halion->RemoveAurasDueToSpell(SPELL_COPY_DAMAGE);
+        if (twilightHalion)
+            twilightHalion->RemoveAurasDueToSpell(SPELL_COPY_DAMAGE);
+
         if (GameObject* gobject = halion->FindNearestGameObject(GO_HALION_PORTAL_1, 100.0f))
             gobject->Delete();
 
