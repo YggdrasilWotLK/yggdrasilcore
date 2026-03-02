@@ -31,6 +31,7 @@ namespace Movement
         int32 seg_time = spline.length(point_Idx, point_Idx + 1);
         if (seg_time > 0)
             u = (time_passed - spline.length(point_Idx)) / (float)seg_time;
+        u = std::max(u, 0.001f);
         Location c;
         c.orientation = initialOrientation;
         spline.evaluate_percent(point_Idx, u, c);
@@ -125,9 +126,6 @@ namespace Movement
         if (args.flags.cyclic)
         {
             uint32 cyclic_point = 0;
-            // MoveSplineFlag::Enter_Cycle support dropped
-            //if (splineflags & SPLINEFLAG_ENTER_CYCLE)
-            //cyclic_point = 1;   // shouldn't be modified, came from client
             spline.init_cyclic_spline(&args.path[0], args.path.size(), modes[args.flags.isSmooth()], cyclic_point);
         }
         else
@@ -135,7 +133,6 @@ namespace Movement
             spline.init_spline(&args.path[0], args.path.size(), modes[args.flags.isSmooth()]);
         }
 
-        // init spline timestamps
         if (splineflags.falling)
         {
             FallInitializer init(spline.getPoint(spline.first()).z);
@@ -147,11 +144,9 @@ namespace Movement
             spline.initLengths(init);
         }
 
-        /// @todo: what to do in such cases? problem is in input data (all points are at same coords)
         if (spline.length() < minimal_duration)
-        {
             spline.set_length(spline.last(), spline.isCyclic() ? 1000 : 1);
-        }
+
         point_Idx = spline.first();
     }
 
@@ -217,8 +212,6 @@ namespace Movement
 #undef CHECK
     }
 
-    // MONSTER_MOVE packet format limitation for not CatmullRom movement:
-    // each vertex offset packed into 11 bytes
     bool MoveSplineInitArgs::_checkPathBounds() const
     {
         if (!(flags & MoveSplineFlag::Mask_CatmullRom) && path.size() > 2)

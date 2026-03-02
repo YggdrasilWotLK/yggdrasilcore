@@ -90,6 +90,102 @@ namespace Movement
         args.initialOrientation = real_position.orientation;
         move_spline.onTransport = transport;
 
+        if (!unit->IsPlayer() && !args.flags.parabolic && !args.flags.falling &&
+            !args.flags.animation && !args.flags.cyclic && !args.flags.flying &&
+            args.path.size() >= 2)
+        {
+            Vector3 const src(real_position.x, real_position.y, real_position.z);
+            Vector3 const toNext = args.path[1] - src;
+            float const distToNext = toNext.length();
+            float const distToFinal = (args.path.back() - src).length();
+            float orient = real_position.orientation;
+            while (orient < 0.0f) orient += 2.0f * M_PI;
+            while (orient >= 2.0f * M_PI) orient -= 2.0f * M_PI;
+            float const bearingToNext = std::atan2(toNext.y, toNext.x);
+            float angleDelta = bearingToNext - orient;
+            while (angleDelta >  M_PI) angleDelta -= 2.0f * M_PI;
+            while (angleDelta < -M_PI) angleDelta += 2.0f * M_PI;
+            if (std::fabs(angleDelta) > M_PI / 12.0f && distToNext >= 2.0f && distToFinal >= 2.0f)
+            {
+                float const reach = std::max(distToFinal * 0.25f, 1.5f);
+                float const cross = std::cos(orient) * toNext.y - std::sin(orient) * toNext.x;
+                float const side = (cross >= 0.0f) ? 1.0f : -1.0f;
+                float const perpAngle = orient + side * M_PI_2;
+                Vector3 const dst = args.path.back();
+                if (std::fabs(angleDelta) > M_PI * 2.0f / 3.0f)
+                {
+                    // large turn: sweep multiple waypoints from orient toward target bearing at larger reach
+                    int32 const numPoints = static_cast<int32>(std::ceil(std::fabs(angleDelta) / (M_PI / 3.0f)));
+                    float const largeReach = distToFinal * 0.5f;
+                    for (int32 i = numPoints - 1; i >= 0; --i)
+                    {
+                        float const angle = orient + angleDelta * static_cast<float>(i) / static_cast<float>(numPoints);
+                        args.path.insert(args.path.begin() + 1, Vector3(
+                            src.x + largeReach * std::cos(angle),
+                            src.y + largeReach * std::sin(angle),
+                            src.z));
+                    }
+                    if (unit->GetMapId() == 13)
+                        LOG_ERROR("movement", "ARC LARGE src=({:.2f},{:.2f}) orient={:.2f} bearingToNext={:.2f} angleDelta={:.2f} largeReach={:.2f} numPoints={} dst=({:.2f},{:.2f}) pathSize={}",
+                            src.x, src.y,
+                            orient * 180.0f / M_PI, bearingToNext * 180.0f / M_PI, angleDelta * 180.0f / M_PI,
+                            largeReach, numPoints, dst.x, dst.y, args.path.size());
+                }
+                else
+                {
+                    // normal turn: circle arc
+                    float const centerX = src.x + reach * std::cos(perpAngle);
+                    float const centerY = src.y + reach * std::sin(perpAngle);
+                    float const startAngle = std::atan2(src.y - centerY, src.x - centerX);
+                    float const endAngle = startAngle + side * std::fabs(angleDelta);
+                    float const p1x = src.x + reach * std::cos(orient);
+                    float const p1y = src.y + reach * std::sin(orient);
+                    float const circleEndX = centerX + reach * std::cos(endAngle);
+                    float const circleEndY = centerY + reach * std::sin(endAngle);
+                    float const circleEndToDst = std::sqrt((dst.x - circleEndX) * (dst.x - circleEndX) + (dst.y - circleEndY) * (dst.y - circleEndY));
+                    float p2x, p2y;
+                    if (circleEndToDst > distToFinal)
+                    {
+                        p2x = p1x + 0.33f * (dst.x - p1x);
+                        p2y = p1y + 0.33f * (dst.y - p1y);
+                    }
+                    else if (circleEndToDst < distToFinal * 0.2f)
+                    {
+                        p2x = circleEndX * 0.3f + dst.x * 0.7f;
+                        p2y = circleEndY * 0.3f + dst.y * 0.7f;
+                    }
+                    else
+                    {
+                        p2x = circleEndX;
+                        p2y = circleEndY;
+                    }
+                    float const p1ToP2 = std::sqrt((p2x - p1x) * (p2x - p1x) + (p2y - p1y) * (p2y - p1y));
+                    if (p1ToP2 < 1.0f)
+                    {
+                        float const midX = (src.x + dst.x) * 0.5f;
+                        float const midY = (src.y + dst.y) * 0.5f;
+                        float const candAx = midX + reach * std::cos(orient + M_PI_2);
+                        float const candAy = midY + reach * std::sin(orient + M_PI_2);
+                        float const candBx = midX + reach * std::cos(orient - M_PI_2);
+                        float const candBy = midY + reach * std::sin(orient - M_PI_2);
+                        float const distA = std::sqrt((candAx - dst.x) * (candAx - dst.x) + (candAy - dst.y) * (candAy - dst.y));
+                        float const distB = std::sqrt((candBx - dst.x) * (candBx - dst.x) + (candBy - dst.y) * (candBy - dst.y));
+                        p2x = (distA < distB) ? candAx : candBx;
+                        p2y = (distA < distB) ? candAy : candBy;
+                    }
+                    float const p2ToDstFinal = std::sqrt((p2x - dst.x) * (p2x - dst.x) + (p2y - dst.y) * (p2y - dst.y));
+                    args.path.insert(args.path.begin() + 1, Vector3(p1x, p1y, src.z));
+                    args.path.insert(args.path.begin() + 2, Vector3(p2x, p2y, src.z));
+                    if (unit->GetMapId() == 13)
+                        LOG_ERROR("movement", "ARC src=({:.2f},{:.2f}) orient={:.2f} bearingToNext={:.2f} angleDelta={:.2f} reach={:.2f} p1=({:.2f},{:.2f}) p2=({:.2f},{:.2f}) dst=({:.2f},{:.2f}) srcToDst={:.2f} p2ToDst={:.2f} pathSize={}",
+                            src.x, src.y,
+                            orient * 180.0f / M_PI, bearingToNext * 180.0f / M_PI, angleDelta * 180.0f / M_PI,
+                            reach, p1x, p1y, p2x, p2y, dst.x, dst.y, distToFinal, p2ToDstFinal, args.path.size());
+                }
+            }
+            args.flags.EnableCatmullRom();
+        }
+        
         uint32 moveFlags = unit->m_movementInfo.GetMovementFlags();
         moveFlags |= MOVEMENTFLAG_SPLINE_ENABLED;
 
@@ -149,7 +245,7 @@ namespace Movement
 
         return move_spline.Duration();
     }
-
+    
     void MoveSplineInit::Stop()
     {
         MoveSpline& move_spline = *unit->movespline;

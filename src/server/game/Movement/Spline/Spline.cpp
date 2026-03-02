@@ -246,8 +246,6 @@ namespace Movement
 
         memcpy(&points[lo_index], controls, sizeof(Vector3) * count);
 
-        // first and last two indexes are space for special 'virtual points'
-        // these points are required for proper C_Evaluate and C_Evaluate_Derivative methtod work
         if (cyclic)
         {
             if (cyclic_point == 0)
@@ -260,7 +258,7 @@ namespace Movement
         }
         else
         {
-            points[0] = controls[0].lerp(controls[1], -1);
+            points[0] = controls[0];
             points[high_index + 1] = controls[count - 1];
         }
 
