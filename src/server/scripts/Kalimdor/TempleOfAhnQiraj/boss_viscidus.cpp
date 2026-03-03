@@ -75,9 +75,9 @@ enum HitCounter
     HITCOUNTER_SLOW_MORE        = 150,
     HITCOUNTER_FREEZE           = 200,
 
-    HITCOUNTER_CRACK            = 50,
-    HITCOUNTER_SHATTER          = 100,
-    HITCOUNTER_EXPLODE          = 150,
+    HITCOUNTER_CRACK            = 10,
+    HITCOUNTER_SHATTER          = 20,
+    HITCOUNTER_EXPLODE          = 30, // Roughly 30 to explode, https://www.youtube.com/watch?v=cmHcxRaOGtk
 };
 
 enum MovePoints
@@ -154,7 +154,7 @@ struct boss_viscidus : public BossAI
         if (effType == DIRECT_DAMAGE)
             ++_hitcounter;
 
-        if (attacker->HasUnitState(UNIT_STATE_MELEE_ATTACKING) && _hitcounter >= HITCOUNTER_EXPLODE)
+        if (_hitcounter >= HITCOUNTER_EXPLODE)
         {
             if (me->GetHealthPct() <= 5.f)
             {
