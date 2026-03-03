@@ -59,6 +59,8 @@ namespace Movement
         float initialOrientation{0.f};
         bool HasVelocity{false};
         bool TransformForTransport{true};
+        
+        bool disableSplit{false};
 
         /** Returns true to show that the arguments were configured correctly and MoveSpline initialization will succeed. */
         bool Validate(Unit* unit) const;
