@@ -40,7 +40,15 @@ MotionTransport::~MotionTransport()
 {
     HashMapHolder<MotionTransport>::Remove(this);
 
-    ASSERT(_passengers.empty());
+    while (!_passengers.empty())
+    {
+        WorldObject* obj = *_passengers.begin();
+        RemovePassenger(obj);
+        obj->SetTransport(nullptr);
+        obj->m_movementInfo.transport.Reset();
+        obj->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
+    }
+
     UnloadStaticPassengers();
 }
 
@@ -687,7 +695,14 @@ StaticTransport::StaticTransport() : Transport(), _needDoInitialRelocation(false
 
 StaticTransport::~StaticTransport()
 {
-    ASSERT(_passengers.empty());
+    while (!_passengers.empty())
+    {
+        WorldObject* obj = *_passengers.begin();
+        RemovePassenger(obj);
+        obj->SetTransport(nullptr);
+        obj->m_movementInfo.transport.Reset();
+        obj->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
+    }
 }
 
 bool StaticTransport::LoadGameObjectFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap)

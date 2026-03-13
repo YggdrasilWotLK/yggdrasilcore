@@ -774,6 +774,7 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
     obj->ResetMap();
 
     RemoveObjectFromMapUpdateList(obj);
+    i_objectsToRemove.erase(obj);
 
     if (remove)
     {
