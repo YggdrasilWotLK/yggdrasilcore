@@ -68,6 +68,7 @@ RUN apt-get update                                                     \
         git lsb-base curl unzip default-mysql-client openssl                  \
         default-libmysqlclient-dev libboost-all-dev libssl-dev libmysql++-dev \
         libreadline-dev zlib1g-dev libbz2-dev libncurses5-dev         \
+    && dpkg -s libmysqlclient-dev | grep '^Version' | cut -d' ' -f2 > /mysql-client-version \
     && rm -rf /var/lib/apt/lists/*
 
 COPY CMakeLists.txt /azerothcore/CMakeLists.txt
@@ -117,9 +118,11 @@ ARG DOCKER_USER=acore
 ENV ACORE_COMPONENT=undefined
 
 # Install base dependencies for azerothcore
+COPY --from=build /mysql-client-version /mysql-client-version
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      libmysqlclient21 libreadline8 \
+      libmysqlclient21=$(cat /mysql-client-version) libreadline8 \
       gettext-base default-mysql-client \
       gdb gdbserver && \
     rm -rf /var/lib/apt/lists/*
