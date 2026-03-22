@@ -85,8 +85,9 @@ Object::Object() : m_PackGUID(sizeof(uint64) + 1)
 
 WorldObject::~WorldObject()
 {
-    sScriptMgr->OnWorldObjectDestroy(this);
-}
+    if (m_uint32Values)
+        sScriptMgr->OnWorldObjectDestroy(this);
+}   
 
 Object::~Object()
 {
