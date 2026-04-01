@@ -295,6 +295,11 @@ struct npc_pet_dk_army_of_the_dead : public CombatAI
 
     void IsSummonedBy(WorldObject* summoner) override
     {
+        me->AddAura(35340, me);
+        if (Aura* aura = me->GetAura(35340))
+            aura->SetDuration(4000);
+        me->HandleEmoteCommand(EMOTE_ONESHOT_EMERGE);
+
         if (Unit* owner = summoner->ToUnit())
         {
             Unit* victim = owner->GetVictim();
