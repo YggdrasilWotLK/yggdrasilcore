@@ -2451,14 +2451,32 @@ public:
 
         void GoSiphon()
         {
-            didbelow50pct = true;
-            me->CastSpell((Unit*)nullptr, SPELL_EJECT_ALL_PASSENGERS, false);
-            float dist = rand_norm() * 10.0f + 5.0f;
-            float angle = CenterPosition.GetAngle(me);
-            _destPoint.Relocate(CenterPosition.GetPositionX() + dist * cos(angle), CenterPosition.GetPositionY() + dist * std::sin(angle), 855.0f + frand(0.0f, 4.0f), 0.0f);
-            me->SetHomePosition(_destPoint);
-            _events.Reset();
-            _events.ScheduleEvent(EVENT_MOVE_TO_SIPHON_POS, 0ms);
+            if (me->GetVehicleKit() && me->GetVehicleKit()->GetPassenger(0))
+            {
+                SpellCastResult result = me->CastSpell((Unit*)nullptr, SPELL_EJECT_ALL_PASSENGERS, false);
+            }
+            else
+            {
+                me->ApplySpellImmune(0, IMMUNITY_MECHANIC, MECHANIC_STUN, true);
+                me->ApplySpellImmune(0, IMMUNITY_MECHANIC, MECHANIC_ROOT, true);
+                me->ApplySpellImmune(0, IMMUNITY_MECHANIC, MECHANIC_FREEZE, true);
+                me->ApplySpellImmune(0, IMMUNITY_MECHANIC, MECHANIC_SNARE, true);
+                me->ApplySpellImmune(0, IMMUNITY_MECHANIC, MECHANIC_DAZE, true);
+                me->ApplySpellImmune(0, IMMUNITY_MECHANIC, MECHANIC_HORROR, true);
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_STUN, true);
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_ROOT, true);
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_DECREASE_SPEED, true);
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_SPEED_NOT_STACK, true);
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_SPEED_ALWAYS, true);
+                me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_SPEED_SLOW_ALL, true);
+                float dist = rand_norm() * 10.0f + 5.0f;
+                float angle = CenterPosition.GetAngle(me);
+                _destPoint.Relocate(CenterPosition.GetPositionX() + dist * cos(angle), CenterPosition.GetPositionY() + dist * std::sin(angle), 855.0f + frand(0.0f, 4.0f), 0.0f);
+                me->SetHomePosition(_destPoint);
+                didbelow50pct = true;
+                _events.Reset();
+                _events.ScheduleEvent(EVENT_MOVE_TO_SIPHON_POS, 0ms);
+            }
         }
 
         void OnCharmed(bool  /*apply*/) override {}
@@ -2580,14 +2598,14 @@ public:
             switch (_events.ExecuteEvent())
             {
                 case EVENT_GRAB_PLAYER:
-                    if (!_grabbedPlayer)
+                    if (!_grabbedPlayer && !(IsHeroic() && (me->HealthBelowPct(50) || didbelow50pct)))
                     {
                         me->CastSpell((Unit*)nullptr, SPELL_VALKYR_TARGET_SEARCH, false);
                         _events.ScheduleEvent(EVENT_GRAB_PLAYER, 2s);
                     }
                     break;
 				case EVENT_MOVE_TO_DROP_POS:
-					if (!me->HasAura(68985)) // Reciprocal vehicle aura
+					if (!me->HasAura(SPELL_HARVEST_SOUL_VALKYR)) // Reciprocal vehicle aura
 					{
 						_events.Reset();
 						_events.ScheduleEvent(EVENT_GRAB_PLAYER, 500ms);
@@ -2642,7 +2660,7 @@ public:
         // Restarting the motion master on speed change ensures the movement is synced between the server and client.
         void HandleSpeedChangeIfNeeded()
         {
-            if (!grabbed || dropped)
+            if (!grabbed || dropped || (IsHeroic() && (didbelow50pct || me->HealthBelowPct(50)))) // Do not mess with MotionMaster on Life Siphon phase
                 return;
 
             if (me->GetSpeed(MOVE_WALK) == _lastSpeed)
