@@ -936,6 +936,10 @@ class spell_sindragosa_icy_grip : public SpellScript
         if (!GetHitUnit()->IsWithinLOSInMap(GetCaster()) || GetHitUnit()->HasAura(SPELL_TANK_MARKER_AURA))
             return;
 
+        // for players and pets check only dynamic los (ice block gameobjects)
+        if (!GetHitUnit()->IsWithinLOSInMap(GetCaster(), VMAP::ModelIgnoreFlags::Nothing, LINEOFSIGHT_CHECK_GOBJECT_M2, 0, GetCaster()->GetCombatReach() * 0.7))
+            return;
+
         GetHitUnit()->CastSpell(GetCaster(), SPELL_ICY_GRIP_JUMP, true);
     }
 
