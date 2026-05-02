@@ -3006,6 +3006,14 @@ private:
 
     PlayerSettingMap m_charSettingsMap;
 
+public:
+    float GetLootChanceModifier(uint32 itemID) const;
+    void SetLootChanceModifier(uint32 itemID, float mod);
+    void RemoveLootChanceModifier(uint32 itemID);
+
+private:
+    std::unordered_map<uint32, float> _lootChanceModifier;
+    
     Seconds m_creationTime;
 };
 
