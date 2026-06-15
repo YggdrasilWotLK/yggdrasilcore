@@ -85,23 +85,23 @@ enum Misc
     SAY_CRUSHER_EMOTE           = 1,
     SAY_HADRONOX_EMOTE          = 0,
 
-    // ACTION_DESPAWN_ADDS         = 1,
     ACTION_START_EVENT          = 2,
     ACTION_START_WALK           = 3,
     ACTION_STOP_SPAWNS          = 4,
     ACTION_CRUSHER_EVADE        = 5
 };
 
-constexpr float GAUNTLET_END_Z     = 640.0f;
-constexpr float GAUNTLET_START_Z   = 730.0f;
-constexpr float STEP_REACH         = 3.0f;
-constexpr float STEP_SPEED         = 5.0f;
-constexpr float ADDS_RANGE         = 8.0f;
-constexpr float SPELL_MAX_DIST     = 40.0f;
-constexpr float SPELL_MAX_Z_DIFF   = 20.0f;
-const Position HADRONOX_SPAWN_POS  = {522.531f, 544.911f, 674.679f, 0.0f};
+constexpr float GAUNTLET_END_Z   = 640.0f;
+constexpr float GAUNTLET_START_Z = 730.0f;
+constexpr float STEP_REACH       = 3.0f;
+constexpr float STEP_SPEED       = 3.5f;
+constexpr float ADDS_RANGE       = 8.0f;
+constexpr float SPELL_MAX_DIST   = 40.0f;
+constexpr float SPELL_MAX_Z_DIFF = 20.0f;
+constexpr float WAYPOINT_REACH   = 1.0f;
+constexpr uint32 ADD_CHECK_MS    = 100;
+const Position HADRONOX_SPAWN_POS = {522.531f, 544.911f, 674.679f, 0.0f};
 
-// Indices 0-3: start waypoints (approach phase), indices 4-7: combat steps
 const Position hadronoxWaypoints[8] =
 {
     {533.5879f,  533.34607f, 681.70135f, 0.0f},
@@ -120,16 +120,24 @@ const Position addSpawnPos[2] =
     {483.68f, 612.75f, 771.42f, 0.0f}
 };
 
-const Position addWaypoints[8] =
+constexpr uint32 ADD_WAYPOINT_COUNT = 15;
+const Position addWaypoints[ADD_WAYPOINT_COUNT] =
 {
-    {531.00f, 573.00f, 733.00f, 0.0f},
-    {546.76f, 563.00f, 730.87f, 0.0f},
-    {585.83f, 577.74f, 726.00f, 0.0f},
-    {610.95f, 565.35f, 719.56f, 0.0f},
-    {620.81f, 531.21f, 700.74f, 0.0f},
-    {604.28f, 510.95f, 694.65f, 0.0f},
-    {559.21f, 512.35f, 695.00f, 0.0f},
-    {522.53f, 544.91f, 674.68f, 0.0f}
+    {530.65857f, 576.39716f, 733.4407f,  0.0f},
+    {544.5423f,  568.7522f,  731.1956f,  0.0f},
+    {553.83936f, 568.7116f,  729.4889f,  0.0f},
+    {561.3301f,  572.9708f,  728.1504f,  0.0f},
+    {571.4326f,  573.8239f,  727.1494f,  0.0f},
+    {585.2161f,  576.30334f, 726.0641f,  0.0f},
+    {597.7994f,  572.25964f, 723.12836f, 0.0f},
+    {608.68f,    554.1495f,  714.67725f, 0.0f},
+    {620.7482f,  539.47156f, 706.5057f,  0.0f},
+    {620.7156f,  528.55646f, 698.867f,   0.0f},
+    {603.81274f, 510.69556f, 694.7088f,  0.0f},
+    {586.75836f, 512.0464f,  695.60925f, 0.0f},
+    {566.58093f, 514.4511f,  698.7215f,  0.0f},
+    {552.9107f,  523.64606f, 688.75604f, 0.0f},
+    {540.6518f,  532.722f,   684.9354f,  0.0f}
 };
 
 static bool IsValidSpellTarget(Unit* caster, WorldObject* target)
@@ -151,14 +159,16 @@ struct npc_hadronox_addAI : public ScriptedAI
         _reachedHadronox = false;
         _attackedByPlayer = false;
         _spawnedAbove745 = creature->GetPositionZ() >= 745.0f;
-        _lastPos = creature->GetPosition();
+        _chasingHadronox = false;
+        _checkTimer = 0;
     }
 
     uint32 _currentWaypoint;
     bool _reachedHadronox;
     bool _attackedByPlayer;
     bool _spawnedAbove745;
-    Position _lastPos;
+    bool _chasingHadronox;
+    uint32 _checkTimer;
     EventMap events;
 
     bool IsHeroic() const { return me->GetMap()->IsHeroic(); }
@@ -168,27 +178,64 @@ struct npc_hadronox_addAI : public ScriptedAI
         _currentWaypoint = 0;
         _reachedHadronox = false;
         _attackedByPlayer = false;
-        _lastPos = me->GetPosition();
+        _chasingHadronox = false;
+        _checkTimer = 0;
         events.Reset();
         if (_spawnedAbove745)
-            MoveToNextWaypoint();
+            IssueMove();
     }
 
-    void MoveToNextWaypoint()
+    Creature* FindHadronox() const
     {
-        if (_currentWaypoint >= 8)
-            return;
-        me->GetMotionMaster()->MovePoint(_currentWaypoint, addWaypoints[_currentWaypoint]);
+        return me->FindNearestCreature(NPC_HADRONOX, 500.0f, true);
     }
 
-    void MovementInform(uint32 type, uint32 id) override
+    void MoveTowardHadronox(Creature* hadronox)
     {
-        if (type != POINT_MOTION_TYPE || _reachedHadronox || _attackedByPlayer)
-            return;
+        me->GetMotionMaster()->MovePoint(0, hadronox->GetPositionX(), hadronox->GetPositionY(), hadronox->GetPositionZ(), FORCED_MOVEMENT_RUN);
+    }
 
-        _currentWaypoint = id + 1;
-        if (_currentWaypoint < 8)
-            MoveToNextWaypoint();
+    void EngageHadronox(Creature* hadronox)
+    {
+        _reachedHadronox = true;
+        _chasingHadronox = false;
+        me->SetReactState(REACT_AGGRESSIVE);
+        AttackStart(hadronox);
+        ScheduleCombatEvents();
+    }
+
+    // Issues MovePoint to current waypoint, or MovePoint to Hadronox if closer.
+    void IssueMove()
+    {
+        Creature* hadronox = FindHadronox();
+
+        if (hadronox)
+        {
+            float distToHadronox = me->GetExactDist(hadronox);
+            if (distToHadronox <= ADDS_RANGE)
+            {
+                EngageHadronox(hadronox);
+                return;
+            }
+
+            const Position& nextWp = addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT];
+            float distToNext = me->GetExactDist(nextWp);
+
+            if (distToHadronox < distToNext)
+            {
+                _chasingHadronox = true;
+                MoveTowardHadronox(hadronox);
+                return;
+            }
+        }
+
+        _chasingHadronox = false;
+        me->GetMotionMaster()->MovePoint(
+            _currentWaypoint,
+            addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT].GetPositionX(),
+            addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT].GetPositionY(),
+            addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT].GetPositionZ(),
+            FORCED_MOVEMENT_RUN);
     }
 
     void DamageTaken(Unit* who, uint32& /*damage*/, DamageEffectType /*damageType*/, SpellSchoolMask /*damageSchoolMask*/) override
@@ -197,6 +244,7 @@ struct npc_hadronox_addAI : public ScriptedAI
         {
             _attackedByPlayer = true;
             _reachedHadronox = false;
+            _chasingHadronox = false;
             me->GetMotionMaster()->Clear();
             me->SetReactState(REACT_AGGRESSIVE);
             if (who->IsPlayer())
@@ -205,51 +253,85 @@ struct npc_hadronox_addAI : public ScriptedAI
         }
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-    }
+    void JustEngagedWith(Unit* /*who*/) override {}
 
     virtual void ScheduleCombatEvents() = 0;
 
     bool NearHadronox() const
     {
-        if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, ADDS_RANGE, true))
-            return true;
-        return false;
-    }
-
-    void UpdateWalk(uint32 /*diff*/)
-    {
-        if (_reachedHadronox || _attackedByPlayer)
-            return;
-
-        if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
-        {
-            float zDiff = std::abs(me->GetPositionZ() - hadronox->GetPositionZ());
-            if (zDiff <= ADDS_RANGE)
-            {
-                _reachedHadronox = true;
-                me->SetReactState(REACT_AGGRESSIVE);
-                me->GetMotionMaster()->Clear();
-                me->GetMotionMaster()->MoveChase(hadronox);
-                AttackStart(hadronox);
-                ScheduleCombatEvents();
-                return;
-            }
-        }
-
-        if (_spawnedAbove745)
-        {
-            float movedDist = me->GetExactDist(_lastPos.GetPositionX(), _lastPos.GetPositionY(), _lastPos.GetPositionZ());
-            if (movedDist < 0.1f && _currentWaypoint < 8)
-                MoveToNextWaypoint();
-            _lastPos = me->GetPosition();
-        }
+        return me->FindNearestCreature(NPC_HADRONOX, ADDS_RANGE, true) != nullptr;
     }
 
     bool ShouldUseCombatAbilities() const
     {
         return _attackedByPlayer || NearHadronox();
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (!_spawnedAbove745 || _reachedHadronox || _attackedByPlayer)
+            return;
+
+        Creature* hadronox = FindHadronox();
+
+        if (hadronox && me->GetExactDist(hadronox) <= ADDS_RANGE)
+        {
+            EngageHadronox(hadronox);
+            return;
+        }
+
+        if (_chasingHadronox && hadronox)
+        {
+            float dist = me->GetExactDist(hadronox);
+            if (dist <= 4.0f)
+                me->GetMotionMaster()->Clear();
+            else if (dist >= 7.0f)
+                MoveTowardHadronox(hadronox);
+            return;
+        }
+
+        // Advance waypoint if reached
+        const Position& wp = addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT];
+        if (me->GetExactDist(wp) <= WAYPOINT_REACH)
+            _currentWaypoint++;
+
+        if (!me->isMoving())
+        {
+            me->GetMotionMaster()->MovePoint(
+                _currentWaypoint,
+                addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT].GetPositionX(),
+                addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT].GetPositionY(),
+                addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT].GetPositionZ(),
+                FORCED_MOVEMENT_RUN);
+        }
+
+        _checkTimer += diff;
+        if (_checkTimer < ADD_CHECK_MS)
+            return;
+        _checkTimer = 0;
+
+        if (!hadronox)
+            return;
+
+        // Special case: reached waypoint 0 and Hadronox is already high
+        if (_currentWaypoint == 0
+            && me->GetExactDist(addWaypoints[0]) <= WAYPOINT_REACH
+            && hadronox->GetPositionZ() > 729.0f)
+        {
+            _currentWaypoint = 1;
+            _chasingHadronox = true;
+            MoveTowardHadronox(hadronox);
+            return;
+        }
+
+        float distToHadronox = me->GetExactDist(hadronox);
+        const Position& nextWp = addWaypoints[_currentWaypoint % ADD_WAYPOINT_COUNT];
+        float distToNext = me->GetExactDist(nextWp);
+        if (distToHadronox < distToNext)
+        {
+            _chasingHadronox = true;
+            MoveTowardHadronox(hadronox);
+        }
     }
 };
 
@@ -275,7 +357,7 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            UpdateWalk(diff);
+            npc_hadronox_addAI::UpdateAI(diff);
 
             if (_spawnedAbove745 && !ShouldUseCombatAbilities())
                 me->SetReactState(REACT_PASSIVE);
@@ -343,7 +425,7 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            UpdateWalk(diff);
+            npc_hadronox_addAI::UpdateAI(diff);
 
             if (_spawnedAbove745 && !ShouldUseCombatAbilities())
                 me->SetReactState(REACT_PASSIVE);
@@ -411,7 +493,7 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            UpdateWalk(diff);
+            npc_hadronox_addAI::UpdateAI(diff);
 
             if (_spawnedAbove745 && !ShouldUseCombatAbilities())
                 me->SetReactState(REACT_PASSIVE);
@@ -555,6 +637,13 @@ public:
                 me->AI()->EnterEvadeMode();
         }
 
+        void EnterEvadeMode(EvadeReason /*why*/) override
+        {
+            if (_spawnsActive && AnyPlayerInHadronoxGauntlet())
+                return;
+            BossAI::EnterEvadeMode();
+        }
+
         uint32 GetData(uint32 data) const override
         {
             if (data == me->GetEntry())
@@ -654,7 +743,7 @@ public:
                     continue;
                 float z = player->GetPositionZ();
                 float y = player->GetPositionY();
-                if (y < 625.0f && z > GAUNTLET_END_Z)
+                if (player->IsAlive() && y < 625.0f && z > GAUNTLET_END_Z)
                     return true;
             }
             return false;
@@ -740,17 +829,6 @@ public:
                 {
                     if (me->GetExactDist(HADRONOX_SPAWN_POS.GetPositionX(), HADRONOX_SPAWN_POS.GetPositionY(), HADRONOX_SPAWN_POS.GetPositionZ()) > 2.0f)
                         me->GetMotionMaster()->MovePoint(0, HADRONOX_SPAWN_POS.GetPositionX(), HADRONOX_SPAWN_POS.GetPositionY(), HADRONOX_SPAWN_POS.GetPositionZ(), FORCED_MOVEMENT_NONE, 0.f, 0.f, false);
-
-                    std::list<Creature*> addList;
-                    for (uint32 entry : {(uint32)NPC_ANUB_AR_CRUSHER, (uint32)NPC_ANUB_AR_CHAMPION, (uint32)NPC_ANUB_AR_CRYPTFIEND, (uint32)NPC_ANUB_AR_NECROMANCER})
-                    {
-                        std::list<Creature*> tmp;
-                        me->GetCreaturesWithEntryInRange(tmp, 500.0f, entry);
-                        addList.splice(addList.end(), tmp);
-                    }
-                    for (Creature* add : addList)
-                        if (add->GetExactDist(HADRONOX_SPAWN_POS.GetPositionX(), HADRONOX_SPAWN_POS.GetPositionY(), HADRONOX_SPAWN_POS.GetPositionZ()) > ADDS_RANGE)
-                            add->GetMotionMaster()->MoveChase(me);
                 }
             }
 
@@ -857,16 +935,6 @@ public:
             summons.DespawnAll();
             events.Reset();
             _eventStarted = false;
-        }
-
-        void JustSummoned(Creature* summon) override
-        {
-            if (summon->GetEntry() != me->GetEntry())
-            {
-                summon->GetMotionMaster()->MovePoint(0, *me, FORCED_MOVEMENT_NONE, 0.f, false);
-                summon->GetMotionMaster()->MoveFollow(me, 0.1f, 0.0f + M_PI * 0.3f * summons.size());
-            }
-            summons.Summon(summon);
         }
 
         void JustEngagedWith(Unit*) override
