@@ -96,8 +96,10 @@ constexpr float GAUNTLET_END_Z     = 640.0f;
 constexpr float GAUNTLET_START_Z   = 730.0f;
 constexpr float STEP_REACH         = 3.0f;
 constexpr float STEP_SPEED         = 5.0f;
-constexpr float ADDS_RANGE         = 5.0f;
-const Position HADRONOX_SPAWN_POS  = {522.531f, 544.911f, 647.679f, 0.0f};
+constexpr float ADDS_RANGE         = 8.0f;
+constexpr float SPELL_MAX_DIST     = 40.0f;
+constexpr float SPELL_MAX_Z_DIFF   = 20.0f;
+const Position HADRONOX_SPAWN_POS  = {522.531f, 544.911f, 674.679f, 0.0f};
 
 // Indices 0-3: start waypoints (approach phase), indices 4-7: combat steps
 const Position hadronoxWaypoints[8] =
@@ -129,6 +131,17 @@ const Position addWaypoints[8] =
     {559.21f, 512.35f, 695.00f, 0.0f},
     {522.53f, 544.91f, 674.68f, 0.0f}
 };
+
+static bool IsValidSpellTarget(Unit* caster, WorldObject* target)
+{
+    if (!caster || !target)
+        return false;
+    if (caster->GetExactDist(target) > SPELL_MAX_DIST)
+        return false;
+    if (std::abs(caster->GetPositionZ() - target->GetPositionZ()) > SPELL_MAX_Z_DIFF)
+        return false;
+    return true;
+}
 
 struct npc_hadronox_addAI : public ScriptedAI
 {
@@ -262,14 +275,20 @@ public:
         {
             UpdateWalk(diff);
 
+            if (_spawnedAbove745 && !ShouldUseCombatAbilities())
+                me->SetReactState(REACT_PASSIVE);
+            else if (me->GetReactState() == REACT_PASSIVE)
+            {
+                me->SetReactState(REACT_AGGRESSIVE);
+                if (me->GetVictim())
+                    AttackStart(me->GetVictim());
+            }
+
             if (!UpdateVictim())
                 return;
 
             if (!ShouldUseCombatAbilities())
-            {
-                DoMeleeAttackIfReady();
                 return;
-            }
 
             events.Update(diff);
 
@@ -279,11 +298,12 @@ public:
             switch (events.ExecuteEvent())
             {
                 case EVENT_CHAMPION_REND:
-                    me->CastSpell(me->GetVictim(), IsHeroic() ? SPELL_CHAMPION_REND_H : SPELL_CHAMPION_REND, false);
+                    if (me->GetVictim() && IsValidSpellTarget(me, me->GetVictim()))
+                        me->CastSpell(me->GetVictim(), IsHeroic() ? SPELL_CHAMPION_REND_H : SPELL_CHAMPION_REND, false);
                     events.ScheduleEvent(EVENT_CHAMPION_REND, Milliseconds(urand(12000, 18000)));
                     break;
                 case EVENT_CHAMPION_PUMMEL:
-                    if (me->GetVictim() && me->GetVictim()->HasUnitState(UNIT_STATE_CASTING))
+                    if (me->GetVictim() && me->GetVictim()->HasUnitState(UNIT_STATE_CASTING) && IsValidSpellTarget(me, me->GetVictim()))
                         me->CastSpell(me->GetVictim(), IsHeroic() ? SPELL_CHAMPION_PUMMEL_H : SPELL_CHAMPION_PUMMEL, false);
                     events.ScheduleEvent(EVENT_CHAMPION_PUMMEL, Milliseconds(urand(9000, 13000)));
                     break;
@@ -323,14 +343,20 @@ public:
         {
             UpdateWalk(diff);
 
+            if (_spawnedAbove745 && !ShouldUseCombatAbilities())
+                me->SetReactState(REACT_PASSIVE);
+            else if (me->GetReactState() == REACT_PASSIVE)
+            {
+                me->SetReactState(REACT_AGGRESSIVE);
+                if (me->GetVictim())
+                    AttackStart(me->GetVictim());
+            }
+
             if (!UpdateVictim())
                 return;
 
             if (!ShouldUseCombatAbilities())
-            {
-                DoMeleeAttackIfReady();
                 return;
-            }
 
             events.Update(diff);
 
@@ -340,12 +366,14 @@ public:
             switch (events.ExecuteEvent())
             {
                 case EVENT_NECRO_INFECTED_WOUND:
-                    me->CastSpell(me->GetVictim(), IsHeroic() ? SPELL_NECROMANCER_INFECTED_WOUND_H : SPELL_NECROMANCER_INFECTED_WOUND, false);
+                    if (me->GetVictim() && IsValidSpellTarget(me, me->GetVictim()))
+                        me->CastSpell(me->GetVictim(), IsHeroic() ? SPELL_NECROMANCER_INFECTED_WOUND_H : SPELL_NECROMANCER_INFECTED_WOUND, false);
                     events.ScheduleEvent(EVENT_NECRO_INFECTED_WOUND, Milliseconds(urand(9000, 12000)));
                     break;
                 case EVENT_NECRO_CRUSHING_WEBS:
                     if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 30.0f, true))
-                        me->CastSpell(target, IsHeroic() ? SPELL_NECROMANCER_CRUSHING_WEBS_H : SPELL_NECROMANCER_CRUSHING_WEBS, false);
+                        if (IsValidSpellTarget(me, target))
+                            me->CastSpell(target, IsHeroic() ? SPELL_NECROMANCER_CRUSHING_WEBS_H : SPELL_NECROMANCER_CRUSHING_WEBS, false);
                     events.ScheduleEvent(EVENT_NECRO_CRUSHING_WEBS, Milliseconds(urand(10000, 13000)));
                     break;
             }
@@ -383,14 +411,20 @@ public:
         {
             UpdateWalk(diff);
 
+            if (_spawnedAbove745 && !ShouldUseCombatAbilities())
+                me->SetReactState(REACT_PASSIVE);
+            else if (me->GetReactState() == REACT_PASSIVE)
+            {
+                me->SetReactState(REACT_AGGRESSIVE);
+                if (me->GetVictim())
+                    AttackStart(me->GetVictim());
+            }
+
             if (!UpdateVictim())
                 return;
 
             if (!ShouldUseCombatAbilities())
-            {
-                DoMeleeAttackIfReady();
                 return;
-            }
 
             events.Update(diff);
 
@@ -400,7 +434,8 @@ public:
             switch (events.ExecuteEvent())
             {
                 case EVENT_CRYPT_SHADOW_BOLT:
-                    me->CastSpell(me->GetVictim(), SPELL_CRYPT_FIEND_SHADOW_BOLT, true);
+                    if (me->GetVictim() && IsValidSpellTarget(me, me->GetVictim()))
+                        me->CastSpell(me->GetVictim(), SPELL_CRYPT_FIEND_SHADOW_BOLT, true);
                     events.ScheduleEvent(EVENT_CRYPT_SHADOW_BOLT, Milliseconds(urand(2000, 3000)));
                     break;
             }
@@ -665,12 +700,12 @@ public:
                         _lastPos = me->GetPosition();
                     }
                 }
-                
+
                 if (!_walkStarted)
                 {
                     if (me->GetExactDist(HADRONOX_SPAWN_POS.GetPositionX(), HADRONOX_SPAWN_POS.GetPositionY(), HADRONOX_SPAWN_POS.GetPositionZ()) > 2.0f)
-                        me->GetMotionMaster()->MoveCharge(HADRONOX_SPAWN_POS.GetPositionX(), HADRONOX_SPAWN_POS.GetPositionY(), HADRONOX_SPAWN_POS.GetPositionZ(), STEP_SPEED, 0, nullptr, true);
-
+                        me->GetMotionMaster()->MovePoint(0, HADRONOX_SPAWN_POS.GetPositionX(), HADRONOX_SPAWN_POS.GetPositionY(), HADRONOX_SPAWN_POS.GetPositionZ(), FORCED_MOVEMENT_NONE, 0.f, 0.f, false);
+                    
                     std::list<Creature*> addList;
                     for (uint32 entry : {(uint32)NPC_ANUB_AR_CRUSHER, (uint32)NPC_ANUB_AR_CHAMPION, (uint32)NPC_ANUB_AR_CRYPTFIEND, (uint32)NPC_ANUB_AR_NECROMANCER})
                     {
@@ -724,18 +759,21 @@ public:
                     break;
                 case EVENT_HADRONOX_PIERCE:
                     if (UpdateVictim() && !me->HasUnitState(UNIT_STATE_CASTING))
-                        me->CastSpell(me->GetVictim(), SPELL_PIERCE_ARMOR, false);
+                        if (me->GetVictim() && IsValidSpellTarget(me, me->GetVictim()))
+                            me->CastSpell(me->GetVictim(), SPELL_PIERCE_ARMOR, false);
                     events.ScheduleEvent(EVENT_HADRONOX_PIERCE, 8s);
                     break;
                 case EVENT_HADRONOX_ACID:
                     if (UpdateVictim() && !me->HasUnitState(UNIT_STATE_CASTING))
                         if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100, false))
-                            me->CastSpell(target, SPELL_ACID_CLOUD, false);
+                            if (IsValidSpellTarget(me, target))
+                                me->CastSpell(target, SPELL_ACID_CLOUD, false);
                     events.ScheduleEvent(EVENT_HADRONOX_ACID, 25s);
                     break;
                 case EVENT_HADRONOX_LEECH:
                     if (UpdateVictim() && !me->HasUnitState(UNIT_STATE_CASTING))
-                        me->CastSpell(me, SPELL_LEECH_POISON, false);
+                        if (IsValidSpellTarget(me, me->GetVictim()))
+                            me->CastSpell(me, SPELL_LEECH_POISON, false);
                     events.ScheduleEvent(EVENT_HADRONOX_LEECH, 12s);
                     break;
                 case EVENT_HADRONOX_GRAB:
@@ -825,7 +863,8 @@ public:
             switch (events.ExecuteEvent())
             {
                 case EVENT_CRUSHER_SMASH:
-                    me->CastSpell(me->GetVictim(), SPELL_SMASH, false);
+                    if (me->GetVictim() && IsValidSpellTarget(me, me->GetVictim()))
+                        me->CastSpell(me->GetVictim(), SPELL_SMASH, false);
                     events.ScheduleEvent(EVENT_CRUSHER_SMASH, 15s);
                     break;
                 case EVENT_CHECK_HEALTH:
@@ -896,9 +935,9 @@ class spell_hadronox_web_grab : public SpellScript
         Unit* caster = GetCaster();
         targets.remove_if([caster](WorldObject* target) -> bool
         {
-            if (caster->GetExactDist(target) > 40.0f)
+            if (caster->GetExactDist(target) > SPELL_MAX_DIST)
                 return true;
-            if (std::abs(caster->GetPositionZ() - target->GetPositionZ()) > 20.0f)
+            if (std::abs(caster->GetPositionZ() - target->GetPositionZ()) > SPELL_MAX_Z_DIFF)
                 return true;
             return false;
         });
@@ -906,7 +945,7 @@ class spell_hadronox_web_grab : public SpellScript
 
     void Register() override
     {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_hadronox_web_grab::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_hadronox_web_grab::FilterTargets, EFFECT_ALL, TARGET_UNIT_SRC_AREA_ENEMY);
     }
 };
 

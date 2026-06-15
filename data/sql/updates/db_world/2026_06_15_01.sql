@@ -5,3 +5,7 @@ DELETE FROM smart_scripts WHERE entryorguid = 29063;
 DELETE FROM smart_scripts WHERE entryorguid = 29064;
 
 INSERT INTO spell_script_names (spell_id, ScriptName) VALUES (57731, 'spell_hadronox_web_grab');
+
+DELETE FROM spell_script_names WHERE spell_id = 53035;
+DELETE FROM spell_script_names WHERE spell_id = 53036;
+DELETE FROM spell_script_names WHERE spell_id = 53037;
