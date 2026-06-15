@@ -267,9 +267,9 @@ class boss_anub_arak : public CreatureScript
         }
 };
 
-class spell_azjol_nerub_carrion_beetels : public AuraScript
+class spell_azjol_nerub_carrion_beetles : public AuraScript
 {
-    PrepareAuraScript(spell_azjol_nerub_carrion_beetels)
+    PrepareAuraScript(spell_azjol_nerub_carrion_beetles)
 
     void HandleEffectPeriodic(AuraEffect const*  /*aurEff*/)
     {
@@ -280,7 +280,7 @@ class spell_azjol_nerub_carrion_beetels : public AuraScript
 
     void Register() override
     {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_azjol_nerub_carrion_beetels::HandleEffectPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_azjol_nerub_carrion_beetles::HandleEffectPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
     }
 };
 
@@ -321,7 +321,7 @@ class spell_azjol_nerub_impale_summon : public SpellScript
 void AddSC_boss_anub_arak()
 {
     new boss_anub_arak();
-    RegisterSpellScript(spell_azjol_nerub_carrion_beetels);
+    RegisterSpellScript(spell_azjol_nerub_carrion_beetles);
     RegisterSpellScript(spell_azjol_nerub_pound);
     RegisterSpellScript(spell_azjol_nerub_impale_summon);
 }
