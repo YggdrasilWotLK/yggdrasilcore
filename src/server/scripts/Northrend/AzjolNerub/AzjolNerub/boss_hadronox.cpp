@@ -34,7 +34,7 @@ enum Spells
     SPELL_ACID_CLOUD                        = 53400,
     SPELL_LEECH_POISON                      = 53030,
     SPELL_LEECH_POISON_HEAL                 = 53800,
-    SPELL_WEB_GRAB                          = 57731,
+    SPELL_WEB_GRAB                          = 56640,
     SPELL_PIERCE_ARMOR                      = 53418,
 
     SPELL_SMASH                             = 53318,
@@ -198,6 +198,7 @@ struct npc_hadronox_addAI : public ScriptedAI
             _attackedByPlayer = true;
             _reachedHadronox = false;
             me->GetMotionMaster()->Clear();
+            me->SetReactState(REACT_AGGRESSIVE);
             if (who->IsPlayer())
                 AttackStart(who);
             ScheduleCombatEvents();
@@ -228,6 +229,7 @@ struct npc_hadronox_addAI : public ScriptedAI
             if (zDiff <= ADDS_RANGE)
             {
                 _reachedHadronox = true;
+                me->SetReactState(REACT_AGGRESSIVE);
                 me->GetMotionMaster()->Clear();
                 me->GetMotionMaster()->MoveChase(hadronox);
                 AttackStart(hadronox);
@@ -668,6 +670,39 @@ public:
             return false;
         }
 
+        void CastWebGrabOnValidTargets()
+        {
+            std::list<Unit*> targets;
+
+            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
+            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+            {
+                Player* player = itr->GetSource();
+                if (!player || !player->IsAlive() || player->IsGameMaster())
+                    continue;
+                if (!IsValidSpellTarget(me, player))
+                    continue;
+                targets.push_back(player);
+            }
+
+            for (uint32 entry : {(uint32)NPC_ANUB_AR_CRUSHER, (uint32)NPC_ANUB_AR_CHAMPION, (uint32)NPC_ANUB_AR_CRYPTFIEND, (uint32)NPC_ANUB_AR_NECROMANCER})
+            {
+                std::list<Creature*> cl;
+                me->GetCreaturesWithEntryInRange(cl, SPELL_MAX_DIST, entry);
+                for (Creature* c : cl)
+                {
+                    if (!c->IsAlive())
+                        continue;
+                    if (!IsValidSpellTarget(me, c))
+                        continue;
+                    targets.push_back(c);
+                }
+            }
+
+            for (Unit* target : targets)
+                me->CastSpell(target, SPELL_WEB_GRAB, false);
+        }
+
         void UpdateAI(uint32 diff) override
         {
             events.Update(diff);
@@ -705,7 +740,7 @@ public:
                 {
                     if (me->GetExactDist(HADRONOX_SPAWN_POS.GetPositionX(), HADRONOX_SPAWN_POS.GetPositionY(), HADRONOX_SPAWN_POS.GetPositionZ()) > 2.0f)
                         me->GetMotionMaster()->MovePoint(0, HADRONOX_SPAWN_POS.GetPositionX(), HADRONOX_SPAWN_POS.GetPositionY(), HADRONOX_SPAWN_POS.GetPositionZ(), FORCED_MOVEMENT_NONE, 0.f, 0.f, false);
-                    
+
                     std::list<Creature*> addList;
                     for (uint32 entry : {(uint32)NPC_ANUB_AR_CRUSHER, (uint32)NPC_ANUB_AR_CHAMPION, (uint32)NPC_ANUB_AR_CRYPTFIEND, (uint32)NPC_ANUB_AR_NECROMANCER})
                     {
@@ -778,8 +813,8 @@ public:
                     break;
                 case EVENT_HADRONOX_GRAB:
                     if (UpdateVictim() && !me->HasUnitState(UNIT_STATE_CASTING))
-                        me->CastSpell(me, SPELL_WEB_GRAB, false);
-                    events.ScheduleEvent(EVENT_HADRONOX_GRAB, 25s);
+                        CastWebGrabOnValidTargets();
+                    events.ScheduleEvent(EVENT_HADRONOX_GRAB, 12s);
                     break;
             }
 
@@ -926,29 +961,6 @@ public:
     }
 };
 
-class spell_hadronox_web_grab : public SpellScript
-{
-    PrepareSpellScript(spell_hadronox_web_grab);
-
-    void FilterTargets(std::list<WorldObject*>& targets)
-    {
-        Unit* caster = GetCaster();
-        targets.remove_if([caster](WorldObject* target) -> bool
-        {
-            if (caster->GetExactDist(target) > SPELL_MAX_DIST)
-                return true;
-            if (std::abs(caster->GetPositionZ() - target->GetPositionZ()) > SPELL_MAX_Z_DIFF)
-                return true;
-            return false;
-        });
-    }
-
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_hadronox_web_grab::FilterTargets, EFFECT_ALL, TARGET_UNIT_SRC_AREA_ENEMY);
-    }
-};
-
 void AddSC_boss_hadronox()
 {
     new npc_anub_ar_champion();
@@ -957,6 +969,5 @@ void AddSC_boss_hadronox()
     new boss_hadronox();
     new npc_anub_ar_crusher();
     RegisterSpellScript(spell_hadronox_leech_poison_aura);
-    RegisterSpellScript(spell_hadronox_web_grab);
     new achievement_hadronox_denied();
 }
