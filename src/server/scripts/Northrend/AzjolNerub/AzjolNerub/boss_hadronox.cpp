@@ -244,6 +244,11 @@ struct npc_hadronox_addAI : public ScriptedAI
         }
     }
 
+    void JustDespawned() override
+    {
+        ReleaseSlot();
+    }
+
     Creature* FindHadronox() const
     {
         return me->FindNearestCreature(NPC_HADRONOX, 500.0f, true);
@@ -1138,6 +1143,16 @@ public:
                 _pathStep = 0;
         }
 
+        void JustSummoned(Creature* summon) override
+        {
+            summons.Summon(summon);
+        }
+
+        void JustDied(Unit* /*killer*/) override
+        {
+            summons.DespawnAll();
+        }
+
         void SetData(uint32 /*id*/, uint32 /*value*/) override
         {
             _isSpawnedCrusher = true;
@@ -1258,6 +1273,7 @@ public:
 
         void EnterEvadeMode(EvadeReason /*why*/) override
         {
+            summons.DespawnAll();
             if (!_isSpawnedCrusher)
             {
                 if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
