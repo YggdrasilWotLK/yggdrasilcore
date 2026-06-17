@@ -1144,11 +1144,6 @@ public:
             summons.Summon(summon);
         }
 
-        void JustDied(Unit* /*killer*/) override
-        {
-            summons.DespawnAll();
-        }
-
         void SetData(uint32 /*id*/, uint32 /*value*/) override
         {
             _isSpawnedCrusher = true;
