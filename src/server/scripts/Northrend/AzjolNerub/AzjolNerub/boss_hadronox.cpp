@@ -1005,7 +1005,10 @@ public:
                 }
 
                 for (Unit* target : targets)
+                {
                     me->CastSpell(target, SPELL_WEB_GRAB_OVERRIDE, false);
+                    me->AddThreat(target, 1.0f);
+                }
             }
             else
             {
