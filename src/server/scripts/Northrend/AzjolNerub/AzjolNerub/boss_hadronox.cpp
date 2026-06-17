@@ -25,7 +25,7 @@
 #include "SpellScript.h"
 
 // Configs
-constexpr bool PLAYER_DMG_ON_HADRONOX_STOPS_ADD_SUMMONS = false;  // Blizzlike is false, true is more akin to other pservers
+constexpr bool PLAYER_DMG_ON_HADRONOX_STOPS_ADD_SUMMONS = false; // Blizzlike is false, true is more akin to other pservers
 constexpr bool CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER      = false; // true = on player entering gauntlet (y < 625), false = on crusher engaged. Blizzlike is false
 constexpr bool WEB_GRAB_OVERRIDE                        = true;  // Emulate web grab by using range-locked single target spell looping through and grabbing valid targets in range. Sniffed spell has too long range and grabs through floor. Blizzlike is false but bugged
 
