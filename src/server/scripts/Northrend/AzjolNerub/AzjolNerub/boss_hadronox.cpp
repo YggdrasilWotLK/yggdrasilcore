@@ -34,7 +34,7 @@ enum Spells
     SPELL_SUMMON_ANUBAR_CHAMPION            = 53064,
     SPELL_SUMMON_ANUBAR_CRYPT_FIEND         = 53065,
     SPELL_SUMMON_ANUBAR_NECROMANCER         = 53066,
-    SPELL_WEB_FRONT_DOORS                   = 53177,
+    SPELL_WEB_FRONT_DOORS                   = 53177, // Unscripted
     SPELL_WEB_SIDE_DOORS                    = 53185,
     SPELL_ACID_CLOUD                        = 53400,
     SPELL_LEECH_POISON                      = 53030,
@@ -87,6 +87,7 @@ enum Events
 enum Misc
 {
     NPC_ANUB_AR_CRUSHER         = 28922,
+    NPC_WEB_DUMMY_TARGET        = 24648,
 
     SAY_CRUSHER_AGGRO           = 0,
     SAY_CRUSHER_EMOTE           = 1,
@@ -152,6 +153,13 @@ const Position addWaypoints[ADD_WAYPOINT_COUNT] =
 };
 
 const Position ADD_SPAWN3_JOIN_WP = {609.41376f, 574.623f, 722.0532f, 0.0f};
+
+const Position webDummyPositions[3] =
+{
+    {583.8375f,  606.46747f, 739.3754f,  1.6401535f},
+    {577.10364f, 612.30005f, 771.4738f,  0.60115397f},
+    {482.53622f, 617.4355f,  771.92834f, 2.1164744f}
+};
 
 namespace HadronoxAddSlots
 {
@@ -367,7 +375,21 @@ struct npc_hadronox_addAI : public ScriptedAI
             }
         }
 
-        if (!_spawnedAbove735 || _reachedHadronox || _attackedByPlayer)
+        if (_reachedHadronox && !_attackedByPlayer)
+        {
+            Creature* hadronox = FindHadronox();
+            if (hadronox)
+            {
+                float dist = me->GetExactDist(hadronox);
+                if (me->isMoving() && dist <= 3.0f)
+                    me->GetMotionMaster()->Clear();
+                else if (!me->isMoving() && dist > 8.0f)
+                    MoveTowardHadronox(hadronox);
+            }
+            return;
+        }
+
+        if (!_spawnedAbove735 || _attackedByPlayer)
             return;
 
         Creature* hadronox = FindHadronox();
@@ -670,6 +692,8 @@ public:
             _reachedFinalWaypoint = false;
             _leashPos = {0.0f, 0.0f, 0.0f, 0.0f};
             _leashCheckTimer = 0;
+            _webDoorPhase = 0;
+            _dummiesSpawned = false;
         }
 
         bool _walkStarted;
@@ -679,12 +703,15 @@ public:
         bool _crusherAggroSaid;
         bool _waitingForNextStep;
         bool _reachedFinalWaypoint;
+        bool _dummiesSpawned;
         int32 _currentStep;
         uint32 _spawnCount;
         uint32 _movementCheckTimer;
         uint32 _leashCheckTimer;
+        uint32 _webDoorPhase;
         Position _lastPos;
         Position _leashPos;
+        ObjectGuid _webDummyGuids[3];
 
         void Reset() override
         {
@@ -702,6 +729,10 @@ public:
             _reachedFinalWaypoint = false;
             _leashPos = {0.0f, 0.0f, 0.0f, 0.0f};
             _leashCheckTimer = 0;
+            _webDoorPhase = 0;
+            _dummiesSpawned = false;
+            for (int i = 0; i < 3; ++i)
+                _webDummyGuids[i].Clear();
             _lastPos = me->GetPosition();
             me->SummonCreature(NPC_ANUB_AR_CRUSHER, 531.5281f, 553.8509f, 732.56f, 5.053f);
             me->SummonCreature(NPC_ANUB_AR_CRYPTFIEND, 524.07886f, 550.6797f, 731.873f, 5.053f);
@@ -709,14 +740,39 @@ public:
             events.ScheduleEvent(EVENT_HADRONOX_CHECK, 1s);
         }
 
+        void SpawnWebDummies()
+        {
+            if (_dummiesSpawned)
+                return;
+            _dummiesSpawned = true;
+            for (int i = 0; i < 3; ++i)
+            {
+                if (Creature* dummy = me->SummonCreature(NPC_WEB_DUMMY_TARGET,
+                    webDummyPositions[i].GetPositionX(),
+                    webDummyPositions[i].GetPositionY(),
+                    webDummyPositions[i].GetPositionZ(),
+                    webDummyPositions[i].GetOrientation(),
+                    TEMPSUMMON_MANUAL_DESPAWN))
+                {
+                    _webDummyGuids[i] = dummy->GetGUID();
+                    dummy->SetReactState(REACT_PASSIVE);
+                    dummy->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                }
+            }
+        }
+
         void MoveToWaypoint(int32 index)
         {
             if (index < 0 || index >= 8)
                 return;
             if (index == 6)
-                me->CastSpell(me, SPELL_WEB_FRONT_DOORS, true);
+            {
+                _webDoorPhase = 1;
+                me->CastSpell(me, SPELL_WEB_SIDE_DOORS, true);
+            }
             if (index == 7)
             {
+                _webDoorPhase = 2;
                 me->CastSpell(me, SPELL_WEB_SIDE_DOORS, true);
                 _spawnsActive = false;
                 events.CancelEvent(EVENT_HADRONOX_SUMMON_ADD);
@@ -736,6 +792,7 @@ public:
             _walkStarted = true;
             instance->SetBossState(DATA_HADRONOX, IN_PROGRESS);
             me->setActive(true);
+            SpawnWebDummies();
             events.ScheduleEvent(EVENT_HADRONOX_STEP, 10s);
         }
 
@@ -792,7 +849,16 @@ public:
         {
             if (data == me->GetEntry())
                 return (_currentStep < 7) ? 1 : 0;
+            if (data == 0xDEAD1)
+                return _webDoorPhase;
             return 0;
+        }
+
+        ObjectGuid GetWebDummyGuid(uint32 index) const
+        {
+            if (index < 3)
+                return _webDummyGuids[index];
+            return ObjectGuid::Empty;
         }
 
         void JustSummoned(Creature* summon) override
@@ -986,6 +1052,19 @@ public:
                         {
                             _reachedFinalWaypoint = true;
                             _leashPos = me->GetPosition();
+                            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
+                            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+                            {
+                                Player* player = itr->GetSource();
+                                if (!player || !player->IsAlive() || player->IsGameMaster())
+                                    continue;
+                                if (me->GetExactDist(player) <= 40.0f)
+                                {
+                                    me->AddThreat(player, 1.0f);
+                                    me->SetInCombatWith(player);
+                                    player->SetInCombatWith(me);
+                                }
+                            }
                         }
                     }
                     else if (!_waitingForNextStep)
@@ -1386,6 +1465,61 @@ class spell_hadronox_leech_poison_aura : public AuraScript
     }
 };
 
+class spell_hadronox_web_side_doors : public SpellScript
+{
+    PrepareSpellScript(spell_hadronox_web_side_doors);
+
+    void FilterTargets(std::list<WorldObject*>& targets)
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+        {
+            targets.clear();
+            return;
+        }
+
+        Creature* hadronox = caster->ToCreature();
+        if (!hadronox)
+        {
+            targets.clear();
+            return;
+        }
+
+        uint32 phase = hadronox->AI()->GetData(0xDEAD1);
+
+        targets.remove_if([hadronox, phase](WorldObject* obj) -> bool
+        {
+            Creature* creature = obj->ToCreature();
+            if (!creature || creature->GetEntry() != NPC_WEB_DUMMY_TARGET)
+                return true;
+
+            ObjectGuid guid = creature->GetGUID();
+
+            if (phase == 1)
+            {
+                boss_hadronox::boss_hadronoxAI* ai = dynamic_cast<boss_hadronox::boss_hadronoxAI*>(hadronox->AI());
+                if (!ai)
+                    return true;
+                return guid != ai->GetWebDummyGuid(0);
+            }
+            else if (phase == 2)
+            {
+                boss_hadronox::boss_hadronoxAI* ai = dynamic_cast<boss_hadronox::boss_hadronoxAI*>(hadronox->AI());
+                if (!ai)
+                    return true;
+                return guid != ai->GetWebDummyGuid(1) && guid != ai->GetWebDummyGuid(2);
+            }
+
+            return true;
+        });
+    }
+
+    void Register() override
+    {
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_hadronox_web_side_doors::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENTRY);
+    }
+};
+
 class achievement_hadronox_denied : public AchievementCriteriaScript
 {
 public:
@@ -1410,5 +1544,6 @@ void AddSC_boss_hadronox()
     new boss_hadronox();
     new npc_anub_ar_crusher();
     RegisterSpellScript(spell_hadronox_leech_poison_aura);
+    RegisterSpellScript(spell_hadronox_web_side_doors);
     new achievement_hadronox_denied();
 }
