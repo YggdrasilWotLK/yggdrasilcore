@@ -212,6 +212,7 @@ struct npc_hadronox_addAI : public ScriptedAI
 
     void Reset() override
     {
+        ReleaseSlot();
         _currentWaypoint = 0;
         _reachedHadronox = false;
         _attackedByPlayer = false;
@@ -223,7 +224,7 @@ struct npc_hadronox_addAI : public ScriptedAI
             IssueMove();
     }
 
-    void SetData(uint32 /*id*/, uint32 value) override
+    void SetData(uint32 id, uint32 value) override
     {
         if (id == 0)
         {
@@ -242,11 +243,6 @@ struct npc_hadronox_addAI : public ScriptedAI
             HadronoxAddSlots::Occupied[_reservedSlot] = false;
             _reservedSlot = -1;
         }
-    }
-
-    void JustDespawned() override
-    {
-        ReleaseSlot();
     }
 
     Creature* FindHadronox() const
