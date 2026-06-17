@@ -24,6 +24,11 @@
 #include "SpellAuraEffects.h"
 #include "SpellScript.h"
 
+// Configs
+constexpr bool PLAYER_DMG_ON_HADRONOX_STOPS_ADD_SUMMONS = true;  // Blizzlike is false
+constexpr bool CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER      = false; // true = on player entering gauntlet (y < 625), false = on crusher engaged. Blizzlike is false
+constexpr bool WEB_GRAB_OVERRIDE                        = true;  // Emulate web grab by using range-locked single target spell looping through and grabbing valid targets in range. Sniffed spell has too long range and grabs through floor. Blizzlike is false but bugged
+
 enum Spells
 {
     SPELL_SUMMON_ANUBAR_CHAMPION            = 53064,
@@ -34,7 +39,8 @@ enum Spells
     SPELL_ACID_CLOUD                        = 53400,
     SPELL_LEECH_POISON                      = 53030,
     SPELL_LEECH_POISON_HEAL                 = 53800,
-    SPELL_WEB_GRAB                          = 56640,
+    SPELL_WEB_GRAB                          = 57731,
+    SPELL_WEB_GRAB_OVERRIDE                 = 56640,
     SPELL_PIERCE_ARMOR                      = 53418,
 
     SPELL_SMASH                             = 53318,
@@ -60,10 +66,9 @@ enum Events
     EVENT_HADRONOX_PIERCE           = 7,
     EVENT_HADRONOX_GRAB             = 8,
     EVENT_HADRONOX_CHECK            = 10,
-    EVENT_HADRONOX_SUMMON_CHAMPION  = 11,
-    EVENT_HADRONOX_SUMMON_NECRO     = 12,
-    EVENT_HADRONOX_SUMMON_CRYPT     = 13,
+    EVENT_HADRONOX_SUMMON_ADD       = 11,
     EVENT_HADRONOX_STEP             = 14,
+    EVENT_HADRONOX_NEXT_WAYPOINT    = 15,
 
     EVENT_CRUSHER_SMASH             = 20,
     EVENT_CHECK_HEALTH              = 21,
@@ -88,18 +93,21 @@ enum Misc
     ACTION_START_EVENT          = 2,
     ACTION_START_WALK           = 3,
     ACTION_STOP_SPAWNS          = 4,
-    ACTION_CRUSHER_EVADE        = 5
+    ACTION_CRUSHER_EVADE        = 5,
+    ACTION_CRUSHER_AGGRO_SAY    = 6
 };
 
-constexpr float GAUNTLET_END_Z   = 640.0f;
-constexpr float GAUNTLET_START_Z = 730.0f;
-constexpr float STEP_REACH       = 3.0f;
-constexpr float STEP_SPEED       = 3.5f;
-constexpr float ADDS_RANGE       = 8.0f;
-constexpr float SPELL_MAX_DIST   = 40.0f;
-constexpr float SPELL_MAX_Z_DIFF = 20.0f;
-constexpr float WAYPOINT_REACH   = 1.0f;
-constexpr uint32 ADD_CHECK_MS    = 100;
+constexpr float GAUNTLET_END_Z        = 640.0f;
+constexpr float GAUNTLET_START_Z      = 730.0f;
+constexpr float STEP_REACH            = 3.0f;
+constexpr float STEP_SPEED            = 4.5f;
+constexpr float ADDS_RANGE            = 8.0f;
+constexpr float SPELL_MAX_DIST        = 40.0f;
+constexpr float SPELL_MAX_Z_DIFF      = 20.0f;
+constexpr float WAYPOINT_REACH        = 1.0f;
+constexpr uint32 ADD_CHECK_MS         = 100;
+constexpr float HADRONOX_LEASH_RANGE  = 10.0f;
+constexpr uint32 HADRONOX_LEASH_CHECK = 2000;
 const Position HADRONOX_SPAWN_POS = {522.531f, 544.911f, 674.679f, 0.0f};
 
 const Position hadronoxWaypoints[8] =
@@ -114,10 +122,11 @@ const Position hadronoxWaypoints[8] =
     {534.87f,    554.0f,     733.0f,     0.0f}
 };
 
-const Position addSpawnPos[2] =
+const Position addSpawnPos[3] =
 {
     {577.2f, 613.45f, 771.51f, 0.0f},
-    {483.68f, 612.75f, 771.42f, 0.0f}
+    {483.68f, 612.75f, 771.42f, 0.0f},
+    {584.7559f, 603.21466f, 739.14014f, 0.0f}
 };
 
 constexpr uint32 ADD_WAYPOINT_COUNT = 15;
@@ -140,6 +149,8 @@ const Position addWaypoints[ADD_WAYPOINT_COUNT] =
     {540.6518f,  532.722f,   684.9354f,  0.0f}
 };
 
+const Position ADD_SPAWN3_JOIN_WP = {609.41376f, 574.623f, 722.0532f, 0.0f};
+
 static bool IsValidSpellTarget(Unit* caster, WorldObject* target)
 {
     if (!caster || !target)
@@ -158,17 +169,21 @@ struct npc_hadronox_addAI : public ScriptedAI
         _currentWaypoint = 0;
         _reachedHadronox = false;
         _attackedByPlayer = false;
-        _spawnedAbove745 = creature->GetPositionZ() >= 745.0f;
+        _spawnedAbove735 = creature->GetPositionZ() >= 735.0f;
         _chasingHadronox = false;
         _checkTimer = 0;
+        _spawnIndex = -1;
+        _joinedMainPath = false;
     }
 
     uint32 _currentWaypoint;
     bool _reachedHadronox;
     bool _attackedByPlayer;
-    bool _spawnedAbove745;
+    bool _spawnedAbove735;
     bool _chasingHadronox;
     uint32 _checkTimer;
+    int32 _spawnIndex;
+    bool _joinedMainPath;
     EventMap events;
 
     bool IsHeroic() const { return me->GetMap()->IsHeroic(); }
@@ -180,9 +195,17 @@ struct npc_hadronox_addAI : public ScriptedAI
         _attackedByPlayer = false;
         _chasingHadronox = false;
         _checkTimer = 0;
+        _joinedMainPath = false;
         events.Reset();
-        if (_spawnedAbove745)
+        if (_spawnedAbove735)
             IssueMove();
+    }
+
+    void SetData(uint32 /*id*/, uint32 value) override
+    {
+        _spawnIndex = (int32)value;
+        _spawnedAbove735 = true;
+        IssueMove();
     }
 
     Creature* FindHadronox() const
@@ -207,6 +230,22 @@ struct npc_hadronox_addAI : public ScriptedAI
     // Issues MovePoint to current waypoint, or MovePoint to Hadronox if closer.
     void IssueMove()
     {
+        if (_spawnIndex == 2 && !_joinedMainPath)
+        {
+            Creature* hadronox = FindHadronox();
+            if (hadronox && me->GetExactDist(hadronox) <= ADDS_RANGE)
+            {
+                EngageHadronox(hadronox);
+                return;
+            }
+            me->GetMotionMaster()->MovePoint(9999,
+                ADD_SPAWN3_JOIN_WP.GetPositionX(),
+                ADD_SPAWN3_JOIN_WP.GetPositionY(),
+                ADD_SPAWN3_JOIN_WP.GetPositionZ(),
+                FORCED_MOVEMENT_RUN);
+            return;
+        }
+
         Creature* hadronox = FindHadronox();
 
         if (hadronox)
@@ -269,7 +308,7 @@ struct npc_hadronox_addAI : public ScriptedAI
 
     void UpdateAI(uint32 diff) override
     {
-        if (!_spawnedAbove745 || _reachedHadronox || _attackedByPlayer)
+        if (!_spawnedAbove735 || _reachedHadronox || _attackedByPlayer)
             return;
 
         Creature* hadronox = FindHadronox();
@@ -277,6 +316,19 @@ struct npc_hadronox_addAI : public ScriptedAI
         if (hadronox && me->GetExactDist(hadronox) <= ADDS_RANGE)
         {
             EngageHadronox(hadronox);
+            return;
+        }
+
+        if (_spawnIndex == 2 && !_joinedMainPath)
+        {
+            if (me->GetExactDist(ADD_SPAWN3_JOIN_WP) <= WAYPOINT_REACH)
+            {
+                _joinedMainPath = true;
+                _currentWaypoint = 8;
+                IssueMove();
+            }
+            else if (!me->isMoving())
+                IssueMove();
             return;
         }
 
@@ -359,7 +411,7 @@ public:
         {
             npc_hadronox_addAI::UpdateAI(diff);
 
-            if (_spawnedAbove745 && !ShouldUseCombatAbilities())
+            if (_spawnedAbove735 && !ShouldUseCombatAbilities())
                 me->SetReactState(REACT_PASSIVE);
             else if (me->GetReactState() == REACT_PASSIVE)
             {
@@ -427,7 +479,7 @@ public:
         {
             npc_hadronox_addAI::UpdateAI(diff);
 
-            if (_spawnedAbove745 && !ShouldUseCombatAbilities())
+            if (_spawnedAbove735 && !ShouldUseCombatAbilities())
                 me->SetReactState(REACT_PASSIVE);
             else if (me->GetReactState() == REACT_PASSIVE)
             {
@@ -495,7 +547,7 @@ public:
         {
             npc_hadronox_addAI::UpdateAI(diff);
 
-            if (_spawnedAbove745 && !ShouldUseCombatAbilities())
+            if (_spawnedAbove735 && !ShouldUseCombatAbilities())
                 me->SetReactState(REACT_PASSIVE);
             else if (me->GetReactState() == REACT_PASSIVE)
             {
@@ -552,6 +604,10 @@ public:
             _spawnCount = 0;
             _movementCheckTimer = 0;
             _lastPos = creature->GetPosition();
+            _waitingForNextStep = false;
+            _reachedFinalWaypoint = false;
+            _leashPos = {0.0f, 0.0f, 0.0f, 0.0f};
+            _leashCheckTimer = 0;
         }
 
         bool _walkStarted;
@@ -559,10 +615,14 @@ public:
         bool _combatStarted;
         bool _playerAttacked;
         bool _crusherAggroSaid;
+        bool _waitingForNextStep;
+        bool _reachedFinalWaypoint;
         int32 _currentStep;
         uint32 _spawnCount;
         uint32 _movementCheckTimer;
+        uint32 _leashCheckTimer;
         Position _lastPos;
+        Position _leashPos;
 
         void Reset() override
         {
@@ -575,6 +635,10 @@ public:
             _currentStep = -1;
             _spawnCount = 0;
             _movementCheckTimer = 0;
+            _waitingForNextStep = false;
+            _reachedFinalWaypoint = false;
+            _leashPos = {0.0f, 0.0f, 0.0f, 0.0f};
+            _leashCheckTimer = 0;
             _lastPos = me->GetPosition();
             me->SummonCreature(NPC_ANUB_AR_CRUSHER, 531.5281f, 553.8509f, 732.56f, 5.053f);
             me->SummonCreature(NPC_ANUB_AR_CRYPTFIEND, 524.07886f, 550.6797f, 731.873f, 5.053f);
@@ -588,6 +652,12 @@ public:
                 return;
             if (index == 6)
                 me->CastSpell(me, SPELL_WEB_FRONT_DOORS, true);
+            if (index == 7)
+            {
+                me->CastSpell(me, SPELL_WEB_SIDE_DOORS, true);
+                _spawnsActive = false;
+                events.CancelEvent(EVENT_HADRONOX_SUMMON_ADD);
+            }
             me->GetMotionMaster()->MoveCharge(
                 hadronoxWaypoints[index].GetPositionX(),
                 hadronoxWaypoints[index].GetPositionY(),
@@ -608,22 +678,23 @@ public:
 
         void StartSummonEvents()
         {
-            events.ScheduleEvent(EVENT_HADRONOX_SUMMON_CHAMPION, 15s);
-            events.ScheduleEvent(EVENT_HADRONOX_SUMMON_NECRO, 10s);
-            events.ScheduleEvent(EVENT_HADRONOX_SUMMON_CRYPT, 5s);
+            events.ScheduleEvent(EVENT_HADRONOX_SUMMON_ADD, 2s);
         }
 
         Position GetNextSpawnPos()
         {
-            return addSpawnPos[_spawnCount % 2];
+            return addSpawnPos[_spawnCount % 3];
         }
 
         void SummonAdd(uint32 entry)
         {
             if (!_spawnsActive)
                 return;
-            Position pos = GetNextSpawnPos();
-            me->SummonCreature(entry, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), 0.0f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 5000);
+            uint32 spawnIndex = _spawnCount % 3;
+            Position pos = addSpawnPos[spawnIndex];
+            Creature* add = me->SummonCreature(entry, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), 0.0f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 5000);
+            if (add)
+                add->AI()->SetData(0, spawnIndex);
             _spawnCount++;
         }
 
@@ -635,6 +706,16 @@ public:
                 _spawnsActive = false;
             else if (param == ACTION_CRUSHER_EVADE)
                 me->AI()->EnterEvadeMode();
+            else if (param == ACTION_CRUSHER_AGGRO_SAY)
+            {
+                if (!_crusherAggroSaid)
+                {
+                    _crusherAggroSaid = true;
+                    if (Creature* crusher = me->FindNearestCreature(NPC_ANUB_AR_CRUSHER, 300.0f, true))
+                        crusher->AI()->Talk(SAY_CRUSHER_AGGRO);
+                    StartSummonEvents();
+                }
+            }
         }
 
         void EnterEvadeMode(EvadeReason /*why*/) override
@@ -683,31 +764,35 @@ public:
             if (who && who->IsControlledByPlayer() && !_playerAttacked)
             {
                 _playerAttacked = true;
-                _spawnsActive = false;
-                events.CancelEvent(EVENT_HADRONOX_STEP);
-                me->GetMotionMaster()->Clear();
 
-                std::list<Creature*> cl;
-                me->GetCreaturesWithEntryInRange(cl, 30.0f, 28922);
-                for (std::list<Creature*>::iterator itr = cl.begin(); itr != cl.end(); ++itr)
-                    (*itr)->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
+                if (PLAYER_DMG_ON_HADRONOX_STOPS_ADD_SUMMONS)
+                {
+                    _spawnsActive = false;
+                    events.CancelEvent(EVENT_HADRONOX_SUMMON_ADD);
+                    me->GetMotionMaster()->Clear();
 
-                cl.clear();
-                me->GetCreaturesWithEntryInRange(cl, 30.0f, NPC_ANUB_AR_CHAMPION);
-                for (std::list<Creature*>::iterator itr = cl.begin(); itr != cl.end(); ++itr)
-                    (*itr)->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
+                    std::list<Creature*> cl;
+                    me->GetCreaturesWithEntryInRange(cl, 30.0f, 28922);
+                    for (std::list<Creature*>::iterator itr = cl.begin(); itr != cl.end(); ++itr)
+                        (*itr)->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
 
-                cl.clear();
-                me->GetCreaturesWithEntryInRange(cl, 30.0f, NPC_ANUB_AR_NECROMANCER);
-                for (std::list<Creature*>::iterator itr = cl.begin(); itr != cl.end(); ++itr)
-                    (*itr)->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
+                    cl.clear();
+                    me->GetCreaturesWithEntryInRange(cl, 30.0f, NPC_ANUB_AR_CHAMPION);
+                    for (std::list<Creature*>::iterator itr = cl.begin(); itr != cl.end(); ++itr)
+                        (*itr)->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
 
-                cl.clear();
-                me->GetCreaturesWithEntryInRange(cl, 30.0f, NPC_ANUB_AR_CRYPTFIEND);
-                for (std::list<Creature*>::iterator itr = cl.begin(); itr != cl.end(); ++itr)
-                    (*itr)->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
+                    cl.clear();
+                    me->GetCreaturesWithEntryInRange(cl, 30.0f, NPC_ANUB_AR_NECROMANCER);
+                    for (std::list<Creature*>::iterator itr = cl.begin(); itr != cl.end(); ++itr)
+                        (*itr)->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
 
-                me->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
+                    cl.clear();
+                    me->GetCreaturesWithEntryInRange(cl, 30.0f, NPC_ANUB_AR_CRYPTFIEND);
+                    for (std::list<Creature*>::iterator itr = cl.begin(); itr != cl.end(); ++itr)
+                        (*itr)->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
+
+                    me->RemoveAurasDueToSpell(SPELL_LEECH_POISON);
+                }
             }
 
             if ((!who || !who->IsControlledByPlayer()) && me->HealthBelowPct(70))
@@ -761,35 +846,49 @@ public:
 
         void CastWebGrabOnValidTargets()
         {
-            std::list<Unit*> targets;
-
-            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+            if (WEB_GRAB_OVERRIDE)
             {
-                Player* player = itr->GetSource();
-                if (!player || !player->IsAlive() || player->IsGameMaster())
-                    continue;
-                if (!IsValidSpellTarget(me, player))
-                    continue;
-                targets.push_back(player);
-            }
+                std::list<Unit*> targets;
 
-            for (uint32 entry : {(uint32)NPC_ANUB_AR_CRUSHER, (uint32)NPC_ANUB_AR_CHAMPION, (uint32)NPC_ANUB_AR_CRYPTFIEND, (uint32)NPC_ANUB_AR_NECROMANCER})
-            {
-                std::list<Creature*> cl;
-                me->GetCreaturesWithEntryInRange(cl, SPELL_MAX_DIST, entry);
-                for (Creature* c : cl)
+                Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
+                for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
                 {
-                    if (!c->IsAlive())
+                    Player* player = itr->GetSource();
+                    if (!player || !player->IsAlive() || player->IsGameMaster())
                         continue;
-                    if (!IsValidSpellTarget(me, c))
+                    if (!IsValidSpellTarget(me, player))
                         continue;
-                    targets.push_back(c);
+                    targets.push_back(player);
                 }
-            }
 
-            for (Unit* target : targets)
-                me->CastSpell(target, SPELL_WEB_GRAB, false);
+                for (uint32 entry : {(uint32)NPC_ANUB_AR_CRUSHER, (uint32)NPC_ANUB_AR_CHAMPION, (uint32)NPC_ANUB_AR_CRYPTFIEND, (uint32)NPC_ANUB_AR_NECROMANCER})
+                {
+                    std::list<Creature*> cl;
+                    me->GetCreaturesWithEntryInRange(cl, SPELL_MAX_DIST, entry);
+                    for (Creature* c : cl)
+                    {
+                        if (!c->IsAlive())
+                            continue;
+                        if (!IsValidSpellTarget(me, c))
+                            continue;
+                        targets.push_back(c);
+                    }
+                }
+
+                for (Unit* target : targets)
+                    me->CastSpell(target, SPELL_WEB_GRAB_OVERRIDE, false);
+            }
+            else
+            {
+                me->CastSpell(me, SPELL_WEB_GRAB, false);
+            }
+        }
+
+        float GetDistXY(const Position& a, const Position& b) const
+        {
+            float dx = a.GetPositionX() - b.GetPositionX();
+            float dy = a.GetPositionY() - b.GetPositionY();
+            return std::sqrt(dx * dx + dy * dy);
         }
 
         void UpdateAI(uint32 diff) override
@@ -806,17 +905,27 @@ public:
                     const Position& dest = hadronoxWaypoints[_currentStep];
                     float distToDest = me->GetExactDist(dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ());
 
-                    if (distToDest <= STEP_REACH)
+                    if (!_waitingForNextStep && distToDest <= STEP_REACH)
                     {
                         _currentStep++;
                         if (_currentStep < 8)
                         {
                             if (_currentStep >= 4)
+                            {
                                 Talk(SAY_HADRONOX_EMOTE);
-                            MoveToWaypoint(_currentStep);
+                                _waitingForNextStep = true;
+                                events.ScheduleEvent(EVENT_HADRONOX_NEXT_WAYPOINT, 15s);
+                            }
+                            else
+                                MoveToWaypoint(_currentStep);
+                        }
+                        else
+                        {
+                            _reachedFinalWaypoint = true;
+                            _leashPos = me->GetPosition();
                         }
                     }
-                    else
+                    else if (!_waitingForNextStep)
                     {
                         float movedDist = me->GetExactDist(_lastPos.GetPositionX(), _lastPos.GetPositionY(), _lastPos.GetPositionZ());
                         if (movedDist < 0.1f)
@@ -832,6 +941,23 @@ public:
                 }
             }
 
+            if (_reachedFinalWaypoint && !_playerAttacked && me->IsInCombat())
+            {
+                _leashCheckTimer += diff;
+                if (_leashCheckTimer >= HADRONOX_LEASH_CHECK)
+                {
+                    _leashCheckTimer = 0;
+                    if (GetDistXY(me->GetPosition(), _leashPos) > HADRONOX_LEASH_RANGE)
+                    {
+                        me->GetMotionMaster()->MovePoint(0,
+                            _leashPos.GetPositionX(),
+                            _leashPos.GetPositionY(),
+                            _leashPos.GetPositionZ(),
+                            FORCED_MOVEMENT_RUN);
+                    }
+                }
+            }
+
             switch (uint32 eventId = events.ExecuteEvent())
             {
                 case EVENT_HADRONOX_CHECK:
@@ -839,7 +965,7 @@ public:
                     {
                         if (AnyPlayerInHadronoxGauntlet())
                         {
-                            if (!_crusherAggroSaid)
+                            if (!_crusherAggroSaid && CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER)
                             {
                                 _crusherAggroSaid = true;
                                 if (Creature* crusher = me->FindNearestCreature(NPC_ANUB_AR_CRUSHER, 300.0f, true))
@@ -858,18 +984,20 @@ public:
                     _currentStep = 0;
                     MoveToWaypoint(0);
                     break;
-                case EVENT_HADRONOX_SUMMON_CHAMPION:
-                    SummonAdd(NPC_ANUB_AR_CHAMPION);
-                    events.ScheduleEvent(EVENT_HADRONOX_SUMMON_CHAMPION, 15s);
+                case EVENT_HADRONOX_NEXT_WAYPOINT:
+                    _waitingForNextStep = false;
+                    if (_currentStep < 8)
+                        MoveToWaypoint(_currentStep);
                     break;
-                case EVENT_HADRONOX_SUMMON_NECRO:
-                    SummonAdd(NPC_ANUB_AR_NECROMANCER);
-                    events.ScheduleEvent(EVENT_HADRONOX_SUMMON_NECRO, 10s);
+                case EVENT_HADRONOX_SUMMON_ADD:
+                {
+                    // Using weight from original Hadronox script (2 champions, 3 necromancers, 6 cryptfiends per 30 sec)
+                    uint32 roll = urand(0, 11);
+                    uint32 entry = (roll < 2) ? NPC_ANUB_AR_CHAMPION : (roll < 5) ? NPC_ANUB_AR_NECROMANCER : NPC_ANUB_AR_CRYPTFIEND;
+                    SummonAdd(entry);
+                    events.ScheduleEvent(EVENT_HADRONOX_SUMMON_ADD, 2s);
                     break;
-                case EVENT_HADRONOX_SUMMON_CRYPT:
-                    SummonAdd(NPC_ANUB_AR_CRYPTFIEND);
-                    events.ScheduleEvent(EVENT_HADRONOX_SUMMON_CRYPT, 5s);
-                    break;
+                }
                 case EVENT_HADRONOX_PIERCE:
                     if (UpdateVictim() && !me->HasUnitState(UNIT_STATE_CASTING))
                         if (me->GetVictim() && IsValidSpellTarget(me, me->GetVictim()))
@@ -892,7 +1020,7 @@ public:
                 case EVENT_HADRONOX_GRAB:
                     if (UpdateVictim() && !me->HasUnitState(UNIT_STATE_CASTING))
                         CastWebGrabOnValidTargets();
-                    events.ScheduleEvent(EVENT_HADRONOX_GRAB, 12s);
+                    events.ScheduleEvent(EVENT_HADRONOX_GRAB, 25s);
                     break;
             }
 
@@ -924,23 +1052,96 @@ public:
         npc_anub_ar_crusherAI(Creature* c) : ScriptedAI(c), summons(me)
         {
             _eventStarted = false;
+            _isSpawnedCrusher = false;
+            _pathStep = 0;
+            _pathCheckTimer = 0;
+            _finalDest = {0.0f, 0.0f, 0.0f, 0.0f};
         }
 
         EventMap events;
         SummonList summons;
         bool _eventStarted;
+        bool _isSpawnedCrusher;
+        uint32 _pathStep;
+        uint32 _pathCheckTimer;
+        Position _finalDest;
 
         void Reset() override
         {
             summons.DespawnAll();
             events.Reset();
             _eventStarted = false;
+            if (!_isSpawnedCrusher)
+                _pathStep = 0;
+        }
+
+        void SetData(uint32 /*id*/, uint32 /*value*/) override
+        {
+            _isSpawnedCrusher = true;
+        }
+
+        void SetDestination(const Position& dest)
+        {
+            _finalDest = dest;
+            _pathStep = 1;
+            me->GetMotionMaster()->MovePoint(1,
+                addWaypoints[0].GetPositionX(),
+                addWaypoints[0].GetPositionY(),
+                addWaypoints[0].GetPositionZ(),
+                FORCED_MOVEMENT_RUN);
         }
 
         void JustEngagedWith(Unit*) override
         {
-            if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
-                hadronox->AI()->DoAction(ACTION_START_WALK);
+            if (!_isSpawnedCrusher)
+            {
+                if (!CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER)
+                {
+                    if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
+                        hadronox->AI()->DoAction(ACTION_CRUSHER_AGGRO_SAY);
+                }
+
+                if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
+                    hadronox->AI()->DoAction(ACTION_START_WALK);
+
+                const Position dest1 = {521.5181f,  563.6016f, 733.81036f, 0.0f};
+                const Position dest2 = {539.27893f, 564.9075f, 731.92096f, 0.0f};
+
+                Creature* c1 = me->SummonCreature(NPC_ANUB_AR_CRUSHER,
+                    addSpawnPos[0].GetPositionX(), addSpawnPos[0].GetPositionY(), addSpawnPos[0].GetPositionZ(), 0.0f,
+                    TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+                Creature* c2 = me->SummonCreature(NPC_ANUB_AR_CRUSHER,
+                    addSpawnPos[1].GetPositionX(), addSpawnPos[1].GetPositionY(), addSpawnPos[1].GetPositionZ(), 0.0f,
+                    TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+
+                if (c1 && c2)
+                {
+                    float c1DistToDest1 = c1->GetExactDist(dest1);
+                    float c1DistToDest2 = c1->GetExactDist(dest2);
+
+                    const Position& assignDest1 = (c1DistToDest1 <= c1DistToDest2) ? dest1 : dest2;
+                    const Position& assignDest2 = (c1DistToDest1 <= c1DistToDest2) ? dest2 : dest1;
+
+                    c1->AI()->SetData(0, 0);
+                    static_cast<npc_anub_ar_crusherAI*>(c1->AI())->SetDestination(assignDest1);
+
+                    c2->AI()->SetData(0, 0);
+                    static_cast<npc_anub_ar_crusherAI*>(c2->AI())->SetDestination(assignDest2);
+                }
+                else
+                {
+                    if (c1)
+                    {
+                        c1->AI()->SetData(0, 0);
+                        static_cast<npc_anub_ar_crusherAI*>(c1->AI())->SetDestination(dest1);
+                    }
+                    if (c2)
+                    {
+                        c2->AI()->SetData(0, 0);
+                        static_cast<npc_anub_ar_crusherAI*>(c2->AI())->SetDestination(dest2);
+                    }
+                }
+            }
 
             events.ScheduleEvent(EVENT_CRUSHER_SMASH, 8s, 0, 0);
             events.ScheduleEvent(EVENT_CHECK_HEALTH, 1s);
@@ -948,14 +1149,60 @@ public:
 
         void EnterEvadeMode(EvadeReason /*why*/) override
         {
-            if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
-                hadronox->AI()->DoAction(ACTION_CRUSHER_EVADE);
+            if (!_isSpawnedCrusher)
+            {
+                if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
+                    hadronox->AI()->DoAction(ACTION_CRUSHER_EVADE);
+            }
 
             ScriptedAI::EnterEvadeMode();
         }
 
         void UpdateAI(uint32 diff) override
         {
+            if (_isSpawnedCrusher && _pathStep > 0)
+            {
+                _pathCheckTimer += diff;
+                if (_pathCheckTimer >= 200)
+                {
+                    _pathCheckTimer = 0;
+
+                    if (_pathStep == 1)
+                    {
+                        if (me->GetExactDist(addWaypoints[0]) <= WAYPOINT_REACH)
+                        {
+                            _pathStep = 2;
+                            me->GetMotionMaster()->MovePoint(2,
+                                _finalDest.GetPositionX(),
+                                _finalDest.GetPositionY(),
+                                _finalDest.GetPositionZ(),
+                                FORCED_MOVEMENT_RUN);
+                        }
+                        else if (!me->isMoving())
+                        {
+                            me->GetMotionMaster()->MovePoint(1,
+                                addWaypoints[0].GetPositionX(),
+                                addWaypoints[0].GetPositionY(),
+                                addWaypoints[0].GetPositionZ(),
+                                FORCED_MOVEMENT_RUN);
+                        }
+                    }
+                    else if (_pathStep == 2)
+                    {
+                        if (me->GetExactDist(_finalDest) <= WAYPOINT_REACH)
+                            _pathStep = 0;
+                        else if (!me->isMoving())
+                        {
+                            me->GetMotionMaster()->MovePoint(2,
+                                _finalDest.GetPositionX(),
+                                _finalDest.GetPositionY(),
+                                _finalDest.GetPositionZ(),
+                                FORCED_MOVEMENT_RUN);
+                        }
+                    }
+                }
+            }
+
             if (!UpdateVictim())
                 return;
 
