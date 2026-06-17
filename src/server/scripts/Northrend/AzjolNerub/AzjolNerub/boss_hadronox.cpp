@@ -1176,6 +1176,8 @@ public:
                 if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
                     hadronox->AI()->DoAction(ACTION_CRUSHER_EVADE);
             }
+            else
+                me->DespawnOrUnsummon();
 
             ScriptedAI::EnterEvadeMode();
         }
