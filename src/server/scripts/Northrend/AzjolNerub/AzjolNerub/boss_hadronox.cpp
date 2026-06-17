@@ -308,6 +308,28 @@ struct npc_hadronox_addAI : public ScriptedAI
 
     void UpdateAI(uint32 diff) override
     {
+        if (_attackedByPlayer)
+        {
+            bool hasPlayerThreat = false;
+            ThreatMgr& mgr = me->GetThreatMgr();
+            for (auto* ref : mgr.GetThreatList())
+            {
+                if (ref->GetVictim() && ref->GetVictim()->IsControlledByPlayer())
+                {
+                    hasPlayerThreat = true;
+                    break;
+                }
+            }
+            if (!hasPlayerThreat)
+            {
+                _attackedByPlayer = false;
+                me->SetReactState(REACT_PASSIVE);
+                me->AttackStop();
+                me->GetThreatMgr().ClearAllThreat();
+                IssueMove();
+            }
+        }
+
         if (!_spawnedAbove735 || _reachedHadronox || _attackedByPlayer)
             return;
 
