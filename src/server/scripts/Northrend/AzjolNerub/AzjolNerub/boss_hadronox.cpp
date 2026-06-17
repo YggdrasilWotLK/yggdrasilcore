@@ -1044,6 +1044,8 @@ public:
                                 Talk(SAY_HADRONOX_EMOTE);
                                 _waitingForNextStep = true;
                                 events.ScheduleEvent(EVENT_HADRONOX_NEXT_WAYPOINT, 15s);
+                                if (Aura* aura = me->AddAura(35340, me))
+                                    aura->SetDuration(15000);
                             }
                             else
                                 MoveToWaypoint(_currentStep);
@@ -1129,6 +1131,7 @@ public:
                     break;
                 case EVENT_HADRONOX_NEXT_WAYPOINT:
                     _waitingForNextStep = false;
+                    me->RemoveAurasDueToSpell(35340);
                     if (_currentStep < 8)
                         MoveToWaypoint(_currentStep);
                     break;
