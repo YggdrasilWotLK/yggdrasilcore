@@ -987,11 +987,12 @@ public:
                     {
                         if (AnyPlayerInHadronoxGauntlet())
                         {
-                            if (!_crusherAggroSaid && CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER)
+                            if (!_crusherAggroSaid)
                             {
                                 _crusherAggroSaid = true;
-                                if (Creature* crusher = me->FindNearestCreature(NPC_ANUB_AR_CRUSHER, 300.0f, true))
-                                    crusher->AI()->Talk(SAY_CRUSHER_AGGRO);
+                                if (CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER)
+                                    if (Creature* crusher = me->FindNearestCreature(NPC_ANUB_AR_CRUSHER, 300.0f, true))
+                                        crusher->AI()->Talk(SAY_CRUSHER_AGGRO);
                                 StartSummonEvents();
                             }
                             if (!_walkStarted && AnyPlayerBelowWalkTrigger())
