@@ -1095,8 +1095,16 @@ public:
                 else if (me->GetThreatMgr().GetThreatList().empty())
                     me->GetMotionMaster()->Clear();
                 else if (Unit* top = me->GetThreatMgr().GetCurrentVictim())
-                    if (!me->isMoving())
-                        me->GetMotionMaster()->MoveChase(top);
+                {
+                    Player* player = top->ToPlayer();
+                    if (player && player->GetPositionY() < GAUNTLET_MAX_Y && player->GetPositionZ() > GAUNTLET_END_Z)
+                    {
+                        if (!me->isMoving())
+                            me->GetMotionMaster()->MoveChase(top);
+                    }
+                    else
+                        me->AI()->EnterEvadeMode();
+                }
             }
 
             switch (uint32 eventId = events.ExecuteEvent())
