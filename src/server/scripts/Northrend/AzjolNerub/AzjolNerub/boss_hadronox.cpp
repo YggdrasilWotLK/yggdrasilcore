@@ -26,6 +26,7 @@
 
 // Configs
 constexpr bool PLAYER_DMG_ON_HADRONOX_STOPS_ADD_SUMMONS = false; // Blizzlike is false, true is more akin to other pservers
+constexpr bool HADRONOX_STOP_ASCENT_ON_PLAYER_DAMAGE    = true;  // Blizzlike is true
 constexpr bool CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER      = false; // true = on player entering gauntlet (y < 625), false = on crusher engaged. Blizzlike is false
 constexpr bool WEB_GRAB_OVERRIDE                        = true;  // Emulate web grab by using range-locked single target spell looping through and grabbing valid targets in range. Sniffed spell has too long range and grabs through floor. Blizzlike is false but bugged
 
@@ -894,6 +895,13 @@ public:
             {
                 _playerAttacked = true;
 
+                if (HADRONOX_STOP_ASCENT_ON_PLAYER_DAMAGE)
+                {
+                    me->GetMotionMaster()->Clear();
+                    _waitingForNextStep = false;
+                    me->RemoveAurasDueToSpell(35340);
+                }
+
                 if (PLAYER_DMG_ON_HADRONOX_STOPS_ADD_SUMMONS)
                 {
                     _spawnsActive = false;
@@ -1088,21 +1096,40 @@ public:
                 }
             }
 
-            if (_reachedFinalWaypoint && !_playerAttacked && me->IsInCombat())
+            if (_reachedFinalWaypoint && me->IsInCombat())
             {
-                _leashCheckTimer += diff;
-                if (_leashCheckTimer >= HADRONOX_LEASH_CHECK)
+                bool fightingNpc = false;
+                for (auto* ref : me->GetThreatMgr().GetThreatList())
                 {
-                    _leashCheckTimer = 0;
-                    if (GetDistXY(me->GetPosition(), _leashPos) > HADRONOX_LEASH_RANGE)
+                    Unit* victim = ref->GetVictim();
+                    if (!victim)
+                        continue;
+                    uint32 entry = victim->GetEntry();
+                    if (entry == NPC_ANUB_AR_CRUSHER || entry == NPC_ANUB_AR_CHAMPION || entry == NPC_ANUB_AR_NECROMANCER || entry == NPC_ANUB_AR_CRYPTFIEND)
                     {
-                        me->GetMotionMaster()->MovePoint(0,
-                            _leashPos.GetPositionX(),
-                            _leashPos.GetPositionY(),
-                            _leashPos.GetPositionZ(),
-                            FORCED_MOVEMENT_RUN);
+                        fightingNpc = true;
+                        break;
                     }
                 }
+
+                if (fightingNpc)
+                {
+                    _leashCheckTimer += diff;
+                    if (_leashCheckTimer >= HADRONOX_LEASH_CHECK)
+                    {
+                        _leashCheckTimer = 0;
+                        if (GetDistXY(me->GetPosition(), _leashPos) > HADRONOX_LEASH_RANGE)
+                        {
+                            me->GetMotionMaster()->MovePoint(0,
+                                _leashPos.GetPositionX(),
+                                _leashPos.GetPositionY(),
+                                _leashPos.GetPositionZ(),
+                                FORCED_MOVEMENT_RUN);
+                        }
+                    }
+                }
+                else
+                    me->GetMotionMaster()->Clear();
             }
 
             switch (uint32 eventId = events.ExecuteEvent())
@@ -1289,7 +1316,12 @@ public:
 
         void JustEngagedWith(Unit*) override
         {
-            if (!_isSpawnedCrusher)
+            if (_isSpawnedCrusher)
+            {
+                _pathStep = 0;
+                me->GetMotionMaster()->Clear();
+            }
+            else
             {
                 if (!CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER)
                 {
