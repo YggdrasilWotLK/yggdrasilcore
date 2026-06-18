@@ -33,10 +33,10 @@ enum Spells
     SPELL_IMPALE_PERIODIC               = 53456,
     SPELL_EMERGE                        = 53500,
     SPELL_SUBMERGE                      = 53421,
-    SPELL_SELF_ROOT                     = 42716,
+    SPELL_SUBMERGE_SELF_ROOT            = 42716,
     SPELL_CLEAR_ALL_DEBUFFS             = 34098,
-    SPELL_IMMUNITY                      = 29230,
-    SPELL_INTERRUPT_SELF                = 68848,
+    SPELL_SUBMERGE_IMMUNITY             = 29230,
+    SPELL_ANUB_INTERRUPT_SELF           = 68848,
 
     SPELL_SUMMON_DARTER                 = 53599,
     SPELL_SUMMON_ASSASSIN               = 53610,
@@ -145,7 +145,7 @@ class boss_anub_arak : public CreatureScript
 
                     me->SetReactState(REACT_PASSIVE);
 
-                    if (Aura* immunity = me->AddAura(SPELL_IMMUNITY, me))
+                    if (Aura* immunity = me->AddAura(SPELL_SUBMERGE_IMMUNITY, me))
                         immunity->SetDuration(15000);
 
                     me->RemoveAura(SPELL_SUBMERGE);
@@ -231,7 +231,7 @@ class boss_anub_arak : public CreatureScript
                     case EVENT_POUND:
                         if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 10.0f))
                         {
-                            me->CastSpell(me, SPELL_SELF_ROOT, true);
+                            me->CastSpell(me, SPELL_SUBMERGE_SELF_ROOT, true);
                             me->DisableRotate(true);
                             me->SendMovementFlagUpdate();
                             events.ScheduleEvent(EVENT_ENABLE_ROTATE, 3300ms);
@@ -240,19 +240,19 @@ class boss_anub_arak : public CreatureScript
                         events.ScheduleEvent(EVENT_POUND, 18s);
                         break;
                     case EVENT_ENABLE_ROTATE:
-                        me->RemoveAurasDueToSpell(SPELL_SELF_ROOT);
+                        me->RemoveAurasDueToSpell(SPELL_SUBMERGE_SELF_ROOT);
                         me->DisableRotate(false);
                         break;
                     case EVENT_EMERGE:
                     {
                         me->m_Events.KillAllEvents(false);
                         
-                        me->RemoveAura(SPELL_IMMUNITY);
+                        me->RemoveAura(SPELL_SUBMERGE_IMMUNITY);
 
-                        if (Aura* root = me->AddAura(SPELL_SELF_ROOT, me))
+                        if (Aura* root = me->AddAura(SPELL_SUBMERGE_SELF_ROOT, me))
                             root->SetDuration(1500);
 
-                        DoCastSelf(SPELL_INTERRUPT_SELF, true);
+                        DoCastSelf(SPELL_ANUB_INTERRUPT_SELF, true);
 
                         me->RemoveAura(SPELL_IMPALE_PERIODIC);
                         me->RemoveAura(SPELL_SUBMERGE);
