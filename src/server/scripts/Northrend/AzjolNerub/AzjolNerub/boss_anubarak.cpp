@@ -35,6 +35,8 @@ enum Spells
     SPELL_SUBMERGE                      = 53421,
     SPELL_SELF_ROOT                     = 42716,
     SPELL_CLEAR_ALL_DEBUFFS             = 34098,
+    SPELL_IMMUNITY                      = 29230,
+    SPELL_INTERRUPT_SELF                = 68848,
 
     SPELL_SUMMON_DARTER                 = 53599,
     SPELL_SUMMON_ASSASSIN               = 53610,
@@ -56,7 +58,7 @@ enum Misc
 {
     ACHIEV_TIMED_START_EVENT            = 20381,
 
-    EVENT_CARRION_BEETELS               = 1,
+    EVENT_CARRION_BEETLES               = 1,
     EVENT_LEECHING_SWARM                = 2,
     EVENT_IMPALE                        = 3,
     EVENT_POUND                         = 4,
@@ -93,6 +95,7 @@ class boss_anub_arak : public CreatureScript
             void EnterEvadeMode(EvadeReason why) override
             {
                 me->DisableRotate(false);
+                me->SetReactState(REACT_AGGRESSIVE);
                 BossAI::EnterEvadeMode(why);
             }
 
@@ -139,12 +142,26 @@ class boss_anub_arak : public CreatureScript
                     Talk(SAY_SUBMERGE);
                     _summonedMinions = false;
                     DoCastSelf(SPELL_CLEAR_ALL_DEBUFFS, true);
-                    DoCastSelf(SPELL_SUBMERGE, false);
+
+                    me->SetReactState(REACT_PASSIVE);
+
+                    if (Aura* immunity = me->AddAura(SPELL_IMMUNITY, me))
+                        immunity->SetDuration(15000);
+
+                    me->RemoveAura(SPELL_SUBMERGE);
+
+                    me->m_Events.AddEventAtOffset([this] {
+                        me->PerformEmote(374);
+                    }, 250ms);
+
+                    me->m_Events.AddEventAtOffset([this] {
+                        DoCastSelf(SPELL_SUBMERGE, false);
+                    }, 1700ms);
 
                     me->m_Events.AddEventAtOffset([this] {
                         me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
                         DoCastSelf(SPELL_IMPALE_PERIODIC, true);
-                    }, 2s);
+                    }, 2000ms);
 
                     events.Reset();
                     events.ScheduleEvent(EVENT_EMERGE, 60s);
@@ -174,7 +191,7 @@ class boss_anub_arak : public CreatureScript
                 Talk(SAY_AGGRO);
                 instance->DoStartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
 
-                events.ScheduleEvent(EVENT_CARRION_BEETELS, 6500ms);
+                events.ScheduleEvent(EVENT_CARRION_BEETLES, 6500ms);
                 events.ScheduleEvent(EVENT_LEECHING_SWARM, 20s);
                 events.ScheduleEvent(EVENT_POUND, 15s);
                 events.ScheduleEvent(EVENT_CLOSE_DOORS, 5s);
@@ -202,9 +219,9 @@ class boss_anub_arak : public CreatureScript
                     case EVENT_CLOSE_DOORS:
                         _JustEngagedWith();
                         break;
-                    case EVENT_CARRION_BEETELS:
+                    case EVENT_CARRION_BEETLES:
                         me->CastSpell(me, SPELL_CARRION_BEETLES, false);
-                        events.ScheduleEvent(EVENT_CARRION_BEETELS, 25s);
+                        events.ScheduleEvent(EVENT_CARRION_BEETLES, 25s);
                         break;
                     case EVENT_LEECHING_SWARM:
                         Talk(SAY_LOCUST);
@@ -227,14 +244,71 @@ class boss_anub_arak : public CreatureScript
                         me->DisableRotate(false);
                         break;
                     case EVENT_EMERGE:
-                        me->CastSpell(me, SPELL_EMERGE, true);
-                        me->RemoveAura(SPELL_SUBMERGE);
+                    {
+                        me->m_Events.KillAllEvents(false);
+                        
+                        me->RemoveAura(SPELL_IMMUNITY);
+
+                        if (Aura* root = me->AddAura(SPELL_SELF_ROOT, me))
+                            root->SetDuration(1500);
+
+                        DoCastSelf(SPELL_INTERRUPT_SELF, true);
+
                         me->RemoveAura(SPELL_IMPALE_PERIODIC);
+                        me->RemoveAura(SPELL_SUBMERGE);
+                        
+                        // Sometimes the emote fails due to packet race conditions, so we fire it multiple times
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 50ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 100ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 150ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 200ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 250ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 300ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 350ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 400ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 450ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->PerformEmote(449);
+                        }, 500ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->SetReactState(REACT_AGGRESSIVE);
+                        }, 1500ms);
+
+                        DoCastSelf(SPELL_EMERGE, true);
                         me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
-                        events.ScheduleEvent(EVENT_CARRION_BEETELS, 6500ms);
+                        events.ScheduleEvent(EVENT_CARRION_BEETLES, 6500ms);
                         events.ScheduleEvent(EVENT_LEECHING_SWARM, 20s);
                         events.ScheduleEvent(EVENT_POUND, 15s);
                         break;
+                    }
                     case EVENT_SUMMON_ASSASSINS:
                         SummonHelpers(509.32f, 247.42f, 239.48f, SPELL_SUMMON_ASSASSIN);
                         SummonHelpers(589.51f, 240.19f, 236.0f, SPELL_SUMMON_ASSASSIN);
