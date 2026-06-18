@@ -1068,19 +1068,12 @@ public:
 
             if (_reachedFinalWaypoint && me->IsInCombat())
             {
-                bool fightingNpc = false;
-                for (auto* ref : me->GetThreatMgr().GetThreatList())
-                {
-                    Unit* victim = ref->GetVictim();
-                    if (!victim)
-                        continue;
-                    uint32 entry = victim->GetEntry();
-                    if (entry == NPC_ANUB_AR_CRUSHER || entry == NPC_ANUB_AR_CHAMPION || entry == NPC_ANUB_AR_NECROMANCER || entry == NPC_ANUB_AR_CRYPTFIEND)
-                    {
-                        fightingNpc = true;
-                        break;
-                    }
-                }
+                Unit* topThreat = me->GetThreatMgr().GetCurrentVictim();
+                bool fightingNpc = topThreat && !topThreat->IsControlledByPlayer() && (
+                    topThreat->GetEntry() == NPC_ANUB_AR_CRUSHER ||
+                    topThreat->GetEntry() == NPC_ANUB_AR_CHAMPION ||
+                    topThreat->GetEntry() == NPC_ANUB_AR_NECROMANCER ||
+                    topThreat->GetEntry() == NPC_ANUB_AR_CRYPTFIEND);
 
                 if (fightingNpc)
                 {
@@ -1098,7 +1091,7 @@ public:
                         }
                     }
                 }
-                else
+                else if (me->GetThreatMgr().GetThreatList().empty())
                     me->GetMotionMaster()->Clear();
             }
 
