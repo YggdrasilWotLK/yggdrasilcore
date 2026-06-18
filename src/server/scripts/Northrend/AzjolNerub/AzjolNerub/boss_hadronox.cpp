@@ -1228,7 +1228,7 @@ public:
         npc_anub_ar_crusherAI(Creature* c) : ScriptedAI(c), summons(me)
         {
             _eventStarted = false;
-            _isSpawnedCrusher = false;
+            _isSpawnedCrusher = me->ToTempSummon() && me->ToTempSummon()->GetSummonerUnit() && me->ToTempSummon()->GetSummonerUnit()->GetEntry() == NPC_ANUB_AR_CRUSHER;
             _pathStep = 0;
             _pathCheckTimer = 0;
             _finalDest = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -1254,11 +1254,6 @@ public:
         void JustSummoned(Creature* summon) override
         {
             summons.Summon(summon);
-        }
-
-        void SetData(uint32 /*id*/, uint32 /*value*/) override
-        {
-            _isSpawnedCrusher = true;
         }
 
         void SetDestination(const Position& dest)
@@ -1350,11 +1345,9 @@ public:
                     const Position& assignDest1 = (c1DistToDest1 <= c1DistToDest2) ? dest1 : dest2;
                     const Position& assignDest2 = (c1DistToDest1 <= c1DistToDest2) ? dest2 : dest1;
 
-                    c1->AI()->SetData(0, 0);
                     static_cast<npc_anub_ar_crusherAI*>(c1->AI())->SetDestination(assignDest1);
                     static_cast<npc_anub_ar_crusherAI*>(c1->AI())->ScheduleAddSpawns();
 
-                    c2->AI()->SetData(0, 0);
                     static_cast<npc_anub_ar_crusherAI*>(c2->AI())->SetDestination(assignDest2);
                     static_cast<npc_anub_ar_crusherAI*>(c2->AI())->ScheduleAddSpawns();
                 }
@@ -1362,13 +1355,11 @@ public:
                 {
                     if (c1)
                     {
-                        c1->AI()->SetData(0, 0);
                         static_cast<npc_anub_ar_crusherAI*>(c1->AI())->SetDestination(dest1);
                         static_cast<npc_anub_ar_crusherAI*>(c1->AI())->ScheduleAddSpawns();
                     }
                     if (c2)
                     {
-                        c2->AI()->SetData(0, 0);
                         static_cast<npc_anub_ar_crusherAI*>(c2->AI())->SetDestination(dest2);
                         static_cast<npc_anub_ar_crusherAI*>(c2->AI())->ScheduleAddSpawns();
                     }
