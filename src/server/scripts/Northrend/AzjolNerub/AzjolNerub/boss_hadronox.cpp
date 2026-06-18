@@ -743,8 +743,7 @@ public:
                 webDummyPositions[index].GetOrientation(),
                 TEMPSUMMON_MANUAL_DESPAWN))
             {
-                dummy->SetReactState(REACT_PASSIVE);
-                dummy->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                dummy->SetObjectScale(0.5f);
                 dummy->AddAura(SPELL_WEB_SIDE_DOORS, dummy);
             }
         }
