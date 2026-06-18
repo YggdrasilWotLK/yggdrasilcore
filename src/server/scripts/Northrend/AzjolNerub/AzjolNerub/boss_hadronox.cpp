@@ -1094,6 +1094,9 @@ public:
                 }
                 else if (me->GetThreatMgr().GetThreatList().empty())
                     me->GetMotionMaster()->Clear();
+                else if (Unit* top = me->GetThreatMgr().GetCurrentVictim())
+                    if (!me->isMoving())
+                        me->GetMotionMaster()->MoveChase(top);
             }
 
             switch (uint32 eventId = events.ExecuteEvent())
