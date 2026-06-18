@@ -821,6 +821,7 @@ public:
         {
             if (AnyPlayerInHadronoxGauntlet())
                 return;
+            me->RemoveAllDynObjects();
             BossAI::EnterEvadeMode();
         }
 
