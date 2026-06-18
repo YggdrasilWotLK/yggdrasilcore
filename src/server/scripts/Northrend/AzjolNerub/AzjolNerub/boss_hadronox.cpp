@@ -785,11 +785,6 @@ public:
             events.ScheduleEvent(EVENT_HADRONOX_SUMMON_ADD, 2s);
         }
 
-        Position GetNextSpawnPos()
-        {
-            return addSpawnPos[_spawnCount % 3];
-        }
-
         void SummonAdd(uint32 entry)
         {
             if (!_spawnsActive)
