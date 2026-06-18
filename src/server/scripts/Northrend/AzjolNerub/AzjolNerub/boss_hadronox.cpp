@@ -90,8 +90,8 @@ enum Misc
     NPC_ANUB_AR_CRUSHER         = 28922,
     NPC_WEB_DUMMY_TARGET        = 24648,
 
-    SAY_CRUSHER_AGGRO           = 0,
-    SAY_CRUSHER_EMOTE           = 1,
+    SAY_CRUSHER_AGGRO           = 1,
+    SAY_CRUSHER_EMOTE           = 2,
     SAY_HADRONOX_EMOTE          = 0,
 
     ACTION_START_EVENT          = 2,
@@ -103,6 +103,7 @@ enum Misc
 
 constexpr float GAUNTLET_END_Z        = 640.0f;
 constexpr float GAUNTLET_START_Z      = 730.0f;
+constexpr float GAUNTLET_MAX_Y        = 625.0f;
 constexpr float STEP_REACH            = 3.0f;
 constexpr float STEP_SPEED            = 4.5f;
 constexpr float ADDS_RANGE            = 8.0f;
@@ -823,7 +824,7 @@ public:
 
         void EnterEvadeMode(EvadeReason /*why*/) override
         {
-            if (_spawnsActive && AnyPlayerInHadronoxGauntlet())
+            if (AnyPlayerInHadronoxGauntlet())
                 return;
             BossAI::EnterEvadeMode();
         }
@@ -922,7 +923,7 @@ public:
                 Player* player = itr->GetSource();
                 if (!player || player->IsGameMaster())
                     continue;
-                if (player->GetPositionY() < 625.0f && player->GetPositionZ() > GAUNTLET_END_Z && player->GetPositionZ() < GAUNTLET_START_Z)
+                if (player->GetPositionY() < GAUNTLET_MAX_Y && player->GetPositionZ() > GAUNTLET_END_Z && player->GetPositionZ() < GAUNTLET_START_Z)
                     return true;
             }
             return false;
@@ -938,7 +939,7 @@ public:
                     continue;
                 float z = player->GetPositionZ();
                 float y = player->GetPositionY();
-                if (player->IsAlive() && y < 625.0f && z > GAUNTLET_END_Z)
+                if (player->IsAlive() && y < GAUNTLET_MAX_Y && z > GAUNTLET_END_Z)
                     return true;
             }
             return false;
@@ -1044,7 +1045,9 @@ public:
                                 Player* player = itr->GetSource();
                                 if (!player || !player->IsAlive() || player->IsGameMaster())
                                     continue;
-                                if (me->GetExactDist(player) <= 40.0f)
+                                float z = player->GetPositionZ();
+                                float y = player->GetPositionY();
+                                if (y < GAUNTLET_MAX_Y && z > GAUNTLET_END_Z)
                                 {
                                     me->AddThreat(player, 1.0f);
                                     me->SetInCombatWith(player);
