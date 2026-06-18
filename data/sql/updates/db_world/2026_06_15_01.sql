@@ -8,3 +8,8 @@ DELETE FROM smart_scripts WHERE entryorguid = 29064;
 DELETE FROM spell_script_names WHERE spell_id = 53035;
 DELETE FROM spell_script_names WHERE spell_id = 53036;
 DELETE FROM spell_script_names WHERE spell_id = 53037;
+
+UPDATE `creature_template` SET `AIName` = '', `ScriptName` = 'npc_watcher_narjil' WHERE `entry` = 28729;
+UPDATE `creature_template` SET `AIName` = '', `ScriptName` = 'npc_watcher_gashra' WHERE `entry` = 28730;
+UPDATE `creature_template` SET `AIName` = '', `ScriptName` = 'npc_watcher_silthik' WHERE `entry` = 28731;
+DELETE FROM `smart_scripts` WHERE `entryorguid` IN (28729, 28730, 28731);

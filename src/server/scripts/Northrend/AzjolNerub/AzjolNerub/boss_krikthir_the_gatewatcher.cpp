@@ -26,7 +26,13 @@ enum Spells
     SPELL_SWARM                         = 52440,
     SPELL_MIND_FLAY                     = 52586,
     SPELL_CURSE_OF_FATIGUE              = 52592,
-    SPELL_FRENZY                        = 28747
+    SPELL_FRENZY                        = 28747,
+
+    SPELL_WEB_WRAP                      = 52086,
+    SPELL_INFECTED_BITE                 = 52469,
+    SPELL_BLINDING_WEBS                 = 52524,
+    SPELL_ENRAGE                        = 52470,
+    SPELL_POISON_SPRAY                  = 52493
 };
 
 enum Npcs
@@ -48,7 +54,7 @@ enum Yells
 
 enum MiscActions
 {
-    ACTION_MINION_ENGAGED               = 1,
+    ACTION_WATCHER_DIED                 = 1,
     GROUP_SWARM                         = 1
 };
 
@@ -63,7 +69,7 @@ public:
         {
             _initTalk = false;
             _canTalk = true;
-            _minionInCombat = false;
+            _watchersDead = 0;
 
             scheduler.SetValidator([this]
             {
@@ -99,7 +105,7 @@ public:
             });
 
             _canTalk = true;
-            _minionInCombat = false;
+            _watchersDead = 0;
         }
 
         void MoveInLineOfSight(Unit* who) override
@@ -116,21 +122,19 @@ public:
 
         void DoAction(int32 actionId) override
         {
-            if (actionId == ACTION_MINION_ENGAGED && !_minionInCombat)
+            if (actionId == ACTION_WATCHER_DIED)
             {
-                _minionInCombat = true;
+                ++_watchersDead;
 
-                for (Seconds const& timer : { 10s, 40s, 70s })
+                if (_watchersDead >= 3)
                 {
-                    me->m_Events.AddEventAtOffset([this] {
-                        me->CastCustomSpell(SPELL_SUBBOSS_AGGRO_TRIGGER, SPELLVALUE_MAX_TARGETS, 1, me, true);
-                        Talk(SAY_SEND_GROUP);
-                    }, timer);
-                }
-
-                me->m_Events.AddEventAtOffset([this] {
                     me->SetInCombatWithZone();
-                }, 100s);
+                }
+                else
+                {
+                    Talk(SAY_SEND_GROUP);
+                    me->CastCustomSpell(SPELL_SUBBOSS_AGGRO_TRIGGER, SPELLVALUE_MAX_TARGETS, 1, me, true);
+                }
             }
         }
 
@@ -145,8 +149,6 @@ public:
         {
             BossAI::JustEngagedWith(who);
             Talk(SAY_AGGRO);
-
-            me->m_Events.KillAllEvents(false);
 
             scheduler.Schedule(8s, 14s, [&](TaskContext context)
             {
@@ -201,7 +203,7 @@ public:
     private:
         bool _initTalk;
         bool _canTalk;
-        bool _minionInCombat;
+        uint8 _watchersDead;
 
         [[nodiscard]] bool IsInFrenzy() const { return me->HasAura(SPELL_FRENZY); }
     };
@@ -228,8 +230,146 @@ public:
     }
 };
 
+struct npc_watcher_base : public ScriptedAI
+{
+    npc_watcher_base(Creature* creature) : ScriptedAI(creature)
+    {
+        scheduler.SetValidator([this]
+        {
+            return !me->HasUnitState(UNIT_STATE_CASTING);
+        });
+    }
+
+    void JustEngagedWith(Unit* /*who*/) override
+    {
+        ScheduleSpells();
+    }
+
+    void JustDied(Unit* /*killer*/) override
+    {
+        if (Creature* krikthir = me->GetInstanceScript() ? me->GetMap()->GetCreature(me->GetInstanceScript()->GetGuidData(DATA_KRIKTHIR)) : nullptr)
+            krikthir->AI()->DoAction(ACTION_WATCHER_DIED);
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (!UpdateVictim())
+            return;
+
+        scheduler.Update(diff);
+        DoMeleeAttackIfReady();
+    }
+
+    virtual void ScheduleSpells() = 0;
+
+protected:
+    TaskScheduler scheduler;
+};
+
+class npc_watcher_narjil : public CreatureScript
+{
+public:
+    npc_watcher_narjil() : CreatureScript("npc_watcher_narjil") { }
+
+    struct npc_watcher_narjilAI : public npc_watcher_base
+    {
+        npc_watcher_narjilAI(Creature* creature) : npc_watcher_base(creature) { }
+
+        void ScheduleSpells() override
+        {
+            scheduler.Schedule(2s, 6s, [&](TaskContext context)
+            {
+                DoCastAOE(SPELL_BLINDING_WEBS);
+                context.Repeat(15s, 20s);
+            }).Schedule(6s, 15s, [&](TaskContext context)
+            {
+                DoCastRandomTarget(SPELL_WEB_WRAP);
+                context.Repeat(20s, 25s);
+            }).Schedule(4s, 12s, [&](TaskContext context)
+            {
+                DoCastVictim(SPELL_INFECTED_BITE);
+                context.Repeat(9s, 15s);
+            });
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetAzjolNerubAI<npc_watcher_narjilAI>(creature);
+    }
+};
+
+class npc_watcher_gashra : public CreatureScript
+{
+public:
+    npc_watcher_gashra() : CreatureScript("npc_watcher_gashra") { }
+
+    struct npc_watcher_gashraAI : public npc_watcher_base
+    {
+        npc_watcher_gashraAI(Creature* creature) : npc_watcher_base(creature) { }
+
+        void ScheduleSpells() override
+        {
+            scheduler.Schedule(2s, 6s, [&](TaskContext context)
+            {
+                DoCastSelf(SPELL_ENRAGE);
+                context.Repeat(15s, 20s);
+            }).Schedule(6s, 15s, [&](TaskContext context)
+            {
+                DoCastRandomTarget(SPELL_WEB_WRAP);
+                context.Repeat(20s, 25s);
+            }).Schedule(4s, 12s, [&](TaskContext context)
+            {
+                DoCastVictim(SPELL_INFECTED_BITE);
+                context.Repeat(9s, 15s);
+            });
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetAzjolNerubAI<npc_watcher_gashraAI>(creature);
+    }
+};
+
+class npc_watcher_silthik : public CreatureScript
+{
+public:
+    npc_watcher_silthik() : CreatureScript("npc_watcher_silthik") { }
+
+    struct npc_watcher_silthikAI : public npc_watcher_base
+    {
+        npc_watcher_silthikAI(Creature* creature) : npc_watcher_base(creature) { }
+
+        void ScheduleSpells() override
+        {
+            scheduler.Schedule(2s, 6s, [&](TaskContext context)
+            {
+                DoCastAOE(SPELL_POISON_SPRAY);
+                context.Repeat(15s, 20s);
+            }).Schedule(6s, 15s, [&](TaskContext context)
+            {
+                DoCastRandomTarget(SPELL_WEB_WRAP);
+                context.Repeat(20s, 25s);
+            }).Schedule(4s, 12s, [&](TaskContext context)
+            {
+                DoCastVictim(SPELL_INFECTED_BITE);
+                context.Repeat(9s, 15s);
+            });
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetAzjolNerubAI<npc_watcher_silthikAI>(creature);
+    }
+};
+
 void AddSC_boss_krik_thir()
 {
     new boss_krik_thir();
     new achievement_watch_him_die();
+    new npc_watcher_narjil();
+    new npc_watcher_gashra();
+    new npc_watcher_silthik();
 }
