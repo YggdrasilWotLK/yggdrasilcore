@@ -22,7 +22,6 @@
 
 enum Spells
 {
-    SPELL_SUBBOSS_AGGRO_TRIGGER         = 52343,
     SPELL_SWARM                         = 52440,
     SPELL_MIND_FLAY                     = 52586,
     SPELL_CURSE_OF_FATIGUE              = 52592,
@@ -133,7 +132,6 @@ public:
                 else
                 {
                     Talk(SAY_SEND_GROUP);
-                    me->CastCustomSpell(SPELL_SUBBOSS_AGGRO_TRIGGER, SPELLVALUE_MAX_TARGETS, 1, me, true);
                 }
             }
         }
@@ -249,6 +247,49 @@ struct npc_watcher_base : public ScriptedAI
     {
         if (Creature* krikthir = me->GetInstanceScript() ? me->GetMap()->GetCreature(me->GetInstanceScript()->GetGuidData(DATA_KRIKTHIR)) : nullptr)
             krikthir->AI()->DoAction(ACTION_WATCHER_DIED);
+
+        std::list<Creature*> watchers;
+        me->GetCreatureListWithEntryInGrid(watchers, { NPC_WATCHER_NARJIL, NPC_WATCHER_GASHRA, NPC_WATCHER_SILTHIK }, 100.0f);
+
+        Creature* closestWatcher = nullptr;
+        float closestDist = 0.0f;
+
+        for (Creature* watcher : watchers)
+        {
+            if (!watcher->IsAlive())
+                continue;
+
+            float dist = me->GetDistance(watcher);
+            if (!closestWatcher || dist < closestDist)
+            {
+                closestWatcher = watcher;
+                closestDist = dist;
+            }
+        }
+
+        if (closestWatcher)
+        {
+            Player* nearestPlayer = nullptr;
+            float nearestDist = 0.0f;
+
+            Map::PlayerList const& players = closestWatcher->GetMap()->GetPlayers();
+            for (auto const& ref : players)
+            {
+                Player* player = ref.GetSource();
+                if (!player || !player->IsAlive())
+                    continue;
+
+                float dist = closestWatcher->GetDistance(player);
+                if (!nearestPlayer || dist < nearestDist)
+                {
+                    nearestPlayer = player;
+                    nearestDist = dist;
+                }
+            }
+
+            if (nearestPlayer)
+                closestWatcher->AI()->AttackStart(nearestPlayer);
+        }
     }
 
     void UpdateAI(uint32 diff) override
