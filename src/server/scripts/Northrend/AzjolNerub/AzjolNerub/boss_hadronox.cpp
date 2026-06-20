@@ -74,6 +74,8 @@ enum Events
     EVENT_CHECK_HEALTH              = 21,
     EVENT_CRUSHER_SPAWN_ADD1        = 22,
     EVENT_CRUSHER_SPAWN_ADD2        = 23,
+    EVENT_CRUSHER_SPAWN_ADD3        = 24,
+    EVENT_CRUSHER_SPAWN_ADD4        = 25,
 
     EVENT_CHAMPION_REND             = 1,
     EVENT_CHAMPION_PUMMEL           = 2,
@@ -199,11 +201,17 @@ struct npc_hadronox_addAI : public ScriptedAI
         _reachedHadronox = false;
         _attackedByPlayer = false;
         _spawnedAbove735 = creature->GetPositionZ() >= 735.0f;
+        if (_spawnedAbove735)
+            if (TempSummon* ts = creature->ToTempSummon())
+                if (Unit* summoner = ts->GetSummonerUnit())
+                    _spawnedAbove735 = (summoner->GetEntry() == NPC_HADRONOX);
         _chasingHadronox = false;
         _checkTimer = 0;
         _spawnIndex = -1;
         _joinedMainPath = false;
         _reservedSlot = -1;
+        _crusherPathStep = 0;
+        _crusherSlotPos = {0.0f, 0.0f, 0.0f, 0.0f};
     }
 
     uint32 _currentWaypoint;
@@ -215,6 +223,8 @@ struct npc_hadronox_addAI : public ScriptedAI
     int32 _spawnIndex;
     bool _joinedMainPath;
     int32 _reservedSlot;
+    uint32 _crusherPathStep;
+    Position _crusherSlotPos;
     EventMap events;
 
     bool IsHeroic() const { return me->GetMap()->IsHeroic(); }
@@ -245,6 +255,17 @@ struct npc_hadronox_addAI : public ScriptedAI
             _reservedSlot = (int32)value;
     }
 
+    void StartCrusherPath(const Position& slotPos)
+    {
+        _crusherSlotPos = slotPos;
+        _crusherPathStep = 1;
+        me->GetMotionMaster()->MovePoint(0,
+            addWaypoints[0].GetPositionX(),
+            addWaypoints[0].GetPositionY(),
+            addWaypoints[0].GetPositionZ(),
+            FORCED_MOVEMENT_RUN);
+    }
+
     void ReleaseSlot()
     {
         if (_reservedSlot >= 0 && _reservedSlot < 4)
@@ -270,6 +291,27 @@ struct npc_hadronox_addAI : public ScriptedAI
         _chasingHadronox = false;
         me->SetReactState(REACT_AGGRESSIVE);
         AttackStart(hadronox);
+        ScheduleCombatEvents();
+    }
+
+    void PullIntoCombat(Unit* puller)
+    {
+        if (_attackedByPlayer)
+            return;
+        _attackedByPlayer = true;
+        _reachedHadronox = false;
+        _chasingHadronox = false;
+        _crusherPathStep = 0;
+        me->GetMotionMaster()->Clear();
+        me->SetReactState(REACT_AGGRESSIVE);
+        if (puller)
+        {
+            if (Unit* victim = puller->GetVictim())
+            {
+                AttackStart(victim);
+                me->AddThreat(victim, 1.0f);
+            }
+        }
         ScheduleCombatEvents();
     }
 
@@ -330,11 +372,18 @@ struct npc_hadronox_addAI : public ScriptedAI
             _attackedByPlayer = true;
             _reachedHadronox = false;
             _chasingHadronox = false;
+            _crusherPathStep = 0;
             me->GetMotionMaster()->Clear();
             me->SetReactState(REACT_AGGRESSIVE);
             if (who->IsPlayer())
                 AttackStart(who);
             ScheduleCombatEvents();
+
+            std::list<Creature*> crushers;
+            me->GetCreaturesWithEntryInRange(crushers, 10.0f, NPC_ANUB_AR_CRUSHER);
+            for (Creature* crusher : crushers)
+                if (crusher->IsAlive() && !crusher->IsInCombat())
+                    crusher->AI()->AttackStart(who);
         }
     }
 
@@ -354,6 +403,44 @@ struct npc_hadronox_addAI : public ScriptedAI
 
     void UpdateAI(uint32 diff) override
     {
+        if (_crusherPathStep > 0 && !_attackedByPlayer)
+        {
+            if (_crusherPathStep == 1)
+            {
+                if (me->GetExactDist(addWaypoints[0]) <= WAYPOINT_REACH)
+                {
+                    _crusherPathStep = 2;
+                    me->GetMotionMaster()->MovePoint(1,
+                        _crusherSlotPos.GetPositionX(),
+                        _crusherSlotPos.GetPositionY(),
+                        _crusherSlotPos.GetPositionZ(),
+                        FORCED_MOVEMENT_RUN);
+                }
+                else if (!me->isMoving())
+                {
+                    me->GetMotionMaster()->MovePoint(0,
+                        addWaypoints[0].GetPositionX(),
+                        addWaypoints[0].GetPositionY(),
+                        addWaypoints[0].GetPositionZ(),
+                        FORCED_MOVEMENT_RUN);
+                }
+            }
+            else if (_crusherPathStep == 2)
+            {
+                if (me->GetExactDist(_crusherSlotPos) <= WAYPOINT_REACH)
+                    _crusherPathStep = 0;
+                else if (!me->isMoving())
+                {
+                    me->GetMotionMaster()->MovePoint(1,
+                        _crusherSlotPos.GetPositionX(),
+                        _crusherSlotPos.GetPositionY(),
+                        _crusherSlotPos.GetPositionZ(),
+                        FORCED_MOVEMENT_RUN);
+                }
+            }
+            return;
+        }
+
         if (_attackedByPlayer)
         {
             bool hasPlayerThreat = false;
@@ -926,7 +1013,7 @@ public:
             }
             return false;
         }
-        
+
         bool AnyPlayerInHadronoxUpperGauntlet() const
         {
             Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
@@ -1137,7 +1224,7 @@ public:
                                 StartSummonEvents();
                             }
                         }
-                        
+
                         if (AnyPlayerInHadronoxGauntlet())
                         {
                             if (!_walkStarted && AnyPlayerBelowWalkTrigger())
@@ -1263,44 +1350,105 @@ public:
 
         void ScheduleAddSpawns()
         {
-            events.ScheduleEvent(EVENT_CRUSHER_SPAWN_ADD1, 500ms);
-            events.ScheduleEvent(EVENT_CRUSHER_SPAWN_ADD2, 1000ms);
+            events.ScheduleEvent(EVENT_CRUSHER_SPAWN_ADD1, 250ms);
+            events.ScheduleEvent(EVENT_CRUSHER_SPAWN_ADD2, 500ms);
+            events.ScheduleEvent(EVENT_CRUSHER_SPAWN_ADD3, 750ms);
+            events.ScheduleEvent(EVENT_CRUSHER_SPAWN_ADD4, 1000ms);
         }
 
-        uint32 GetRandomAddEntry()
+        // Two slots in HadronoxAddSlots::Positions with the greatest distance between them
+        void GetFarthestSlotPair(int32& a, int32& b)
         {
-            uint32 roll = urand(0, 2);
-            return (roll == 0) ? NPC_ANUB_AR_CHAMPION : (roll == 1) ? NPC_ANUB_AR_NECROMANCER : NPC_ANUB_AR_CRYPTFIEND;
-        }
-
-        void SpawnAddAtSlot()
-        {
-            int32 bestIndex = -1;
-            float bestDist = FLT_MAX;
+            float bestDist = -1.0f;
+            a = 0;
+            b = 1;
             for (int i = 0; i < 4; ++i)
             {
-                if (HadronoxAddSlots::Occupied[i])
-                    continue;
-                float d = me->GetExactDist(HadronoxAddSlots::Positions[i]);
-                if (d < bestDist)
+                for (int j = i + 1; j < 4; ++j)
                 {
-                    bestDist = d;
-                    bestIndex = i;
+                    float d = HadronoxAddSlots::Positions[i].GetExactDist(HadronoxAddSlots::Positions[j]);
+                    if (d > bestDist)
+                    {
+                        bestDist = d;
+                        a = i;
+                        b = j;
+                    }
                 }
             }
+        }
 
-            if (bestIndex < 0)
+        // Two slots in HadronoxAddSlots::Positions with the smallest distance between them
+        void GetClosestSlotPair(int32& a, int32& b)
+        {
+            float bestDist = FLT_MAX;
+            a = 0;
+            b = 1;
+            for (int i = 0; i < 4; ++i)
+            {
+                for (int j = i + 1; j < 4; ++j)
+                {
+                    if (HadronoxAddSlots::Occupied[i] || HadronoxAddSlots::Occupied[j])
+                        continue;
+                    float d = HadronoxAddSlots::Positions[i].GetExactDist(HadronoxAddSlots::Positions[j]);
+                    if (d < bestDist)
+                    {
+                        bestDist = d;
+                        a = i;
+                        b = j;
+                    }
+                }
+            }
+        }
+
+        int32 PickUnoccupiedFromPair(int32 a, int32 b)
+        {
+            if (!HadronoxAddSlots::Occupied[a])
+                return a;
+            if (!HadronoxAddSlots::Occupied[b])
+                return b;
+            return -1;
+        }
+
+        void SpawnAddAt(uint32 spawnPointIndex, uint32 entry, int32 slotIndex)
+        {
+            if (slotIndex < 0)
                 return;
 
-            HadronoxAddSlots::Occupied[bestIndex] = true;
-            Creature* add = me->SummonCreature(GetRandomAddEntry(),
-                HadronoxAddSlots::Positions[bestIndex].GetPositionX(),
-                HadronoxAddSlots::Positions[bestIndex].GetPositionY(),
-                HadronoxAddSlots::Positions[bestIndex].GetPositionZ(),
+            const Position& spawnPos = addSpawnPos[spawnPointIndex];
+            HadronoxAddSlots::Occupied[slotIndex] = true;
+            Creature* add = me->SummonCreature(entry,
+                spawnPos.GetPositionX(), spawnPos.GetPositionY(), spawnPos.GetPositionZ(),
                 0.0f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
 
             if (add)
-                add->AI()->SetData(1, (uint32)bestIndex);
+            {
+                add->AI()->SetData(1, (uint32)slotIndex);
+                static_cast<npc_hadronox_addAI*>(add->AI())->StartCrusherPath(HadronoxAddSlots::Positions[slotIndex]);
+            }
+        }
+
+        void PullNearbyAdds()
+        {
+            std::list<Creature*> nearbyAdds;
+            for (uint32 entry : {(uint32)NPC_ANUB_AR_CHAMPION, (uint32)NPC_ANUB_AR_NECROMANCER, (uint32)NPC_ANUB_AR_CRYPTFIEND})
+            {
+                std::list<Creature*> cl;
+                me->GetCreaturesWithEntryInRange(cl, 10.0f, entry);
+                nearbyAdds.merge(cl);
+            }
+            for (Creature* add : nearbyAdds)
+            {
+                if (!add->IsAlive())
+                    continue;
+                npc_hadronox_addAI* addAI = static_cast<npc_hadronox_addAI*>(add->AI());
+                if (!addAI || addAI->_attackedByPlayer)
+                    continue;
+                if (TempSummon* ts = add->ToTempSummon())
+                    if (Unit* summoner = ts->GetSummonerUnit())
+                        if (summoner->GetEntry() == NPC_HADRONOX && addAI->_spawnedAbove735)
+                            continue;
+                addAI->PullIntoCombat(me);
+            }
         }
 
         void JustEngagedWith(Unit*) override
@@ -1337,33 +1485,31 @@ public:
                     const Position& assignDest2 = (c1DistToDest1 <= c1DistToDest2) ? dest2 : dest1;
 
                     static_cast<npc_anub_ar_crusherAI*>(c1->AI())->SetDestination(assignDest1);
-                    static_cast<npc_anub_ar_crusherAI*>(c1->AI())->ScheduleAddSpawns();
-
                     static_cast<npc_anub_ar_crusherAI*>(c2->AI())->SetDestination(assignDest2);
-                    static_cast<npc_anub_ar_crusherAI*>(c2->AI())->ScheduleAddSpawns();
                 }
                 else
                 {
                     if (c1)
-                    {
                         static_cast<npc_anub_ar_crusherAI*>(c1->AI())->SetDestination(dest1);
-                        static_cast<npc_anub_ar_crusherAI*>(c1->AI())->ScheduleAddSpawns();
-                    }
                     if (c2)
-                    {
                         static_cast<npc_anub_ar_crusherAI*>(c2->AI())->SetDestination(dest2);
-                        static_cast<npc_anub_ar_crusherAI*>(c2->AI())->ScheduleAddSpawns();
-                    }
                 }
+
+                ScheduleAddSpawns();
             }
 
             events.ScheduleEvent(EVENT_CRUSHER_SMASH, 8s, 0, 0);
             events.ScheduleEvent(EVENT_CHECK_HEALTH, 1s);
+
+            PullNearbyAdds();
         }
 
         void EnterEvadeMode(EvadeReason /*why*/) override
         {
             summons.DespawnAll();
+            if (!_isSpawnedCrusher)
+                HadronoxAddSlots::Reset();
+
             if (!_isSpawnedCrusher)
             {
                 if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
@@ -1444,12 +1590,36 @@ public:
                     events.ScheduleEvent(EVENT_CHECK_HEALTH, 1s);
                     break;
                 case EVENT_CRUSHER_SPAWN_ADD1:
-                    if (_isSpawnedCrusher)
-                        SpawnAddAtSlot();
+                    if (!_isSpawnedCrusher)
+                    {
+                        int32 a, b;
+                        GetFarthestSlotPair(a, b);
+                        SpawnAddAt(0, NPC_ANUB_AR_CRYPTFIEND, PickUnoccupiedFromPair(a, b));
+                    }
                     break;
                 case EVENT_CRUSHER_SPAWN_ADD2:
-                    if (_isSpawnedCrusher)
-                        SpawnAddAtSlot();
+                    if (!_isSpawnedCrusher)
+                    {
+                        int32 a, b;
+                        GetFarthestSlotPair(a, b);
+                        SpawnAddAt(1, NPC_ANUB_AR_CRYPTFIEND, PickUnoccupiedFromPair(a, b));
+                    }
+                    break;
+                case EVENT_CRUSHER_SPAWN_ADD3:
+                    if (!_isSpawnedCrusher)
+                    {
+                        int32 a, b;
+                        GetClosestSlotPair(a, b);
+                        SpawnAddAt(0, NPC_ANUB_AR_NECROMANCER, PickUnoccupiedFromPair(a, b));
+                    }
+                    break;
+                case EVENT_CRUSHER_SPAWN_ADD4:
+                    if (!_isSpawnedCrusher)
+                    {
+                        int32 a, b;
+                        GetClosestSlotPair(a, b);
+                        SpawnAddAt(1, NPC_ANUB_AR_NECROMANCER, PickUnoccupiedFromPair(a, b));
+                    }
                     break;
             }
 
