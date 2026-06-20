@@ -256,47 +256,17 @@ class boss_anub_arak : public CreatureScript
 
                         me->RemoveAura(SPELL_IMPALE_PERIODIC);
                         me->RemoveAura(SPELL_SUBMERGE);
-                        
-                        // Sometimes the emote fails due to packet race conditions, so we fire it multiple times
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 50ms);
 
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 100ms);
-
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 150ms);
-
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 200ms);
-
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 250ms);
-
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 300ms);
-
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 350ms);
-
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 400ms);
-
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 450ms);
-
-                        me->m_Events.AddEventAtOffset([this] {
-                            me->HandleEmoteCommand(449);
-                        }, 500ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 50ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 100ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 150ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 200ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 250ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 300ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 350ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 400ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 450ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 500ms);
 
                         me->m_Events.AddEventAtOffset([this] {
                             me->SetReactState(REACT_AGGRESSIVE);
