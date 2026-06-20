@@ -432,7 +432,14 @@ struct npc_hadronox_addAI : public ScriptedAI
             else if (_crusherPathStep == 2)
             {
                 if (me->GetExactDist(_crusherSlotPos) <= WAYPOINT_REACH)
+                {
                     _crusherPathStep = 0;
+
+                    if (Creature* nearestCrusher = me->FindNearestCreature(NPC_ANUB_AR_CRUSHER, 10.0f, true))
+                        me->SetFacingTo(nearestCrusher->GetOrientation());
+                    else
+                        me->SetFacingTo(-1.4f);
+                }
                 else if (!me->isMoving())
                 {
                     me->GetMotionMaster()->MovePoint(1,
