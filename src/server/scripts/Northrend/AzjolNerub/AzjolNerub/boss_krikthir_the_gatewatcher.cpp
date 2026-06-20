@@ -304,7 +304,22 @@ struct npc_watcher_base : public ScriptedAI
     void UpdateAI(uint32 diff) override
     {
         if (!UpdateVictim())
+        {
+            std::list<Creature*> minions;
+            me->GetCreatureListWithEntryInGrid(minions, { NPC_WARRIOR, NPC_SKIRMISHER, NPC_SHADOWCASTER }, 7.0f);
+
+            for (Creature* minion : minions)
+            {
+                if (minion->IsAlive() && minion->IsInCombat())
+                {
+                    if (Unit* victim = minion->GetVictim())
+                        AttackStart(victim);
+                    break;
+                }
+            }
+
             return;
+        }
 
         scheduler.Update(diff);
         DoMeleeAttackIfReady();
