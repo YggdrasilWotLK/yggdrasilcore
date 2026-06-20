@@ -27,7 +27,6 @@
 // Configs
 constexpr bool PLAYER_DMG_ON_HADRONOX_STOPS_ADD_SUMMONS = false; // Blizzlike is false, true is more akin to other pservers
 constexpr bool HADRONOX_STOP_ASCENT_ON_PLAYER_DAMAGE    = true;  // Blizzlike is true
-constexpr bool CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER      = false; // true = on player entering gauntlet (y < 625), false = on crusher engaged. Blizzlike is false
 constexpr bool WEB_GRAB_OVERRIDE                        = true;  // Emulate web grab by using range-locked single target spell looping through and grabbing valid targets in range. Sniffed spell has too long range and grabs through floor. Blizzlike is false but bugged
 
 enum Spells
@@ -36,7 +35,7 @@ enum Spells
     SPELL_SUMMON_ANUBAR_CRYPT_FIEND         = 53065,
     SPELL_SUMMON_ANUBAR_NECROMANCER         = 53066,
     SPELL_WEB_FRONT_DOORS                   = 53177, // Unscripted
-    SPELL_WEB_SIDE_DOORS                    = 53185,
+    SPELL_WEB_SIDE_DOORS                    = 53185, // Apply flat aura on dummy instead of using spell cast
     SPELL_ACID_CLOUD                        = 53400,
     SPELL_LEECH_POISON                      = 53030,
     SPELL_LEECH_POISON_HEAL                 = 53800,
@@ -686,6 +685,7 @@ public:
             _combatStarted = false;
             _playerAttacked = false;
             _crusherAggroSaid = false;
+            _startedSummons = false;
             _currentStep = -1;
             _spawnCount = 0;
             _movementCheckTimer = 0;
@@ -701,6 +701,7 @@ public:
         bool _combatStarted;
         bool _playerAttacked;
         bool _crusherAggroSaid;
+        bool _startedSummons;
         bool _waitingForNextStep;
         bool _reachedFinalWaypoint;
         int32 _currentStep;
@@ -719,6 +720,7 @@ public:
             _combatStarted = false;
             _playerAttacked = false;
             _crusherAggroSaid = false;
+            _startedSummons = false;
             _currentStep = -1;
             _spawnCount = 0;
             _movementCheckTimer = 0;
@@ -924,6 +926,21 @@ public:
             }
             return false;
         }
+        
+        bool AnyPlayerInHadronoxUpperGauntlet() const
+        {
+            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
+            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+            {
+                Player* player = itr->GetSource();
+                if (!player || player->IsGameMaster())
+                    continue;
+                float z = player->GetPositionZ();
+                if (player->IsAlive() && z > GAUNTLET_END_Z && z < 785.0f)
+                    return true;
+            }
+            return false;
+        }
 
         bool AnyPlayerInHadronoxGauntlet() const
         {
@@ -1112,16 +1129,17 @@ public:
                 case EVENT_HADRONOX_CHECK:
                     if (me->IsAlive() && instance->IsBossDone(DATA_KRIKTHIR))
                     {
-                        if (AnyPlayerInHadronoxGauntlet())
+                        if (AnyPlayerInHadronoxUpperGauntlet())
                         {
-                            if (!_crusherAggroSaid)
+                            if (!_startedSummons)
                             {
-                                _crusherAggroSaid = true;
-                                if (CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER)
-                                    if (Creature* crusher = me->FindNearestCreature(NPC_ANUB_AR_CRUSHER, 300.0f, true))
-                                        crusher->AI()->Talk(SAY_CRUSHER_AGGRO);
+                                _startedSummons = true;
                                 StartSummonEvents();
                             }
+                        }
+                        
+                        if (AnyPlayerInHadronoxGauntlet())
+                        {
                             if (!_walkStarted && AnyPlayerBelowWalkTrigger())
                                 StartWalkEvent();
                         }
@@ -1294,11 +1312,8 @@ public:
             }
             else
             {
-                if (!CRUSHER_AGGRO_SAY_ON_GAUNTLET_ENTER)
-                {
-                    if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
-                        hadronox->AI()->DoAction(ACTION_CRUSHER_AGGRO_SAY);
-                }
+                if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
+                    hadronox->AI()->DoAction(ACTION_CRUSHER_AGGRO_SAY);
 
                 if (Creature* hadronox = me->FindNearestCreature(NPC_HADRONOX, 500.0f, true))
                     hadronox->AI()->DoAction(ACTION_START_WALK);
