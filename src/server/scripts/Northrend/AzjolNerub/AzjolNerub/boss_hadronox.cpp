@@ -374,17 +374,23 @@ struct npc_hadronox_addAI : public ScriptedAI
             _chasingHadronox = false;
             _crusherPathStep = 0;
             me->GetMotionMaster()->Clear();
-            me->SetReactState(REACT_AGGRESSIVE);
             if (who->IsPlayer())
                 AttackStart(who);
-            ScheduleCombatEvents();
-
-            std::list<Creature*> crushers;
-            me->GetCreaturesWithEntryInRange(crushers, 10.0f, NPC_ANUB_AR_CRUSHER);
-            for (Creature* crusher : crushers)
-                if (crusher->IsAlive() && !crusher->IsInCombat())
-                    crusher->AI()->AttackStart(who);
         }
+    }
+    
+    void JustEngagedWith(Unit* who) override
+    {
+        me->SetReactState(REACT_AGGRESSIVE);
+        if (who->IsPlayer())
+            AttackStart(who);
+        ScheduleCombatEvents();
+
+        std::list<Creature*> crushers;
+        me->GetCreaturesWithEntryInRange(crushers, 10.0f, NPC_ANUB_AR_CRUSHER);
+        for (Creature* crusher : crushers)
+            if (crusher->IsAlive() && !crusher->IsInCombat())
+                crusher->AI()->AttackStart(who);
     }
 
     void JustEngagedWith(Unit* /*who*/) override {}
