@@ -238,9 +238,18 @@ struct npc_watcher_base : public ScriptedAI
         });
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
         ScheduleSpells();
+
+        std::list<Creature*> minions;
+        me->GetCreatureListWithEntryInGrid(minions, { NPC_WARRIOR, NPC_SKIRMISHER, NPC_SHADOWCASTER }, 6.7f);
+
+        for (Creature* minion : minions)
+        {
+            if (minion->IsAlive() && !minion->IsInCombat())
+                minion->AI()->AttackStart(who);
+        }
     }
 
     void JustDied(Unit* /*killer*/) override
