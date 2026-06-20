@@ -22,6 +22,9 @@
 #include "SpellScriptLoader.h"
 #include "azjol_nerub.h"
 #include "SpellScript.h"
+#include "DynamicObject.h"
+#include "DynamicObjectScript.h"
+#include "Log.h"
 
 DoorData const doorData[] =
 {
@@ -56,6 +59,9 @@ BossBoundaryData const boundaries =
     { DATA_ANUBARAK_EVENT, new CircleBoundary(Position(550.6178f, 253.5917f), 26.0f) }
 };
 
+constexpr uint32 DYNOBJ_CHECK_INTERVAL_MS = 10000;
+constexpr uint32 DYNOBJ_DESPAWN_AFTER_MS  = 90000;
+
 class instance_azjol_nerub : public InstanceMapScript
 {
 public:
@@ -71,7 +77,11 @@ public:
             LoadDoorData(doorData);
             LoadObjectData(creatureData, nullptr);
             LoadSummonData(summonData);
+            _dynObjCheckTimer = 0;
         };
+
+        uint32 _dynObjCheckTimer;
+        std::unordered_map<ObjectGuid, uint32> _hadronoxDynObjs; // guid -> accumulated age ms
 
         void OnCreatureEvade(Creature* creature) override
         {
@@ -79,11 +89,67 @@ public:
                 if (Creature* krikthir = GetCreature(DATA_KRIKTHIR))
                     krikthir->AI()->EnterEvadeMode();
         }
+
+        void RegisterHadronoxDynObj(ObjectGuid guid)
+        {
+            if (_hadronoxDynObjs.find(guid) == _hadronoxDynObjs.end())
+                _hadronoxDynObjs[guid] = 0;
+        }
+
+        void Update(uint32 diff) override
+        {
+            _dynObjCheckTimer += diff;
+            if (_dynObjCheckTimer < DYNOBJ_CHECK_INTERVAL_MS)
+                return;
+            _dynObjCheckTimer = 0;
+
+            std::vector<ObjectGuid> toErase;
+            for (auto& [guid, ageMs] : _hadronoxDynObjs)
+            {
+                DynamicObject* dynObj = instance->GetDynamicObject(guid);
+                if (!dynObj)
+                {
+                    toErase.push_back(guid);
+                    continue;
+                }
+
+                ageMs += DYNOBJ_CHECK_INTERVAL_MS;
+
+                if (ageMs >= DYNOBJ_DESPAWN_AFTER_MS)
+                {
+                    dynObj->Remove();
+                    toErase.push_back(guid);
+                }
+            }
+
+            for (ObjectGuid const& guid : toErase)
+                _hadronoxDynObjs.erase(guid);
+        }
     };
 
     InstanceScript* GetInstanceScript(InstanceMap* map) const override
     {
         return new instance_azjol_nerub_InstanceScript(map);
+    }
+};
+
+class dynobj_azjol_nerub_hadronox : public DynamicObjectScript
+{
+public:
+    dynobj_azjol_nerub_hadronox() : DynamicObjectScript("dynobj_azjol_nerub_hadronox") { }
+
+    void OnUpdate(DynamicObject* dynobj, uint32 /*diff*/) override
+    {
+        if (dynobj->GetMapId() != MAP_AZJOL_NERUB)
+            return;
+
+        Unit* caster = dynobj->GetCaster();
+        if (!caster || caster->GetEntry() != NPC_HADRONOX)
+            return;
+
+        if (InstanceScript* instance = dynobj->GetInstanceScript())
+            if (auto* azjolInstance = dynamic_cast<instance_azjol_nerub::instance_azjol_nerub_InstanceScript*>(instance))
+                azjolInstance->RegisterHadronoxDynObj(dynobj->GetGUID());
     }
 };
 
@@ -155,6 +221,7 @@ class spell_azjol_drain_power : public SpellScript
 void AddSC_instance_azjol_nerub()
 {
     new instance_azjol_nerub();
+    new dynobj_azjol_nerub_hadronox();
     RegisterSpellScript(spell_azjol_nerub_fixate);
     RegisterSpellScript(spell_azjol_nerub_web_wrap_aura);
     RegisterSpellScript(spell_azjol_drain_power);

@@ -33,8 +33,10 @@ enum Spells
     SPELL_IMPALE_PERIODIC               = 53456,
     SPELL_EMERGE                        = 53500,
     SPELL_SUBMERGE                      = 53421,
-    SPELL_SELF_ROOT                     = 42716,
+    SPELL_SUBMERGE_SELF_ROOT            = 42716,
     SPELL_CLEAR_ALL_DEBUFFS             = 34098,
+    SPELL_SUBMERGE_IMMUNITY             = 29230,
+    SPELL_ANUB_INTERRUPT_SELF           = 68848,
 
     SPELL_SUMMON_DARTER                 = 53599,
     SPELL_SUMMON_ASSASSIN               = 53610,
@@ -56,7 +58,7 @@ enum Misc
 {
     ACHIEV_TIMED_START_EVENT            = 20381,
 
-    EVENT_CARRION_BEETELS               = 1,
+    EVENT_CARRION_BEETLES               = 1,
     EVENT_LEECHING_SWARM                = 2,
     EVENT_IMPALE                        = 3,
     EVENT_POUND                         = 4,
@@ -90,9 +92,12 @@ class boss_anub_arak : public CreatureScript
                 _summonedMinions = false;
             }
 
+            GuidSet _pathingToCenter;
+
             void EnterEvadeMode(EvadeReason why) override
             {
                 me->DisableRotate(false);
+                me->SetReactState(REACT_AGGRESSIVE);
                 BossAI::EnterEvadeMode(why);
             }
 
@@ -132,19 +137,35 @@ class boss_anub_arak : public CreatureScript
             {
                 BossAI::Reset();
                 _summonedMinions = false;
+                _pathingToCenter.clear();
                 me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
                 instance->DoStopTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
 
                 ScheduleHealthCheckEvent({ 75, 50, 25 }, [&]{
                     Talk(SAY_SUBMERGE);
                     _summonedMinions = false;
+                    _pathingToCenter.clear();
                     DoCastSelf(SPELL_CLEAR_ALL_DEBUFFS, true);
-                    DoCastSelf(SPELL_SUBMERGE, false);
+
+                    me->SetReactState(REACT_PASSIVE);
+
+                    if (Aura* immunity = me->AddAura(SPELL_SUBMERGE_IMMUNITY, me))
+                        immunity->SetDuration(15000);
+
+                    me->RemoveAura(SPELL_SUBMERGE);
+
+                    me->m_Events.AddEventAtOffset([this] {
+                        me->HandleEmoteCommand(374);
+                    }, 250ms);
+
+                    me->m_Events.AddEventAtOffset([this] {
+                        DoCastSelf(SPELL_SUBMERGE, false);
+                    }, 1700ms);
 
                     me->m_Events.AddEventAtOffset([this] {
                         me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
                         DoCastSelf(SPELL_IMPALE_PERIODIC, true);
-                    }, 2s);
+                    }, 2000ms);
 
                     events.Reset();
                     events.ScheduleEvent(EVENT_EMERGE, 60s);
@@ -174,7 +195,7 @@ class boss_anub_arak : public CreatureScript
                 Talk(SAY_AGGRO);
                 instance->DoStartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
 
-                events.ScheduleEvent(EVENT_CARRION_BEETELS, 6500ms);
+                events.ScheduleEvent(EVENT_CARRION_BEETLES, 6500ms);
                 events.ScheduleEvent(EVENT_LEECHING_SWARM, 20s);
                 events.ScheduleEvent(EVENT_POUND, 15s);
                 events.ScheduleEvent(EVENT_CLOSE_DOORS, 5s);
@@ -197,14 +218,43 @@ class boss_anub_arak : public CreatureScript
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
 
+                if (!me->HasAura(SPELL_SUBMERGE) && me->HasAura(SPELL_SUBMERGE_IMMUNITY))
+                    me->RemoveAura(SPELL_SUBMERGE_IMMUNITY);
+
+                for (ObjectGuid guid : summons)
+                {
+                    Creature* summon = ObjectAccessor::GetCreature(*me, guid);
+                    if (!summon || !summon->IsAlive())
+                        continue;
+                    if (summon->IsTrigger() || summon->GetDistance(me) > 200.0f)
+                        continue;
+
+                    if (!summon->GetVictim() && summon->GetDistance(537.92f, 256.24f, 223.45f) > 10.0f)
+                    {
+                        summon->GetMotionMaster()->MovePoint(0, 537.92f + frand(-5.0f, 5.0f), 256.24f + frand(-5.0f, 5.0f), 223.45f);
+                        _pathingToCenter.insert(summon->GetGUID());
+                    }
+                    else if (!summon->GetVictim() && summon->GetPositionY() > 280.0f && !summon->isMoving())
+                    {
+                        summon->GetMotionMaster()->MovePoint(0, 537.92f + frand(-5.0f, 5.0f), 256.24f + frand(-5.0f, 5.0f), 223.45f);
+                        _pathingToCenter.insert(summon->GetGUID());
+                    }
+                    else if (summon->GetVictim() && _pathingToCenter.count(summon->GetGUID()))
+                    {
+                        _pathingToCenter.erase(summon->GetGUID());
+                        summon->GetMotionMaster()->Clear();
+                        summon->AI()->AttackStart(summon->GetVictim());
+                    }
+                }
+
                 switch (events.ExecuteEvent())
                 {
                     case EVENT_CLOSE_DOORS:
                         _JustEngagedWith();
                         break;
-                    case EVENT_CARRION_BEETELS:
+                    case EVENT_CARRION_BEETLES:
                         me->CastSpell(me, SPELL_CARRION_BEETLES, false);
-                        events.ScheduleEvent(EVENT_CARRION_BEETELS, 25s);
+                        events.ScheduleEvent(EVENT_CARRION_BEETLES, 25s);
                         break;
                     case EVENT_LEECHING_SWARM:
                         Talk(SAY_LOCUST);
@@ -214,7 +264,7 @@ class boss_anub_arak : public CreatureScript
                     case EVENT_POUND:
                         if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 10.0f))
                         {
-                            me->CastSpell(me, SPELL_SELF_ROOT, true);
+                            me->CastSpell(me, SPELL_SUBMERGE_SELF_ROOT, true);
                             me->DisableRotate(true);
                             me->SendMovementFlagUpdate();
                             events.ScheduleEvent(EVENT_ENABLE_ROTATE, 3300ms);
@@ -223,18 +273,45 @@ class boss_anub_arak : public CreatureScript
                         events.ScheduleEvent(EVENT_POUND, 18s);
                         break;
                     case EVENT_ENABLE_ROTATE:
-                        me->RemoveAurasDueToSpell(SPELL_SELF_ROOT);
+                        me->RemoveAurasDueToSpell(SPELL_SUBMERGE_SELF_ROOT);
                         me->DisableRotate(false);
                         break;
                     case EVENT_EMERGE:
-                        me->CastSpell(me, SPELL_EMERGE, true);
-                        me->RemoveAura(SPELL_SUBMERGE);
+                    {
+                        me->m_Events.KillAllEvents(false);
+                        
+                        me->RemoveAura(SPELL_SUBMERGE_IMMUNITY);
+
+                        if (Aura* root = me->AddAura(SPELL_SUBMERGE_SELF_ROOT, me))
+                            root->SetDuration(1500);
+
+                        DoCastSelf(SPELL_ANUB_INTERRUPT_SELF, true);
+
                         me->RemoveAura(SPELL_IMPALE_PERIODIC);
+                        me->RemoveAura(SPELL_SUBMERGE);
+
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 50ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 100ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 150ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 200ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 250ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 300ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 350ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 400ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 450ms);
+                        me->m_Events.AddEventAtOffset([this] { me->HandleEmoteCommand(449); }, 500ms);
+
+                        me->m_Events.AddEventAtOffset([this] {
+                            me->SetReactState(REACT_AGGRESSIVE);
+                        }, 1500ms);
+
+                        DoCastSelf(SPELL_EMERGE, true);
                         me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
-                        events.ScheduleEvent(EVENT_CARRION_BEETELS, 6500ms);
+                        events.ScheduleEvent(EVENT_CARRION_BEETLES, 6500ms);
                         events.ScheduleEvent(EVENT_LEECHING_SWARM, 20s);
                         events.ScheduleEvent(EVENT_POUND, 15s);
                         break;
+                    }
                     case EVENT_SUMMON_ASSASSINS:
                         SummonHelpers(509.32f, 247.42f, 239.48f, SPELL_SUMMON_ASSASSIN);
                         SummonHelpers(589.51f, 240.19f, 236.0f, SPELL_SUMMON_ASSASSIN);
@@ -267,9 +344,9 @@ class boss_anub_arak : public CreatureScript
         }
 };
 
-class spell_azjol_nerub_carrion_beetels : public AuraScript
+class spell_azjol_nerub_carrion_beetles : public AuraScript
 {
-    PrepareAuraScript(spell_azjol_nerub_carrion_beetels)
+    PrepareAuraScript(spell_azjol_nerub_carrion_beetles)
 
     void HandleEffectPeriodic(AuraEffect const*  /*aurEff*/)
     {
@@ -280,7 +357,7 @@ class spell_azjol_nerub_carrion_beetels : public AuraScript
 
     void Register() override
     {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_azjol_nerub_carrion_beetels::HandleEffectPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_azjol_nerub_carrion_beetles::HandleEffectPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
     }
 };
 
@@ -321,7 +398,7 @@ class spell_azjol_nerub_impale_summon : public SpellScript
 void AddSC_boss_anub_arak()
 {
     new boss_anub_arak();
-    RegisterSpellScript(spell_azjol_nerub_carrion_beetels);
+    RegisterSpellScript(spell_azjol_nerub_carrion_beetles);
     RegisterSpellScript(spell_azjol_nerub_pound);
     RegisterSpellScript(spell_azjol_nerub_impale_summon);
 }
