@@ -847,7 +847,32 @@ public:
             if (index < 0 || index >= 8)
                 return;
             if (index == 6)
+            {
                 SpawnWebDummy(0);
+
+                std::list<Creature*> crushers;
+                me->GetCreaturesWithEntryInRange(crushers, 500.0f, NPC_ANUB_AR_CRUSHER);
+
+                Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
+                for (Creature* crusher : crushers)
+                {
+                    if (!crusher->IsAlive() || crusher->IsInCombat())
+                        continue;
+                    for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+                    {
+                        Player* player = itr->GetSource();
+                        if (!player || !player->IsAlive() || player->IsGameMaster())
+                            continue;
+                        float z = player->GetPositionZ();
+                        float y = player->GetPositionY();
+                        if (y < GAUNTLET_MAX_Y && z > GAUNTLET_END_Z)
+                        {
+                            crusher->AI()->AttackStart(player);
+                            crusher->AddThreat(player, 1.0f);
+                        }
+                    }
+                }
+            }
             if (index == 7)
             {
                 SpawnWebDummy(1);
