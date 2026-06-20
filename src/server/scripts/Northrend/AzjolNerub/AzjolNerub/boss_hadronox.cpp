@@ -915,11 +915,19 @@ public:
             if (!_spawnsActive)
                 return;
             uint32 spawnIndex = _spawnCount % 3;
+            _spawnCount++;
+            if (spawnIndex == 2)
+            {
+                std::list<Creature*> dummies;
+                me->GetCreaturesWithEntryInRange(dummies, 200.0f, NPC_WEB_DUMMY_TARGET);
+                for (Creature* dummy : dummies)
+                    if (dummy->HasAura(SPELL_WEB_SIDE_DOORS))
+                        return;
+            }
             Position pos = addSpawnPos[spawnIndex];
             Creature* add = me->SummonCreature(entry, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), 0.0f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 5000);
             if (add)
                 add->AI()->SetData(0, spawnIndex);
-            _spawnCount++;
         }
 
         void DoAction(int32 param) override
