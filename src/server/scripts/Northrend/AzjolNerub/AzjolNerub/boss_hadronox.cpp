@@ -392,9 +392,7 @@ struct npc_hadronox_addAI : public ScriptedAI
             if (crusher->IsAlive() && !crusher->IsInCombat())
                 crusher->AI()->AttackStart(who);
     }
-
-    void JustEngagedWith(Unit* /*who*/) override {}
-
+    
     virtual void ScheduleCombatEvents() = 0;
 
     bool NearHadronox() const
