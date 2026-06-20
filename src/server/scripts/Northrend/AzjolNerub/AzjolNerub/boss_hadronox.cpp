@@ -1145,6 +1145,18 @@ public:
         {
             events.Update(diff);
 
+            for (ObjectGuid guid : summons)
+            {
+                Creature* summon = ObjectAccessor::GetCreature(*me, guid);
+                if (!summon || !summon->IsAlive())
+                    continue;
+                if (me->GetPositionZ() - summon->GetPositionZ() < 30.0f || summon->GetPositionZ() >= 720.0f)
+                    continue;
+                if (summon->GetVictim() != me)
+                    continue;
+                summon->DespawnOrUnsummon();
+            }
+
             _movementCheckTimer += diff;
             if (_movementCheckTimer >= 200)
             {
