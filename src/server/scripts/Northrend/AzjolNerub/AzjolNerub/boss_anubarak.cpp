@@ -92,6 +92,8 @@ class boss_anub_arak : public CreatureScript
                 _summonedMinions = false;
             }
 
+            GuidSet _pathingToCenter;
+
             void EnterEvadeMode(EvadeReason why) override
             {
                 me->DisableRotate(false);
@@ -135,12 +137,14 @@ class boss_anub_arak : public CreatureScript
             {
                 BossAI::Reset();
                 _summonedMinions = false;
+                _pathingToCenter.clear();
                 me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
                 instance->DoStopTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
 
                 ScheduleHealthCheckEvent({ 75, 50, 25 }, [&]{
                     Talk(SAY_SUBMERGE);
                     _summonedMinions = false;
+                    _pathingToCenter.clear();
                     DoCastSelf(SPELL_CLEAR_ALL_DEBUFFS, true);
 
                     me->SetReactState(REACT_PASSIVE);
@@ -213,6 +217,35 @@ class boss_anub_arak : public CreatureScript
 
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
+
+                if (!me->HasAura(SPELL_SUBMERGE) && me->HasAura(SPELL_SUBMERGE_IMMUNITY))
+                    me->RemoveAura(SPELL_SUBMERGE_IMMUNITY);
+
+                for (ObjectGuid guid : summons)
+                {
+                    Creature* summon = ObjectAccessor::GetCreature(*me, guid);
+                    if (!summon || !summon->IsAlive())
+                        continue;
+                    if (summon->IsTrigger() || summon->GetDistance(me) > 200.0f)
+                        continue;
+
+                    if (!summon->GetVictim() && summon->GetDistance(537.92f, 256.24f, 223.45f) > 10.0f)
+                    {
+                        summon->GetMotionMaster()->MovePoint(0, 537.92f + frand(-5.0f, 5.0f), 256.24f + frand(-5.0f, 5.0f), 223.45f);
+                        _pathingToCenter.insert(summon->GetGUID());
+                    }
+                    else if (!summon->GetVictim() && summon->GetPositionY() > 280.0f && !summon->isMoving())
+                    {
+                        summon->GetMotionMaster()->MovePoint(0, 537.92f + frand(-5.0f, 5.0f), 256.24f + frand(-5.0f, 5.0f), 223.45f);
+                        _pathingToCenter.insert(summon->GetGUID());
+                    }
+                    else if (summon->GetVictim() && _pathingToCenter.count(summon->GetGUID()))
+                    {
+                        _pathingToCenter.erase(summon->GetGUID());
+                        summon->GetMotionMaster()->Clear();
+                        summon->AI()->AttackStart(summon->GetVictim());
+                    }
+                }
 
                 switch (events.ExecuteEvent())
                 {
