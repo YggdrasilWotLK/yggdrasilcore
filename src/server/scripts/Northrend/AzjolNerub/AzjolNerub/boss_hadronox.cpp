@@ -1359,60 +1359,7 @@ public:
             events.ScheduleEvent(EVENT_CRUSHER_SPAWN_ADD3, 750ms);
             events.ScheduleEvent(EVENT_CRUSHER_SPAWN_ADD4, 1000ms);
         }
-
-        // Two slots in HadronoxAddSlots::Positions with the greatest distance between them
-        void GetFarthestSlotPair(int32& a, int32& b)
-        {
-            float bestDist = -1.0f;
-            a = 0;
-            b = 1;
-            for (int i = 0; i < 4; ++i)
-            {
-                for (int j = i + 1; j < 4; ++j)
-                {
-                    float d = HadronoxAddSlots::Positions[i].GetExactDist(HadronoxAddSlots::Positions[j]);
-                    if (d > bestDist)
-                    {
-                        bestDist = d;
-                        a = i;
-                        b = j;
-                    }
-                }
-            }
-        }
-
-        // Two slots in HadronoxAddSlots::Positions with the smallest distance between them
-        void GetClosestSlotPair(int32& a, int32& b)
-        {
-            float bestDist = FLT_MAX;
-            a = 0;
-            b = 1;
-            for (int i = 0; i < 4; ++i)
-            {
-                for (int j = i + 1; j < 4; ++j)
-                {
-                    if (HadronoxAddSlots::Occupied[i] || HadronoxAddSlots::Occupied[j])
-                        continue;
-                    float d = HadronoxAddSlots::Positions[i].GetExactDist(HadronoxAddSlots::Positions[j]);
-                    if (d < bestDist)
-                    {
-                        bestDist = d;
-                        a = i;
-                        b = j;
-                    }
-                }
-            }
-        }
-
-        int32 PickUnoccupiedFromPair(int32 a, int32 b)
-        {
-            if (!HadronoxAddSlots::Occupied[a])
-                return a;
-            if (!HadronoxAddSlots::Occupied[b])
-                return b;
-            return -1;
-        }
-
+        
         void SpawnAddAt(uint32 spawnPointIndex, uint32 entry, int32 slotIndex)
         {
             if (slotIndex < 0)
@@ -1595,35 +1542,19 @@ public:
                     break;
                 case EVENT_CRUSHER_SPAWN_ADD1:
                     if (!_isSpawnedCrusher)
-                    {
-                        int32 a, b;
-                        GetFarthestSlotPair(a, b);
-                        SpawnAddAt(0, NPC_ANUB_AR_CRYPTFIEND, PickUnoccupiedFromPair(a, b));
-                    }
+                        SpawnAddAt(0, NPC_ANUB_AR_CRYPTFIEND, 0);
                     break;
                 case EVENT_CRUSHER_SPAWN_ADD2:
                     if (!_isSpawnedCrusher)
-                    {
-                        int32 a, b;
-                        GetFarthestSlotPair(a, b);
-                        SpawnAddAt(1, NPC_ANUB_AR_CRYPTFIEND, PickUnoccupiedFromPair(a, b));
-                    }
+                        SpawnAddAt(1, NPC_ANUB_AR_CRYPTFIEND, 3);
                     break;
                 case EVENT_CRUSHER_SPAWN_ADD3:
                     if (!_isSpawnedCrusher)
-                    {
-                        int32 a, b;
-                        GetClosestSlotPair(a, b);
-                        SpawnAddAt(0, NPC_ANUB_AR_NECROMANCER, PickUnoccupiedFromPair(a, b));
-                    }
+                        SpawnAddAt(0, NPC_ANUB_AR_NECROMANCER, 1);
                     break;
                 case EVENT_CRUSHER_SPAWN_ADD4:
                     if (!_isSpawnedCrusher)
-                    {
-                        int32 a, b;
-                        GetClosestSlotPair(a, b);
-                        SpawnAddAt(1, NPC_ANUB_AR_NECROMANCER, PickUnoccupiedFromPair(a, b));
-                    }
+                        SpawnAddAt(1, NPC_ANUB_AR_NECROMANCER, 2);
                     break;
             }
 
