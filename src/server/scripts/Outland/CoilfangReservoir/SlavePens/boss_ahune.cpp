@@ -203,10 +203,13 @@ struct boss_ahune : public BossAI
     {
         instance->DoCastSpellOnPlayers(SPELL_AHUNE_ACHIEVEMENT);
 
-        if (Creature* ahuneBunny = instance->GetCreature(DATA_AHUNE_BUNNY))
-            Unit::Kill(me, ahuneBunny);
+        DoCastSelf(SPELL_SUMMON_LOOT_MISSILE, true);
+        DoCastSelf(SPELL_MINION_DESPAWNER, true);
+
         if (Creature* frozenCore = instance->GetCreature(DATA_FROZEN_CORE))
             Unit::Kill(me, frozenCore);
+        if (Creature* ahuneBunny = instance->GetCreature(DATA_AHUNE_BUNNY))
+            Unit::Kill(me, ahuneBunny);
 
         Map::PlayerList const& players = me->GetMap()->GetPlayers();
         if (!players.IsEmpty())
@@ -306,9 +309,6 @@ struct npc_frozen_core : public ScriptedAI
     {
         if (Creature* ahune = _instance->GetCreature(DATA_AHUNE))
             Unit::Kill(me, ahune);
-
-        DoCastSelf(SPELL_SUMMON_LOOT_MISSILE, true);
-        DoCastSelf(SPELL_MINION_DESPAWNER, true);
     }
 
     void DoAction(int32 action) override
