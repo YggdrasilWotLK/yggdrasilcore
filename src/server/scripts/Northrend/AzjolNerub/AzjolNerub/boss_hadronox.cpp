@@ -389,7 +389,7 @@ struct npc_hadronox_addAI : public ScriptedAI
         std::list<Creature*> crushers;
         me->GetCreaturesWithEntryInRange(crushers, 10.0f, NPC_ANUB_AR_CRUSHER);
         for (Creature* crusher : crushers)
-            if (crusher->IsAlive() && !crusher->IsInCombat())
+            if (crusher->IsAlive() && !crusher->IsInCombat() && std::abs(me->GetPositionZ() - crusher->GetPositionZ()) <= 10.0f)
                 crusher->AI()->AttackStart(who);
     }
     
