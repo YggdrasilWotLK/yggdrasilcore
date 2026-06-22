@@ -61,6 +61,8 @@ public:
     [[nodiscard]] bool IsViewpoint() const { return _isViewpoint; }
 
     ObjectGuid const& GetOldFarsightGUID() const { return _oldFarsightGUID; }
+    
+    bool IsUpdateNeeded() override;
 
 protected:
     Aura* _aura;
