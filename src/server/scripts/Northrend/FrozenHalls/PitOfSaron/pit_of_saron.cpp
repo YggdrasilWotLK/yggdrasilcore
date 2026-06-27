@@ -935,11 +935,6 @@ public:
                     c->SetImmuneToPC(false);
                     c->SetReactState(REACT_AGGRESSIVE);
                     //c->ClearUnitState(UNIT_STATE_ONVEHICLE);
-                    if (Player* plr = c->SelectNearestPlayer(100.0f))
-                    {
-                        c->AI()->AttackStart(plr);
-                        DoZoneInCombat(c);
-                    }
                 }
         }
 
