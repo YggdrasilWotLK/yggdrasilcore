@@ -228,6 +228,8 @@ class boss_anub_arak : public CreatureScript
                         continue;
                     if (summon->IsTrigger() || summon->GetDistance(me) > 200.0f)
                         continue;
+                    if (summon->GetEntry() != NPC_ANUBAR_GUARDIAN && summon->GetEntry() != NPC_ANUBAR_VENOMANCER)
+                        continue;
 
                     if (!summon->GetVictim() && summon->GetDistance(537.92f, 256.24f, 223.45f) > 10.0f)
                     {
