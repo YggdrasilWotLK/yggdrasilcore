@@ -330,7 +330,10 @@ void Battlefield::KickPlayerFromBattlefield(ObjectGuid guid)
     if (Player* player = ObjectAccessor::FindPlayer(guid))
     {
         if (player->GetZoneId() == GetZoneId() && !player->IsGameMaster())
+        {
+            player->GetSession()->SendBfLeaveMessage(m_BattleId, BF_LEAVE_REASON_EXITED);
             player->TeleportTo(KickPosition);
+        }
     }
 }
 
