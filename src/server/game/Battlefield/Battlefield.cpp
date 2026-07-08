@@ -377,6 +377,16 @@ void Battlefield::EndBattle(bool endByTimer)
 
     OnBattleEnd(endByTimer);
 
+    // Unmark battlefield group to prevent it from becoming stale 
+    for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
+    {
+        for (GuidUnorderedSet::const_iterator itr = m_Groups[team].begin(); itr != m_Groups[team].end(); ++itr)
+            if (Group* group = sGroupMgr->GetGroupByGUID(itr->GetCounter()))
+                group->SetBattlefieldGroup(nullptr);
+
+        m_Groups[team].clear();
+    }
+
     // Reset battlefield timer
     m_Timer = m_NoWarBattleTime;
     SendInitWorldStatesToAll();
