@@ -193,16 +193,23 @@ bool Battlefield::Update(uint32 diff)
                         if (Player* player = ObjectAccessor::FindPlayer(itr->first))
                             if (player->IsInWorld() && player->GetZoneId() != m_ZoneId)
                                 player->GetSession()->SendBfLeaveMessage(m_BattleId, BFLeaveReason(4));
-
                         KickPlayerFromBattlefield(itr->first);
                     }
+
+            for (int team = 0; team < 2; team++)
+                for (PlayerTimerMap::iterator itr = m_InvitedPlayers[team].begin(); itr != m_InvitedPlayers[team].end();)
+                {
+                    if (itr->second <= now)
+                        itr = m_InvitedPlayers[team].erase(itr);
+                    else
+                        ++itr;
+                }
 
             InvitePlayersInZoneToWar();
             for (int team = 0; team < 2; team++)
                 for (PlayerTimerMap::iterator itr = m_PlayersWillBeKick[team].begin(); itr != m_PlayersWillBeKick[team].end(); ++itr)
                     if (itr->second <= now)
                         KickPlayerFromBattlefield(itr->first);
-
             m_uiKickDontAcceptTimer = 5000;
         }
         else
