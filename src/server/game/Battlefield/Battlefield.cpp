@@ -189,7 +189,13 @@ bool Battlefield::Update(uint32 diff)
             for (int team = 0; team < 2; team++)
                 for (PlayerTimerMap::iterator itr = m_InvitedPlayers[team].begin(); itr != m_InvitedPlayers[team].end(); ++itr)
                     if (itr->second <= now)
+                    {
+                        if (Player* player = ObjectAccessor::FindPlayer(itr->first))
+                            if (player->IsInWorld() && player->GetZoneId() != m_ZoneId)
+                                player->GetSession()->SendBfLeaveMessage(m_BattleId, BFLeaveReason(4));
+
                         KickPlayerFromBattlefield(itr->first);
+                    }
 
             InvitePlayersInZoneToWar();
             for (int team = 0; team < 2; team++)
