@@ -385,6 +385,7 @@ struct Loot
     bool hasItemFor(Player* player) const;
     [[nodiscard]] bool hasOverThresholdItem() const;
     void FillNotNormalLootFor(Player* player);
+    void RefreshMasterLooterQuestItems(Player* player);
 
 private:
     QuestItemList* FillFFALoot(Player* player);

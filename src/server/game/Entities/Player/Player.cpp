@@ -8230,6 +8230,9 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
     {
         SetLootGUID(guid);
 
+        if (permission == MASTER_PERMISSION)
+            loot->RefreshMasterLooterQuestItems(this);
+
         WorldPacket data(SMSG_LOOT_RESPONSE, (9 + 50));         // we guess size
         data << guid;
         data << uint8(loot_type);
