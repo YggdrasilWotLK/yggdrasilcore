@@ -739,6 +739,12 @@ bool Player::UpdateSkill(uint32 skill_id, uint32 step)
         UpdateSkillEnchantments(skill_id, value, new_value);
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_REACH_SKILL_LEVEL,
                                   skill_id);
+                                  
+        if (skill_id == SKILL_ENCHANTING)
+        {
+            if (Group* group = GetGroup())
+                group->ResetMaxEnchantingLevel();
+        }
 
         sScriptMgr->OnPlayerUpdateSkill(this, skill_id, value, max, step, new_value);
         return true;
@@ -969,6 +975,12 @@ bool Player::UpdateSkillPro(uint16 SkillId, int32 Chance, uint32 step)
         LOG_DEBUG("entities.player.skills",
                   "Player::UpdateSkillPro Chance={:3.1f}% taken",
                   Chance / 10.0f);
+                  
+        if (SkillId == SKILL_ENCHANTING)
+        {
+            if (Group* group = GetGroup())
+                group->ResetMaxEnchantingLevel();
+        }
 
         sScriptMgr->OnPlayerUpdateSkill(this, SkillId, SkillValue, MaxValue, step, new_value);
         return true;

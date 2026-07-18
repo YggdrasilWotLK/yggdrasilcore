@@ -2229,8 +2229,7 @@ void Group::ResetMaxEnchantingLevel()
     for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
     {
         pMember = ObjectAccessor::FindPlayer(citr->guid);
-        if (pMember && pMember->GetSession() && !pMember->GetSession()->IsSocketClosed()
-            && m_maxEnchantingLevel < pMember->GetSkillValue(SKILL_ENCHANTING))
+        if (pMember && pMember->GetSession() && m_maxEnchantingLevel < pMember->GetSkillValue(SKILL_ENCHANTING))
         {
             m_maxEnchantingLevel = pMember->GetSkillValue(SKILL_ENCHANTING);
         }
