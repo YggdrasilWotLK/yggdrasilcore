@@ -868,6 +868,11 @@ public:
             _events.ScheduleEvent(EVENT_CLEAVE, 3s, 6s);
         }
 
+        void Reset() override
+        {
+            _events.Reset();
+        }
+
         void EnterEvadeMode(EvadeReason /*why*/) override
         {
             if (!me->IsAlive())
@@ -1219,6 +1224,11 @@ public:
                 me->CastSpell(me, SPELL_BATTLE_FURY, true);
             _events.CancelEvent(EVENT_CLEAVE);
             _events.ScheduleEvent(EVENT_CLEAVE, 3s, 6s);
+        }
+
+        void Reset() override
+        {
+            _events.Reset();
         }
 
         void EnterEvadeMode(EvadeReason /*why*/) override
