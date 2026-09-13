@@ -423,8 +423,9 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
     if (_me->IsInWorld())
     {
         unit->SendClearTarget();                                // SMSG_BREAK_TARGET
-        unit->SetControlled(true, UNIT_STATE_ROOT);              // SMSG_FORCE_ROOT - In some cases we send SMSG_SPLINE_MOVE_ROOT here (for creatures)
-        // also adds MOVEMENTFLAG_ROOT
+        // NOTE: launch boarding spline BEFORE applying ROOT. Setting ROOT first makes
+        // MoveSplineInit strip MOVEMENTFLAG_MASK_MOVING, so observers get a neutered
+        // boarding spline and the passenger appears frozen standing (cmangos #3663 pattern).
         Movement::MoveSplineInit init(unit);
         init.DisableTransportPathTransformations();
         init.MoveTo(x, y, z, false, true);
@@ -441,6 +442,7 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
 
         init.SetTransportEnter();
         init.Launch();
+        unit->SetControlled(true, UNIT_STATE_ROOT);              // SMSG_FORCE_ROOT - applied after boarding spline sent (see note above)
 
         if (_me->IsCreature())
         {

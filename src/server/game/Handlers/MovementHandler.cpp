@@ -380,66 +380,6 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
     WorldPacket data(opcode, recvData.size());
     WriteMovementInfo(&data, &movementInfo);
     mover->SendMessageToSet(&data, _player);
-
-    // Passengers on a vehicle (e.g. player-as-vehicle mounts) don't send movement
-    // packets themselves, so observers would see them stuck. Broadcast them together
-    // with the vehicle base on the same tick, applying their transport offset
-    // (already relocated via HandleMoverRelocation -> RelocatePassengers).
-    if (Vehicle* vehicle = mover->GetVehicleKit())
-    {
-        for (auto const& seatPair : vehicle->Seats)
-        {
-            if (!seatPair.second.Passenger.Guid)
-                continue;
-
-            Unit* passenger = ObjectAccessor::GetUnit(*mover, seatPair.second.Passenger.Guid);
-            if (!passenger || !passenger->IsInWorld() || passenger == mover)
-                continue;
-
-            Player* passengerPlayer = passenger->ToPlayer();
-            if (!passengerPlayer)
-                continue;
-
-            // Build passenger movement from its fresh server position (post-relocation)
-            // but on the same tick/time and with the same moving state as the master
-            // so the client interpolates both smoothly instead of snapping.
-            MovementInfo passInfo = passenger->m_movementInfo;
-            passInfo.guid = passenger->GetGUID();
-            passInfo.time = movementInfo.time;
-            passInfo.pos.Relocate(passenger->GetPositionX(), passenger->GetPositionY(), passenger->GetPositionZ(), passenger->GetOrientation());
-
-            constexpr uint32 kPropagateMoving =
-                MOVEMENTFLAG_FORWARD | MOVEMENTFLAG_BACKWARD | MOVEMENTFLAG_STRAFE_LEFT | MOVEMENTFLAG_STRAFE_RIGHT |
-                MOVEMENTFLAG_LEFT | MOVEMENTFLAG_RIGHT | MOVEMENTFLAG_PITCH_UP | MOVEMENTFLAG_PITCH_DOWN |
-                MOVEMENTFLAG_WALKING | MOVEMENTFLAG_FALLING | MOVEMENTFLAG_FALLING_FAR |
-                MOVEMENTFLAG_ASCENDING | MOVEMENTFLAG_DESCENDING |
-                MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING | MOVEMENTFLAG_SPLINE_ELEVATION;
-
-            uint32 masterMoving = movementInfo.flags & kPropagateMoving;
-            passInfo.flags &= ~kPropagateMoving;
-            passInfo.flags |= masterMoving;
-            // ROOT must not accompany MASK_MOVING - drop it while the base moves so the
-            // client actually predicts/interpolates instead of holding still.
-            if (passInfo.flags & MOVEMENTFLAG_MASK_MOVING)
-                passInfo.flags &= ~MOVEMENTFLAG_ROOT;
-
-            passInfo.pitch = movementInfo.pitch;
-            passInfo.fallTime = movementInfo.fallTime;
-            passInfo.jump = movementInfo.jump;
-            passInfo.splineElevation = movementInfo.splineElevation;
-
-            WorldPacket passData(opcode, recvData.size() + 20);
-            WriteMovementInfo(&passData, &passInfo);
-            // Skip self (passenger already follows via master), include master + observers.
-            passenger->SendMessageToSet(&passData, passengerPlayer);
-
-            // Keep emote state in sync: moving clears looping emote
-            // (mirrors ProcessMovementInfo for the mover). Values go out via the
-            // normal object-update path, same as the driver.
-            if ((movementInfo.flags & MOVEMENTFLAG_MASK_MOVING_OR_TURN) && passenger->GetUInt32Value(UNIT_NPC_EMOTESTATE) != uint32(EMOTE_ONESHOT_NONE))
-                passenger->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
-        }
-    }
 }
 
 void WorldSession::SynchronizeMovement(MovementInfo& movementInfo)
