@@ -6505,7 +6505,15 @@ void Player::_LoadSpells(PreparedQueryResult result)
             if (CheckSkillLearnedBySpell(spellId))
                 addSpell(spellId, specMask, true);
             else
-                removeSpell(spellId, SPEC_MASK_ALL, false);
+            {
+                // removeSpell() is a no-op here because the spell was never added to m_spells,
+                // so it would never be removed from the DB and would reappear on every login.
+                // Delete the invalid row directly.
+                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SPELL_BY_SPELL);
+                stmt->SetData(0, GetGUID().GetCounter());
+                stmt->SetData(1, spellId);
+                CharacterDatabase.Execute(stmt);
+            }
         } while (result->NextRow());
     }
 }
