@@ -533,7 +533,14 @@ void Vehicle::RelocatePassengers()
     }
 
     for (auto const& pair : seatRelocation)
-        pair.first->UpdatePosition(pair.second);
+    {
+        Unit* passenger = pair.first;
+        Position const& pos = pair.second;
+        passenger->UpdatePosition(pos);
+        // Keep MovementInfo position in sync so broadcasts built from it (same-tick
+        // passenger updates in MovementHandler) use the fresh absolute position.
+        passenger->m_movementInfo.pos.Relocate(pos);
+    }
 }
 
 void Vehicle::Dismiss()
