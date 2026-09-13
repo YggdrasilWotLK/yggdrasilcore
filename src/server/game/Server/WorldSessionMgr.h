@@ -23,7 +23,9 @@
 #include "LockedQueue.h"
 #include "ObjectGuid.h"
 #include <list>
+#include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 
 class Player;
 class WorldPacket;
@@ -85,9 +87,26 @@ public:
 
     void DoForAllOnlinePlayers(std::function<void(Player*)> exec);
 
+#ifdef MOD_PLAYERBOTS
+    /// Schedule a bot session logout from any thread. The actual
+    /// WorldSession::LogoutPlayer (which deletes the Player object) plus the
+    /// session delete run on the world thread inside UpdateSessions.
+    /// Lifetime control: this guarantees no Player is freed while map/world
+    /// threads run Lua or map updates. Caller must not touch session after.
+    /// Takes ownership of session (deletes it after logout).
+    void ScheduleBotLogout(WorldSession* session);
+#endif
+
 private:
     LockedQueue<WorldSession*> _addSessQueue;
     void AddSession_(WorldSession* session);
+
+#ifdef MOD_PLAYERBOTS
+    LockedQueue<WorldSession*> _botLogoutQueue;
+    std::mutex _botLogoutLock;
+    std::unordered_set<WorldSession*> _scheduledBotLogouts;
+    void DrainBotLogouts();
+#endif
 
     SessionMap _sessions;
     SessionMap _offlineSessions;

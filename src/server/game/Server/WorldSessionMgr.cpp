@@ -104,6 +104,13 @@ void WorldSessionMgr::UpdateSessions(uint32 const diff)
         }
     }
 
+    ///- Process scheduled bot logouts on the world thread (lifetime control:
+    /// no map threads or Lua run here, so the Player delete inside
+    /// LogoutPlayer cannot race script execution)
+#ifdef MOD_PLAYERBOTS
+    DrainBotLogouts();
+#endif
+
     ///- Then send an update signal to remaining ones
     for (SessionMap::iterator itr = _sessions.begin(), next; itr != _sessions.end(); itr = next)
     {
@@ -210,6 +217,37 @@ void WorldSessionMgr::AddSession(WorldSession* session)
 {
     _addSessQueue.add(session);
 }
+
+#ifdef MOD_PLAYERBOTS
+void WorldSessionMgr::ScheduleBotLogout(WorldSession* session)
+{
+    if (!session)
+        return;
+
+    {
+        std::lock_guard<std::mutex> lock(_botLogoutLock);
+        if (!_scheduledBotLogouts.insert(session).second)
+            return; // already scheduled, drain will handle it
+    }
+    _botLogoutQueue.add(session);
+}
+
+void WorldSessionMgr::DrainBotLogouts()
+{
+    WorldSession* sess = nullptr;
+    while (_botLogoutQueue.next(sess))
+    {
+        {
+            std::lock_guard<std::mutex> lock(_botLogoutLock);
+            _scheduledBotLogouts.erase(sess);
+        }
+        // World thread only: no map updates and no Lua run concurrently,
+        // so deleting the Player inside LogoutPlayer is race-free.
+        sess->LogoutPlayer(true);
+        delete sess;
+    }
+}
+#endif
 
 void WorldSessionMgr::AddQueuedPlayer(WorldSession* session)
 {
