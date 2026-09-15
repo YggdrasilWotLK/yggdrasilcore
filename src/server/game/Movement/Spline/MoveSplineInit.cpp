@@ -18,6 +18,7 @@
 #include "MoveSplineInit.h"
 #include "MoveSpline.h"
 #include "MovementPacketBuilder.h"
+#include "Creature.h"
 #include "Map.h"
 #include "Opcodes.h"
 #include "Transport.h"
@@ -40,6 +41,39 @@ namespace
     constexpr float SMOOTH_MIN_DIST    = 2.0f;                      // shorter moves have no room for any arc
     constexpr float SMOOTH_MIN_SEGMENT = 1.0f;                      // tighter knots jitter client-side
     constexpr uint32 SMOOTH_MAX_SAMPLE_SEGMENTS = 16;               // curve validation budget per MoveTo
+    constexpr float SMOOTH_MAX_BLEND_T = 0.45f;                     // blend must stay clear of the target
+
+    // CreatureMovementInfo.dbc `field1` decoded as float (SmoothFacingChaseRate, rad/s).
+    // 0 = snap (no slew). Server copy of your DBC export: only non-zero rows listed.
+    float SlewRateForMovementId(uint32 movementId)
+    {
+        switch (movementId)
+        {
+            case 1:   return 2.0f;
+            case 321: return 4.0f;
+            case 341: return 5.0f;
+            case 361: return 0.0f;
+            case 381: return 6.0f;
+            case 401: return 5.0f;
+            case 441: return 10.0f;
+            case 541: return 10.0f;
+            case 661: return 5.0f;
+            case 681: return 5.0f;
+            case 721: return 10.0f;
+            case 741: return 10.0f;
+            case 781: return 1.0f;
+            case 801: return 0.25f;
+            default:  return 0.0f;
+        }
+    }
+
+    float GetFacingSlewRate(Unit const* unit)
+    {
+        if (Creature const* creature = unit->ToCreature())
+            if (CreatureTemplate const* proto = creature->GetCreatureTemplate())
+                return SlewRateForMovementId(proto->movementId);
+        return 10.0f; // non-creature movers (pets/vehicles): assume fast slew
+    }
 
     float NormalizeAngle(float angle)
     {
@@ -172,12 +206,14 @@ namespace
     // and the bearing to the reference target. One interior point bends the same way all along
     // (a single curvature lobe), splitting the total turn into two roughly equal halves, each
     // of which CatmullRom renders smoothly. Returns false when there is no room for an arc.
-    bool BuildDeparturePoint(Unit* unit, Vector3 const& src, float orient, Vector3 const& refTarget, float distRef, float angleDelta, bool groundMode, Vector3& out)
+    bool BuildDeparturePoint(Unit* unit, Vector3 const& src, float orient, Vector3 const& refTarget, float distRef, float angleDelta, bool groundMode, float tMin, Vector3& out)
     {
         float const absTurn = std::fabs(angleDelta);
         float t = 0.25f + 0.15f * (absTurn / SMOOTH_REF_TURN); // 0.25 .. 0.40, wider turns blend further out
-        if (t > 0.45f)
-            t = 0.45f;
+        if (t < tMin)
+            t = tMin;
+        if (t > SMOOTH_MAX_BLEND_T)
+            t = SMOOTH_MAX_BLEND_T;
 
         for (uint8 attempt = 0; attempt < 3; ++attempt)
         {
@@ -301,8 +337,31 @@ namespace
             return;
         }
 
+        // Per-creature facing slew cap: the client's tangent sweep must not outrun the
+        // DBC SmoothFacingChaseRate, or the model snaps to default and back. Rate 0
+        // means snap: no curve at all, move linearly and let facing snap at corners.
+        float const slewRate = GetFacingSlewRate(unit);
+        if (slewRate <= 0.01f)
+        {
+            if (groundMode)
+                DensifySteepSpans(unit, args.path);
+            return; // linear spline, no CatmullRom
+        }
+
+        // Widen the arc so the lobe sweep (absTurn/2 traversed in reach/velocity)
+        // stays within the slew budget. If it cannot fit, go linear instead.
+        float const velocity = std::max(unit->GetSpeed(MOVE_RUN), 0.5f);
+        float const tNeeded = (std::fabs(angleDelta) * velocity) / (2.0f * slewRate * distToNext);
+        if (tNeeded > SMOOTH_MAX_BLEND_T)
+        {
+            if (groundMode)
+                DensifySteepSpans(unit, args.path);
+            LOG_DEBUG("movement", "SmoothPathForCatmullRom: turn exceeds slew rate, falling back to linear");
+            return;
+        }
+
         // Single departure arc toward the next target. Sharp reversals stay in one spline:
-        // the client's facing slew (unit flag / CreatureMovementInfo rate) absorbs the visual
+        // the client's facing slew (CreatureMovementInfo rate) absorbs the visual
         // turn, while the position curve keeps a single gentle lobe instead of a tight knot.
         // Track the inserted point by value: DensifySteepSpans below may shift indices.
         bool hasBlend = false;
@@ -316,7 +375,7 @@ namespace
             if (std::fabs(refTurn) > SMOOTH_MIN_TURN)
             {
                 Vector3 blend;
-                if (BuildDeparturePoint(unit, src, orient, refTarget, distRef, refTurn, groundMode, blend))
+                if (BuildDeparturePoint(unit, src, orient, refTarget, distRef, refTurn, groundMode, tNeeded, blend))
                 {
                     args.path.insert(args.path.begin() + 1, blend);
                     hasBlend = true;
