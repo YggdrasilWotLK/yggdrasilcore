@@ -182,6 +182,12 @@ public:
             me->SetCanFly(false);
             me->SetDisableGravity(false);
 
+            // Gate Blood Queen behind Blood Prince Council: unattackable + untargetable until princes are DONE
+            if (instance->GetBossState(DATA_BLOOD_PRINCE_COUNCIL) != DONE)
+                me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+            else
+                me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+
             if (bEnteredCombat)
             {
                 bEnteredCombat = false;
@@ -568,8 +574,19 @@ public:
             BossAI::EnterEvadeMode();
         }
 
+        void MoveInLineOfSight(Unit* who) override
+        {
+            if (me->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE))
+                return;
+            BossAI::MoveInLineOfSight(who);
+        }
+
         bool CanAIAttack(Unit const*  /*target*/) const override
         {
+            if (me->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE))
+                return false;
+            if (instance && instance->GetBossState(DATA_BLOOD_PRINCE_COUNCIL) != DONE)
+                return false;
             return me->IsVisible();
         }
     };

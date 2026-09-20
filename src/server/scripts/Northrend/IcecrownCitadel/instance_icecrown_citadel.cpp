@@ -440,6 +440,11 @@ public:
                     BloodQueenLanaThelGUID = creature->GetGUID();
                     if (!HeroicAttempts && GetData(DATA_HAS_LIMITED_ATTEMPTS) && creature->IsAlive())
                         creature->SetVisible(false);
+                    // Gate Blood Queen behind Blood Prince Council: unattackable + untargetable until princes are DONE
+                    if (GetBossState(DATA_BLOOD_PRINCE_COUNCIL) != DONE)
+                        creature->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                    else
+                        creature->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
                     break;
                 case NPC_CROK_SCOURGEBANE:
                     CrokScourgebaneGUID = creature->GetGUID();
@@ -1137,6 +1142,23 @@ public:
                     {
                         LichKingHeroicAvailable = false;
                         SaveToDB();
+                    }
+                    break;
+                case DATA_BLOOD_PRINCE_COUNCIL:
+                    if (state == DONE)
+                    {
+                        // Unlock Blood Queen once princes are killed: remove unattackable + untargetable flags
+                        if (Creature* bq = instance->GetCreature(BloodQueenLanaThelGUID))
+                            if (bq->IsAlive())
+                                bq->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                    }
+                    else if (state == FAIL || state == NOT_STARTED)
+                    {
+                        // Re-apply gate if princes reset before being killed
+                        if (GetBossState(DATA_BLOOD_QUEEN_LANA_THEL) != DONE)
+                            if (Creature* bq = instance->GetCreature(BloodQueenLanaThelGUID))
+                                if (bq->IsAlive())
+                                    bq->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
                     }
                     break;
                 case DATA_BLOOD_QUEEN_LANA_THEL:
