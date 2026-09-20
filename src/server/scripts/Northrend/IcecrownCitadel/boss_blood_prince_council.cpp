@@ -1195,6 +1195,11 @@ public:
         {
             _events.Reset();
             me->SetDisableGravity(true);
+            // Intro actor must never be attackable by players
+            me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+            me->SetImmuneToAll(false);
+            me->SetImmuneToPC(true);
+            me->SetReactState(REACT_PASSIVE);
             if (_instance->GetBossState(DATA_BLOOD_PRINCE_COUNCIL) == DONE)
             {
                 me->SetVisible(false);
@@ -1229,6 +1234,10 @@ public:
                 summon->GetMotionMaster()->MovePoint(0, triggerEndPos);
             }
         }
+
+        void AttackStart(Unit* /*who*/) override { }
+
+        bool CanAIAttack(Unit const* /*target*/) const override { return false; }
 
         void MovementInform(uint32 type, uint32 id) override
         {
