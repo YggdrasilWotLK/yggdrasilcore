@@ -143,6 +143,7 @@ enum Actions
     ACTION_REMOVE_INVOCATION    = 3,
     ACTION_FLAME_BALL_CHASE     = 4,
     ACTION_KINETIC_BOMB_JUMP    = 5,
+    ACTION_ENABLE_DEATH         = 6, // force _canDie = true so chain-Kill always triggers a real death
 };
 
 enum Points
@@ -232,6 +233,10 @@ public:
             summons.DespawnAll();
             _isEmpowered = false;
             _evading = false;
+            // A previous evade (or GM/instance reset) must never leak a stale
+            // unkillable state into the next attempt.
+            _canDie = true;
+            DoAction(ACTION_REMOVE_INVOCATION);
             me->SetHealth(me->GetMaxHealth());
             me->SetReactState(REACT_AGGRESSIVE);
         }
@@ -292,6 +297,19 @@ public:
 
             if (!_canDie)
             {
+                // Resetting, not completing: bring back any already-dead
+                // siblings so the encounter restarts whole instead of
+                // stranding some princes up while others stay corpses.
+                // Never undo a completed kill.
+                if (instance->GetBossState(DATA_BLOOD_PRINCE_COUNCIL) != DONE)
+                {
+                    if (Creature* taldaram = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_TALDARAM_GUID)))
+                        if (!taldaram->IsAlive())
+                            taldaram->Respawn();
+                    if (Creature* valanar = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_VALANAR_GUID)))
+                        if (!valanar->IsAlive())
+                            valanar->Respawn();
+                }
                 me->RemoveCorpse(false);
                 me->SetRespawnTime(10);
                 me->SaveRespawnTime();
@@ -306,10 +324,26 @@ public:
             Talk(SAY_KELESETH_DEATH);
             if (Creature* taldaram = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_TALDARAM_GUID)))
                 if (taldaram->IsAlive())
+                {
+                    taldaram->AI()->DoAction(ACTION_ENABLE_DEATH);
                     Unit::Kill(taldaram, taldaram);
+                }
             if (Creature* valanar = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_VALANAR_GUID)))
                 if (valanar->IsAlive())
+                {
+                    valanar->AI()->DoAction(ACTION_ENABLE_DEATH);
                     Unit::Kill(valanar, valanar);
+                }
+            // Fallback: if all three are dead but Valanar's JustDied never ran
+            // (e.g. chain-Kill was skipped or hit the health==0 early-return),
+            // still mark the encounter DONE instead of bricking it.
+            if (Creature* taldaram = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_TALDARAM_GUID)))
+                if (taldaram->IsAlive())
+                    return;
+            if (Creature* valanar = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_VALANAR_GUID)))
+                if (valanar->IsAlive())
+                    return;
+            instance->SetBossState(DATA_BLOOD_PRINCE_COUNCIL, DONE);
         }
 
         void JustRespawned() override
@@ -389,6 +423,9 @@ public:
                     _isEmpowered = false;
                     me->RemoveAurasDueToSpell(SPELL_INVOCATION_VISUAL_ACTIVE);
                     me->RemoveAurasDueToSpell(SPELL_INVOCATION_OF_BLOOD_KELESETH);
+                    break;
+                case ACTION_ENABLE_DEATH:
+                    _canDie = true;
                     break;
                 default:
                     break;
@@ -492,6 +529,10 @@ public:
             summons.DespawnAll();
             _isEmpowered = false;
             _evading = false;
+            // A previous evade (or GM/instance reset) must never leak a stale
+            // unkillable state into the next attempt.
+            _canDie = true;
+            DoAction(ACTION_REMOVE_INVOCATION);
             me->SetHealth(me->GetMaxHealth());
             me->SetReactState(REACT_AGGRESSIVE);
         }
@@ -547,6 +588,19 @@ public:
 
             if (!_canDie)
             {
+                // Resetting, not completing: bring back any already-dead
+                // siblings so the encounter restarts whole instead of
+                // stranding some princes up while others stay corpses.
+                // Never undo a completed kill.
+                if (instance->GetBossState(DATA_BLOOD_PRINCE_COUNCIL) != DONE)
+                {
+                    if (Creature* keleseth = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_KELESETH_GUID)))
+                        if (!keleseth->IsAlive())
+                            keleseth->Respawn();
+                    if (Creature* valanar = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_VALANAR_GUID)))
+                        if (!valanar->IsAlive())
+                            valanar->Respawn();
+                }
                 me->RemoveCorpse(false);
                 me->SetRespawnTime(10);
                 me->SaveRespawnTime();
@@ -561,10 +615,24 @@ public:
             Talk(EMOTE_TALDARAM_DEATH);
             if (Creature* keleseth = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_KELESETH_GUID)))
                 if (keleseth->IsAlive())
+                {
+                    keleseth->AI()->DoAction(ACTION_ENABLE_DEATH);
                     Unit::Kill(keleseth, keleseth);
+                }
             if (Creature* valanar = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_VALANAR_GUID)))
                 if (valanar->IsAlive())
+                {
+                    valanar->AI()->DoAction(ACTION_ENABLE_DEATH);
                     Unit::Kill(valanar, valanar);
+                }
+            // Fallback: same as Keleseth, see above.
+            if (Creature* keleseth = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_KELESETH_GUID)))
+                if (keleseth->IsAlive())
+                    return;
+            if (Creature* valanar = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_VALANAR_GUID)))
+                if (valanar->IsAlive())
+                    return;
+            instance->SetBossState(DATA_BLOOD_PRINCE_COUNCIL, DONE);
         }
 
         void JustRespawned() override
@@ -659,6 +727,9 @@ public:
                     _isEmpowered = false;
                     me->RemoveAurasDueToSpell(SPELL_INVOCATION_VISUAL_ACTIVE);
                     me->RemoveAurasDueToSpell(SPELL_INVOCATION_OF_BLOOD_TALDARAM);
+                    break;
+                case ACTION_ENABLE_DEATH:
+                    _canDie = true;
                     break;
                 case ACTION_FLAME_BALL_CHASE:
                     summons.DoAction(ACTION_FLAME_BALL_CHASE);
@@ -776,6 +847,10 @@ public:
             summons.DespawnAll();
             _isEmpowered = false;
             _evading = false;
+            // See Keleseth/Taldaram Reset: never carry a stale unkillable state
+            // (or stale invocation auras) into the next attempt.
+            _canDie = true;
+            DoAction(ACTION_REMOVE_INVOCATION);
             me->SetHealth(me->GetMaxHealth());
             me->SetReactState(REACT_AGGRESSIVE);
             instance->SetBossState(DATA_BLOOD_PRINCE_COUNCIL, NOT_STARTED);
@@ -842,6 +917,19 @@ public:
 
             if (!_canDie)
             {
+                // Resetting, not completing: bring back any already-dead
+                // siblings so the encounter restarts whole instead of
+                // stranding some princes up while others stay corpses.
+                // Never undo a completed kill.
+                if (instance->GetBossState(DATA_BLOOD_PRINCE_COUNCIL) != DONE)
+                {
+                    if (Creature* keleseth = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_KELESETH_GUID)))
+                        if (!keleseth->IsAlive())
+                            keleseth->Respawn();
+                    if (Creature* taldaram = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_TALDARAM_GUID)))
+                        if (!taldaram->IsAlive())
+                            taldaram->Respawn();
+                }
                 me->RemoveCorpse(false);
                 me->SetRespawnTime(10);
                 me->SaveRespawnTime();
@@ -857,10 +945,16 @@ public:
             instance->SetBossState(DATA_BLOOD_PRINCE_COUNCIL, DONE);
             if (Creature* keleseth = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_KELESETH_GUID)))
                 if (keleseth->IsAlive())
+                {
+                    keleseth->AI()->DoAction(ACTION_ENABLE_DEATH);
                     Unit::Kill(keleseth, keleseth);
+                }
             if (Creature* taldaram = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_TALDARAM_GUID)))
                 if (taldaram->IsAlive())
+                {
+                    taldaram->AI()->DoAction(ACTION_ENABLE_DEATH);
                     Unit::Kill(taldaram, taldaram);
+                }
         }
 
         void JustRespawned() override
@@ -955,6 +1049,9 @@ public:
                     me->RemoveAurasDueToSpell(SPELL_INVOCATION_VISUAL_ACTIVE);
                     me->RemoveAurasDueToSpell(SPELL_INVOCATION_OF_BLOOD_VALANAR);
                     break;
+                case ACTION_ENABLE_DEATH:
+                    _canDie = true;
+                    break;
                 default:
                     break;
             }
@@ -1007,7 +1104,18 @@ public:
                             EnterEvadeMode(EVADE_REASON_OTHER);
                             return;
                         }
-                        next->SetHealth(current->GetHealth());
+                        // Never copy 0 health: Unit::Kill early-returns on 0-HP victims,
+                        // which would leave `next` unkillable and brick the DONE state.
+                        // Also skip dead/dying princes instead of evading mid-death-chain.
+                        // Keep the timer running so a respawned (fake-death) prince
+                        // rejoins the rotation instead of stalling it at 0 damage.
+                        if (!current->IsAlive() || !next->IsAlive())
+                        {
+                            events.ScheduleEvent(EVENT_INVOCATION_OF_BLOOD, 46s);
+                            break;
+                        }
+                        uint32 currentHealth = current->GetHealth();
+                        next->SetHealth(currentHealth ? currentHealth : 1);
                         current->AI()->DoAction(ACTION_REMOVE_INVOCATION);
                         current->SetHealth(1);
                         current->CastSpell((Unit*)nullptr, visualSpellId, true);
