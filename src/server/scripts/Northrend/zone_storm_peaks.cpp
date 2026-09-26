@@ -18,6 +18,8 @@
 #include "AreaDefines.h"
 #include "CombatAI.h"
 #include "CreatureScript.h"
+#include "MoveSplineInit.h"
+#include "MovementGenerator.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
 #include "ScriptedEscortAI.h"
@@ -221,9 +223,62 @@ class npc_time_lost_proto_drake : public CreatureScript
 public:
     npc_time_lost_proto_drake() : CreatureScript("npc_time_lost_proto_drake") { }
 
+    // Single cyclic flight loop: launched once, never ends (no per-lap stop),
+    // node arrivals keep streaming through SplineHandler as ESCORT informs.
+    class TLPDLoopGenerator : public MovementGeneratorMedium<Creature, TLPDLoopGenerator>
+    {
+    public:
+        explicit TLPDLoopGenerator(Movement::PointsArray path) : _path(std::move(path)), _splineId(0) { }
+
+        void DoInitialize(Creature* unit)
+        {
+            if (!unit->IsStopped())
+                unit->StopMoving();
+            unit->AddUnitState(UNIT_STATE_ROAMING | UNIT_STATE_ROAMING_MOVE);
+            Movement::MoveSplineInit init(unit);
+            init.MovebyPath(_path);
+            init.SetFly();
+            init.SetCyclic();
+            init.Launch();
+            _splineId = unit->movespline->GetId();
+        }
+
+        void DoFinalize(Creature* unit)
+        {
+            unit->ClearUnitState(UNIT_STATE_ROAMING | UNIT_STATE_ROAMING_MOVE);
+        }
+
+        void DoReset(Creature* unit)
+        {
+            if (!unit->IsStopped())
+                unit->StopMoving();
+            unit->AddUnitState(UNIT_STATE_ROAMING | UNIT_STATE_ROAMING_MOVE);
+        }
+
+        bool DoUpdate(Creature* unit, uint32 /*diff*/)
+        {
+            if (!unit)
+                return false;
+            if (unit->HasUnitState(UNIT_STATE_NOT_MOVE) || unit->IsMovementPreventedByCasting())
+            {
+                unit->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
+                return true;
+            }
+            unit->AddUnitState(UNIT_STATE_ROAMING_MOVE);
+            return !unit->movespline->Finalized();
+        }
+
+        MovementGeneratorType GetMovementGeneratorType() override { return ESCORT_MOTION_TYPE; }
+        uint32 GetSplineId() const override { return _splineId; }
+
+    private:
+        Movement::PointsArray _path;
+        uint32 _splineId;
+    };
+
     struct npc_time_lost_proto_drakeAI : public ScriptedAI
     {
-        npc_time_lost_proto_drakeAI(Creature* creature) : ScriptedAI(creature), _pathIndex(0), _lastPoint(0), _nextPoint(0), _started(false)
+        npc_time_lost_proto_drakeAI(Creature* creature) : ScriptedAI(creature), _pathIndex(0), _lastPoint(0), _nextPoint(0), _started(false), _cyclicActive(false)
         {
             me->setActive(true);
             me->SetVisible(false);
@@ -259,7 +314,8 @@ public:
                 { 6385.0f, -915.0f, 532.0f },
                 { 6310.0f, -953.0f, 471.0f },
                 { 6181.0f, -975.0f, 431.0f },
-                { 6179.0f, -1042.0f, 433.0f },
+                { 6179.0f, -1042.0f, 448.0f },
+                { 6222.0f, -1215.0f, 504.0f },
                 { 6312.0f, -1490.0f, 474.0f },
                 { 6496.0f, -1616.0f, 669.0f },
                 { 6750.0f, -1649.0f, 896.0f },
@@ -300,14 +356,14 @@ public:
                 { 8125.0f, -629.0f, 987.0f },
                 { 8238.0f, -744.0f, 994.0f },
                 { 8204.0f, -934.0f, 994.0f },
-                { 8148.0f, -965.0f, 1019.0f },
-                { 7982.0f, -1034.0f, 1076.0f },
+                { 8148.0f, -965.0f, 1049.0f },
+                { 7982.0f, -1034.0f, 1106.0f },
                 { 7386.0f, -1104.0f, 949.0f },
                 { 7332.0f, -1080.0f, 947.0f },
                 { 7272.0f, -924.0f, 972.0f },
                 { 7199.0f, -800.0f, 950.0f },
                 { 7146.0f, -740.0f, 913.0f },
-                { 7118.0f, -702.0f, 882.0f },
+                { 7118.0f, -702.0f, 907.0f },
                 { 7089.0f, -591.0f, 823.0f },
                 { 7093.0f, -287.0f, 838.0f },
             },
@@ -346,12 +402,14 @@ public:
         uint32 _lastPoint;
         uint32 _nextPoint;
         bool _started;
+        bool _cyclicActive;
 
         void InitPath()
         {
             _pathIndex = urand(0, 3);
             _lastPoint = 0;
             _nextPoint = 0;
+            _cyclicActive = false;
 
             PathPoint const& spawn = SpawnPoints[_pathIndex];
             me->UpdatePosition(spawn.x, spawn.y, spawn.z, me->GetOrientation());
@@ -366,23 +424,50 @@ public:
             _started = false;
         }
 
-        void StartMove(uint32 fromPoint)
+        // Escort-style spline for the rest of the lap. P_{size-1} duplicates
+        // spawn, so the lap runs to P_{size-2} and each lap departs from
+        // spawn without stopping on it.
+        // Escort-style spline for the rest of the lap. P_{size-1} duplicates
+        // spawn, so the lap runs to P_{size-2} and each lap departs from
+        // spawn without stopping on it.
+        // Cyclic loop over the distinct path nodes, rotated to start at the
+        // drake's current node. Launched once per life (or after combat); it
+        // never ends, so there is no per-lap stop. P_{size-1} duplicates
+        // spawn and is left out: consecutive duplicate points would make a
+        // zero-length segment at spawn every lap. Call only when the drake
+        // is exactly at Paths[_pathIndex][startIdx].
+        void LaunchCyclic(uint32 startIdx)
         {
-            // Escort-style: one spline for the whole remaining path.
-            // This is the exact motion mechanism the drake flew on for years,
-            // fed from the hard-coded points instead of the DB table.
             if (_pathIndex >= 4 || Paths[_pathIndex].empty())
                 return;
             uint32 size = (uint32)Paths[_pathIndex].size();
+            if (size < 3 || startIdx >= size - 1)
+                startIdx = 0;
+            uint32 nodes = size - 1;
             Movement::PointsArray pathPoints;
-            pathPoints.push_back(G3D::Vector3(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ()));
-            for (uint32 i = 0; i < size; ++i)
+            for (uint32 i = 0; i < nodes; ++i)
             {
-                PathPoint const& pt = Paths[_pathIndex][(fromPoint + i) % size];
+                PathPoint const& pt = Paths[_pathIndex][(startIdx + i) % nodes];
                 pathPoints.push_back(G3D::Vector3(pt.x, pt.y, pt.z));
             }
             if (pathPoints.size() < 2)
                 return;
+            _cyclicActive = true;
+            me->GetMotionMaster()->Mutate(new TLPDLoopGenerator(std::move(pathPoints)), MOTION_SLOT_ACTIVE);
+        }
+
+        // Single finite leg to the next point (evade/combat resume). On
+        // arrival the handler switches to the cyclic loop.
+        void LaunchLeadIn()
+        {
+            if (_pathIndex >= 4 || Paths[_pathIndex].empty())
+                return;
+            uint32 size = (uint32)Paths[_pathIndex].size();
+            PathPoint const& pt = Paths[_pathIndex][_nextPoint % size];
+            Movement::PointsArray pathPoints;
+            pathPoints.push_back(G3D::Vector3(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ()));
+            pathPoints.push_back(G3D::Vector3(pt.x, pt.y, pt.z));
+            _cyclicActive = false;
             me->GetMotionMaster()->MoveSplinePath(&pathPoints);
         }
 
@@ -390,7 +475,7 @@ public:
         {
             _lastPoint = 0;
             _nextPoint = 1 % (uint32)Paths[_pathIndex].size();
-            StartMove(_nextPoint);
+            LaunchCyclic(0);
             me->SetVisible(true);
             _started = true;
         }
@@ -423,14 +508,23 @@ public:
                 return;
             if (_pathIndex >= 4 || Paths[_pathIndex].empty())
                 return;
-            // Each ESCORT inform is one genuinely traveled spline node:
-            // the node at _nextPoint. Advance exactly one step; on lap end
-            // (wrap to 0) issue the next lap.
+            // Arrivals stream per node forever on the cyclic spline (duplicate
+            // spawn index excluded, so tracking runs modulo size-1).
+            // Lead-in arrival switches to the cyclic loop; afterwards each
+            // arrival just advances tracking (no motion is ever issued).
             uint32 size = (uint32)Paths[_pathIndex].size();
+            if (size < 3)
+                return;
+            uint32 mod = size - 1;
+            if (!_cyclicActive)
+            {
+                _lastPoint = _nextPoint % mod;
+                LaunchCyclic(_lastPoint);
+                _nextPoint = (_lastPoint + 1) % mod;
+                return;
+            }
             _lastPoint = _nextPoint;
-            _nextPoint = (_nextPoint + 1) % size;
-            if (_nextPoint == 0)
-                StartMove(0);
+            _nextPoint = (_nextPoint + 1) % mod;
         }
 
         void ResumePatrol()
@@ -438,8 +532,7 @@ public:
             // Continue to the next point, not back to the last one.
             me->GetMotionMaster()->MovementExpired();
             me->StopMoving();
-            if (_pathIndex < 4 && !Paths[_pathIndex].empty())
-                StartMove(_nextPoint);
+            LaunchLeadIn();
         }
 
         void EnterEvadeMode(EvadeReason /*why*/) override
