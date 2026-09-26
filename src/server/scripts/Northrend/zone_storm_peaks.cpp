@@ -27,6 +27,7 @@
 #include "SpellScriptLoader.h"
 #include "Vehicle.h"
 #include "WaypointMgr.h"
+#include <vector>
 
 enum qSniffingOutThePerpetrator
 {
@@ -220,42 +221,248 @@ class npc_time_lost_proto_drake : public CreatureScript
 public:
     npc_time_lost_proto_drake() : CreatureScript("npc_time_lost_proto_drake") { }
 
-    struct npc_time_lost_proto_drakeAI : public npc_escortAI
+    struct npc_time_lost_proto_drakeAI : public ScriptedAI
     {
-        npc_time_lost_proto_drakeAI(Creature* creature) : npc_escortAI(creature)
+        npc_time_lost_proto_drakeAI(Creature* creature) : ScriptedAI(creature), _pathIndex(0), _lastPoint(0), _nextPoint(0), _started(false)
         {
-            rollPath = false;
-            setVisible = false;
             me->setActive(true);
             me->SetVisible(false);
         }
 
+        struct PathPoint { float x, y, z; };
+
+        // 4 hard-coded spawn points, shared between Vyragosa and TLPD
+        static constexpr PathPoint SpawnPoints[4] =
+        {
+            { 6750.0f, -1649.0f, 896.0f },
+            { 6441.0f, -847.0f, 564.0f },
+            { 7093.0f, -287.0f, 838.0f },
+            { 8689.0f, -1908.0f, 1250.0f },
+        };
+
+        // Patrol routes, each starts and ends at its own spawn point (loop)
+        static inline const std::vector<PathPoint> Paths[4] =
+        {
+            { // Spawn 1
+                { 6750.0f, -1649.0f, 896.0f },
+                { 6909.0f, -1653.0f, 904.0f },
+                { 7116.0f, -1519.0f, 976.0f },
+                { 7227.0f, -1423.0f, 985.0f },
+                { 7353.0f, -1270.0f, 987.0f },
+                { 7344.0f, -1161.0f, 978.0f },
+                { 7262.0f, -1102.0f, 1020.0f },
+                { 7150.0f, -1067.0f, 1005.0f },
+                { 7028.0f, -1063.0f, 929.0f },
+                { 6897.0f, -1057.0f, 883.0f },
+                { 6724.0f, -987.0f, 840.0f },
+                { 6598.0f, -917.0f, 683.0f },
+                { 6385.0f, -915.0f, 532.0f },
+                { 6310.0f, -953.0f, 471.0f },
+                { 6181.0f, -975.0f, 431.0f },
+                { 6179.0f, -1042.0f, 433.0f },
+                { 6312.0f, -1490.0f, 474.0f },
+                { 6496.0f, -1616.0f, 669.0f },
+                { 6750.0f, -1649.0f, 896.0f },
+            },
+            { // Spawn 2
+                { 6441.0f, -847.0f, 564.0f },
+                { 6559.0f, -814.0f, 676.0f },
+                { 6646.0f, -781.0f, 757.0f },
+                { 6902.0f, -732.0f, 814.0f },
+                { 7038.0f, -679.0f, 795.0f },
+                { 7061.0f, -631.0f, 794.0f },
+                { 7062.0f, -510.0f, 801.0f },
+                { 7062.0f, -306.0f, 805.0f },
+                { 7051.0f, -236.0f, 806.0f },
+                { 6976.0f, -200.0f, 805.0f },
+                { 6854.0f, -167.0f, 811.0f },
+                { 6748.0f, -33.0f, 819.0f },
+                { 6673.0f, 29.0f, 792.0f },
+                { 6592.0f, 7.0f, 761.0f },
+                { 6517.0f, -24.0f, 712.0f },
+                { 6449.0f, -65.0f, 667.0f },
+                { 6393.0f, -144.0f, 657.0f },
+                { 6315.0f, -322.0f, 636.0f },
+                { 6300.0f, -458.0f, 556.0f },
+                { 6283.0f, -740.0f, 520.0f },
+                { 6441.0f, -847.0f, 564.0f },
+            },
+            { // Spawn 3
+                { 7093.0f, -287.0f, 838.0f },
+                { 7113.0f, -229.0f, 832.0f },
+                { 7168.0f, -168.0f, 825.0f },
+                { 7283.0f, -66.0f, 834.0f },
+                { 7364.0f, -67.0f, 846.0f },
+                { 7544.0f, -88.0f, 883.0f },
+                { 7685.0f, -132.0f, 907.0f },
+                { 7934.0f, -355.0f, 945.0f },
+                { 8009.0f, -547.0f, 986.0f },
+                { 8125.0f, -629.0f, 987.0f },
+                { 8238.0f, -744.0f, 994.0f },
+                { 8204.0f, -934.0f, 994.0f },
+                { 8148.0f, -965.0f, 1019.0f },
+                { 7982.0f, -1034.0f, 1076.0f },
+                { 7386.0f, -1104.0f, 949.0f },
+                { 7332.0f, -1080.0f, 947.0f },
+                { 7272.0f, -924.0f, 972.0f },
+                { 7199.0f, -800.0f, 950.0f },
+                { 7146.0f, -740.0f, 913.0f },
+                { 7118.0f, -702.0f, 882.0f },
+                { 7089.0f, -591.0f, 823.0f },
+                { 7093.0f, -287.0f, 838.0f },
+            },
+            { // Spawn 4
+                { 8689.0f, -1908.0f, 1250.0f },
+                { 8754.0f, -1762.0f, 1172.0f },
+                { 8782.0f, -1647.0f, 1123.0f },
+                { 8804.0f, -1475.0f, 1121.0f },
+                { 8849.0f, -1282.0f, 1087.0f },
+                { 8867.0f, -1192.0f, 1077.0f },
+                { 8819.0f, -1003.0f, 1079.0f },
+                { 8770.0f, -859.0f, 1080.0f },
+                { 8581.0f, -705.0f, 1053.0f },
+                { 8485.0f, -562.0f, 1087.0f },
+                { 8478.0f, -467.0f, 1047.0f },
+                { 8479.0f, -381.0f, 986.0f },
+                { 8358.0f, -79.0f, 908.0f },
+                { 8314.0f, -38.0f, 905.0f },
+                { 8258.0f, -45.0f, 907.0f },
+                { 7819.0f, -171.0f, 982.0f },
+                { 7411.0f, -67.0f, 866.0f },
+                { 7099.0f, -180.0f, 847.0f },
+                { 7066.0f, -635.0f, 873.0f },
+                { 7172.0f, -768.0f, 943.0f },
+                { 7391.0f, -1088.0f, 973.0f },
+                { 7585.0f, -1549.0f, 1207.0f },
+                { 7885.0f, -1710.0f, 1400.0f },
+                { 8257.0f, -1443.0f, 1251.0f },
+                { 8516.0f, -1736.0f, 1220.0f },
+                { 8689.0f, -1908.0f, 1250.0f },
+            },
+        };
+
         EventMap events;
-        bool rollPath;
-        bool setVisible;
+        uint8 _pathIndex;
+        uint32 _lastPoint;
+        uint32 _nextPoint;
+        bool _started;
+
+        void InitPath()
+        {
+            _pathIndex = urand(0, 3);
+            _lastPoint = 0;
+            _nextPoint = 0;
+
+            PathPoint const& spawn = SpawnPoints[_pathIndex];
+            me->UpdatePosition(spawn.x, spawn.y, spawn.z, me->GetOrientation());
+            me->SetHomePosition(spawn.x, spawn.y, spawn.z, me->GetOrientation());
+            me->SetCanFly(true);
+            me->SetDisableGravity(true);
+
+            // Shared spawn: 25% TLPD, 75% Vyragosa
+            me->UpdateEntry(roll_chance_i(25) ? NPC_TIME_LOST_PROTO_DRAKE : NPC_VYRAGOSA, 0, false);
+
+            me->SetVisible(false); // hide at spawn point (anti NPCScan camp), shown once moving
+            _started = false;
+        }
+
+        void StartMove(uint32 fromPoint)
+        {
+            // Escort-style: one spline for the whole remaining path.
+            // This is the exact motion mechanism the drake flew on for years,
+            // fed from the hard-coded points instead of the DB table.
+            if (_pathIndex >= 4 || Paths[_pathIndex].empty())
+                return;
+            uint32 size = (uint32)Paths[_pathIndex].size();
+            Movement::PointsArray pathPoints;
+            pathPoints.push_back(G3D::Vector3(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ()));
+            for (uint32 i = 0; i < size; ++i)
+            {
+                PathPoint const& pt = Paths[_pathIndex][(fromPoint + i) % size];
+                pathPoints.push_back(G3D::Vector3(pt.x, pt.y, pt.z));
+            }
+            if (pathPoints.size() < 2)
+                return;
+            me->GetMotionMaster()->MoveSplinePath(&pathPoints);
+        }
+
+        void BeginPatrol()
+        {
+            _lastPoint = 0;
+            _nextPoint = 1 % (uint32)Paths[_pathIndex].size();
+            StartMove(_nextPoint);
+            me->SetVisible(true);
+            _started = true;
+        }
+
+        void JustRespawned() override
+        {
+            InitPath();
+            BeginPatrol();
+        }
 
         void Reset() override
         {
-            npc_escortAI::Reset();
+            events.Reset();
             if (me->HasUnitState(UNIT_STATE_EVADE))
                 return;
-            me->SetVisible(false); // pussywizard: zeby nie dostawali info o npc w miejscu spawna (kampienie z addonem npc scan)
-            rollPath = true;
+            // Fresh spawn only (JustRespawned handles respawns).
+            // Evades must NOT re-roll: they resume via EnterEvadeMode.
+            if (!_started)
+            {
+                InitPath();
+                BeginPatrol();
+            }
         }
 
-        void RollPath()
+        void MovementInform(uint32 type, uint32 /*pointId*/) override
         {
-            me->SetEntry(NPC_TIME_LOST_PROTO_DRAKE);
-            Start(true, ObjectGuid::Empty, 0, false, true, true);
-            SetNextWaypoint(urand(0, 250), true);
-            me->UpdateEntry(roll_chance_i(25) ? NPC_TIME_LOST_PROTO_DRAKE : NPC_VYRAGOSA, 0, false);
+            if (type != ESCORT_MOTION_TYPE)
+                return;
+            if (me->IsInCombat() || me->HasUnitState(UNIT_STATE_EVADE))
+                return;
+            if (_pathIndex >= 4 || Paths[_pathIndex].empty())
+                return;
+            // Each ESCORT inform is one genuinely traveled spline node:
+            // the node at _nextPoint. Advance exactly one step; on lap end
+            // (wrap to 0) issue the next lap.
+            uint32 size = (uint32)Paths[_pathIndex].size();
+            _lastPoint = _nextPoint;
+            _nextPoint = (_nextPoint + 1) % size;
+            if (_nextPoint == 0)
+                StartMove(0);
         }
 
-        void WaypointReached(uint32  /*pointId*/) override { }
+        void ResumePatrol()
+        {
+            // Continue to the next point, not back to the last one.
+            me->GetMotionMaster()->MovementExpired();
+            me->StopMoving();
+            if (_pathIndex < 4 && !Paths[_pathIndex].empty())
+                StartMove(_nextPoint);
+        }
+
+        void EnterEvadeMode(EvadeReason /*why*/) override
+        {
+            me->GetThreatMgr().ClearAllThreat();
+            me->CombatStop(true);
+            me->SetLootRecipient(nullptr);
+            events.Reset();
+            // No re-roll, no player-distance checks.
+            ResumePatrol();
+        }
+
+        void JustExitedCombat() override
+        {
+            events.Reset();
+            if (me->IsAlive() && !me->HasUnitState(UNIT_STATE_EVADE))
+                ResumePatrol();
+        }
 
         void JustEngagedWith(Unit*) override
         {
             events.Reset();
+            me->GetMotionMaster()->MovementExpired();
             if (me->GetEntry() == NPC_TIME_LOST_PROTO_DRAKE)
             {
                 events.ScheduleEvent(SPELL_TIME_SHIFT, 10s);
@@ -268,22 +475,10 @@ public:
             }
         }
 
-        void UpdateEscortAI(uint32 diff) override
+        void JustReachedHome() override { }
+
+        void UpdateAI(uint32 diff) override
         {
-            if (rollPath)
-            {
-                RollPath();
-                rollPath = false;
-                setVisible = true;
-                return;
-            }
-
-            if (setVisible)
-            {
-                me->SetVisible(true);
-                setVisible = false;
-            }
-
             if (!UpdateVictim())
                 return;
 
