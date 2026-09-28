@@ -25,6 +25,7 @@
 #include "MoveSplineInitArgs.h"
 #include "SharedDefines.h"
 #include <G3D/Vector3.h>
+#include <vector>
 
 class Unit;
 class WorldObject;
@@ -40,6 +41,11 @@ class WorldObject;
 #define DISALLOW_TIME_AFTER_FAIL    3 // secs
 #define VERTEX_SIZE       3
 #define INVALID_POLYREF   0
+
+#define GROUND_PATH_HEIGHT_LIFT      2.0f
+#define GROUND_PATH_SEARCH_DIST      5.0f
+#define GROUND_PATH_MAX_DEVIATION    1.0f
+#define GROUND_PATH_MAX_POLY_SNAP    3.0f
 
 enum PathType
 {
@@ -125,7 +131,11 @@ class PathGenerator
         {
             _polyLength = 0;
             _pathPoints.clear();
+            _offMeshArrivals.clear();
         }
+
+        [[nodiscard]] bool ShouldValidateGroundPath() const;
+        bool ValidateGroundPath();
 
     private:
         dtPolyRef _pathPolyRefs[MAX_PATH_LENGTH];   // array of detour polygon references
@@ -147,6 +157,8 @@ class PathGenerator
         WorldObject const* const _source;       // the object that is moving
         dtNavMesh const* _navMesh;              // the nav mesh
         dtNavMeshQuery const* _navMeshQuery;    // the nav mesh query used to find the path
+
+        std::vector<uint32> _offMeshArrivals;
 
         dtQueryFilterExt _filter;  // use single filter for all movements, update it when needed
 

@@ -24,6 +24,8 @@
 #include "MMapMgr.h"
 #include "Map.h"
 #include "Metric.h"
+#include <algorithm>
+#include <cmath>
 
  ////////////////// PathGenerator //////////////////
 PathGenerator::PathGenerator(WorldObject const* owner) :
@@ -140,8 +142,12 @@ dtPolyRef PathGenerator::GetPolyByLocation(float const* point, float* distance) 
     float closestPoint[VERTEX_SIZE] = { 0.0f, 0.0f, 0.0f };
     if (dtStatusSucceed(_navMeshQuery->findNearestPoly(point, extents, &_filter, &polyRef, closestPoint)) && polyRef != INVALID_POLYREF)
     {
-        *distance = dtVdist(closestPoint, point);
-        return polyRef;
+        if (!ShouldValidateGroundPath() || std::fabs(closestPoint[1] - point[1]) <= GROUND_PATH_MAX_POLY_SNAP)
+        {
+            *distance = dtVdist(closestPoint, point);
+            return polyRef;
+        }
+        polyRef = INVALID_POLYREF;
     }
 
     // still nothing ..
@@ -151,8 +157,12 @@ dtPolyRef PathGenerator::GetPolyByLocation(float const* point, float* distance) 
 
     if (dtStatusSucceed(_navMeshQuery->findNearestPoly(point, extents, &_filter, &polyRef, closestPoint)) && polyRef != INVALID_POLYREF)
     {
-        *distance = dtVdist(closestPoint, point);
-        return polyRef;
+        if (!ShouldValidateGroundPath() || std::fabs(closestPoint[1] - point[1]) <= GROUND_PATH_MAX_POLY_SNAP)
+        {
+            *distance = dtVdist(closestPoint, point);
+            return polyRef;
+        }
+        polyRef = INVALID_POLYREF;
     }
 
     *distance = FLT_MAX;
@@ -522,6 +532,7 @@ void PathGenerator::BuildPointPath(const float* startPoint, const float* endPoin
     float pathPoints[MAX_POINT_PATH_LENGTH * VERTEX_SIZE];
     uint32 pointCount = 0;
     dtStatus dtResult = DT_FAILURE;
+    _offMeshArrivals.clear();
     if (_useRaycast)
     {
         // _straightLine uses raycast and it currently doesn't support building a point path, only a 2-point path with start and hitpoint/end is returned
@@ -571,12 +582,15 @@ void PathGenerator::BuildPointPath(const float* startPoint, const float* endPoin
             for (uint32 i = 0; i < pointCount; ++i)
                 _pathPoints[i] = G3D::Vector3(pathPoints[i * VERTEX_SIZE + 2], pathPoints[i * VERTEX_SIZE], pathPoints[i * VERTEX_SIZE + 1]);
 
+            ValidateGroundPath();
             NormalizePath();
 
             // first point is always our current location - we need the next one
-            SetActualEndPosition(_pathPoints[pointCount - 1]);
+            if (!_pathPoints.empty())
+                SetActualEndPosition(_pathPoints.back());
 
-            _type = PathType(_type | PATHFIND_INCOMPLETE);
+            if (!(_type & PATHFIND_NOPATH))
+                _type = PathType(_type | PATHFIND_INCOMPLETE);
             return;
         }
 
@@ -598,10 +612,18 @@ void PathGenerator::BuildPointPath(const float* startPoint, const float* endPoin
     for (uint32 i = 0; i < pointCount; ++i)
         _pathPoints[i] = G3D::Vector3(pathPoints[i * VERTEX_SIZE + 2], pathPoints[i * VERTEX_SIZE], pathPoints[i * VERTEX_SIZE + 1]);
 
+    ValidateGroundPath();
     NormalizePath();
 
+    if (_pathPoints.empty())
+    {
+        BuildShortcut();
+        _type = PathType(_type | PATHFIND_NOPATH);
+        return;
+    }
+
     // first point is always our current location - we need the next one
-    SetActualEndPosition(_pathPoints[pointCount - 1]);
+    SetActualEndPosition(_pathPoints.back());
 
     // force the given destination, if needed
     if (_forceDestination &&
@@ -629,6 +651,75 @@ void PathGenerator::NormalizePath()
     {
         _source->UpdateAllowedPositionZ(_pathPoints[i].x, _pathPoints[i].y, _pathPoints[i].z);
     }
+}
+
+bool PathGenerator::ShouldValidateGroundPath() const
+{
+    if (_source->GetTransport())
+        return false;
+
+    Unit const* unit = _source->ToUnit();
+    if (!unit)
+        return false;
+
+    if (unit->IsFlying())
+        return false;
+    if (unit->IsFalling())
+        return false;
+    if (unit->IsInWater() || unit->IsUnderWater())
+        return false;
+
+    return true;
+}
+
+bool PathGenerator::ValidateGroundPath()
+{
+    if (!ShouldValidateGroundPath() || _pathPoints.size() < 2)
+        return true;
+
+    Map* map = _source->GetMap();
+    if (!map)
+        return true;
+
+    Unit const* unit = _source->ToUnit();
+    uint32 phase = _source->GetPhaseMask();
+    float hover = unit ? unit->GetHoverHeight() : 0.0f;
+
+    float prevGround = map->GetHeight(phase, _startPosition.x, _startPosition.y,
+        _startPosition.z + GROUND_PATH_HEIGHT_LIFT, true, GROUND_PATH_SEARCH_DIST);
+    if (prevGround <= INVALID_HEIGHT)
+        return true;
+    if (std::fabs(_pathPoints[0].z - (prevGround + hover)) > GROUND_PATH_MAX_DEVIATION)
+        return true;
+
+    for (uint32 i = 1; i < _pathPoints.size(); ++i)
+    {
+        G3D::Vector3& pt = _pathPoints[i];
+        float ground;
+        bool offMeshArrival = std::find(_offMeshArrivals.begin(), _offMeshArrivals.end(), i) != _offMeshArrivals.end();
+        if (offMeshArrival)
+            ground = map->GetHeight(phase, pt.x, pt.y, pt.z + GROUND_PATH_HEIGHT_LIFT, true, GROUND_PATH_SEARCH_DIST);
+        else
+            ground = map->GetHeight(phase, pt.x, pt.y, prevGround + GROUND_PATH_HEIGHT_LIFT, true, GROUND_PATH_SEARCH_DIST);
+
+        if (ground <= INVALID_HEIGHT || std::fabs(pt.z - (ground + hover)) > GROUND_PATH_MAX_DEVIATION)
+        {
+            if (i < 2)
+            {
+                BuildShortcut();
+                _type = PATHFIND_NOPATH;
+            }
+            else
+            {
+                _pathPoints.resize(i);
+                SetActualEndPosition(_pathPoints.back());
+                _type = PathType(_type | PATHFIND_INCOMPLETE);
+            }
+            return false;
+        }
+        prevGround = ground;
+    }
+    return true;
 }
 
 void PathGenerator::BuildShortcut()
@@ -949,6 +1040,7 @@ dtStatus PathGenerator::FindSmoothPath(float const* startPos, float const* endPo
                 if (dtStatusFailed(_navMeshQuery->getPolyHeight(polys[0], iterPos, &iterPos[1])))
                     return DT_FAILURE;
                 iterPos[1] += 0.5f;
+                _offMeshArrivals.push_back(nsmoothPath);
             }
         }
 
