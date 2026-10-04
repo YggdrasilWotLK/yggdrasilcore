@@ -24,6 +24,7 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "TemporarySummon.h"
+#include "Transport.h"
 #include "Unit.h"
 #include "Util.h"
 
@@ -384,6 +385,13 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
     if (seat->second.SeatInfo->m_flags & VEHICLE_SEAT_FLAG_PASSENGER_NOT_SELECTABLE)
         unit->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
 
+    // Vehicle passengers ride via RelocatePassengers, leave direct transport.
+    if (Transport* directTransport = unit->GetTransport())
+    {
+        directTransport->RemovePassenger(unit);
+        unit->SetTransport(nullptr);
+    }
+
     unit->AddUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
     VehicleSeatEntry const* veSeat = seat->second.SeatInfo;
     VehicleSeatAddon const* veSeatAddon = seat->second.SeatAddon;
@@ -397,6 +405,15 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
     unit->m_movementInfo.transport.time = 0;
     unit->m_movementInfo.transport.seat = seat->first;
     unit->m_movementInfo.transport.guid = _me->GetGUID();
+
+    // Sync absolute from seat offset immediately.
+    if (_me->IsInWorld() && unit->IsInWorld())
+    {
+        float ax = x, ay = y, az = z, ao = o;
+        CalculatePassengerPosition(ax, ay, az, &ao);
+        unit->UpdatePosition(ax, ay, az, ao);
+        unit->m_movementInfo.pos.Relocate(ax, ay, az, ao);
+    }
 
     // xinef: removed seat->first == 0 check...
     if (_me->IsCreature()
@@ -499,7 +516,23 @@ void Vehicle::RemovePassenger(Unit* unit)
             unit->m_movementInfo.transport.Reset();
         }
         else
+        {
             unit->m_movementInfo.transport = _me->m_movementInfo.transport;
+            // Rejoin base transport as direct passenger.
+            if (Transport* baseTransport = _me->GetTransport())
+            {
+                if (Transport* oldTransport = unit->GetTransport())
+                {
+                    if (oldTransport != baseTransport)
+                    {
+                        oldTransport->RemovePassenger(unit);
+                        unit->SetTransport(nullptr);
+                    }
+                }
+                unit->SetTransport(baseTransport);
+                baseTransport->AddPassenger(unit);
+            }
+        }
     }
 
     // only for flyable vehicles

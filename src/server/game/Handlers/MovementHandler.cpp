@@ -601,6 +601,22 @@ bool WorldSession::ProcessMovementInfo(MovementInfo& movementInfo, Unit* mover, 
         }
     }
 
+    // Keep server seat/offset for vehicle passengers.
+    if (mover->GetVehicle())
+    {
+        movementInfo.pos.Relocate(mover->GetPositionX(), mover->GetPositionY(), mover->GetPositionZ());
+        movementInfo.transport.guid = mover->m_movementInfo.transport.guid;
+        movementInfo.transport.pos.Relocate(
+            mover->m_movementInfo.transport.pos.GetPositionX(),
+            mover->m_movementInfo.transport.pos.GetPositionY(),
+            mover->m_movementInfo.transport.pos.GetPositionZ(),
+            mover->m_movementInfo.transport.pos.GetOrientation());
+        movementInfo.transport.time = mover->m_movementInfo.transport.time;
+        movementInfo.transport.time2 = mover->m_movementInfo.transport.time2;
+        movementInfo.transport.seat = mover->m_movementInfo.transport.seat;
+        movementInfo.AddMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
+    }
+
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
     if (opcode == MSG_MOVE_FALL_LAND && plrMover && !plrMover->IsInFlight())
     {
