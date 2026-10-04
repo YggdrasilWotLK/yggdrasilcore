@@ -86,6 +86,12 @@ public:
     [[nodiscard]] bool CanFly() const override { return GetMovementTemplate().IsFlightAllowed() || IsFlying(); }
     [[nodiscard]] bool CanHover() const { return GetMovementTemplate().Ground == CreatureGroundMovementType::Hover || IsHovering(); }
     [[nodiscard]] bool IsRooted() const { return GetMovementTemplate().IsRooted(); }
+    static constexpr uint32 INTERACTION_STOP_AURA = 35340;
+    void PauseMovementForInteraction(Player* caster);
+    // Releases this creature if it was stopped by the given player.
+    void ClearInteractionStop(Player* player);
+    // Logout failover: releases every creature stopped by the given player.
+    static void ClearInteractionStopsBy(Player* player);
 
     MovementGeneratorType GetDefaultMovementType() const override { return m_defaultMovementType; }
     void SetDefaultMovementType(MovementGeneratorType mgt) { m_defaultMovementType = mgt; }

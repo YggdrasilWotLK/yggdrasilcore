@@ -13862,6 +13862,9 @@ void Unit::SetInCombatState(bool PvP, Unit* enemy, uint32 duration)
 
     if (Creature* creature = ToCreature())
     {
+        // Drop the interaction stop so combat movement is never held back
+        creature->RemoveAurasDueToSpell(Creature::INTERACTION_STOP_AURA);
+
         // Set home position at place of engaging combat for escorted creatures
         if ((IsAIEnabled && creature->AI()->IsEscorted()) ||
                 GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE ||

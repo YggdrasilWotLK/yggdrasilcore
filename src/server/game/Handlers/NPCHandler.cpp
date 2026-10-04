@@ -105,6 +105,10 @@ void WorldSession::SendTrainerList(ObjectGuid guid, const std::string& strTitle)
     if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
         GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
 
+    // Stop the npc if moving
+    unit->PauseMovementForInteraction(_player);
+    unit->SetHomePosition(unit->GetPosition());
+
     CreatureTemplate const* ci = unit->GetCreatureTemplate();
 
     if (!ci)
@@ -296,8 +300,7 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket& recvData)
     //    GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
 
     // Stop the npc if moving
-    if (uint32 pause = unit->GetMovementTemplate().GetInteractionPauseTimer())
-        unit->PauseMovement(pause);
+    unit->PauseMovementForInteraction(_player);
     unit->SetHomePosition(unit->GetPosition());
 
     // If spiritguide, no need for gossip menu, just put player into resurrect queue

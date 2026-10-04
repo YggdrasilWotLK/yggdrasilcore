@@ -55,11 +55,27 @@ public:
     void DoFinalize(T*);
     void DoReset(T*);
     bool DoUpdate(T*, const uint32);
+    void Pause(uint32 timer = 0)
+    {
+        if (timer)
+            _nextMoveTime.Reset(static_cast<int32>(timer));
+        else
+        {
+            // No timer: paused until Resume is called
+            _stalled = true;
+            _nextMoveTime.Reset(1);
+        }
+    }
+    void Resume(uint32 /*overrideTimer*/ = 0)
+    {
+        _stalled = false;
+    }
     bool GetResetPosition(float& x, float& y, float& z);
     MovementGeneratorType GetMovementGeneratorType() { return RANDOM_MOTION_TYPE; }
 
 private:
     TimeTrackerSmall _nextMoveTime;
+    bool _stalled = false;
     uint8 _moveCount;
     float _wanderDistance;
     std::unique_ptr<PathGenerator> _pathGenerator;
