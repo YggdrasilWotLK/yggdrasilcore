@@ -304,6 +304,11 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* creature, const uint3
         return true;
     }
 
+    if (_stalled)
+    {
+        return true;
+    }
+
     if (creature->movespline->Finalized())
     {
         _nextMoveTime.Update(diff);

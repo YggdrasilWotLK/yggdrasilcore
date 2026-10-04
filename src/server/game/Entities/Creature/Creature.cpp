@@ -48,6 +48,27 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSessionMgr.h"
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
+
+namespace
+{
+    // player low guid -> raw guids of creatures stopped by that player
+    using InteractionStopMap = std::unordered_map<uint32, std::unordered_set<uint64>>;
+
+    InteractionStopMap* GetInteractionStopMap()
+    {
+        static InteractionStopMap map;
+        return &map;
+    }
+
+    std::mutex* GetInteractionStopLock()
+    {
+        static std::mutex lock;
+        return &lock;
+    }
+}
 
 /// @todo: this import is not necessary for compilation and marked as unused by the IDE
 //  however, for some reasons removing it would cause a damn linking issue
@@ -3007,6 +3028,91 @@ CreatureMovementData const& Creature::GetMovementTemplate() const
         return *movementOverride;
 
     return GetCreatureTemplate()->Movement;
+}
+
+// Aura applied on player interaction to hold the creature in place.
+// Duration comes from creature_template_movement / creature_movement_override
+// InteractionPauseTimer (ms): NULL keeps the default (Creature.MovingStopTimeForPlayer),
+// 0 disables the stop, >0 sets a custom duration.
+void Creature::PauseMovementForInteraction(Player* caster)
+{
+    // Never interrupt owned creatures (pets, summons, etc.)
+    if (GetOwner())
+        return;
+
+    // Never interrupt an active escort
+    if (GetMotionMaster()->GetMotionSlotType(MOTION_SLOT_ACTIVE) == ESCORT_MOTION_TYPE)
+        return;
+    if (AI() && AI()->IsEscorted())
+        return;
+
+    // Never interrupt combat
+    if (IsInCombat())
+        return;
+
+    uint32 pause = GetMovementTemplate().GetInteractionPauseTimer();
+    if (!pause)
+        return;
+
+    PauseMovement(pause);
+
+    if (!caster)
+        return;
+
+    if (Aura* aura = caster->AddAura(INTERACTION_STOP_AURA, this))
+        aura->SetDuration(static_cast<int32>(pause));
+
+    // Track for logout cleanup / early release
+    {
+        std::lock_guard<std::mutex> lock(*GetInteractionStopLock());
+        (*GetInteractionStopMap())[caster->GetGUID().GetCounter()].insert(GetGUID().GetRawValue());
+    }
+}
+
+void Creature::ClearInteractionStop(Player* player)
+{
+    if (!player)
+        return;
+
+    // Only release if the stop aura was placed by this player
+    if (!GetAura(INTERACTION_STOP_AURA, player->GetGUID()))
+        return;
+
+    RemoveAurasDueToSpell(INTERACTION_STOP_AURA, player->GetGUID());
+
+    // Expire any remaining generator pause immediately
+    ResumeMovement();
+    PauseMovement(1);
+
+    {
+        std::lock_guard<std::mutex> lock(*GetInteractionStopLock());
+        if (auto itr = GetInteractionStopMap()->find(player->GetGUID().GetCounter()); itr != GetInteractionStopMap()->end())
+        {
+            itr->second.erase(GetGUID().GetRawValue());
+            if (itr->second.empty())
+                GetInteractionStopMap()->erase(itr);
+        }
+    }
+}
+
+void Creature::ClearInteractionStopsBy(Player* player)
+{
+    if (!player || !player->GetMap())
+        return;
+
+    std::unordered_set<uint64> guids;
+    {
+        std::lock_guard<std::mutex> lock(*GetInteractionStopLock());
+        if (auto itr = GetInteractionStopMap()->find(player->GetGUID().GetCounter()); itr != GetInteractionStopMap()->end())
+        {
+            guids = std::move(itr->second);
+            GetInteractionStopMap()->erase(itr);
+        }
+    }
+
+    for (uint64 raw : guids)
+        if (Creature* creature = player->GetMap()->GetCreature(ObjectGuid(raw)))
+            creature->ClearInteractionStop(player);
 }
 
 void Creature::AllLootRemovedFromCorpse()
