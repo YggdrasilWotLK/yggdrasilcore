@@ -14809,23 +14809,10 @@ Unit* Creature::SelectVictim()
 
     if (CanHaveThreatList())
     {
-        // Leash queue: each target tracks its own leash deadline. If the top
-        // threat's leash expired (or target invalid), fall through to the next
-        // unit in line (players, pets, totems, etc.) instead of evading.
+        // getHostileTarget() skips leash-expired targets via CanCreatureAttack,
+        // so expiry falls through to the next valid unit instead of evading.
         if (!target && !m_ThreatMgr.isThreatListEmpty())
-        {
-            for (auto ref : m_ThreatMgr.GetThreatList())
-            {
-                Unit* candidate = ref ? ref->getTarget() : nullptr;
-                if (candidate && CanCreatureAttack(candidate))
-                {
-                    target = candidate;
-                    break;
-                }
-            }
-            // Top threat valid but leash-expired falls here with target == nullptr;
-            // keep getHostileTarget fallback out on purpose (it would re-pick expired).
-        }
+            target = m_ThreatMgr.getHostileTarget();
     }
     else if (!HasReactState(REACT_PASSIVE))
     {
