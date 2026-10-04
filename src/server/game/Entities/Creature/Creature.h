@@ -416,6 +416,7 @@ public:
     bool HasLeashEntryFor(Unit const* target) const;
     time_t GetLeashDeadlineFor(Unit const* target) const;
     bool IsLeashExpiredFor(Unit const* target) const;
+    bool IsOutsideLeashRange(Unit const* victim) const;
     // Shared pack state: assisting mobs inherit the originally engaged NPC's leash.
     std::shared_ptr<LeashState> const& GetLeashStatePtr() const;
     void SetLeashStatePtr(std::shared_ptr<LeashState> const& state);

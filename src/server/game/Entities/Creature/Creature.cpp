@@ -2729,16 +2729,9 @@ bool Creature::CanCreatureAttack(Unit const* victim, bool skipDistCheck) const
         if (!IsWithinDist(victim, visibility))
             return false;
 
-        // Inside leash range (31 yds from spawn): stock timer does not apply.
-        float leashDist = sWorld->getFloatConfig(CONFIG_CREATURE_LEASH_RADIUS);
-        float hx, hy, hz;
-        hx = hy = hz = 0.0f;
-        bool hasResetPos = GetMotionMaster()->GetMotionSlot(MOTION_SLOT_IDLE)->GetResetPosition(hx, hy, hz);
-        float homeX = hasResetPos ? hx : m_homePosition.GetPositionX();
-        float homeY = hasResetPos ? hy : m_homePosition.GetPositionY();
-        float homeZ = hasResetPos ? hz : m_homePosition.GetPositionZ();
-        bool insideLeashRange = leashDist <= 0.0f || GetExactDist(homeX, homeY, homeZ) <= leashDist;
-        if (insideLeashRange && victim->GetPositionZ() - GetPositionZ() <= GetLeashZCap())
+        // Inside leash range (31 yds 3D from spawn, under the Z cap):
+        // stock timer does not apply.
+        if (!IsOutsideLeashRange(victim))
             return true;
 
         // Outside leash range: allow kiting away for the stock timer, extended by
@@ -3881,6 +3874,22 @@ time_t Creature::GetLeashDeadlineFor(Unit const* target) const
         return 0;
     auto it = m_leashState->entries.find(target->GetGUID());
     return it != m_leashState->entries.end() ? it->second.deadline : 0;
+}
+
+bool Creature::IsOutsideLeashRange(Unit const* victim) const
+{
+    float leashDist = sWorld->getFloatConfig(CONFIG_CREATURE_LEASH_RADIUS);
+    if (leashDist <= 0.0f)
+        return false;
+    float hx, hy, hz;
+    hx = hy = hz = 0.0f;
+    bool hasResetPos = GetMotionMaster()->GetMotionSlot(MOTION_SLOT_IDLE)->GetResetPosition(hx, hy, hz);
+    float homeX = hasResetPos ? hx : m_homePosition.GetPositionX();
+    float homeY = hasResetPos ? hy : m_homePosition.GetPositionY();
+    float homeZ = hasResetPos ? hz : m_homePosition.GetPositionZ();
+    if (GetExactDist(homeX, homeY, homeZ) > leashDist)
+        return true;
+    return victim && victim->GetPositionZ() - GetPositionZ() > GetLeashZCap();
 }
 
 bool Creature::IsLeashExpiredFor(Unit const* target) const
