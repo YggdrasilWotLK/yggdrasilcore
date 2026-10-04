@@ -2876,6 +2876,17 @@ CreatureFamilyFleeAssistanceRadius = 30
 CreatureLeashRadius = 31
 
 #
+#    CreatureLeashMeleeZThreshold
+#        Description: Vertical distance (in yards) above a melee creature beyond
+#                     which it treats the target as outside leash range and stops
+#                     extending the leash. Ranged/caster creatures use
+#                     CreatureLeashRadius instead.
+#        Default:     15 - (Enabled)
+#                     0  - (Disabled, no vertical limit for melee)
+
+CreatureLeashMeleeZThreshold = 15
+
+#
 #    CreatureFamilyAssistanceRadius
 #        Description: Distance for creatures calling for assistance from other creatures without
 #                     moving.

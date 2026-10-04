@@ -372,7 +372,7 @@ void Creature::AddToWorld()
         if (IsAlive() && !IsPet() && !IsCharmed() && !IsSummon() && !GetCharmerOrOwnerGUID() && GetMap() && !GetMap()->Instanceable())
         {
             float leashDist = sWorld->getFloatConfig(CONFIG_CREATURE_LEASH_RADIUS);
-            if (leashDist > 0.0f && GetDistance2d(m_homePosition.GetPositionX(), m_homePosition.GetPositionY()) > leashDist)
+            if (leashDist > 0.0f && GetExactDist(m_homePosition.GetPositionX(), m_homePosition.GetPositionY(), m_homePosition.GetPositionZ()) > leashDist)
             {
                 if (!IsInCombat() && !IsEngaged())
                 {
@@ -2736,8 +2736,9 @@ bool Creature::CanCreatureAttack(Unit const* victim, bool skipDistCheck) const
         bool hasResetPos = GetMotionMaster()->GetMotionSlot(MOTION_SLOT_IDLE)->GetResetPosition(hx, hy, hz);
         float homeX = hasResetPos ? hx : m_homePosition.GetPositionX();
         float homeY = hasResetPos ? hy : m_homePosition.GetPositionY();
-        bool insideLeashRange = leashDist <= 0.0f || IsInDist2d(homeX, homeY, leashDist);
-        if (insideLeashRange)
+        float homeZ = hasResetPos ? hz : m_homePosition.GetPositionZ();
+        bool insideLeashRange = leashDist <= 0.0f || GetExactDist(homeX, homeY, homeZ) <= leashDist;
+        if (insideLeashRange && victim->GetPositionZ() - GetPositionZ() <= GetLeashZCap())
             return true;
 
         // Outside leash range: allow kiting away for the stock timer, extended by
@@ -2763,9 +2764,9 @@ bool Creature::CanCreatureAttack(Unit const* victim, bool skipDistCheck) const
     float x, y, z;
     x = y = z = 0.0f;
     if (GetMotionMaster()->GetMotionSlot(MOTION_SLOT_IDLE)->GetResetPosition(x, y, z))
-        return IsInDist2d(x, y, dist);
+        return GetExactDist(x, y, z) <= dist;
     else
-        return IsInDist2d(&m_homePosition, dist);
+        return GetExactDist(m_homePosition.GetPositionX(), m_homePosition.GetPositionY(), m_homePosition.GetPositionZ()) <= dist;
 }
 
 CreatureAddon const* Creature::GetCreatureAddon() const
@@ -3772,14 +3773,28 @@ void Creature::EngageLeash(Unit* target)
         entries.emplace(target->GetGUID(), LeashEntry{ now, now + (time_t)stock });
 }
 
+bool Creature::CanAttackAtRange() const
+{
+    for (uint8 i = 0; i < MAX_CREATURE_SPELLS; ++i)
+        if (m_spells[i])
+            return true;
+    return false;
+}
+
+float Creature::GetLeashZCap() const
+{
+    if (CanAttackAtRange())
+        return sWorld->getFloatConfig(CONFIG_CREATURE_LEASH_RADIUS);
+    return sWorld->getFloatConfig(CONFIG_CREATURE_LEASH_MELEE_Z_THRESHOLD);
+}
+
 bool Creature::ShouldSuppressLeashExtensionFor(Unit const* target) const
 {
     if (!target || target == this)
         return true;
-    // Flying creatures can chase into the air; ground ones cannot.
     if (CanFly())
         return false;
-    return target->GetPositionZ() - GetPositionZ() > LEASH_Z_SUPPRESS_THRESHOLD;
+    return target->GetPositionZ() - GetPositionZ() > GetLeashZCap();
 }
 
 void Creature::TryExtendLeashOnDirectHit(Unit* attacker)

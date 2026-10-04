@@ -409,8 +409,9 @@ public:
     // Z suppression: ground creatures never extend the leash (bracketed or
     // stationary) for targets more than this far above them (e.g. flying
     // players). The normal stock timer then runs out on its own.
-    static constexpr float LEASH_Z_SUPPRESS_THRESHOLD = 15.0f;
     bool ShouldSuppressLeashExtensionFor(Unit const* target) const;
+    [[nodiscard]] bool CanAttackAtRange() const;
+    float GetLeashZCap() const;
     void ClearLeash();
     bool HasLeashEntryFor(Unit const* target) const;
     time_t GetLeashDeadlineFor(Unit const* target) const;

@@ -14809,10 +14809,20 @@ Unit* Creature::SelectVictim()
 
     if (CanHaveThreatList())
     {
-        // getHostileTarget() skips leash-expired targets via CanCreatureAttack,
-        // so expiry falls through to the next valid unit instead of evading.
         if (!target && !m_ThreatMgr.isThreatListEmpty())
-            target = m_ThreatMgr.getHostileTarget();
+        {
+            // Leashed targets lose their threat; chase stays on top aggro.
+            // Re-engaging before full evade re-adds them normally.
+            std::vector<Unit*> leashed;
+            for (auto ref : m_ThreatMgr.GetThreatList())
+                if (Unit* u = ref ? ref->getTarget() : nullptr)
+                    if (IsLeashExpiredFor(u))
+                        leashed.push_back(u);
+            for (Unit* u : leashed)
+                m_ThreatMgr.ClearThreat(u);
+            if (!m_ThreatMgr.isThreatListEmpty())
+                target = m_ThreatMgr.getHostileTarget();
+        }
     }
     else if (!HasReactState(REACT_PASSIVE))
     {
