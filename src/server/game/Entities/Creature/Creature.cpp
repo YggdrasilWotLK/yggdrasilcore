@@ -255,9 +255,10 @@ bool AssistDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
                     assistant->AI()->AttackStart(victim);
 
                     // When nearby mobs aggro from another mob's initial call for assistance
-                    // their leash timers become linked and attacking one will keep the rest from evading.
+                    // they inherit the leash queue from the originally engaged NPC (chain leashing).
+                    // Attacking one keeps the rest from evading.
                     if (assistant->GetVictim())
-                        assistant->SetLastLeashExtensionTimePtr(m_owner->GetLastLeashExtensionTimePtr());
+                        assistant->SetLeashStatePtr(m_owner->GetLeashStatePtr());
                 }
             }
         }
@@ -295,7 +296,7 @@ Creature::Creature(): Unit(), MovableMapObject(), m_groupLootTimer(0), lootingGr
     m_transportCheckTimer(1000), lootPickPocketRestoreTime(0), m_combatPulseTime(0), m_combatPulseDelay(0), m_reactState(REACT_AGGRESSIVE), m_defaultMovementType(IDLE_MOTION_TYPE),
     m_spawnId(0), m_equipmentId(0), m_originalEquipmentId(0), m_alreadyCallForHelp(false), m_AlreadyCallAssistance(false),
     m_AlreadySearchedAssistance(false), m_regenHealth(true), m_regenPower(true), m_AI_locked(false), m_meleeDamageSchoolMask(SPELL_SCHOOL_MASK_NORMAL), m_originalEntry(0), m_moveInLineOfSightDisabled(false), m_moveInLineOfSightStrictlyDisabled(false),
-    m_homePosition(), m_transportHomePosition(), m_creatureInfo(nullptr), m_creatureData(nullptr), m_detectionDistance(20.0f),_sparringPct(0.0f), m_waypointID(0), m_path_id(0), m_formation(nullptr), m_lastLeashExtensionTime(nullptr), m_cannotReachTimer(0),
+    m_homePosition(), m_transportHomePosition(), m_creatureInfo(nullptr), m_creatureData(nullptr), m_detectionDistance(20.0f),_sparringPct(0.0f), m_waypointID(0), m_path_id(0), m_formation(nullptr), m_leashState(nullptr), m_cannotReachTimer(0),
     _isMissingSwimmingFlagOutOfCombat(false), m_assistanceTimer(0), _playerDamageReq(0), _damagedByPlayer(false), _isCombatMovementAllowed(true)
 {
     m_regenTimer = CREATURE_REGEN_INTERVAL;
@@ -363,6 +364,26 @@ void Creature::AddToWorld()
         loot.sourceWorldObjectGUID = GetGUID();
 
         sScriptMgr->OnCreatureAddWorld(this);
+
+        // De-render reset: if the creature re-renders far from home (de-rendered while
+        // pulled/kited and grid unloaded mid-combat), reset leash and go back home.
+        // Threat is already cleared on grid unload, but position stays pulled.
+        // Skips pets/summons/charmed (they follow owners, no leash).
+        if (IsAlive() && !IsPet() && !IsCharmed() && !IsSummon() && !GetCharmerOrOwnerGUID() && GetMap() && !GetMap()->Instanceable())
+        {
+            float leashDist = sWorld->getFloatConfig(CONFIG_CREATURE_LEASH_RADIUS);
+            if (leashDist > 0.0f && GetDistance2d(m_homePosition.GetPositionX(), m_homePosition.GetPositionY()) > leashDist)
+            {
+                if (!IsInCombat() && !IsEngaged())
+                {
+                    ClearLeash();
+                    if (IsAIEnabled && !IsInEvadeMode())
+                        AI()->EnterEvadeMode(CreatureAI::EvadeReason::EVADE_REASON_OTHER);
+                    else
+                        GetMotionMaster()->MoveTargetedHome();
+                }
+            }
+        }
     }
 }
 
@@ -826,11 +847,14 @@ void Creature::Update(uint32 diff)
                 else
                     m_moveCircleMovementTime -= diff;
 
-                // Periodically check if able to move, if not, extend leash timer
+                // Periodically check if unable to move (CC/root): extend leash so it
+                // doesn't evade while crowd-controlled. Stationary melee extension
+                // itself is handled by the chase generator (meleeing in place).
                 if (diff >= m_extendLeashTime)
                 {
                     if (HasUnitState(UNIT_STATE_LOST_CONTROL))
-                        UpdateLeashExtensionTime();
+                        if (Unit* victim = GetVictim())
+                            RefreshLeashOnStationaryCombat(victim);
                     m_extendLeashTime = EXTEND_LEASH_CHECK_INTERVAL;
                 }
                 else
@@ -2695,7 +2719,8 @@ bool Creature::CanCreatureAttack(Unit const* victim, bool skipDistCheck) const
 
     if (!GetCharmerOrOwnerGUID().IsPlayer())
     {
-        if (GetMap()->IsDungeon())
+        // No leashing in dungeons / instanced maps: chase forever.
+        if (GetMap()->Instanceable())
             return true;
 
         float visibility = std::max<float>(GetVisibilityRange(), victim->GetVisibilityRange());
@@ -2704,9 +2729,21 @@ bool Creature::CanCreatureAttack(Unit const* victim, bool skipDistCheck) const
         if (!IsWithinDist(victim, visibility))
             return false;
 
-        // pussywizard: don't check distance to home position if recently damaged (allow kiting away from spawnpoint!)
-        // xinef: this should include taunt auras
-        if (!isWorldBoss() && (GetLastLeashExtensionTime() + GetLeashTimer() > GameTime::GetGameTime().count() || HasTauntAura()))
+        // Inside leash range (31 yds from spawn): stock timer does not apply.
+        float leashDist = sWorld->getFloatConfig(CONFIG_CREATURE_LEASH_RADIUS);
+        float hx, hy, hz;
+        hx = hy = hz = 0.0f;
+        bool hasResetPos = GetMotionMaster()->GetMotionSlot(MOTION_SLOT_IDLE)->GetResetPosition(hx, hy, hz);
+        float homeX = hasResetPos ? hx : m_homePosition.GetPositionX();
+        float homeY = hasResetPos ? hy : m_homePosition.GetPositionY();
+        bool insideLeashRange = leashDist <= 0.0f || IsInDist2d(homeX, homeY, leashDist);
+        if (insideLeashRange)
+            return true;
+
+        // Outside leash range: allow kiting away for the stock timer, extended by
+        // direct hostile actions (one stock per bracket). Taunt keeps it attacking.
+        // Each target tracks its own leash deadline (leash queue).
+        if (!isWorldBoss() && (!IsLeashExpiredFor(victim) || HasTauntAura()))
             return true;
     }
 
@@ -3694,41 +3731,197 @@ bool Creature::IsNotReachableAndNeedRegen() const
     return false;
 }
 
-std::shared_ptr<time_t> const& Creature::GetLastLeashExtensionTimePtr() const
+std::shared_ptr<Creature::LeashState> const& Creature::GetLeashStatePtr() const
 {
-    if (m_lastLeashExtensionTime == nullptr)
-        m_lastLeashExtensionTime = std::make_shared<time_t>(GameTime::GetGameTime().count());
-    return m_lastLeashExtensionTime;
+    if (!m_leashState)
+        m_leashState = std::make_shared<LeashState>();
+    return m_leashState;
 }
 
-void Creature::SetLastLeashExtensionTimePtr(std::shared_ptr<time_t> const& timer)
+void Creature::SetLeashStatePtr(std::shared_ptr<LeashState> const& state)
 {
-    m_lastLeashExtensionTime = timer;
+    m_leashState = state;
+}
+
+void Creature::ClearLeash()
+{
+    if (m_leashState)
+        m_leashState->entries.clear();
+    // Break pack sharing so a fresh engage gets a fresh queue.
+    m_leashState.reset();
 }
 
 void Creature::ClearLastLeashExtensionTimePtr()
 {
-    m_lastLeashExtensionTime.reset();
+    ClearLeash();
+}
+
+void Creature::EngageLeash(Unit* target)
+{
+    if (!target || (GetMap() && GetMap()->Instanceable()))
+        return;
+
+    // Player-owned creatures (pets, charmed units) don't run the leash system.
+    if (GetCharmerOrOwnerGUID().IsPlayer())
+        return;
+
+    time_t now = GameTime::GetGameTime().count();
+    uint32 stock = GetLeashTimer();
+    auto& entries = GetLeashStatePtr()->entries;
+    if (entries.find(target->GetGUID()) == entries.end())
+        entries.emplace(target->GetGUID(), LeashEntry{ now, now + (time_t)stock });
+}
+
+bool Creature::ShouldSuppressLeashExtensionFor(Unit const* target) const
+{
+    if (!target || target == this)
+        return true;
+    // Flying creatures can chase into the air; ground ones cannot.
+    if (CanFly())
+        return false;
+    return target->GetPositionZ() - GetPositionZ() > LEASH_Z_SUPPRESS_THRESHOLD;
+}
+
+void Creature::TryExtendLeashOnDirectHit(Unit* attacker)
+{
+    if (!attacker || attacker == this || (GetMap() && GetMap()->Instanceable()))
+        return;
+
+    // Player-owned creatures (pets, charmed units) don't run the leash system.
+    if (GetCharmerOrOwnerGUID().IsPlayer())
+        return;
+
+    time_t now = GameTime::GetGameTime().count();
+    uint32 stock = GetLeashTimer();
+    auto& entries = GetLeashStatePtr()->entries;
+    auto it = entries.find(attacker->GetGUID());
+    if (it == entries.end())
+    {
+        // Still create the entry so the normal stock timer runs; further
+        // extensions are suppressed while the Z gap persists.
+        entries.emplace(attacker->GetGUID(), LeashEntry{ now, now + (time_t)stock });
+        return;
+    }
+
+    // Engaged-guard (upstream #27390 port): stray hits that can't put the
+    // creature into combat with this attacker earn no leash time.
+    if (!IsEngagedBy(attacker))
+    {
+        if (IsInEvadeMode() || !IsAlive() || !attacker->IsAlive())
+            return;
+        // Respawn grace period: creature can't be pulled yet (see CanCreatureAttack).
+        if (m_respawnedTime && (now - m_respawnedTime) < 5)
+            return;
+    }
+
+    // No extensions (bracketed or otherwise) for targets too far above a
+    // ground creature: the normal stock timer simply runs out.
+    if (ShouldSuppressLeashExtensionFor(attacker))
+        return;
+
+    LeashEntry& entry = it->second;
+    // One extension per stock bracket: only hits inside the last `stock`
+    // seconds before the deadline push it by one stock. Hits earlier in the
+    // bracket were already covered by the previous extension.
+    // Expired entries re-leash from now.
+    if (now > entry.deadline)
+        entry.deadline = now + (time_t)stock;
+    else if (now >= entry.deadline - (time_t)stock)
+        entry.deadline += (time_t)stock;
+}
+
+void Creature::RefreshLeashOnStationaryCombat(Unit* victim)
+{
+    if (!victim || victim == this || (GetMap() && GetMap()->Instanceable()))
+        return;
+
+    time_t now = GameTime::GetGameTime().count();
+    uint32 stock = GetLeashTimer();
+    auto& entries = GetLeashStatePtr()->entries;
+    auto it = entries.find(victim->GetGUID());
+    if (it == entries.end())
+    {
+        entries.emplace(victim->GetGUID(), LeashEntry{ now, now + (time_t)stock });
+        return;
+    }
+
+    // Standing still does not extend the leash for targets too far above a
+    // ground creature (e.g. hovering flying player).
+    if (ShouldSuppressLeashExtensionFor(victim))
+        return;
+
+    it->second.deadline = std::max(it->second.deadline, now + (time_t)stock);
+}
+
+bool Creature::HasLeashEntryFor(Unit const* target) const
+{
+    if (!target || !m_leashState)
+        return false;
+    return m_leashState->entries.find(target->GetGUID()) != m_leashState->entries.end();
+}
+
+time_t Creature::GetLeashDeadlineFor(Unit const* target) const
+{
+    if (!target || !m_leashState)
+        return 0;
+    auto it = m_leashState->entries.find(target->GetGUID());
+    return it != m_leashState->entries.end() ? it->second.deadline : 0;
+}
+
+bool Creature::IsLeashExpiredFor(Unit const* target) const
+{
+    if (!target)
+        return true;
+    // Fresh targets (no entry yet) are allowed to engage; the entry is
+    // created on CombatStart/Attack. Missing entry => not expired.
+    if (!m_leashState)
+        return false;
+    auto it = m_leashState->entries.find(target->GetGUID());
+    if (it == m_leashState->entries.end())
+        return false;
+    return GameTime::GetGameTime().count() > it->second.deadline;
 }
 
 time_t Creature::GetLastLeashExtensionTime() const
 {
-    return *GetLastLeashExtensionTimePtr();
+    // Compat: most recent deadline across the queue (0 if empty).
+    if (!m_leashState || m_leashState->entries.empty())
+        return GameTime::GetGameTime().count();
+    time_t latest = 0;
+    for (auto const& kv : m_leashState->entries)
+        latest = std::max(latest, kv.second.deadline - (time_t)GetLeashTimer());
+    return latest;
 }
 
 void Creature::UpdateLeashExtensionTime()
 {
-    (*GetLastLeashExtensionTimePtr()) = GameTime::GetGameTime().count();
+    if (Unit* victim = GetVictim())
+        RefreshLeashOnStationaryCombat(victim);
+    else
+    {
+        // No victim (e.g. caster between casts): keep any existing entries alive.
+        if (m_leashState)
+        {
+            time_t now = GameTime::GetGameTime().count();
+            uint32 stock = GetLeashTimer();
+            for (auto& kv : m_leashState->entries)
+                kv.second.deadline = std::max(kv.second.deadline, now + (time_t)stock);
+        }
+    }
 }
 
-uint8 Creature::GetLeashTimer() const
-{ // Based on testing on Classic, seems to range from ~11s for low level mobs (1-5) to ~16s for high level mobs (70+)
-    uint8 timerOffset = 11;
+void Creature::UpdateLeashExtensionTimeFor(Unit* victim)
+{
+    if (victim)
+        TryExtendLeashOnDirectHit(victim);
+}
 
-    uint8 timerModifier = uint8(GetCreatureTemplate()->minlevel / 10) - 2;
-
-    // Formula is likely not quite correct, but better than flat timer
-    return std::max<uint8>(timerOffset, timerOffset + timerModifier);
+uint32 Creature::GetLeashTimer() const
+{
+    // Stock timer: 9 seconds + 1 sec per 10 levels, based on lowest possible
+    // spawn level of creature_template for this NPC. Lvl 1-9 => 9s, 29 => 11s, 70+ => 16s.
+    uint32 minLevel = GetCreatureTemplate() ? GetCreatureTemplate()->minlevel : 1;
+    return 9u + minLevel / 10u;
 }
 
 bool Creature::CanPeriodicallyCallForAssistance() const
