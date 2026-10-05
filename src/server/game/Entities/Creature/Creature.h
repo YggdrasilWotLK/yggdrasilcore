@@ -388,13 +388,46 @@ public:
     void ReleaseFocus(Spell const* focusSpell);
     [[nodiscard]] bool IsMovementPreventedByCasting() const override;
 
-    // Part of Evade mechanics
-    std::shared_ptr<time_t> const& GetLastLeashExtensionTimePtr() const;
-    void SetLastLeashExtensionTimePtr(std::shared_ptr<time_t> const& timer);
+    // Part of Evade mechanics (leash)
+    // Stock timer (seconds): 9 + 1 per 10 levels based on lowest possible spawn level.
+    // Leash range: 31 yds from home. No leashing in instanced maps (chase forever).
+    struct LeashEntry
+    {
+        time_t engageTime = 0; // first direct engage for this target
+        time_t deadline = 0;   // engageTime + N * stock; extended one stock per bracket on direct hits
+    };
+    struct LeashState
+    {
+        std::unordered_map<ObjectGuid, LeashEntry> entries;
+    };
+    void EngageLeash(Unit* target);
+    // Bracketed extension for direct hostile actions (melee/ranged/direct spell hit).
+    // Only extends once per stock bracket: a hit in [deadline - stock, deadline] pushes deadline += stock.
+    void TryExtendLeashOnDirectHit(Unit* attacker);
+    // Unconditional refresh for stationary melee / CC / casting (keeps deadline >= now + stock).
+    void RefreshLeashOnStationaryCombat(Unit* victim);
+    // Z suppression: ground creatures never extend the leash (bracketed or
+    // stationary) for targets more than this far above them (e.g. flying
+    // players). The normal stock timer then runs out on its own.
+    bool ShouldSuppressLeashExtensionFor(Unit const* target) const;
+    [[nodiscard]] bool CanAttackAtRange() const;
+    float GetLeashZCap() const;
+    void ClearLeash();
+    bool HasLeashEntryFor(Unit const* target) const;
+    time_t GetLeashDeadlineFor(Unit const* target) const;
+    bool IsLeashExpiredFor(Unit const* target) const;
+    bool IsOutsideLeashRange(Unit const* victim) const;
+    // Shared pack state: assisting mobs inherit the originally engaged NPC's leash.
+    std::shared_ptr<LeashState> const& GetLeashStatePtr() const;
+    void SetLeashStatePtr(std::shared_ptr<LeashState> const& state);
+    // Backwards-compat wrappers (single-timer API replaced by per-target queue)
+    std::shared_ptr<time_t> const& GetLastLeashExtensionTimePtr() const = delete;
+    void SetLastLeashExtensionTimePtr(std::shared_ptr<time_t> const& timer) = delete;
     void ClearLastLeashExtensionTimePtr();
     time_t GetLastLeashExtensionTime() const;
     void UpdateLeashExtensionTime();
-    uint8 GetLeashTimer() const;
+    void UpdateLeashExtensionTimeFor(Unit* victim);
+    uint32 GetLeashTimer() const;
 
     CreatureTextRepeatIds const& GetTextRepeatGroup(uint8 textGroup);
     void SetTextRepeatId(uint8 textGroup, uint8 id);
@@ -522,9 +555,9 @@ private:
     CreatureGroup* m_formation;
     bool TriggerJustRespawned;
 
-    // Shared timer between mobs who assist another.
-    // Damaging one extends leash range on all of them.
-    mutable std::shared_ptr<time_t> m_lastLeashExtensionTime;
+    // Shared leash queue between mobs who assist another.
+    // Damaging one extends leash for all of them (chain leashing).
+    mutable std::shared_ptr<LeashState> m_leashState;
 
     ObjectGuid m_cannotReachTarget;
     uint32 m_cannotReachTimer;

@@ -165,15 +165,14 @@ bool ChaseMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         {
             if (isStoppedBecauseOfCasting)
             {
-                // Don't reset leash timer if it's a spell like Shoot with a short cast time.
-                /// @todo: Research how it should actually work.
+                // Don't refresh leash if it's a spell like Shoot with a short cast time.
                 Spell *spell = cOwner->GetFirstCurrentCastingSpell();
                 bool spellHasLongCast = spell && spell->GetCastTime() > 1 * SECOND * IN_MILLISECONDS;
-                if (spellHasLongCast)
-                    cOwner->UpdateLeashExtensionTime();
+                if (spellHasLongCast && i_target.isValid())
+                    cOwner->RefreshLeashOnStationaryCombat(i_target.getTarget());
             }
-            else
-                cOwner->UpdateLeashExtensionTime();
+            else if (i_target.isValid())
+                cOwner->RefreshLeashOnStationaryCombat(i_target.getTarget());
 
             cOwner->SetCannotReachTarget();
         }
@@ -249,13 +248,15 @@ bool ChaseMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
 
     if (cOwner)
     {
+        // Stop-motion leash extension: standing still in melee range (effectively
+        // meleeing the target for ~1 attack swing) refreshes that target's leash.
         if (owner->movespline->Finalized() && cOwner->IsWithinMeleeRange(target))
-        { // Mobs should chase you infinitely if you stop and wait every few seconds.
+        {
             i_leashExtensionTimer.Update(time_diff);
             if (i_leashExtensionTimer.Passed())
             {
                 i_leashExtensionTimer.Reset(cOwner->GetAttackTime(BASE_ATTACK));
-                cOwner->UpdateLeashExtensionTime();
+                cOwner->RefreshLeashOnStationaryCombat(target);
             }
         }
         else if (i_recalculateTravel)
