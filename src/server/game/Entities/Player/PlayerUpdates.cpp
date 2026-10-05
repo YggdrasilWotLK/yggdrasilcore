@@ -27,6 +27,8 @@
 #include "Guild.h"
 #include "InstanceScript.h"
 #include "Language.h"
+#include "ObjectAccessor.h"
+#include "Opcodes.h"
 #include "OutdoorPvPMgr.h"
 #include "Pet.h"
 #include "Player.h"
@@ -38,6 +40,8 @@
 #include "Vehicle.h"
 #include "Weather.h"
 #include "WeatherMgr.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
 #include "WorldState.h"
 #include "WorldStatePackets.h"
 
@@ -1283,6 +1287,41 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea, bool force)
                                       // just area change, works strange...
         if (Guild* guild = GetGuild())
             guild->UpdateMemberData(this, GUILD_MEMBER_DATA_ZONEID, newZone);
+
+        // Re-anchor vehicle passengers, self client derives position from base.
+        if (Vehicle* veh = GetVehicle())
+        {
+            if (Unit* base = veh->GetBase())
+            {
+                if (GetSession())
+                {
+                    MovementInfo mi = base->m_movementInfo;
+                    mi.guid = base->GetGUID();
+                    mi.time = getMSTime();
+                    WorldPacket data(MSG_MOVE_HEARTBEAT, 64);
+                    GetSession()->WriteMovementInfo(&data, &mi);
+                    GetSession()->SendPacket(&data);
+                }
+            }
+        }
+        if (Vehicle* kit = GetVehicleKit())
+        {
+            for (auto const& seatPair : kit->Seats)
+            {
+                if (!seatPair.second.Passenger.Guid)
+                    continue;
+                Unit* passenger = ObjectAccessor::GetUnit(*this, seatPair.second.Passenger.Guid);
+                Player* plr = passenger ? passenger->ToPlayer() : nullptr;
+                if (!plr || !plr->GetSession())
+                    continue;
+                MovementInfo mi = m_movementInfo;
+                mi.guid = GetGUID();
+                mi.time = getMSTime();
+                WorldPacket data(MSG_MOVE_HEARTBEAT, 64);
+                plr->GetSession()->WriteMovementInfo(&data, &mi);
+                plr->GetSession()->SendPacket(&data);
+            }
+        }
     }
 
     GetMap()->UpdatePlayerZoneStats(m_zoneUpdateId, newZone);

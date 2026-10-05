@@ -18,14 +18,19 @@
 #include "Vehicle.h"
 #include "AreaDefines.h"
 #include "BattlefieldWG.h"
+#include "GameTime.h"
 #include "Log.h"
 #include "MoveSplineInit.h"
+#include "ObjectAccessor.h"
 #include "ObjectMgr.h"
+#include "Opcodes.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "TemporarySummon.h"
+#include "Transport.h"
 #include "Unit.h"
 #include "Util.h"
+#include "WorldSession.h"
 
 Vehicle::Vehicle(Unit* unit, VehicleEntry const* vehInfo, uint32 creatureEntry) :
     _me(unit), _vehicleInfo(vehInfo), _usableSeatNum(0), _creatureEntry(creatureEntry), _status(STATUS_NONE)
@@ -358,6 +363,9 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
     if (!seat->second.SeatInfo)
         return false;
 
+    if (!_me || !_me->IsInWorld() || _me->IsDuringRemoveFromWorld())
+        return false;
+
     LOG_DEBUG("vehicles", "Unit {} enter vehicle entry {} id {} ({}) seat {}",
         unit->GetName(), _me->GetEntry(), _vehicleInfo->m_ID, _me->GetGUID().ToString(), (int32)seat->first);
 
@@ -374,8 +382,19 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
             _me->SetNpcFlag(_me->IsPlayer() ?  UNIT_NPC_FLAG_PLAYER_VEHICLE : UNIT_NPC_FLAG_SPELLCLICK);
     }
 
-    if (!_me || !_me->IsInWorld() || _me->IsDuringRemoveFromWorld())
-        return false;
+    // xinef: removed seat->first == 0 check...
+    if (_me->IsCreature()
+            && unit->IsPlayer()
+            && seat->second.SeatInfo->m_flags & VEHICLE_SEAT_FLAG_CAN_CONTROL)
+    {
+        if (!_me->SetCharmedBy(unit, CHARM_TYPE_VEHICLE))
+        {
+            seat->second.Passenger.Reset();
+            if (seat->second.SeatInfo->CanEnterOrExit() && ++_usableSeatNum)
+                _me->SetNpcFlag((_me->IsPlayer() ? UNIT_NPC_FLAG_PLAYER_VEHICLE : UNIT_NPC_FLAG_SPELLCLICK));
+            return false;
+        }
+    }
 
     // Xinef: moved from unit.cpp, if aura passes seatId == -1 (choose automaticly) we wont get appropriate flags
     if (unit->IsPlayer() && !(seat->second.SeatInfo->m_flagsB & VEHICLE_SEAT_FLAG_B_KEEP_PET))
@@ -383,6 +402,24 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
 
     if (seat->second.SeatInfo->m_flags & VEHICLE_SEAT_FLAG_PASSENGER_NOT_SELECTABLE)
         unit->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+
+    // Keep same direct transport as base (same sub-map). Seat stays in
+    // movementInfo; direct membership is untouched by position updates since
+    // transports skip GetVehicle() units and RelocatePassengers drives them.
+    Transport* baseTransport = _me->GetTransport();
+    if (Transport* oldTransport = unit->GetTransport())
+    {
+        if (oldTransport != baseTransport)
+        {
+            oldTransport->RemovePassenger(unit);
+            unit->SetTransport(nullptr);
+        }
+    }
+    if (baseTransport && unit->GetTransport() != baseTransport)
+    {
+        unit->SetTransport(baseTransport);
+        baseTransport->AddPassenger(unit);
+    }
 
     unit->AddUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
     VehicleSeatEntry const* veSeat = seat->second.SeatInfo;
@@ -398,31 +435,33 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
     unit->m_movementInfo.transport.seat = seat->first;
     unit->m_movementInfo.transport.guid = _me->GetGUID();
 
-    // xinef: removed seat->first == 0 check...
-    if (_me->IsCreature()
-            && unit->IsPlayer()
-            && seat->second.SeatInfo->m_flags & VEHICLE_SEAT_FLAG_CAN_CONTROL)
+    // Sync absolute from seat offset immediately.
+    if (_me->IsInWorld() && unit->IsInWorld())
     {
-        // Removed try catch + ABORT() here, and make it as simple condition check.
-        if (!_me->SetCharmedBy(unit, CHARM_TYPE_VEHICLE))
-        {
-            // I assume SetCharmedBy should always be true.
-            // If not, let's log some debug info.
-            LOG_INFO("vehicles", "Crash recovered in Unit::SetCharmedBy(). not null: {}", _me ? 1 : 0);
-            if (!_me)
-                return false;
-            LOG_INFO("vehicles", "Crash recovered in Unit::SetCharmedBy(). Is: {}!", _me->IsInWorld());
-            LOG_INFO("vehicles", "Crash recovered in Unit::SetCharmedBy(). Is2: {}!", _me->IsDuringRemoveFromWorld());
-            LOG_INFO("vehicles", "Crash recovered in Unit::SetCharmedBy(). Unit {}!", _me->GetName());
-            LOG_INFO("vehicles", "Crash recovered in Unit::SetCharmedBy(). typeid: {}!", _me->GetTypeId());
-            LOG_INFO("vehicles", "Crash recovered in Unit::SetCharmedBy(). Unit {}, typeid: {}, in world: {}, duringremove: {} has wrong CharmType! Charmer {}, typeid: {}, in world: {}, duringremove: {}.", _me->GetName(), _me->GetTypeId(), _me->IsInWorld(), _me->IsDuringRemoveFromWorld(), unit->GetName(), unit->GetTypeId(), unit->IsInWorld(), unit->IsDuringRemoveFromWorld());
-            return false;
-        }
+        float ax = x, ay = y, az = z, ao = o;
+        CalculatePassengerPosition(ax, ay, az, &ao);
+        unit->UpdatePosition(ax, ay, az, ao);
+        unit->m_movementInfo.pos.Relocate(ax, ay, az, ao);
     }
+
+    float const boardX = x, boardY = y, boardZ = z, boardO = o;
 
     if (_me->IsInWorld())
     {
         unit->SendClearTarget();                                // SMSG_BREAK_TARGET
+        // Nested attach: self needs a fresh base anchor or it drops the spline.
+        if (Player* plr = unit->ToPlayer())
+        {
+            if (_me->GetTransport() && plr->GetSession())
+            {
+                MovementInfo anchor = _me->m_movementInfo;
+                anchor.guid = _me->GetGUID();
+                anchor.time = getMSTime();
+                WorldPacket hb(MSG_MOVE_HEARTBEAT, 64);
+                plr->GetSession()->WriteMovementInfo(&hb, &anchor);
+                plr->GetSession()->SendPacket(&hb);
+            }
+        }
         // NOTE: launch boarding spline BEFORE applying ROOT. Setting ROOT first makes
         // MoveSplineInit strip MOVEMENTFLAG_MASK_MOVING, so observers get a neutered
         // boarding spline and the passenger appears frozen standing (cmangos #3663 pattern).
@@ -443,6 +482,24 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
         init.SetTransportEnter();
         init.Launch();
         unit->SetControlled(true, UNIT_STATE_ROOT);              // SMSG_FORCE_ROOT - applied after boarding spline sent (see note above)
+
+        // Nested attach: self drops the board-tick spline, resend once settled.
+        if (unit->IsPlayer() && _me->GetTransport())
+            unit->m_Events.AddEvent([passengerGuid = unit->GetGUID(), vehicleGuid = _me->GetGUID(), seatId = seat->first, boardX, boardY, boardZ, boardO]()
+            {
+                Player* passenger = ObjectAccessor::FindConnectedPlayer(passengerGuid);
+                Unit* base = passenger ? passenger->GetVehicleBase() : nullptr;
+                if (!passenger || !base || base->GetGUID() != vehicleGuid || passenger->GetTransSeat() != seatId)
+                    return;
+                if (!passenger->IsInWorld() || passenger->IsDuringRemoveFromWorld())
+                    return;
+                Movement::MoveSplineInit resend(passenger);
+                resend.DisableTransportPathTransformations();
+                resend.MoveTo(boardX, boardY, boardZ, false, true);
+                resend.SetFacing(boardO);
+                resend.SetTransportEnter();
+                resend.Launch();
+            }, Milliseconds(1000));
 
         if (_me->IsCreature())
         {
@@ -499,7 +556,23 @@ void Vehicle::RemovePassenger(Unit* unit)
             unit->m_movementInfo.transport.Reset();
         }
         else
+        {
             unit->m_movementInfo.transport = _me->m_movementInfo.transport;
+            // Rejoin base transport as direct passenger.
+            if (Transport* baseTransport = _me->GetTransport())
+            {
+                if (Transport* oldTransport = unit->GetTransport())
+                {
+                    if (oldTransport != baseTransport)
+                    {
+                        oldTransport->RemovePassenger(unit);
+                        unit->SetTransport(nullptr);
+                    }
+                }
+                unit->SetTransport(baseTransport);
+                baseTransport->AddPassenger(unit);
+            }
+        }
     }
 
     // only for flyable vehicles

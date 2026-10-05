@@ -1083,9 +1083,11 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
 
         if (!victim->IsPlayer())
         {
-            /// @fix: Hack to avoid premature leashing
+            // Direct hostile actions (melee / shoot / direct spell hit) extend the
+            // victim's leash by one stock bracket. Passive aura applications such
+            // as Thorns / Frost Armor (damage shields) and DoTs do not extend.
             if (damagetype != DOT && damage > 0 && !victim->GetOwnerGUID().IsPlayer() && (!spellProto || !spellProto->HasAura(SPELL_AURA_DAMAGE_SHIELD)))
-                victim->ToCreature()->UpdateLeashExtensionTime();
+                victim->ToCreature()->TryExtendLeashOnDirectHit(attacker);
 
             if (attacker && attacker != victim)
             {
@@ -10438,30 +10440,8 @@ bool Unit::Attack(Unit* victim, bool meleeAttack)
     if (meleeAttack)
         AddUnitState(UNIT_STATE_MELEE_ATTACKING);
 
-    Unit* owner = GetCharmerOrOwner();
-    Creature* ownerCreature = owner ? owner->ToCreature() : nullptr;
-    Creature* controlledCreatureWithSameVictim = nullptr;
-    if (creature && !m_Controlled.empty())
-    {
-        for (ControlSet::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
-        {
-            if ((*itr)->ToCreature() && (*itr)->GetVictim() == victim)
-            {
-                controlledCreatureWithSameVictim = (*itr)->ToCreature();
-                break;
-            }
-        }
-    }
-
-    // Share leash timer with controlled unit
-    if (controlledCreatureWithSameVictim)
-        creature->SetLastLeashExtensionTimePtr(controlledCreatureWithSameVictim->GetLastLeashExtensionTimePtr());
-    // Share leash timer with owner
-    else if (creature && ownerCreature && ownerCreature->GetVictim() == victim)
-        creature->SetLastLeashExtensionTimePtr(ownerCreature->GetLastLeashExtensionTimePtr());
-    // Update leash timer when attacking creatures
-    else if (victim->IsCreature())
-        victim->ToCreature()->UpdateLeashExtensionTime();
+    if (victim->IsCreature())
+        victim->ToCreature()->TryExtendLeashOnDirectHit(this);
 
     // set position before any AI calls/assistance
     //if (IsCreature())
@@ -13777,9 +13757,9 @@ void Unit::CombatStart(Unit* victim, bool initialAggro)
         SetInCombatWith(victim);
         victim->SetInCombatWith(this);
 
-        // Update leash timer when attacking creatures
+        // Direct hostile action on a creature: bracketed leash extension for that attacker.
         if (victim->IsCreature() && this != victim)
-            victim->ToCreature()->UpdateLeashExtensionTime();
+            victim->ToCreature()->TryExtendLeashOnDirectHit(this);
 
         // Xinef: If pet started combat - put owner in combat
         if (!alreadyInCombat && IsInCombat())
@@ -13818,11 +13798,13 @@ void Unit::CombatStartOnCast(Unit* target, bool initialAggro, uint32 duration)
         if (Unit* owner = GetOwner())
             owner->SetInCombatWith(target, duration);
 
-        // Update leash timer when attacking creatures
+        // Direct hostile cast on a creature: bracketed extension for the caster.
+        // Caster self-reset (casting mob) uses stationary refresh so it doesn't
+        // evade inbetween casts.
         if (target->IsCreature())
-            target->ToCreature()->UpdateLeashExtensionTime();
+            target->ToCreature()->TryExtendLeashOnDirectHit(this);
         else if (ToCreature()) // Reset leash if it is a spell caster, else it may evade inbetween casts
-            ToCreature()->UpdateLeashExtensionTime();
+            ToCreature()->RefreshLeashOnStationaryCombat(target);
     }
 
     Unit* who = target->GetCharmerOrOwnerOrSelf();
@@ -13873,7 +13855,8 @@ void Unit::SetInCombatState(bool PvP, Unit* enemy, uint32 duration)
 
         if (enemy)
         {
-            creature->UpdateLeashExtensionTime();
+            // Initial engage: create this enemy's leash entry (deadline = now + stock).
+            creature->EngageLeash(enemy);
 
             if (IsAIEnabled)
                 creature->AI()->JustEngagedWith(enemy);
@@ -14803,8 +14786,20 @@ Unit* Creature::SelectVictim()
 
     if (CanHaveThreatList())
     {
-        if (!target && !m_ThreatMgr.isThreatListEmpty())
-            target = m_ThreatMgr.getHostileTarget();
+        if (!target && !m_ThreatMgr.isThreatListEmpty() && !GetMap()->Instanceable())
+        {
+            // Leashed-out targets lose threat individually; in-range targets
+            // keep theirs regardless of deadline. Chase stays on top aggro.
+            std::vector<Unit*> leashed;
+            for (auto ref : m_ThreatMgr.GetThreatList())
+                if (Unit* u = ref ? ref->getTarget() : nullptr)
+                    if (IsOutsideLeashRange(u) && IsLeashExpiredFor(u))
+                        leashed.push_back(u);
+            for (Unit* u : leashed)
+                m_ThreatMgr.ClearThreat(u);
+            if (!m_ThreatMgr.isThreatListEmpty())
+                target = m_ThreatMgr.getHostileTarget();
+        }
     }
     else if (!HasReactState(REACT_PASSIVE))
     {
@@ -19498,6 +19493,8 @@ void Unit::_EnterVehicle(Vehicle* vehicle, int8 seatId, AuraApplication const* a
     if (!m_vehicle->AddPassenger(this, seatId))
     {
         m_vehicle = nullptr;
+        if (Unit* base = vehicle->GetBase())
+            base->RemoveAurasByType(SPELL_AURA_CONTROL_VEHICLE, GetGUID());
         return;
     }
 
