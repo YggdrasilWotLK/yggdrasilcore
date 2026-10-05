@@ -1240,15 +1240,20 @@ bool WorldObject::_IsWithinDist(WorldObject const* obj, float dist2compare, bool
 
     if (m_transport && obj->GetTransport() &&  obj->GetTransport()->GetGUID() == m_transport->GetGUID())
     {
-        float dtx = m_movementInfo.transport.pos.m_positionX - obj->m_movementInfo.transport.pos.m_positionX;
-        float dty = m_movementInfo.transport.pos.m_positionY - obj->m_movementInfo.transport.pos.m_positionY;
-        float disttsq = dtx * dtx + dty * dty;
-        if (is3D)
+        Unit const* thisUnit = ToUnit();
+        Unit const* objUnit = obj->ToUnit();
+        if ((!thisUnit || !thisUnit->GetVehicle()) && (!objUnit || !objUnit->GetVehicle()))
         {
-            float dtz = m_movementInfo.transport.pos.m_positionZ - obj->m_movementInfo.transport.pos.m_positionZ;
-            disttsq += dtz * dtz;
+            float dtx = m_movementInfo.transport.pos.m_positionX - obj->m_movementInfo.transport.pos.m_positionX;
+            float dty = m_movementInfo.transport.pos.m_positionY - obj->m_movementInfo.transport.pos.m_positionY;
+            float disttsq = dtx * dtx + dty * dty;
+            if (is3D)
+            {
+                float dtz = m_movementInfo.transport.pos.m_positionZ - obj->m_movementInfo.transport.pos.m_positionZ;
+                disttsq += dtz * dtz;
+            }
+            return disttsq < (maxdist * maxdist);
         }
-        return disttsq < (maxdist * maxdist);
     }
 
     float dx = GetPositionX() - obj->GetPositionX();
