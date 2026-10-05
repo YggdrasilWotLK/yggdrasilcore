@@ -19493,6 +19493,8 @@ void Unit::_EnterVehicle(Vehicle* vehicle, int8 seatId, AuraApplication const* a
     if (!m_vehicle->AddPassenger(this, seatId))
     {
         m_vehicle = nullptr;
+        if (Unit* base = vehicle->GetBase())
+            base->RemoveAurasByType(SPELL_AURA_CONTROL_VEHICLE, GetGUID());
         return;
     }
 

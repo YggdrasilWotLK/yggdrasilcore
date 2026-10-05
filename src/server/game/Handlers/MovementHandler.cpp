@@ -406,31 +406,35 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo, Unit* mover
     if (mover->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ONTRANSPORT))
     {
         // if we boarded a transport, add us to it
+        // (vehicle passengers keep base transport, anchored by vehicle)
         if (Player* plrMover = mover->ToPlayer())
         {
-            if (!plrMover->GetTransport())
+            if (!mover->GetVehicle())
             {
-                if (Transport* transport = plrMover->GetMap()->GetTransport(movementInfo.transport.guid))
+                if (!plrMover->GetTransport())
                 {
-                    plrMover->m_transport = transport;
-                    transport->AddPassenger(plrMover);
+                    if (Transport* transport = plrMover->GetMap()->GetTransport(movementInfo.transport.guid))
+                    {
+                        plrMover->m_transport = transport;
+                        transport->AddPassenger(plrMover);
+                    }
                 }
-            }
-            else if (plrMover->GetTransport()->GetGUID() != movementInfo.transport.guid)
-            {
-                bool foundNewTransport = false;
-                plrMover->m_transport->RemovePassenger(plrMover);
-                if (Transport* transport = plrMover->GetMap()->GetTransport(movementInfo.transport.guid))
+                else if (plrMover->GetTransport()->GetGUID() != movementInfo.transport.guid)
                 {
-                    foundNewTransport = true;
-                    plrMover->m_transport = transport;
-                    transport->AddPassenger(plrMover);
-                }
+                    bool foundNewTransport = false;
+                    plrMover->m_transport->RemovePassenger(plrMover);
+                    if (Transport* transport = plrMover->GetMap()->GetTransport(movementInfo.transport.guid))
+                    {
+                        foundNewTransport = true;
+                        plrMover->m_transport = transport;
+                        transport->AddPassenger(plrMover);
+                    }
 
-                if (!foundNewTransport)
-                {
-                    plrMover->m_transport = nullptr;
-                    movementInfo.transport.Reset();
+                    if (!foundNewTransport)
+                    {
+                        plrMover->m_transport = nullptr;
+                        movementInfo.transport.Reset();
+                    }
                 }
             }
         }
@@ -599,6 +603,22 @@ bool WorldSession::ProcessMovementInfo(MovementInfo& movementInfo, Unit* mover, 
             movementInfo.transport.pos.Relocate(mover->m_movementInfo.transport.pos.GetPositionX(), mover->m_movementInfo.transport.pos.GetPositionY(), mover->m_movementInfo.transport.pos.GetPositionZ());
             movementInfo.transport.seat = mover->m_movementInfo.transport.seat;
         }
+    }
+
+    // Keep server seat/offset for vehicle passengers.
+    if (mover->GetVehicle())
+    {
+        movementInfo.pos.Relocate(mover->GetPositionX(), mover->GetPositionY(), mover->GetPositionZ());
+        movementInfo.transport.guid = mover->m_movementInfo.transport.guid;
+        movementInfo.transport.pos.Relocate(
+            mover->m_movementInfo.transport.pos.GetPositionX(),
+            mover->m_movementInfo.transport.pos.GetPositionY(),
+            mover->m_movementInfo.transport.pos.GetPositionZ(),
+            mover->m_movementInfo.transport.pos.GetOrientation());
+        movementInfo.transport.time = mover->m_movementInfo.transport.time;
+        movementInfo.transport.time2 = mover->m_movementInfo.transport.time2;
+        movementInfo.transport.seat = mover->m_movementInfo.transport.seat;
+        movementInfo.AddMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
     }
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).

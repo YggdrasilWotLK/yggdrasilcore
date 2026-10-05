@@ -524,8 +524,12 @@ bool MotionTransport::TeleportTransport(uint32 newMapid, float x, float y, float
     else
     {
         // Teleport players, they need to know it
+        // (vehicle passengers ride via base RelocatePassengers instead)
         for (PassengerSet::iterator itr = _passengers.begin(); itr != _passengers.end(); ++itr)
         {
+            if (Unit* unit = (*itr)->ToUnit())
+                if (unit->GetVehicle())
+                    continue;
             if ((*itr)->IsPlayer())
             {
                 float destX, destY, destZ, destO;
