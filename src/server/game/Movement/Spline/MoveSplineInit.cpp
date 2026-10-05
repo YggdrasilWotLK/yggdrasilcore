@@ -115,6 +115,11 @@ namespace
 
     // True when the straight segment a->b cannot be traversed: blocked line of sight
     // (terrain, WMO, gameobjects) or an unclimbable slope step for a ground mover.
+    // The low dynamic-tree ray is deliberate: isInLineOfSight is gated behind the
+    // CheckGameObjectLos config and fires at chest height (overflying crates), while
+    // GetObjectHitPos always sees dynamic gameobjects. A shin-height ray through the
+    // column catches low collision the high ray sails over; anything rooted at the
+    // ground intersects it.
     bool IsSegmentBlocked(Unit const* unit, Vector3 const& a, Vector3 const& b, bool groundMode)
     {
         Map* map = unit->GetMap();
@@ -125,6 +130,10 @@ namespace
         uint32 const phase = unit->GetPhaseMask();
         if (!map->isInLineOfSight(a.x, a.y, a.z + heightOffset, b.x, b.y, b.z + heightOffset,
                 phase, LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
+            return true;
+
+        float rx, ry, rz;
+        if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
             return true;
 
         if (groundMode)
@@ -150,56 +159,132 @@ namespace
         out.z = 0.5f * ((2.0f * p1.z) + (-p0.z + p2.z) * t + (2.0f * p0.z - 5.0f * p1.z + 4.0f * p2.z - p3.z) * t2 + (-p0.z + 3.0f * p1.z - 3.0f * p2.z + p3.z) * t3);
     }
 
-    // Samples the curve the client will actually render (midpoints of each segment) and
-    // rejects it when it deviates from traversable space: through walls (LoS), under the
-    // floor, or floating high above it. The ghost points mirror SplineBase::InitCatmullRom
-    // (extrapolated start = controls[0] toward controls[1] mirrored, duplicated end) so the
-    // samples match the client curve exactly; server and client must never disagree here.
-    bool IsSmoothedCurveValid(Unit const* unit, PointsArray const& controls, bool groundMode)
+    // Samples the curve the client will actually render (third-points of each segment),
+    // validates it against traversable space, and routes it around blockages the
+    // straight polyline doesn't have: a lateral detour point is inserted and the scan
+    // restarts (bounded). A sub-segment whose straight chord is blocked too is
+    // accepted as-is: the straight line crosses there anyway, so the spline does.
+    // Only when no offset fits, the repair budget is spent, or the curve leaves
+    // the walkable height band does it report invalid — and the caller then falls
+    // back to the linear polyline the pathfinder approved. Three samples per segment: a single midpoint
+    // misses corner clips where the curve bows out and back between samples.
+    // The ghost points mirror SplineBase::InitCatmullRom (extrapolated start =
+    // controls[0] toward controls[1] mirrored, duplicated end) so the samples match
+    // the client curve exactly; server and client must never disagree here.
+    constexpr uint8 SMOOTH_MAX_DETOURS = 3;      // routing repairs per MoveTo
+    constexpr std::size_t SMOOTH_MAX_CONTROLS = 12; // hard cap on control points
+
+    // Offsets laterally from a blocked curve sample until both halves run clean.
+    // Radii grow from the unit's footprint so unknown obstacle sizes are handled.
+    bool TryDetourAroundBlockage(Unit* unit, Vector3 const& from, Vector3 const& sample, Vector3 const& to, bool groundMode, Vector3& out)
+    {
+        Vector3 dir(to.x - from.x, to.y - from.y, 0.0f);
+        float const len = std::hypot(dir.x, dir.y);
+        if (len < 0.01f)
+            return false;
+        dir.x /= len;
+        dir.y /= len;
+        Vector3 const perp(-dir.y, dir.x, 0.0f);
+
+        float const base = std::max(unit->GetObjectSize(), 0.5f);
+        float const offsets[4] = { base + 0.5f, base + 1.5f, base + 3.0f, base + 5.0f };
+
+        for (uint8 i = 0; i < 4; ++i)
+            for (uint8 side = 0; side < 2; ++side)
+            {
+                float const sign = (side == 0) ? 1.0f : -1.0f;
+                Vector3 candidate(
+                    sample.x + perp.x * sign * offsets[i],
+                    sample.y + perp.y * sign * offsets[i],
+                    sample.z);
+                if (groundMode)
+                    candidate.z = SnapControlPointZ(unit, candidate.x, candidate.y, candidate.z);
+                if (IsSegmentBlocked(unit, from, candidate, groundMode) ||
+                    IsSegmentBlocked(unit, candidate, to, groundMode))
+                    continue;
+                if (groundMode)
+                {
+                    float const ground = unit->GetMapHeight(candidate.x, candidate.y, candidate.z);
+                    if (ground > INVALID_HEIGHT &&
+                        (candidate.z < ground - 1.0f || candidate.z > ground + unit->GetHoverHeight() + 4.0f))
+                        continue;
+                }
+                out = candidate;
+                return true;
+            }
+        return false;
+    }
+
+    bool IsSmoothedCurveValid(Unit* unit, PointsArray& controls, bool groundMode)
     {
         if (controls.size() < 3)
             return true;
 
-        uint32 const segments = std::min<uint32>(uint32(controls.size() - 1), SMOOTH_MAX_SAMPLE_SEGMENTS);
-        Vector3 prev = controls[0];
-
-        for (uint32 k = 0; k < segments; ++k)
+        for (uint8 repair = 0; repair <= SMOOTH_MAX_DETOURS; ++repair)
         {
-            Vector3 const& p1 = controls[k];
-            Vector3 const& p2 = controls[k + 1];
+            bool clean = true;
+            uint32 const segments = std::min<uint32>(uint32(controls.size() - 1), SMOOTH_MAX_SAMPLE_SEGMENTS);
+            Vector3 prev = controls[0];
 
-            Vector3 startGhost = p1 + (p1 - p2);
-            Vector3 const& p0 = (k == 0) ? startGhost : controls[k - 1];
-            std::size_t const p3Idx = (std::size_t)k + 2;
-            Vector3 const& p3 = (p3Idx < controls.size()) ? controls[p3Idx] : controls.back();
-
-            Vector3 mid;
-            EvaluateCatmullRomSegment(p0, p1, p2, p3, 0.5f, mid);
-
-            if (IsSegmentBlocked(unit, prev, mid, groundMode) || IsSegmentBlocked(unit, mid, p2, groundMode))
-                return false;
-
-            if (groundMode)
+            for (uint32 k = 0; k < segments && clean; ++k)
             {
-                Map* map = unit->GetMap();
-                bool const inWater =
-                    unit->CanSwim() &&
-                    map->IsInWater(unit->GetPhaseMask(), mid.x, mid.y, mid.z, unit->GetCollisionHeight());
-                if (!inWater)
-                {
-                    float const ground = unit->GetMapHeight(mid.x, mid.y, mid.z);
-                    if (ground > INVALID_HEIGHT)
+                Vector3 const& p1 = controls[k];
+                Vector3 const& p2 = controls[k + 1];
+
+                Vector3 startGhost = p1 + (p1 - p2);
+                Vector3 const& p0 = (k == 0) ? startGhost : controls[k - 1];
+                std::size_t const p3Idx = (std::size_t)k + 2;
+                Vector3 const& p3 = (p3Idx < controls.size()) ? controls[p3Idx] : controls.back();
+
+                Vector3 samples[3];
+                for (uint8 s = 0; s < 3; ++s)
+                    EvaluateCatmullRomSegment(p0, p1, p2, p3, (float(s) + 1.0f) * 0.25f, samples[s]);
+
+                Vector3 const* chain[5] = { &prev, &samples[0], &samples[1], &samples[2], &p2 };
+                for (uint8 s = 0; s < 4 && clean; ++s)
+                    if (IsSegmentBlocked(unit, *chain[s], *chain[s + 1], groundMode))
                     {
-                        float const minZ = ground - 1.0f;
-                        float const maxZ = ground + unit->GetHoverHeight() + 4.0f;
-                        if (mid.z < minZ || mid.z > maxZ)
+                        // The straight chord crosses too: nothing to route around,
+                        // spline through it like the straight line does.
+                        if (IsSegmentBlocked(unit, p1, p2, groundMode))
+                            continue;
+                        if (repair == SMOOTH_MAX_DETOURS || controls.size() >= SMOOTH_MAX_CONTROLS)
                             return false;
+                        Vector3 push = (*chain[s] + *chain[s + 1]) * 0.5f;
+                        Vector3 detour;
+                        if (!TryDetourAroundBlockage(unit, *chain[s], push, *chain[s + 1], groundMode, detour))
+                            return false;
+                        controls.insert(controls.begin() + k + 1, detour);
+                        clean = false; // restart the scan over the repaired path
+                    }
+
+                if (clean && groundMode)
+                {
+                    Map* map = unit->GetMap();
+                    for (uint8 s = 0; s < 3; ++s)
+                    {
+                        Vector3 const& mid = samples[s];
+                        bool const inWater =
+                            unit->CanSwim() &&
+                            map->IsInWater(unit->GetPhaseMask(), mid.x, mid.y, mid.z, unit->GetCollisionHeight());
+                        if (inWater)
+                            continue;
+                        float const ground = unit->GetMapHeight(mid.x, mid.y, mid.z);
+                        if (ground > INVALID_HEIGHT)
+                        {
+                            float const minZ = ground - 1.0f;
+                            float const maxZ = ground + unit->GetHoverHeight() + 4.0f;
+                            if (mid.z < minZ || mid.z > maxZ)
+                                return false;
+                        }
                     }
                 }
+                prev = p2;
             }
-            prev = p2;
+            if (clean)
+                return true;
         }
-        return true;
+        return false;
     }
 
     // Builds a single departure blend point on the angle bisector between the current facing
