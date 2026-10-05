@@ -24,6 +24,8 @@
 #include "MMapMgr.h"
 #include "Map.h"
 #include "Metric.h"
+#include <algorithm>
+#include <cmath>
 
  ////////////////// PathGenerator //////////////////
 PathGenerator::PathGenerator(WorldObject const* owner) :
@@ -157,6 +159,50 @@ dtPolyRef PathGenerator::GetPolyByLocation(float const* point, float* distance) 
 
     *distance = FLT_MAX;
     return INVALID_POLYREF;
+}
+
+bool PathGenerator::IsBlockedPlayerGroundMove() const
+{
+    Unit const* unit = _source ? _source->ToUnit() : nullptr;
+    if (!unit || !unit->IsPlayer())
+        return false;
+    if (unit->CanFly() || unit->IsFalling() || unit->HasUnitState(UNIT_STATE_IN_FLIGHT))
+        return false;
+    if (unit->IsInWater() || unit->IsUnderWater())
+        return false;
+    if (unit->GetTransport())
+        return false;
+    if (_type & PATHFIND_NOT_USING_PATH)
+        return false; // no mesh data or special state: cannot judge, keep legacy behavior
+    if (_type & (PATHFIND_NOPATH | PATHFIND_SHORTCUT | PATHFIND_FARFROMPOLY_END))
+        return true;
+    if (!(_type & (PATHFIND_NORMAL | PATHFIND_INCOMPLETE | PATHFIND_SHORT)))
+        return true;
+    if (_pathPoints.size() < 2)
+        return false;
+    Map* map = _source->GetMap();
+    if (!map)
+        return true;
+    // Reciprocal VMap walk over the mesh polyline: a slab/wall between two consecutive
+    // mesh points means the bake slipped through static geometry. High ray both ways plus
+    // a shin-height dynamic-tree ray (catches low gameobject collision the high ray sails over).
+    float const high = std::max(_source->GetCollisionHeight(), 0.5f);
+    uint32 const phase = _source->GetPhaseMask();
+    G3D::Vector3 prev = _startPosition;
+    for (G3D::Vector3 const& pt : _pathPoints)
+    {
+        if (!map->isInLineOfSight(prev.x, prev.y, prev.z + high, pt.x, pt.y, pt.z + high, phase,
+                LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
+            return true;
+        if (!map->isInLineOfSight(pt.x, pt.y, pt.z + high, prev.x, prev.y, prev.z + high, phase,
+                LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
+            return true;
+        float rx, ry, rz;
+        if (map->GetObjectHitPos(phase, prev.x, prev.y, prev.z + 0.6f, pt.x, pt.y, pt.z + 0.6f, rx, ry, rz, -0.5f))
+            return true;
+        prev = pt;
+    }
+    return false;
 }
 
 void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 const& endPos)

@@ -706,6 +706,10 @@ namespace
             bool result = path.CalculatePath(dest.x, dest.y, dest.z, forceDestination);
             if (result && !(path.GetPathType() & PATHFIND_NOPATH))
             {
+                // Grounded players never take a vetoed mesh result, and never fall back
+                // to a straight shortcut either: stay instead of driving through floors.
+                if (path.IsBlockedPlayerGroundMove())
+                    return;
                 MovebyPath(path.GetPath());
                 return;
             }

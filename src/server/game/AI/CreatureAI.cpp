@@ -149,6 +149,12 @@ void CreatureAI::DoZoneInCombat(Creature* creature /*= nullptr*/, float maxRange
                 continue;
             }
 
+            // No pulls through walls, floors or closed dynamic doors.
+            if (!creature->IsWithinLOSInMap(player))
+            {
+                continue;
+            }
+
             creature->SetInCombatWith(player);
             player->SetInCombatWith(creature);
 

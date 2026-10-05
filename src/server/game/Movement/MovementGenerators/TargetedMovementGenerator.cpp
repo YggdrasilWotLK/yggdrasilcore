@@ -116,6 +116,18 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
         return true;
     }
 
+    // Core floor/wall failsafe (players): stop instead of chasing through geometry.
+    if (i_path->IsBlockedPlayerGroundMove())
+    {
+        if (cOwner)
+        {
+            cOwner->SetCannotReachTarget(i_target.getTarget()->GetGUID());
+        }
+
+        owner->StopMoving();
+        return true;
+    }
+
     if (cutPath)
         i_path->ShortenPathUntilDist(G3D::Vector3(x, y, z), maxTarget);
 
@@ -599,6 +611,15 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
 
         bool success = i_path->CalculatePath(x, y, z, forceDest);
         if (!success || (i_path->GetPathType() & PATHFIND_NOPATH && !followingMaster))
+        {
+            if (!owner->IsStopped())
+                owner->StopMoving();
+
+            return true;
+        }
+
+        // Core floor/wall failsafe (players): stop instead of following through geometry.
+        if (i_path->IsBlockedPlayerGroundMove())
         {
             if (!owner->IsStopped())
                 owner->StopMoving();

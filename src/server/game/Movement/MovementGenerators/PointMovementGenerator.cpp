@@ -57,7 +57,9 @@ void PointMovementGenerator<T>::DoInitialize(T* unit)
     {
         PathGenerator path(unit);
         bool result = path.CalculatePath(i_x, i_y, i_z, _forceDestination);
-        if (result && !(path.GetPathType() & PATHFIND_NOPATH) && path.GetPath().size() > 2)
+        // Core floor/wall failsafe (players): never drive a vetoed mesh result.
+        if (result && !(path.GetPathType() & PATHFIND_NOPATH) && path.GetPath().size() > 2 &&
+            !path.IsBlockedPlayerGroundMove())
         {
             m_precomputedPath = path.GetPath();
             init.MovebyPath(m_precomputedPath);
