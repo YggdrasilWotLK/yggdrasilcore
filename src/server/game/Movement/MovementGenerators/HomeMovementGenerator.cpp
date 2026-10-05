@@ -28,6 +28,9 @@ namespace
     constexpr float HOME_HOP_DIST = 20.0f;
     constexpr float HOME_HOP_STEP = 4.0f;
     constexpr uint8 HOME_MAX_LEGS = 30;
+    constexpr uint8 HOME_MAX_STUCK = 5;
+    constexpr uint8 HOME_AIR_SLIDE_AFTER = 2;
+    constexpr uint32 HOME_RETRY_DELAY = 2000;
 
     // Same traversability test as MoveSplineInit::IsSegmentBlocked: LoS at
     // chest height + low dynamic-tree ray + walkable slope step.
@@ -93,6 +96,8 @@ namespace
 void HomeMovementGenerator<Creature>::DoInitialize(Creature* owner)
 {
     _repaths = 0;
+    _stuckLegs = 0;
+    _waitTimer = 0;
     _setTargetLocation(owner);
 }
 
@@ -112,6 +117,8 @@ void HomeMovementGenerator<Creature>::DoFinalize(Creature* owner)
 void HomeMovementGenerator<Creature>::DoReset(Creature*)
 {
     _repaths = 0;
+    _stuckLegs = 0;
+    _waitTimer = 0;
 }
 
 void HomeMovementGenerator<Creature>::_setTargetLocation(Creature* owner)
@@ -233,6 +240,26 @@ void HomeMovementGenerator<Creature>::_setTargetLocation(Creature* owner)
 
             if (hopPath.size() >= 2)
                 init.MovebyPath(hopPath);
+            else if (_stuckLegs >= HOME_AIR_SLIDE_AFTER)
+            {
+                // Failed validated hops twice: air-slide toward home in one
+                // short unvalidated 4y step, accept tunneling. Remesh next leg.
+                // NB: dx/dy above may be normalized already, recompute direction.
+                float hx = sx, hy = sy, hz = _z;
+                if (dist2d >= 0.01f)
+                {
+                    float total = std::min(HOME_HOP_STEP, dist2d);
+                    hx = sx + (_x - sx) / dist2d * total;
+                    hy = sy + (_y - sy) / dist2d * total;
+                }
+                else
+                {
+                    hx = _x;
+                    hy = _y;
+                }
+                owner->UpdateAllowedPositionZ(hx, hy, hz);
+                init.MoveTo(hx, hy, hz, false, false);
+            }
             else
                 init.MoveTo(sx, sy, sz, false, false); // stuck: hold, remesh next leg
         }
@@ -246,14 +273,21 @@ void HomeMovementGenerator<Creature>::_setTargetLocation(Creature* owner)
     init.Launch();
     arrived = false;
 
+    // Leg-start anchor for progress tracking in DoUpdate.
+    _sx = owner->GetPositionX();
+    _sy = owner->GetPositionY();
+    _sz = owner->GetPositionZ();
+
     owner->ClearUnitState(uint32(UNIT_STATE_ALL_STATE & ~(UNIT_STATE_POSSESSED | UNIT_STATE_EVADE | UNIT_STATE_IGNORE_PATHFINDING | UNIT_STATE_NO_ENVIRONMENT_UPD)));
 }
 
-bool HomeMovementGenerator<Creature>::DoUpdate(Creature* owner, const uint32 /*time_diff*/)
+bool HomeMovementGenerator<Creature>::DoUpdate(Creature* owner, const uint32 time_diff)
 {
     if (i_recalculateTravel)
     {
         _repaths = 0;
+        _stuckLegs = 0;
+        _waitTimer = 0;
         _setTargetLocation(owner);
         i_recalculateTravel = false;
         return true;
@@ -262,15 +296,42 @@ bool HomeMovementGenerator<Creature>::DoUpdate(Creature* owner, const uint32 /*t
     if (!owner->movespline->Finalized())
         return true;
 
-    // Leg done but not home: mesh next segment or hop the gap.
-    if (owner->GetExactDist(_x, _y, _z) > 3.0f && _repaths < HOME_MAX_LEGS)
+    // Home: done, reactivate there.
+    if (owner->GetExactDist(_x, _y, _z) <= 3.0f)
     {
+        arrived = true;
+        return false;
+    }
+
+    // Backing off after failed attempts: wait before the next attempt so a
+    // walled-in creature doesn't hot-loop navmesh queries every tick.
+    if (_waitTimer > time_diff)
+    {
+        _waitTimer -= time_diff;
+        return true;
+    }
+    _waitTimer = 0;
+
+    // Zero-progress legs (walled in, hold-in-place) must not burn the leg
+    // budget: they finalize instantly and would otherwise spin.
+    if (owner->GetExactDist(_sx, _sy, _sz) < 1.0f)
+        ++_stuckLegs;
+    else
+    {
+        _stuckLegs = 0;
         ++_repaths;
+    }
+
+    if (_repaths < HOME_MAX_LEGS && _stuckLegs < HOME_MAX_STUCK)
+    {
         _setTargetLocation(owner);
         return true;
     }
 
-    // Reached, or out of legs: reset where we stand.
-    arrived = true;
-    return false;
+    // Could not walk home yet: back off and keep trying. Never teleport,
+    // never reactivate mid-path — evade only ends at home.
+    _waitTimer = HOME_RETRY_DELAY;
+    _repaths = 0;
+    _stuckLegs = 0;
+    return true;
 }
