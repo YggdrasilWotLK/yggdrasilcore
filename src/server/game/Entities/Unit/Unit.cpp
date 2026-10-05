@@ -14782,17 +14782,20 @@ Unit* Creature::SelectVictim()
 
     if (CanHaveThreatList())
     {
-        if (!target && !m_ThreatMgr.isThreatListEmpty() && !GetMap()->Instanceable())
+        if (!target && !m_ThreatMgr.isThreatListEmpty())
         {
-            // Leashed-out targets lose threat individually; in-range targets
-            // keep theirs regardless of deadline. Chase stays on top aggro.
-            std::vector<Unit*> leashed;
-            for (auto ref : m_ThreatMgr.GetThreatList())
-                if (Unit* u = ref ? ref->getTarget() : nullptr)
-                    if (IsOutsideLeashRange(u) && IsLeashExpiredFor(u))
-                        leashed.push_back(u);
-            for (Unit* u : leashed)
-                m_ThreatMgr.ClearThreat(u);
+            if (!GetMap()->Instanceable())
+            {
+                // Leashed-out targets lose threat individually; in-range targets
+                // keep theirs regardless of deadline. Chase stays on top aggro.
+                std::vector<Unit*> leashed;
+                for (auto ref : m_ThreatMgr.GetThreatList())
+                    if (Unit* u = ref ? ref->getTarget() : nullptr)
+                        if (IsOutsideLeashRange(u) && IsLeashExpiredFor(u))
+                            leashed.push_back(u);
+                for (Unit* u : leashed)
+                    m_ThreatMgr.ClearThreat(u);
+            }
             if (!m_ThreatMgr.isThreatListEmpty())
                 target = m_ThreatMgr.getHostileTarget();
         }
