@@ -29,7 +29,7 @@ template <>
 class HomeMovementGenerator<Creature> : public MovementGeneratorMedium< Creature, HomeMovementGenerator<Creature> >
 {
 public:
-    HomeMovementGenerator(bool walk) : arrived(false), i_recalculateTravel(false), _walk(walk) {}
+    HomeMovementGenerator(bool walk) : arrived(false), i_recalculateTravel(false), _walk(walk), _repaths(0), _x(0.0f), _y(0.0f), _z(0.0f), _o(0.0f) {}
     ~HomeMovementGenerator() {}
 
     void DoInitialize(Creature*);
@@ -44,5 +44,7 @@ private:
     bool arrived : 1;
     bool i_recalculateTravel : 1;
     bool _walk;
+    uint8 _repaths;
+    float _x, _y, _z, _o;
 };
 #endif
