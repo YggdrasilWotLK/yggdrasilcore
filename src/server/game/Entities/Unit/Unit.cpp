@@ -10440,30 +10440,7 @@ bool Unit::Attack(Unit* victim, bool meleeAttack)
     if (meleeAttack)
         AddUnitState(UNIT_STATE_MELEE_ATTACKING);
 
-    Unit* owner = GetCharmerOrOwner();
-    Creature* ownerCreature = owner ? owner->ToCreature() : nullptr;
-    Creature* controlledCreatureWithSameVictim = nullptr;
-    if (creature && !m_Controlled.empty())
-    {
-        for (ControlSet::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
-        {
-            if ((*itr)->ToCreature() && (*itr)->GetVictim() == victim)
-            {
-                controlledCreatureWithSameVictim = (*itr)->ToCreature();
-                break;
-            }
-        }
-    }
-
-    // Share leash queue with controlled unit / owner fighting the same victim
-    // (pets, totems and charmed units track the same leash as their owner).
-    if (controlledCreatureWithSameVictim)
-        creature->SetLeashStatePtr(controlledCreatureWithSameVictim->GetLeashStatePtr());
-    // Share leash queue with owner
-    else if (creature && ownerCreature && ownerCreature->GetVictim() == victim)
-        creature->SetLeashStatePtr(ownerCreature->GetLeashStatePtr());
-    // Direct hostile action (melee attack start) on a creature: bracketed extension.
-    else if (victim->IsCreature())
+    if (victim->IsCreature())
         victim->ToCreature()->TryExtendLeashOnDirectHit(this);
 
     // set position before any AI calls/assistance
