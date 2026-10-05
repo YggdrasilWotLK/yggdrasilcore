@@ -24,8 +24,6 @@
 #include "MMapMgr.h"
 #include "Map.h"
 #include "Metric.h"
-#include <algorithm>
-#include <cmath>
 
  ////////////////// PathGenerator //////////////////
 PathGenerator::PathGenerator(WorldObject const* owner) :
@@ -161,48 +159,144 @@ dtPolyRef PathGenerator::GetPolyByLocation(float const* point, float* distance) 
     return INVALID_POLYREF;
 }
 
-bool PathGenerator::IsBlockedPlayerGroundMove() const
+bool PathGenerator::ValidatePlayerMove()
 {
     Unit const* unit = _source ? _source->ToUnit() : nullptr;
     if (!unit || !unit->IsPlayer())
-        return false;
-    if (unit->CanFly() || unit->IsFalling() || unit->HasUnitState(UNIT_STATE_IN_FLIGHT))
-        return false;
+        return true;
+    if (unit->IsFalling() || unit->HasUnitState(UNIT_STATE_IN_FLIGHT))
+        return true;
     if (unit->IsInWater() || unit->IsUnderWater())
-        return false;
+        return true;
     if (unit->GetTransport())
-        return false;
-    if (_type & PATHFIND_NOT_USING_PATH)
-        return false; // no mesh data or special state: cannot judge, keep legacy behavior
-    if (_type & (PATHFIND_NOPATH | PATHFIND_SHORTCUT | PATHFIND_FARFROMPOLY_END))
         return true;
-    if (!(_type & (PATHFIND_NORMAL | PATHFIND_INCOMPLETE | PATHFIND_SHORT)))
-        return true;
-    if (_pathPoints.size() < 2)
-        return false;
     Map* map = _source->GetMap();
     if (!map)
-        return true;
-    // Reciprocal VMap walk over the mesh polyline: a slab/wall between two consecutive
-    // mesh points means the bake slipped through static geometry. High ray both ways plus
-    // a shin-height dynamic-tree ray (catches low gameobject collision the high ray sails over).
+        return false;
     float const high = std::max(_source->GetCollisionHeight(), 0.5f);
     uint32 const phase = _source->GetPhaseMask();
-    G3D::Vector3 prev = _startPosition;
-    for (G3D::Vector3 const& pt : _pathPoints)
+    auto segmentBlocked = [&](G3D::Vector3 const& a, G3D::Vector3 const& b) -> bool
     {
-        if (!map->isInLineOfSight(prev.x, prev.y, prev.z + high, pt.x, pt.y, pt.z + high, phase,
+        if (!map->isInLineOfSight(a.x, a.y, a.z + high, b.x, b.y, b.z + high, phase,
                 LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
             return true;
-        if (!map->isInLineOfSight(pt.x, pt.y, pt.z + high, prev.x, prev.y, prev.z + high, phase,
+        if (!map->isInLineOfSight(b.x, b.y, b.z + high, a.x, a.y, a.z + high, phase,
                 LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
             return true;
         float rx, ry, rz;
-        if (map->GetObjectHitPos(phase, prev.x, prev.y, prev.z + 0.6f, pt.x, pt.y, pt.z + 0.6f, rx, ry, rz, -0.5f))
+        if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
             return true;
-        prev = pt;
+        return false;
+    };
+    if (unit->CanFly())
+    {
+        // Air moves fly straight outside mesh coverage: a blocked line climbs over.
+        if (_pathPoints.size() < 2)
+            return true;
+        G3D::Vector3 const& start = _pathPoints[0];
+        G3D::Vector3 const& end = _pathPoints.back();
+        auto straightBlocked = [&](G3D::Vector3 const& a, G3D::Vector3 const& b) -> bool
+        {
+            Movement::PointsArray one{b};
+            G3D::Vector3 prev = a;
+            for (G3D::Vector3 const& pt : one)
+            {
+                if (segmentBlocked(prev, pt))
+                    return true;
+                prev = pt;
+            }
+            return false;
+        };
+        if (!straightBlocked(start, end))
+            return true;
+        G3D::Vector3 mid((start.x + end.x) * 0.5f, (start.y + end.y) * 0.5f, (start.z + end.z) * 0.5f);
+        float const baseZ = mid.z;
+        for (float climb : {10.0f, 20.0f, 30.0f, 50.0f})
+        {
+            mid.z = baseZ + climb;
+            if (!straightBlocked(start, mid) && !straightBlocked(mid, end))
+            {
+                _pathPoints.clear();
+                _pathPoints.push_back(start);
+                _pathPoints.push_back(mid);
+                _pathPoints.push_back(end);
+                SetActualEndPosition(end);
+                _type = PATHFIND_NORMAL;
+                return true;
+            }
+        }
+        return false;
     }
-    return false;
+    if (_type & PATHFIND_NOT_USING_PATH)
+    {
+        // No mesh data: the fallback is a straight line, so validate that line
+        // directly with VMap instead of trusting it blindly.
+        if (_pathPoints.size() < 2)
+            return true;
+        G3D::Vector3 prev = _pathPoints[0];
+        for (std::size_t i = 1; i < _pathPoints.size(); ++i)
+        {
+            if (segmentBlocked(prev, _pathPoints[i]))
+                return false;
+            prev = _pathPoints[i];
+        }
+        return true;
+    }
+    if (_type & (PATHFIND_NOPATH | PATHFIND_SHORTCUT | PATHFIND_FARFROMPOLY_END))
+        return false;
+    if (!(_type & (PATHFIND_NORMAL | PATHFIND_INCOMPLETE | PATHFIND_SHORT)))
+        return false;
+    if (_pathPoints.size() < 2)
+        return true;
+    // A slab/wall between two consecutive mesh points means the bake slipped. Try a
+    // lateral sidestep around single blocked spans (corner clips); anything that
+    // cannot be stepped around stops the move.
+    Movement::PointsArray repaired;
+    repaired.reserve(_pathPoints.size() + 3);
+    G3D::Vector3 prev = _startPosition;
+    uint32 repairs = 0;
+    for (G3D::Vector3 const& pt : _pathPoints)
+    {
+        if (!segmentBlocked(prev, pt))
+        {
+            repaired.push_back(pt);
+            prev = pt;
+            continue;
+        }
+        if (repairs >= 3)
+            return false;
+        float dx = pt.x - prev.x, dy = pt.y - prev.y;
+        float len = std::sqrt(dx * dx + dy * dy);
+        if (len < 0.01f)
+            return false;
+        float nx = -dy / len, ny = dx / len;
+        bool fixed = false;
+        for (float r : {1.5f, 3.0f, 5.0f})
+        {
+            for (float side : {1.0f, -1.0f})
+            {
+                G3D::Vector3 c((prev.x + pt.x) * 0.5f + nx * side * r,
+                               (prev.y + pt.y) * 0.5f + ny * side * r,
+                               (prev.z + pt.z) * 0.5f);
+                _source->UpdateAllowedPositionZ(c.x, c.y, c.z);
+                if (!segmentBlocked(prev, c) && !segmentBlocked(c, pt))
+                {
+                    repaired.push_back(c);
+                    repaired.push_back(pt);
+                    prev = pt;
+                    ++repairs;
+                    fixed = true;
+                    break;
+                }
+            }
+            if (fixed)
+                break;
+        }
+        if (!fixed)
+            return false;
+    }
+    _pathPoints.swap(repaired);
+    return true;
 }
 
 void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 const& endPos)

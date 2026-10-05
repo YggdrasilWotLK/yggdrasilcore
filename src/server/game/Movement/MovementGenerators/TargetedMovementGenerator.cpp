@@ -116,8 +116,7 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
         return true;
     }
 
-    // Core floor/wall failsafe (players): stop instead of chasing through geometry.
-    if (i_path->IsBlockedPlayerGroundMove())
+    if (!i_path->ValidatePlayerMove())
     {
         if (cOwner)
         {
@@ -618,8 +617,7 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
             return true;
         }
 
-        // Core floor/wall failsafe (players): stop instead of following through geometry.
-        if (i_path->IsBlockedPlayerGroundMove())
+        if (!i_path->ValidatePlayerMove())
         {
             if (!owner->IsStopped())
                 owner->StopMoving();
