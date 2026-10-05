@@ -3739,9 +3739,6 @@ void Creature::SetLeashStatePtr(std::shared_ptr<LeashState> const& state)
 
 void Creature::ClearLeash()
 {
-    if (m_leashState)
-        m_leashState->entries.clear();
-    // Break pack sharing so a fresh engage gets a fresh queue.
     m_leashState.reset();
 }
 
