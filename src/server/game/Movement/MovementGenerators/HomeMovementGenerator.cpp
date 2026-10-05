@@ -19,13 +19,75 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "DisableMgr.h"
+#include "Map.h"
 #include "MoveSplineInit.h"
 #include "PathGenerator.h"
 
 namespace
 {
     constexpr float HOME_HOP_DIST = 20.0f;
+    constexpr float HOME_HOP_STEP = 4.0f;
     constexpr uint8 HOME_MAX_LEGS = 30;
+
+    // Same traversability test as MoveSplineInit::IsSegmentBlocked: LoS at
+    // chest height + low dynamic-tree ray + walkable slope step.
+    bool HomeSegmentBlocked(Creature* owner, G3D::Vector3 const& a, G3D::Vector3 const& b)
+    {
+        Map* map = owner->GetMap();
+        if (!map)
+            return true;
+
+        float const heightOffset = std::max(owner->GetCollisionHeight(), 0.5f);
+        uint32 const phase = owner->GetPhaseMask();
+        if (!map->isInLineOfSight(a.x, a.y, a.z + heightOffset, b.x, b.y, b.z + heightOffset,
+                phase, LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
+            return true;
+
+        float rx, ry, rz;
+        if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
+            return true;
+
+        float const collisionHeight = owner->GetCollisionHeight();
+        bool const swimmable =
+            owner->CanSwim() &&
+            map->IsInWater(phase, a.x, a.y, a.z, collisionHeight) &&
+            map->IsInWater(phase, b.x, b.y, b.z, collisionHeight);
+        if (!swimmable && !PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, collisionHeight))
+            return true;
+
+        return false;
+    }
+
+    // Lateral slide around a blocked micro-segment, mirroring
+    // MoveSplineInit::TryDetourAroundBlockage radii.
+    bool HomeSlideAround(Creature* owner, G3D::Vector3 const& from, G3D::Vector3 const& sample, G3D::Vector3 const& to, G3D::Vector3& out)
+    {
+        G3D::Vector3 dir(to.x - from.x, to.y - from.y, 0.0f);
+        float const len = std::hypot(dir.x, dir.y);
+        if (len < 0.01f)
+            return false;
+        dir.x /= len;
+        dir.y /= len;
+        G3D::Vector3 const perp(-dir.y, dir.x, 0.0f);
+
+        float const base = std::max(owner->GetObjectSize(), 0.5f);
+        float const offsets[4] = { base + 0.5f, base + 1.5f, base + 3.0f, base + 5.0f };
+
+        for (uint8 i = 0; i < 4; ++i)
+            for (uint8 side = 0; side < 2; ++side)
+            {
+                float const sign = (side == 0) ? 1.0f : -1.0f;
+                G3D::Vector3 candidate(sample.x + perp.x * sign * offsets[i],
+                    sample.y + perp.y * sign * offsets[i],
+                    sample.z);
+                owner->UpdateAllowedPositionZ(candidate.x, candidate.y, candidate.z);
+                if (HomeSegmentBlocked(owner, from, candidate) || HomeSegmentBlocked(owner, candidate, to))
+                    continue;
+                out = candidate;
+                return true;
+            }
+        return false;
+    }
 }
 
 void HomeMovementGenerator<Creature>::DoInitialize(Creature* owner)
@@ -100,24 +162,79 @@ void HomeMovementGenerator<Creature>::_setTargetLocation(Creature* owner)
         }
         else if (!canStraight)
         {
-            // Gap: short hop toward home, remesh next leg.
-            float dx = _x - owner->GetPositionX();
-            float dy = _y - owner->GetPositionY();
+            // Gap: probe toward home in short grounded micro-steps so the
+            // spline tracks the hillside instead of tunneling through it.
+            // Each sub-segment is LoS + slope validated; on blockage we keep
+            // the valid prefix (slide laterally if stuck at once) and remesh
+            // the rest on the next leg.
+            float sx = owner->GetPositionX();
+            float sy = owner->GetPositionY();
+            float sz = owner->GetPositionZ();
+            owner->UpdateAllowedPositionZ(sx, sy, sz);
+            G3D::Vector3 start(sx, sy, sz);
+
+            float dx = _x - sx;
+            float dy = _y - sy;
             float dist2d = std::sqrt(dx * dx + dy * dy);
-            float hx, hy, hz = _z;
+
+            Movement::PointsArray hopPath;
+            hopPath.push_back(start);
+
             if (dist2d < 0.01f)
             {
-                hx = _x;
-                hy = _y;
+                G3D::Vector3 dest(_x, _y, _z);
+                owner->UpdateAllowedPositionZ(dest.x, dest.y, dest.z);
+                if (!HomeSegmentBlocked(owner, start, dest))
+                    hopPath.push_back(dest);
             }
             else
             {
-                float step = std::min(HOME_HOP_DIST, dist2d);
-                hx = owner->GetPositionX() + dx / dist2d * step;
-                hy = owner->GetPositionY() + dy / dist2d * step;
+                float total = std::min(HOME_HOP_DIST, dist2d);
+                dx /= dist2d;
+                dy /= dist2d;
+
+                G3D::Vector3 prev = start;
+                bool blocked = false;
+                G3D::Vector3 blockedSample = start;
+                G3D::Vector3 blockedTarget = start;
+
+                for (float t = HOME_HOP_STEP; t <= total + 0.001f; t += HOME_HOP_STEP)
+                {
+                    float step = std::min(t, total);
+                    // Lerp Z hint toward home, then snap to terrain.
+                    float hintZ = sz + (_z - sz) * (step / total);
+                    G3D::Vector3 next(sx + dx * step, sy + dy * step, hintZ);
+                    owner->UpdateAllowedPositionZ(next.x, next.y, next.z);
+
+                    if (HomeSegmentBlocked(owner, prev, next))
+                    {
+                        blocked = true;
+                        blockedSample = next;
+                        blockedTarget = G3D::Vector3(sx + dx * total, sy + dy * total, hintZ);
+                        owner->UpdateAllowedPositionZ(blockedTarget.x, blockedTarget.y, blockedTarget.z);
+                        break;
+                    }
+
+                    hopPath.push_back(next);
+                    prev = next;
+                    if (step >= total)
+                        break;
+                }
+
+                // No forward progress: slide sideways around the wall so the
+                // next leg remeshes from a sane foothold instead of zapping.
+                if (hopPath.size() < 2 && blocked)
+                {
+                    G3D::Vector3 slide = start;
+                    if (HomeSlideAround(owner, prev, blockedSample, blockedTarget, slide))
+                        hopPath.push_back(slide);
+                }
             }
-            owner->UpdateAllowedPositionZ(hx, hy, hz);
-            init.MoveTo(hx, hy, hz, false, false);
+
+            if (hopPath.size() >= 2)
+                init.MovebyPath(hopPath);
+            else
+                init.MoveTo(sx, sy, sz, false, false); // stuck: hold, remesh next leg
         }
         else
         {
