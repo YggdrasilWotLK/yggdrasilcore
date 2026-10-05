@@ -13799,12 +13799,8 @@ void Unit::CombatStartOnCast(Unit* target, bool initialAggro, uint32 duration)
             owner->SetInCombatWith(target, duration);
 
         // Direct hostile cast on a creature: bracketed extension for the caster.
-        // Caster self-reset (casting mob) uses stationary refresh so it doesn't
-        // evade inbetween casts.
         if (target->IsCreature())
             target->ToCreature()->TryExtendLeashOnDirectHit(this);
-        else if (ToCreature()) // Reset leash if it is a spell caster, else it may evade inbetween casts
-            ToCreature()->RefreshLeashOnStationaryCombat(target);
     }
 
     Unit* who = target->GetCharmerOrOwnerOrSelf();

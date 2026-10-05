@@ -157,23 +157,15 @@ bool ChaseMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
     bool isStoppedBecauseOfCasting = cOwner && cOwner->IsMovementPreventedByCasting();
 
     // the owner might be unable to move (rooted or casting), or we have lost the target, pause movement
+    // (no leash extension here: only stationary melee extends, handled below)
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || HasLostTarget(owner) || isStoppedBecauseOfCasting)
     {
         owner->StopMoving();
         _lastTargetPosition.reset();
         if (cOwner)
         {
-            if (isStoppedBecauseOfCasting)
-            {
-                // Don't refresh leash if it's a spell like Shoot with a short cast time.
-                Spell *spell = cOwner->GetFirstCurrentCastingSpell();
-                bool spellHasLongCast = spell && spell->GetCastTime() > 1 * SECOND * IN_MILLISECONDS;
-                if (spellHasLongCast && i_target.isValid())
-                    cOwner->RefreshLeashOnStationaryCombat(i_target.getTarget());
-            }
-            else if (i_target.isValid())
+            if (!isStoppedBecauseOfCasting && i_target.isValid() && cOwner->IsWithinMeleeRange(i_target.getTarget()))
                 cOwner->RefreshLeashOnStationaryCombat(i_target.getTarget());
-
             cOwner->SetCannotReachTarget();
         }
         return true;
