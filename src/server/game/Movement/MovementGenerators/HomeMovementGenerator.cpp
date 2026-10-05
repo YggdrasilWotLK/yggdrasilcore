@@ -27,7 +27,9 @@ namespace
 {
     constexpr float HOME_HOP_DIST = 20.0f;
     constexpr float HOME_HOP_STEP = 4.0f;
-    constexpr uint8 HOME_MAX_LEGS = 30;
+    // Mesh chunk for long hauls: well under the ~74-point (~296y) path cap so
+    // distant homes stay on navmesh instead of degrading to hops.
+    constexpr float HOME_MESH_CHUNK = 100.0f;
     constexpr uint8 HOME_MAX_STUCK = 5;
     constexpr uint8 HOME_AIR_SLIDE_AFTER = 2;
     constexpr uint32 HOME_RETRY_DELAY = 2000;
@@ -98,6 +100,12 @@ void HomeMovementGenerator<Creature>::DoInitialize(Creature* owner)
     _repaths = 0;
     _stuckLegs = 0;
     _waitTimer = 0;
+    // Dynamic budget: enough legs to walk home at worst-case hop pace,
+    // with margin. Long evades need more legs than short ones.
+    float hx, hy, hz, ho;
+    owner->GetHomePosition(hx, hy, hz, ho);
+    uint32 legs = 30 + uint32(owner->GetExactDist(hx, hy, hz) / HOME_HOP_DIST);
+    _maxLegs = legs > 200 ? 200 : legs < 30 ? 30 : uint8(legs);
     _setTargetLocation(owner);
 }
 
@@ -184,6 +192,33 @@ void HomeMovementGenerator<Creature>::_setTargetLocation(Creature* owner)
             float dy = _y - sy;
             float dist2d = std::sqrt(dx * dx + dy * dy);
 
+            // Long haul: the full-home calc overflowed the path cap, so walk
+            // home in mesh chunks. Aim at a grounded milestone toward home and
+            // mesh to that instead of hopping blind.
+            bool chunkDone = false;
+            if (dist2d > HOME_MESH_CHUNK)
+            {
+                float mx = sx + dx / dist2d * HOME_MESH_CHUNK;
+                float my = sy + dy / dist2d * HOME_MESH_CHUNK;
+                float mz = _z;
+                owner->UpdateAllowedPositionZ(mx, my, mz);
+                PathGenerator chunk(owner);
+                if (chunk.CalculatePath(mx, my, mz, false))
+                {
+                    PathType ctype = chunk.GetPathType();
+                    bool chunkUsable = (ctype & (PATHFIND_NORMAL | PATHFIND_INCOMPLETE))
+                        && !(ctype & (PATHFIND_NOPATH | PATHFIND_SHORTCUT | PATHFIND_SHORT | PATHFIND_NOT_USING_PATH))
+                        && chunk.GetPath().size() >= 2;
+                    if (chunkUsable)
+                    {
+                        init.MovebyPath(chunk.GetPath());
+                        chunkDone = true;
+                    }
+                }
+            }
+
+            if (!chunkDone)
+            {
             Movement::PointsArray hopPath;
             hopPath.push_back(start);
 
@@ -244,7 +279,6 @@ void HomeMovementGenerator<Creature>::_setTargetLocation(Creature* owner)
             {
                 // Failed validated hops twice: air-slide toward home in one
                 // short unvalidated 4y step, accept tunneling. Remesh next leg.
-                // NB: dx/dy above may be normalized already, recompute direction.
                 float hx = sx, hy = sy, hz = _z;
                 if (dist2d >= 0.01f)
                 {
@@ -262,6 +296,7 @@ void HomeMovementGenerator<Creature>::_setTargetLocation(Creature* owner)
             }
             else
                 init.MoveTo(sx, sy, sz, false, false); // stuck: hold, remesh next leg
+            }
         }
         else
         {
@@ -322,7 +357,7 @@ bool HomeMovementGenerator<Creature>::DoUpdate(Creature* owner, const uint32 tim
         ++_repaths;
     }
 
-    if (_repaths < HOME_MAX_LEGS && _stuckLegs < HOME_MAX_STUCK)
+    if (_repaths < _maxLegs && _stuckLegs < HOME_MAX_STUCK)
     {
         _setTargetLocation(owner);
         return true;
