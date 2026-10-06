@@ -565,6 +565,86 @@ namespace
         if (CanSmooth(unit, args, transport))
             SmoothPathForCatmullRom(unit, args, real_position);
 
+        // Player floor/wall/air routing for everything the generator vetoes skip: flyers
+        // (climb over blocked lines) and 2-point straight shots (validate, sidestep, or
+        // refuse). Ground mesh paths were already validated upstream. Charges, knockbacks,
+        // falls, swimmers, taxis and transports keep legacy behavior.
+        if (!transport && unit->IsPlayer() && !unit->HasUnitState(UNIT_STATE_CHARGING) &&
+            !unit->IsFalling() && !unit->HasUnitState(UNIT_STATE_IN_FLIGHT) && !unit->IsInWater() &&
+            !unit->IsUnderWater() && !unit->GetTransport() && !args.flags.parabolic && !args.flags.falling &&
+            !args.flags.animation && !args.flags.cyclic && args.path.size() >= 2 &&
+            (unit->CanFly() || args.path.size() == 2))
+        {
+            bool const flying = unit->CanFly();
+            auto segBlocked = [&](Vector3 const& a, Vector3 const& b) -> bool
+            {
+                if (IsSegmentBlocked(unit, a, b, !flying))
+                    return true;
+                return IsSegmentBlocked(unit, b, a, !flying);
+            };
+            auto anyBlocked = [&]() -> bool
+            {
+                for (uint32 i = 1; i < args.path.size(); ++i)
+                    if (segBlocked(args.path[i - 1], args.path[i]))
+                        return true;
+                return false;
+            };
+            if (flying)
+            {
+                float const climbs[4] = {10.0f, 20.0f, 30.0f, 50.0f};
+                for (uint32 attempt = 0; attempt < 4 && anyBlocked(); ++attempt)
+                {
+                    Vector3 const& s = args.path.front();
+                    Vector3 const& e = args.path.back();
+                    Vector3 mid((s.x + e.x) * 0.5f, (s.y + e.y) * 0.5f, (s.z + e.z) * 0.5f + climbs[attempt]);
+                    args.path.clear();
+                    args.path.push_back(s);
+                    args.path.push_back(mid);
+                    args.path.push_back(e);
+                }
+                if (anyBlocked())
+                    return 0;
+            }
+            else
+            {
+                Vector3 const a = args.path[0];
+                Vector3 const b = args.path[1];
+                if (segBlocked(a, b))
+                {
+                    float dx = b.x - a.x, dy = b.y - a.y;
+                    float len = std::hypot(dx, dy);
+                    bool fixed = false;
+                    if (len >= 0.01f)
+                    {
+                        float nx = -dy / len, ny = dx / len;
+                        for (float r : {1.5f, 3.0f, 5.0f})
+                        {
+                            for (float side : {1.0f, -1.0f})
+                            {
+                                Vector3 c((a.x + b.x) * 0.5f + nx * side * r,
+                                                  (a.y + b.y) * 0.5f + ny * side * r,
+                                                  (a.z + b.z) * 0.5f);
+                                c.z = SnapControlPointZ(unit, c.x, c.y, c.z);
+                                if (!segBlocked(a, c) && !segBlocked(c, b))
+                                {
+                                    args.path.clear();
+                                    args.path.push_back(a);
+                                    args.path.push_back(c);
+                                    args.path.push_back(b);
+                                    fixed = true;
+                                    break;
+                                }
+                            }
+                            if (fixed)
+                                break;
+                        }
+                    }
+                    if (!fixed)
+                        return 0;
+                }
+            }
+        }
+
         uint32 moveFlags = unit->m_movementInfo.GetMovementFlags();
         moveFlags |= MOVEMENTFLAG_SPLINE_ENABLED;
 
@@ -709,6 +789,13 @@ namespace
                 MovebyPath(path.GetPath());
                 return;
             }
+            // No mesh path for a grounded player: stay instead of shortcutting straight
+            // through floors/walls. (CalculatePath already vetoed and repaired what it
+            // could; this only triggers on NOPATH/invalid.)
+            if (unit->IsPlayer() && !unit->CanFly() && !unit->IsFalling() &&
+                !unit->HasUnitState(UNIT_STATE_IN_FLIGHT) && !unit->IsInWater() &&
+                !unit->IsUnderWater() && !unit->GetTransport())
+                return;
         }
 
         args.path_Idx_offset = 0;

@@ -57,7 +57,8 @@ void PointMovementGenerator<T>::DoInitialize(T* unit)
     {
         PathGenerator path(unit);
         bool result = path.CalculatePath(i_x, i_y, i_z, _forceDestination);
-        if (result && !(path.GetPathType() & PATHFIND_NOPATH) && path.GetPath().size() > 2)
+        if (result && !(path.GetPathType() & PATHFIND_NOPATH) && path.GetPath().size() > 2 &&
+            path.ValidatePlayerMove())
         {
             m_precomputedPath = path.GetPath();
             init.MovebyPath(m_precomputedPath);

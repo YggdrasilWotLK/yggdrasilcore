@@ -91,6 +91,12 @@ class PathGenerator
 
         [[nodiscard]] PathType GetPathType() const { return _type; }
 
+        // Core floor/wall routing for player ground/air movement: true when the computed
+        // path may be driven, rewriting it when needed -- climb-over detour for flyers,
+        // lateral sidestep repair for phantom mesh segments on the ground. False = stop,
+        // never drive. Always true for non-players, falling/swimming units, transports.
+        bool ValidatePlayerMove();
+
         // shortens the path until the destination is the specified distance from the target point
         void ShortenPathUntilDist(G3D::Vector3 const& point, float dist);
 
