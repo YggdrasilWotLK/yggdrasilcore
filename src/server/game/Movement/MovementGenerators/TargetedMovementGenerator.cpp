@@ -162,9 +162,39 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
     if (owner->IsHovering())
         owner->UpdateAllowedPositionZ(x, y, z);
 
+    if (owner->IsPlayer())
+    {
+        float dx = x - owner->GetPositionX(), dy = y - owner->GetPositionY();
+        float dist2d = std::sqrt(dx * dx + dy * dy);
+        if (dist2d > FOLLOW_MESH_CHUNK)
+        {
+            x = owner->GetPositionX() + dx / dist2d * FOLLOW_MESH_CHUNK;
+            y = owner->GetPositionY() + dy / dist2d * FOLLOW_MESH_CHUNK;
+            owner->UpdateAllowedPositionZ(x, y, z);
+        }
+    }
+
     bool success = i_path->CalculatePath(x, y, z, forceDest);
     if (!success || i_path->GetPathType() & PATHFIND_NOPATH)
     {
+        if (!cOwner)
+        {
+            Movement::PointsArray hopPath;
+            if (!owner->CanFly() && !owner->IsInWater() && !owner->IsUnderWater() &&
+                BuildFollowHopPrefix(owner, x, y, z, hopPath))
+            {
+                owner->AddUnitState(UNIT_STATE_CHASE_MOVE);
+                i_recalculateTravel = true;
+                Movement::MoveSplineInit init(owner);
+                init.MovebyPath(hopPath);
+                if (target)
+                    init.SetFacing(i_target.getTarget());
+                init.SetWalk(walk);
+                init.Launch();
+                return false;
+            }
+        }
+
         if (cOwner)
         {
             cOwner->SetCannotReachTarget(i_target.getTarget()->GetGUID());
@@ -176,6 +206,24 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
 
     if (!i_path->ValidatePlayerMove())
     {
+        if (!cOwner)
+        {
+            Movement::PointsArray hopPath;
+            if (!owner->CanFly() && !owner->IsInWater() && !owner->IsUnderWater() &&
+                BuildFollowHopPrefix(owner, x, y, z, hopPath))
+            {
+                owner->AddUnitState(UNIT_STATE_CHASE_MOVE);
+                i_recalculateTravel = true;
+                Movement::MoveSplineInit init(owner);
+                init.MovebyPath(hopPath);
+                if (target)
+                    init.SetFacing(i_target.getTarget());
+                init.SetWalk(walk);
+                init.Launch();
+                return false;
+            }
+        }
+
         if (cOwner)
         {
             cOwner->SetCannotReachTarget(i_target.getTarget()->GetGUID());
