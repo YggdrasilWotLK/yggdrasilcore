@@ -10490,6 +10490,7 @@ bool Player::ActivateTaxiPathTo(uint32 taxi_path_id, uint32 spellid /*= 1*/)
 
 void Player::CleanupAfterTaxiFlight()
 {
+    ClearUnitState(UNIT_STATE_IN_FLIGHT);
     // For spells that trigger flying paths remove them at arrival
     if (m_flightSpellActivated)
     {
@@ -10500,6 +10501,9 @@ void Player::CleanupAfterTaxiFlight()
     Dismount();
     RemoveUnitFlag(UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);
     getHostileRefMgr().setOnlineOfflineState(true);
+    uint32 zone, area;
+    GetZoneAndAreaId(zone, area);
+    UpdateZone(zone, area);
 }
 
 void Player::ContinueTaxiFlight()
