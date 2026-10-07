@@ -100,6 +100,14 @@ void Player::Update(uint32 p_time)
 
     UpdateAfkReport(now);
 
+    // Channel updates run on a 5s cadence instead of every zone change, so
+    // border crossings collapse into the latest zone.
+    static std::atomic<uint32> lastChannelTick{ 0 };
+    uint32 tickMs = lastChannelTick.load(std::memory_order_relaxed);
+    uint32 nowMs = getMSTime();
+    if (nowMs - tickMs >= 5000 && lastChannelTick.compare_exchange_strong(tickMs, nowMs))
+        UpdateLocalChannels(m_zoneUpdateId);
+
     // Xinef: update charm AI only if we are controlled by creature or
     // non-posses player charm
     if (IsCharmed() && !HasUnitFlag(UNIT_FLAG_POSSESSED))
@@ -1396,10 +1404,6 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea, bool force)
     // check some item equip limitations (in result lost CanTitanGrip at talent
     // reset, for example)
     AutoUnequipOffhandIfNeed();
-
-    // recent client version not send leave/join channel packets for built-in
-    // local channels
-    UpdateLocalChannels(newZone);
 
     UpdateZoneDependentAuras(newZone);
 }
