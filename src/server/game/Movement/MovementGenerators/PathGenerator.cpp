@@ -162,7 +162,7 @@ dtPolyRef PathGenerator::GetPolyByLocation(float const* point, float* distance) 
 bool PathGenerator::ValidatePlayerMove()
 {
     Unit const* unit = _source ? _source->ToUnit() : nullptr;
-    if (!unit || !unit->IsPlayer())
+    if (!unit || (!unit->IsPlayer() && !unit->IsPet() && !unit->IsGuardian()))
         return true;
     if (unit->IsFalling() || unit->HasUnitState(UNIT_STATE_IN_FLIGHT))
         return true;
