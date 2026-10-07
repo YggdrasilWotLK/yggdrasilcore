@@ -51,10 +51,12 @@ void GuardAI::EnterEvadeMode(EvadeReason /*why*/)
     me->RemoveAllAuras();
     me->GetThreatMgr().ClearAllThreat();
     me->CombatStop(true);
+    me->ClearLastLeashExtensionTimePtr();
 
-    // Remove ChaseMovementGenerator from MotionMaster stack list, and add HomeMovementGenerator instead
-    if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
-        me->GetMotionMaster()->MoveTargetedHome();
+    me->AddUnitState(UNIT_STATE_EVADE);
+    me->GetMotionMaster()->MoveTargetedHome();
+
+    Reset();
 }
 
 void GuardAI::JustDied(Unit* killer)
