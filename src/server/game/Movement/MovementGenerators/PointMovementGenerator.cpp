@@ -24,6 +24,8 @@
 #include "Player.h"
 #include "World.h"
 
+constexpr float POINT_PATH_CHUNK = 150.0f;
+
 //----- Point Movement Generator
 template<class T>
 void PointMovementGenerator<T>::DoInitialize(T* unit)
@@ -55,8 +57,21 @@ void PointMovementGenerator<T>::DoInitialize(T* unit)
         init.MovebyPath(m_precomputedPath);
     else if (_generatePath)
     {
+        float destX = i_x, destY = i_y, destZ = i_z;
+        if (unit->IsPlayer())
+        {
+            float dx = destX - unit->GetPositionX(), dy = destY - unit->GetPositionY();
+            float dist2d = std::sqrt(dx * dx + dy * dy);
+            if (dist2d > POINT_PATH_CHUNK)
+            {
+                destX = unit->GetPositionX() + dx / dist2d * POINT_PATH_CHUNK;
+                destY = unit->GetPositionY() + dy / dist2d * POINT_PATH_CHUNK;
+                unit->UpdateAllowedPositionZ(destX, destY, destZ);
+            }
+        }
+
         PathGenerator path(unit);
-        bool result = path.CalculatePath(i_x, i_y, i_z, _forceDestination);
+        bool result = path.CalculatePath(destX, destY, destZ, _forceDestination);
         if (result && !(path.GetPathType() & PATHFIND_NOPATH) && path.GetPath().size() > 2 &&
             path.ValidatePlayerMove())
         {

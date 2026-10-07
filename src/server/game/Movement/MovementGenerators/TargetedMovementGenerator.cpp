@@ -18,11 +18,69 @@
 #include "TargetedMovementGenerator.h"
 #include "Creature.h"
 #include "CreatureAI.h"
+#include "Map.h"
 #include "MoveSplineInit.h"
 #include "Pet.h"
 #include "Player.h"
 #include "Spell.h"
 #include "Transport.h"
+
+constexpr float FOLLOW_MESH_CHUNK = 150.0f;
+constexpr float FOLLOW_HOP_DIST = 40.0f;
+constexpr float FOLLOW_HOP_STEP = 4.0f;
+
+static bool FollowHopBlocked(Unit const* owner, G3D::Vector3 const& a, G3D::Vector3 const& b)
+{
+    Map* map = owner->GetMap();
+    if (!map)
+        return true;
+    float const heightOffset = std::max(owner->GetCollisionHeight(), 0.5f);
+    uint32 const phase = owner->GetPhaseMask();
+    if (!map->isInLineOfSight(a.x, a.y, a.z + heightOffset, b.x, b.y, b.z + heightOffset,
+            phase, LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
+        return true;
+    float rx, ry, rz;
+    if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
+        return true;
+    if (!PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, owner->GetCollisionHeight()))
+        return true;
+    return false;
+}
+
+static bool BuildFollowHopPrefix(Unit* owner, float x, float y, float z, Movement::PointsArray& out)
+{
+    float sx = owner->GetPositionX();
+    float sy = owner->GetPositionY();
+    float sz = owner->GetPositionZ();
+    owner->UpdateAllowedPositionZ(sx, sy, sz);
+    G3D::Vector3 start(sx, sy, sz);
+
+    float dx = x - sx;
+    float dy = y - sy;
+    float dist2d = std::sqrt(dx * dx + dy * dy);
+    if (dist2d < 0.01f)
+        return false;
+    float total = std::min(FOLLOW_HOP_DIST, dist2d);
+    dx /= dist2d;
+    dy /= dist2d;
+
+    out.push_back(start);
+    G3D::Vector3 prev = start;
+    for (float t = FOLLOW_HOP_STEP; t <= total + 0.001f; t += FOLLOW_HOP_STEP)
+    {
+        float step = std::min(t, total);
+        float hintZ = sz + (z - sz) * (step / total);
+        G3D::Vector3 next(sx + dx * step, sy + dy * step, hintZ);
+        owner->UpdateAllowedPositionZ(next.x, next.y, next.z);
+        if (FollowHopBlocked(owner, prev, next))
+            break;
+        out.push_back(next);
+        prev = next;
+        if (step >= total)
+            break;
+    }
+    return out.size() >= 2;
+}
 
 static bool IsMutualChase(Unit* owner, Unit* target)
 {
@@ -104,9 +162,39 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
     if (owner->IsHovering())
         owner->UpdateAllowedPositionZ(x, y, z);
 
+    if (owner->IsPlayer())
+    {
+        float dx = x - owner->GetPositionX(), dy = y - owner->GetPositionY();
+        float dist2d = std::sqrt(dx * dx + dy * dy);
+        if (dist2d > FOLLOW_MESH_CHUNK)
+        {
+            x = owner->GetPositionX() + dx / dist2d * FOLLOW_MESH_CHUNK;
+            y = owner->GetPositionY() + dy / dist2d * FOLLOW_MESH_CHUNK;
+            owner->UpdateAllowedPositionZ(x, y, z);
+        }
+    }
+
     bool success = i_path->CalculatePath(x, y, z, forceDest);
     if (!success || i_path->GetPathType() & PATHFIND_NOPATH)
     {
+        if (!cOwner)
+        {
+            Movement::PointsArray hopPath;
+            if (!owner->CanFly() && !owner->IsInWater() && !owner->IsUnderWater() &&
+                BuildFollowHopPrefix(owner, x, y, z, hopPath))
+            {
+                owner->AddUnitState(UNIT_STATE_CHASE_MOVE);
+                i_recalculateTravel = true;
+                Movement::MoveSplineInit init(owner);
+                init.MovebyPath(hopPath);
+                if (target)
+                    init.SetFacing(i_target.getTarget());
+                init.SetWalk(walk);
+                init.Launch();
+                return false;
+            }
+        }
+
         if (cOwner)
         {
             cOwner->SetCannotReachTarget(i_target.getTarget()->GetGUID());
@@ -118,6 +206,24 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
 
     if (!i_path->ValidatePlayerMove())
     {
+        if (!cOwner)
+        {
+            Movement::PointsArray hopPath;
+            if (!owner->CanFly() && !owner->IsInWater() && !owner->IsUnderWater() &&
+                BuildFollowHopPrefix(owner, x, y, z, hopPath))
+            {
+                owner->AddUnitState(UNIT_STATE_CHASE_MOVE);
+                i_recalculateTravel = true;
+                Movement::MoveSplineInit init(owner);
+                init.MovebyPath(hopPath);
+                if (target)
+                    init.SetFacing(i_target.getTarget());
+                init.SetWalk(walk);
+                init.Launch();
+                return false;
+            }
+        }
+
         if (cOwner)
         {
             cOwner->SetCannotReachTarget(i_target.getTarget()->GetGUID());
@@ -571,6 +677,11 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
             }
 
             owner->SetFacingTo(target->GetOrientation());
+
+            float const arrivedDist = owner->GetDistance2d(target);
+            float const followTol = _range + owner->GetCombatReach() + target->GetCombatReach() + 5.0f;
+            if (arrivedDist > followTol)
+                _lastTargetPosition.reset();
         }
     }
     else
@@ -605,12 +716,47 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         float x, y, z;
         targetPosition.GetPosition(x, y, z);
 
+        // Beyond the ~74-poly path cap the calc degrades to a shortcut the
+        // player gates veto, so mesh toward a milestone and repath next leg.
+        {
+            float dx = x - owner->GetPositionX(), dy = y - owner->GetPositionY();
+            float dist2d = std::sqrt(dx * dx + dy * dy);
+            if (dist2d > FOLLOW_MESH_CHUNK)
+            {
+                x = owner->GetPositionX() + dx / dist2d * FOLLOW_MESH_CHUNK;
+                y = owner->GetPositionY() + dy / dist2d * FOLLOW_MESH_CHUNK;
+                owner->UpdateAllowedPositionZ(x, y, z);
+            }
+        }
+
         if (owner->IsHovering())
             owner->UpdateAllowedPositionZ(x, y, z);
+
+        auto tryHopPrefix = [&]() -> bool
+        {
+            Movement::PointsArray hopPath;
+            if (owner->CanFly() || owner->IsInWater() || owner->IsUnderWater())
+                return false;
+            if (!BuildFollowHopPrefix(owner, x, y, z, hopPath))
+                return false;
+            owner->AddUnitState(UNIT_STATE_FOLLOW_MOVE);
+            Movement::MoveSplineInit init(owner);
+            init.MovebyPath(hopPath);
+            if (_inheritWalkState)
+                init.SetWalk(target->IsWalking() || target->movespline->isWalking());
+            if (_inheritSpeed)
+                if (Optional<float> velocity = GetVelocity(owner, target, hopPath.back(), owner->IsGuardian()))
+                    init.SetVelocity(*velocity);
+            init.Launch();
+            return true;
+        };
 
         bool success = i_path->CalculatePath(x, y, z, forceDest);
         if (!success || (i_path->GetPathType() & PATHFIND_NOPATH && !followingMaster))
         {
+            if (tryHopPrefix())
+                return true;
+
             if (!owner->IsStopped())
                 owner->StopMoving();
 
@@ -619,6 +765,9 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
 
         if (!i_path->ValidatePlayerMove())
         {
+            if (tryHopPrefix())
+                return true;
+
             if (!owner->IsStopped())
                 owner->StopMoving();
 
