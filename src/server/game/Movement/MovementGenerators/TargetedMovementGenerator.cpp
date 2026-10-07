@@ -658,7 +658,7 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
     }
 
     bool forceDest =
-        (followingMaster && target->IsFalling()) ||
+        (followingMaster && target->isMoving()) ||
         (i_target->IsPlayer() && i_target->ToPlayer()->IsGameMaster()) // for .npc follow
         ; // closes "bool forceDest", that way it is more appropriate, so we can comment out crap whenever we need to
 
@@ -763,7 +763,7 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
             return true;
         }
 
-        if (!i_path->ValidatePlayerMove())
+        if (!i_path->ValidatePlayerMove() && !(followingMaster && target->isMoving()))
         {
             if (tryHopPrefix())
                 return true;
