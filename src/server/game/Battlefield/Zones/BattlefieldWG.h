@@ -395,6 +395,11 @@ public:
     void RemoveUpdateTenacity(Player* player);
     void ProcessEvent(WorldObject* obj, uint32 eventId) override;
 
+    // Indexed by TeamId. Stored in worldstates 3805/3806.
+    void LoadLossStreak();
+    void SaveLossStreak();
+    void CompoundLossStreak(bool endByTimer);
+
     bool FindAndRemoveVehicleFromList(Unit* vehicle);
 
     // returns the graveyardId in the specified area.
@@ -451,6 +456,7 @@ protected:
     int32 m_tenacityStack;
     uint32 m_tenacityUpdateTimer;
     uint32 m_saveTimer;
+    uint32 m_lossStreak[PVP_TEAMS_COUNT];
 
     ObjectGuid m_titansRelic;
 };
