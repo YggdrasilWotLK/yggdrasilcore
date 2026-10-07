@@ -40,4 +40,4 @@ Authors from 2016 are available in our Git history. For information prior to 201
 ## License
 
 - Source: Contrary to some of the source documentation and previous information distributed by AzerothCore, all Yggdrasilcore source components are licensed under GNU GPL v2. 
-- Intellectual property: Yggdrasilcore is not related to Blizzard Entertainment. Yggdrasil WoW and its derivative projects lay no claim to Blizzard Entertainment's copyrights and intellectual property, and operate this project solely as an avenue for exploring the functionality of the abandonware WotLK 3.3.5a in an educational capacity.
+- Intellectual property: Yggdrasilcore is not related to Blizzard Entertainment. Yggdrasil WoW and its derivative projects lay no claim to Blizzard Entertainment's copyrights and intellectual property, and operate this project solely as an avenue for exploring the functionality of the abandonware WotLK 3.3.5a client in an educational capacity.
