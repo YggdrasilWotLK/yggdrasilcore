@@ -629,6 +629,11 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
             }
 
             owner->SetFacingTo(target->GetOrientation());
+
+            float const arrivedDist = owner->GetDistance2d(target);
+            float const followTol = _range + owner->GetCombatReach() + target->GetCombatReach() + 5.0f;
+            if (arrivedDist > followTol)
+                _lastTargetPosition.reset();
         }
     }
     else
@@ -679,24 +684,30 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         if (owner->IsHovering())
             owner->UpdateAllowedPositionZ(x, y, z);
 
+        auto tryHopPrefix = [&]() -> bool
+        {
+            Movement::PointsArray hopPath;
+            if (owner->CanFly() || owner->IsInWater() || owner->IsUnderWater())
+                return false;
+            if (!BuildFollowHopPrefix(owner, x, y, z, hopPath))
+                return false;
+            owner->AddUnitState(UNIT_STATE_FOLLOW_MOVE);
+            Movement::MoveSplineInit init(owner);
+            init.MovebyPath(hopPath);
+            if (_inheritWalkState)
+                init.SetWalk(target->IsWalking() || target->movespline->isWalking());
+            if (_inheritSpeed)
+                if (Optional<float> velocity = GetVelocity(owner, target, hopPath.back(), owner->IsGuardian()))
+                    init.SetVelocity(*velocity);
+            init.Launch();
+            return true;
+        };
+
         bool success = i_path->CalculatePath(x, y, z, forceDest);
         if (!success || (i_path->GetPathType() & PATHFIND_NOPATH && !followingMaster))
         {
-            Movement::PointsArray hopPath;
-            if (!owner->CanFly() && !owner->IsInWater() && !owner->IsUnderWater() &&
-                BuildFollowHopPrefix(owner, x, y, z, hopPath))
-            {
-                owner->AddUnitState(UNIT_STATE_FOLLOW_MOVE);
-                Movement::MoveSplineInit init(owner);
-                init.MovebyPath(hopPath);
-                if (_inheritWalkState)
-                    init.SetWalk(target->IsWalking() || target->movespline->isWalking());
-                if (_inheritSpeed)
-                    if (Optional<float> velocity = GetVelocity(owner, target, hopPath.back(), owner->IsGuardian()))
-                        init.SetVelocity(*velocity);
-                init.Launch();
+            if (tryHopPrefix())
                 return true;
-            }
 
             if (!owner->IsStopped())
                 owner->StopMoving();
@@ -706,6 +717,9 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
 
         if (!i_path->ValidatePlayerMove())
         {
+            if (tryHopPrefix())
+                return true;
+
             if (!owner->IsStopped())
                 owner->StopMoving();
 
