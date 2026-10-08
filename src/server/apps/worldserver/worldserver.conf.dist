@@ -3559,6 +3559,13 @@ Wintergrasp.NoBattleTimer = 150
 Wintergrasp.CrashRestartTimer = 10
 
 #
+#     Wintergrasp.TenacityLossStreak
+#         Description: Offset Wintergrasp Tenacity stacks with the win/loss streak.
+#         Default:     1
+
+Wintergrasp.TenacityLossStreak = 1
+
+#
 ###################################################################################################
 
 ###################################################################################################

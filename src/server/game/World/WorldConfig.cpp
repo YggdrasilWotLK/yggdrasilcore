@@ -587,6 +587,7 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<uint32>(CONFIG_WINTERGRASP_BATTLETIME, "Wintergrasp.BattleTimer", 30);
     SetConfigValue<uint32>(CONFIG_WINTERGRASP_NOBATTLETIME, "Wintergrasp.NoBattleTimer", 150);
     SetConfigValue<uint32>(CONFIG_WINTERGRASP_RESTART_AFTER_CRASH, "Wintergrasp.CrashRestartTimer", 10);
+    SetConfigValue<bool>(CONFIG_WINTERGRASP_TENACITY_LOSS_STREAK, "Wintergrasp.TenacityLossStreak", true);
 
     SetConfigValue<uint32>(CONFIG_BIRTHDAY_TIME, "BirthdayTime", 1222964635);
     SetConfigValue<bool>(CONFIG_MINIGOB_MANABONK, "Minigob.Manabonk.Enable", true);

@@ -78,6 +78,8 @@ bool BattlefieldWG::SetupBattlefield()
 
     m_saveTimer = 60000;
 
+    LoadLossStreak();
+
     // Init Graveyards
     SetGraveyardNumber(BATTLEFIELD_WG_GRAVEYARD_MAX);
 
@@ -488,6 +490,8 @@ void BattlefieldWG::OnBattleEnd(bool endByTimer)
     m_PlayersInWar[TEAM_ALLIANCE].clear();
     m_PlayersInWar[TEAM_HORDE].clear();
 
+    CompoundLossStreak(endByTimer);
+
     if (!endByTimer) // win alli/horde
     {
         uint32 const worldStateId = GetDefenderTeam() == TEAM_ALLIANCE ? WORLD_STATE_BATTLEFIELD_WG_ALLIANCE_KEEP_CAPTURED : WORLD_STATE_BATTLEFIELD_WG_HORDE_KEEP_CAPTURED;
@@ -602,6 +606,7 @@ void BattlefieldWG::OnCreatureCreate(Creature* creature)
                             UpdateData(BATTLEFIELD_WG_DATA_VEHICLE_H, 1);
                             creature->CastSpell(creature, SPELL_HORDE_FLAG, true);
                             m_vehicles[team].insert(creature->GetGUID());
+                            m_updateTenacityList.insert(creature->GetGUID());
                             UpdateVehicleCountWG();
                         }
                         else
@@ -617,6 +622,7 @@ void BattlefieldWG::OnCreatureCreate(Creature* creature)
                             UpdateData(BATTLEFIELD_WG_DATA_VEHICLE_A, 1);
                             creature->CastSpell(creature, SPELL_ALLIANCE_FLAG, true);
                             m_vehicles[team].insert(creature->GetGUID());
+                            m_updateTenacityList.insert(creature->GetGUID());
                             UpdateVehicleCountWG();
                         }
                         else
@@ -1172,11 +1178,24 @@ void BattlefieldWG::UpdateTenacity()
             newStack = int32((1.0f - ((float)alliancePlayers / hordePlayers)) * 4.0f);  // negative, should cast on horde
     }
 
-    // Return if no change in stack and apply tenacity to new player
+    // Losing streak adds bonus stacks, capped at 20.
+    bool useStreak = sWorld->getBoolConfig(CONFIG_WINTERGRASP_TENACITY_LOSS_STREAK);
+    if (useStreak && alliancePlayers && !hordePlayers)
+        newStack = std::min<int32>(int32(m_lossStreak[TEAM_ALLIANCE]), 20);
+    else if (useStreak && hordePlayers && !alliancePlayers)
+        newStack = -std::min<int32>(int32(m_lossStreak[TEAM_HORDE]), 20);
+    else if (useStreak && newStack > 0)
+        newStack = std::min<int32>(newStack + int32(m_lossStreak[TEAM_ALLIANCE]), 20);
+    else if (useStreak && newStack < 0)
+        newStack = -std::min<int32>(-newStack + int32(m_lossStreak[TEAM_HORDE]), 20);
+
+    // Return if no change in stack and apply tenacity to newcomers
     if (newStack == m_tenacityStack)
     {
         for (GuidUnorderedSet::const_iterator itr = m_updateTenacityList.begin(); itr != m_updateTenacityList.end(); ++itr)
+        {
             if (Player* newPlayer = ObjectAccessor::FindPlayer(*itr))
+            {
                 if ((newPlayer->GetTeamId() == TEAM_ALLIANCE && m_tenacityStack > 0) || (newPlayer->GetTeamId() == TEAM_HORDE && m_tenacityStack < 0))
                 {
                     newStack = std::min(std::abs(newStack), 20);
@@ -1185,6 +1204,15 @@ void BattlefieldWG::UpdateTenacity()
                     if (buff_honor)
                         newPlayer->CastSpell(newPlayer, buff_honor, true);
                 }
+            }
+            else if (Creature* vehicle = GetCreature(*itr))
+            {
+                for (uint8 t = 0; t < PVP_TEAMS_COUNT; ++t)
+                    if (m_vehicles[t].find(vehicle->GetGUID()) != m_vehicles[t].end())
+                        if ((t == TEAM_ALLIANCE && m_tenacityStack > 0) || (t == TEAM_HORDE && m_tenacityStack < 0))
+                            vehicle->SetAuraStack(SPELL_TENACITY_VEHICLE, vehicle, std::min(std::abs(m_tenacityStack), 20));
+            }
+        }
         return;
     }
 
@@ -1232,6 +1260,41 @@ void BattlefieldWG::UpdateTenacity()
                     creature->CastSpell(creature, buff_honor, true);
             }
     }
+}
+
+void BattlefieldWG::LoadLossStreak()
+{
+    m_lossStreak[TEAM_ALLIANCE] = uint32(sWorldState->getWorldState(WORLD_STATE_BATTLEFIELD_WG_LOSS_STREAK_ALLIANCE));
+    m_lossStreak[TEAM_HORDE] = uint32(sWorldState->getWorldState(WORLD_STATE_BATTLEFIELD_WG_LOSS_STREAK_HORDE));
+    LOG_INFO("bg.battlefield", "WG: Restored loss streak: Alliance={} Horde={}",
+        m_lossStreak[TEAM_ALLIANCE], m_lossStreak[TEAM_HORDE]);
+}
+
+void BattlefieldWG::SaveLossStreak()
+{
+    sWorldState->setWorldState(WORLD_STATE_BATTLEFIELD_WG_LOSS_STREAK_ALLIANCE, m_lossStreak[TEAM_ALLIANCE]);
+    sWorldState->setWorldState(WORLD_STATE_BATTLEFIELD_WG_LOSS_STREAK_HORDE, m_lossStreak[TEAM_HORDE]);
+}
+
+void BattlefieldWG::CompoundLossStreak(bool endByTimer)
+{
+    // EndBattle() flips the defender to the attacker on relic capture
+    // (!endByTimer), so defender change == attacker victory.
+    if (!endByTimer)
+    {
+        m_lossStreak[TEAM_ALLIANCE] = 0;
+        m_lossStreak[TEAM_HORDE] = 0;
+        LOG_INFO("bg.battlefield", "WG: Defender changed. Loss streaks reset.");
+    }
+    else
+    {
+        TeamId loser = GetAttackerTeam();
+        m_lossStreak[loser]++;
+        m_lossStreak[GetDefenderTeam()] = 0;
+        LOG_INFO("bg.battlefield", "WG: Defenders held. Loser streak: {}={}",
+            loser == TEAM_ALLIANCE ? "Alliance" : "Horde", m_lossStreak[loser]);
+    }
+    SaveLossStreak();
 }
 
 WintergraspCapturePoint::WintergraspCapturePoint(BattlefieldWG* battlefield, TeamId teamInControl) : BfCapturePoint(battlefield)
