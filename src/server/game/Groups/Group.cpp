@@ -319,6 +319,8 @@ void Group::ConvertToRaid()
 
 bool Group::AddInvite(Player* player)
 {
+    if (m_disbanded)
+        return false;
     if (!player || player->GetGroupInvite())
         return false;
     Group* group = player->GetGroup();
@@ -350,6 +352,8 @@ bool Group::AddLeaderInvite(Player* player)
 
 void Group::RemoveInvite(Player* player)
 {
+    if (m_disbanded)
+        return;
     if (player)
     {
         if (!m_invitees.empty())
@@ -360,6 +364,8 @@ void Group::RemoveInvite(Player* player)
 
 void Group::RemoveAllInvites()
 {
+    if (m_disbanded)
+        return;
     for (InvitesList::iterator itr = m_invitees.begin(); itr != m_invitees.end(); ++itr)
         if (*itr)
             (*itr)->SetGroupInvite(nullptr);
@@ -389,6 +395,8 @@ Player* Group::GetInvited(const std::string& name) const
 
 bool Group::AddMember(Player* player)
 {
+    if (m_disbanded)
+        return false;
     if (!player)
         return false;
 
@@ -545,6 +553,14 @@ bool Group::AddMember(Player* player)
 
 bool Group::RemoveMember(ObjectGuid guid, const RemoveMethod& method /*= GROUP_REMOVEMETHOD_DEFAULT*/, ObjectGuid kicker /*= ObjectGuid::Empty*/, const char* reason /*= nullptr*/)
 {
+    if (m_disbanded)
+        return false;
+
+    ObjectGuid::LowType selfId = m_guid.GetCounter();
+    if (Group* registered = sGroupMgr->GetGroupByGUID(selfId))
+        if (registered != this)
+            return false; // stale pointer: another group owns this id
+
     BroadcastGroupUpdate();
 
     // LFG group vote kick handled in scripts
@@ -580,14 +596,16 @@ bool Group::RemoveMember(ObjectGuid guid, const RemoveMethod& method /*= GROUP_R
             if (method == GROUP_REMOVEMETHOD_KICK || method == GROUP_REMOVEMETHOD_KICK_LFG)
             {
                 data.Initialize(SMSG_GROUP_UNINVITE, 0);
-                player->GetSession()->SendPacket(&data);
+                if (player->GetSession())
+                    player->GetSession()->SendPacket(&data);
             }
 
             // Do we really need to send this opcode?
             data.Initialize(SMSG_GROUP_LIST, 1 + 1 + 1 + 1 + 8 + 4 + 4 + 8);
             data << uint8(0x10) << uint8(0) << uint8(0) << uint8(0);
             data << m_guid << uint32(m_counter) << uint32(0) << uint64(0);
-            player->GetSession()->SendPacket(&data);
+            if (player->GetSession())
+                player->GetSession()->SendPacket(&data);
         }
 
         // Remove player from group in DB
@@ -671,6 +689,10 @@ bool Group::RemoveMember(ObjectGuid guid, const RemoveMethod& method /*= GROUP_R
 
         sScriptMgr->OnGroupRemoveMember(this, guid, method, kicker, reason);
 
+        // Crash-proof: script may have disbanded/destroyed us (zombie).
+        if (m_disbanded)
+            return false;
+
         SendUpdate();
 
         if (!validLeader)
@@ -704,6 +726,9 @@ bool Group::RemoveMember(ObjectGuid guid, const RemoveMethod& method /*= GROUP_R
     else
     {
         sScriptMgr->OnGroupRemoveMember(this, guid, method, kicker, reason);
+        // Crash-proof: script may already have disbanded us; Disband is a no-op then.
+        if (m_disbanded)
+            return false;
         Disband();
         return false;
     }
@@ -711,6 +736,8 @@ bool Group::RemoveMember(ObjectGuid guid, const RemoveMethod& method /*= GROUP_R
 
 void Group::ChangeLeader(ObjectGuid newLeaderGuid)
 {
+    if (m_disbanded)
+        return;
     member_witerator slot = _getMemberWSlot(newLeaderGuid);
 
     if (slot == m_memberSlots.end())
@@ -752,19 +779,39 @@ void Group::ChangeLeader(ObjectGuid newLeaderGuid)
 
 void Group::Disband(bool hideDestroy /* = false */)
 {
+    // Crash-proof: never double-disband. Zombie or foreign registration => no-op.
+    // Fresh never-registered groups still disband normally.
+    ObjectGuid::LowType groupId = m_guid.GetCounter();
+    if (m_disbanded)
+        return;
+    if (Group* registered = sGroupMgr->GetGroupByGUID(groupId))
+        if (registered != this)
+            return;
+    MarkDisbanded();
+
     sScriptMgr->OnGroupDisband(this);
+
+    // Crash-proof: bail only on foreign registration; unregistered means an
+    // external destroy already ran, but our memory is alive (zombie) so cleanup
+    // below is still safe and keeps DB state consistent.
+    if (Group* reentry = sGroupMgr->GetGroupByGUID(groupId))
+        if (reentry != this)
+            return;
 
     Player* player;
     uint32 instanceId = 0;
 
-    for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+    // Crash-proof: snapshot members so SetGroup/SendPacket hooks that mutate
+    // m_memberSlots cannot invalidate our iteration.
+    std::vector<MemberSlot> members(m_memberSlots.begin(), m_memberSlots.end());
+    for (MemberSlot const& slot : members)
     {
         if (!isBGGroup() && !isBFGroup())
         {
-            sCharacterCache->ClearCharacterGroup(citr->guid);
+            sCharacterCache->ClearCharacterGroup(slot.guid);
         }
 
-        player = ObjectAccessor::FindConnectedPlayer(citr->guid);
+        player = ObjectAccessor::FindConnectedPlayer(slot.guid);
 
         if (player && !instanceId && !isBGGroup() && !isBFGroup())
         {
@@ -773,9 +820,9 @@ void Group::Disband(bool hideDestroy /* = false */)
 
         _homebindIfInstance(player);
         if (!isBGGroup() && !isBFGroup())
-            Player::ResetInstances(citr->guid, INSTANCE_RESET_GROUP_LEAVE, false);
+            Player::ResetInstances(slot.guid, INSTANCE_RESET_GROUP_LEAVE, false);
 
-        if (!player)
+        if (!player || !player->GetSession())
             continue;
 
         //we cannot call _removeMember because it would invalidate member iterator
@@ -799,26 +846,34 @@ void Group::Disband(bool hideDestroy /* = false */)
         if (!hideDestroy)
         {
             data.Initialize(SMSG_GROUP_DESTROYED, 0);
-            player->GetSession()->SendPacket(&data);
+            if (player->GetSession())
+                player->GetSession()->SendPacket(&data);
         }
 
         //we already removed player from group and in player->GetGroup() is his original group, send update
         if (Group* group = player->GetGroup())
         {
-            group->SendUpdate();
+            if (group != this && sGroupMgr->GetGroupByGUID(group->GetGUID().GetCounter()) == group)
+                group->SendUpdate();
         }
         else
         {
             data.Initialize(SMSG_GROUP_LIST, 1 + 1 + 1 + 1 + 8 + 4 + 4 + 8);
             data << uint8(0x10) << uint8(0) << uint8(0) << uint8(0);
             data << m_guid << uint32(m_counter) << uint32(0) << uint64(0);
-            player->GetSession()->SendPacket(&data);
+            if (player->GetSession())
+                player->GetSession()->SendPacket(&data);
         }
     }
     RollId.clear();
     m_memberSlots.clear();
 
-    RemoveAllInvites();
+    // Inlined RemoveAllInvites (it no-ops on zombies; disband must clear).
+    for (InvitesList::iterator itr = m_invitees.begin(); itr != m_invitees.end(); ++itr)
+        if (*itr)
+            (*itr)->SetGroupInvite(nullptr);
+
+    m_invitees.clear();
 
     if (!isBGGroup() && !isBFGroup())
     {
@@ -842,8 +897,9 @@ void Group::Disband(bool hideDestroy /* = false */)
     // Cleaning up instance saved data for gameobjects when a group is disbanded
     sInstanceSaveMgr->DeleteInstanceSavedData(instanceId);
 
-    sGroupMgr->RemoveGroup(this);
-    delete this;
+    // Crash-proof: manager owns the memory. This becomes a zombie (live, no-op)
+    // freed after the grace period; stale holders cannot UAF.
+    sGroupMgr->DestroyGroup(this);
 }
 
 /*********************************************************/
@@ -1003,6 +1059,8 @@ bool CanRollOnItem(LootItem const& item, Player const* player, Loot* loot)
 
 void Group::GroupLoot(Loot* loot, WorldObject* pLootedObject)
 {
+    if (m_disbanded || !loot || !pLootedObject)
+        return;
     std::vector<LootItem>::iterator i;
     ItemTemplate const* item;
     uint8 itemSlot = 0;
@@ -1159,6 +1217,8 @@ void Group::GroupLoot(Loot* loot, WorldObject* pLootedObject)
 
 void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
 {
+    if (m_disbanded || !loot || !lootedObject)
+        return;
     ItemTemplate const* item;
     uint8 itemSlot = 0;
     for (std::vector<LootItem>::iterator i = loot->items.begin(); i != loot->items.end(); ++i, ++itemSlot)
@@ -1310,6 +1370,8 @@ void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
 
 void Group::MasterLoot(Loot* loot, WorldObject* pLootedObject)
 {
+    if (m_disbanded || !loot || !pLootedObject)
+        return;
     LOG_DEBUG("network", "Group::MasterLoot (SMSG_LOOT_MASTER_LIST, 330)");
 
     for (std::vector<LootItem>::iterator i = loot->items.begin(); i != loot->items.end(); ++i)
@@ -1359,6 +1421,8 @@ void Group::MasterLoot(Loot* loot, WorldObject* pLootedObject)
 
 bool Group::CountRollVote(ObjectGuid playerGUID, ObjectGuid Guid, uint8 Choice)
 {
+    if (m_disbanded)
+        return false;
     Rolls::iterator rollI = GetRoll(Guid);
     if (rollI == RollId.end())
         return false;
@@ -1410,6 +1474,8 @@ bool Group::CountRollVote(ObjectGuid playerGUID, ObjectGuid Guid, uint8 Choice)
 //called when roll timer expires
 void Group::EndRoll(Loot* pLoot, Map* allowedMap)
 {
+    if (m_disbanded)
+        return;
     for (Rolls::iterator itr = RollId.begin(); itr != RollId.end();)
     {
         if ((*itr)->getLoot() == pLoot)
@@ -1424,6 +1490,8 @@ void Group::EndRoll(Loot* pLoot, Map* allowedMap)
 
 void Group::CountTheRoll(Rolls::iterator rollI, Map* allowedMap)
 {
+    if (m_disbanded)
+        return;
     Roll* roll = *rollI;
     if (!roll->isValid())                                   // is loot already deleted ?
     {
@@ -1664,15 +1732,29 @@ void Group::SendTargetIconList(WorldSession* session)
 
 void Group::SendUpdate()
 {
-    for (member_witerator witr = m_memberSlots.begin(); witr != m_memberSlots.end(); ++witr)
-        SendUpdateToPlayer(witr->guid, &(*witr));
+    if (m_disbanded)
+        return;
+    // Crash-proof: snapshot guids; SendUpdateToPlayer hooks can mutate slots.
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_memberSlots.size());
+    for (MemberSlot const& slot : m_memberSlots)
+        guids.push_back(slot.guid);
+
+    for (ObjectGuid guid : guids)
+    {
+        if (m_disbanded)
+            return;
+        SendUpdateToPlayer(guid, nullptr);
+    }
 }
 
 void Group::SendUpdateToPlayer(ObjectGuid playerGUID, MemberSlot* slot)
 {
+    if (m_disbanded)
+        return;
     Player* player = ObjectAccessor::FindConnectedPlayer(playerGUID);
 
-    if (!player || player->GetGroup() != this)
+    if (!player || !player->GetSession() || player->GetGroup() != this)
         return;
 
     // if MemberSlot wasn't provided
@@ -1707,7 +1789,7 @@ void Group::SendUpdateToPlayer(ObjectGuid playerGUID, MemberSlot* slot)
 
         Player* member = ObjectAccessor::FindConnectedPlayer(citr->guid);
 
-        uint8 onlineState = (member && !member->GetSession()->PlayerLogout()) ? MEMBER_STATUS_ONLINE : MEMBER_STATUS_OFFLINE;
+        uint8 onlineState = (member && member->GetSession() && !member->GetSession()->PlayerLogout()) ? MEMBER_STATUS_ONLINE : MEMBER_STATUS_OFFLINE;
         onlineState = onlineState | ((isBGGroup() || isBFGroup()) ? MEMBER_STATUS_PVP : 0);
 
         data << citr->name;
@@ -1735,58 +1817,98 @@ void Group::SendUpdateToPlayer(ObjectGuid playerGUID, MemberSlot* slot)
         data << uint8(m_raidDifficulty >= RAID_DIFFICULTY_10MAN_HEROIC);    // 3.3 Dynamic Raid Difficulty - 0 normal/1 heroic
     }
 
-    player->GetSession()->SendPacket(&data);
+    if (player->GetSession())
+        player->GetSession()->SendPacket(&data);
 }
 
 void Group::UpdatePlayerOutOfRange(Player* player)
 {
-    if (!player || !player->IsInWorld())
+    if (m_disbanded)
+        return;
+    if (!player || !player->IsInWorld() || !player->GetSession())
         return;
 
     WorldPacket data;
     player->GetSession()->BuildPartyMemberStatsChangedPacket(player, &data);
 
+    // Crash-proof: snapshot; SendPacket hooks can mutate the group.
+    std::vector<Player*> members;
+    members.reserve(m_memberMgr.getSize());
     for (GroupReference* itr = GetFirstMember(); itr != nullptr; itr = itr->next())
+        if (Player* member = itr->GetSource())
+            members.push_back(member);
+
+    for (Player* member : members)
     {
-        Player* member = itr->GetSource();
-        if (member && (!member->IsInMap(player) || !member->IsWithinDist(player, member->GetSightRange(player), false)))
+        if (!member || !member->GetSession())
+            continue;
+        if ((!member->IsInMap(player) || !member->IsWithinDist(player, member->GetSightRange(player), false)))
             member->GetSession()->SendPacket(&data);
     }
 }
 
 void Group::BroadcastPacket(WorldPacket const* packet, bool ignorePlayersInBGRaid, int group, ObjectGuid ignore)
 {
+    if (m_disbanded || !packet)
+        return;
+
+    // Crash-proof: snapshot; SendPacket hooks can RemoveMember/Disband.
+    struct BroadcastTarget { Player* player; uint8 subGroup; };
+    std::vector<BroadcastTarget> members;
+    members.reserve(m_memberMgr.getSize());
     for (GroupReference* itr = GetFirstMember(); itr != nullptr; itr = itr->next())
+        if (Player* player = itr->GetSource())
+            members.push_back({ player, itr->getSubGroup() });
+
+    for (BroadcastTarget const& target : members)
     {
-        Player* player = itr->GetSource();
-        if (!player || (ignore && player->GetGUID() == ignore) || (ignorePlayersInBGRaid && player->GetGroup() != this))
+        Player* player = target.player;
+        if (m_disbanded)
+            return;
+        if (!player || !player->GetSession() || (ignore && player->GetGUID() == ignore) || (ignorePlayersInBGRaid && player->GetGroup() != this))
             continue;
 
-        if (group == -1 || itr->getSubGroup() == group)
+        if (group == -1 || target.subGroup == group)
             player->GetSession()->SendPacket(packet);
     }
 }
 
 void Group::BroadcastReadyCheck(WorldPacket const* packet)
 {
+    if (m_disbanded || !packet)
+        return;
+
+    std::vector<Player*> members;
+    members.reserve(m_memberMgr.getSize());
     for (GroupReference* itr = GetFirstMember(); itr != nullptr; itr = itr->next())
+        if (Player* player = itr->GetSource())
+            members.push_back(player);
+
+    for (Player* player : members)
     {
-        Player* player = itr->GetSource();
-        if (player)
-            if (IsLeader(player->GetGUID()) || IsAssistant(player->GetGUID()))
-                player->GetSession()->SendPacket(packet);
+        if (!player || !player->GetSession())
+            continue;
+        if (IsLeader(player->GetGUID()) || IsAssistant(player->GetGUID()))
+            player->GetSession()->SendPacket(packet);
     }
 }
 
 void Group::OfflineReadyCheck()
 {
-    for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+    if (m_disbanded)
+        return;
+    // Crash-proof: snapshot guids; BroadcastReadyCheck sends can mutate the group.
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_memberSlots.size());
+    for (MemberSlot const& slot : m_memberSlots)
+        guids.push_back(slot.guid);
+
+    for (ObjectGuid guid : guids)
     {
-        Player* player = ObjectAccessor::FindConnectedPlayer(citr->guid);
-        if (!player)
+        if (!ObjectAccessor::FindConnectedPlayer(guid))
         {
             WorldPacket data(MSG_RAID_READY_CHECK_CONFIRM, 9);
-            data << citr->guid;
+            data << guid;
             data << uint8(0);
             BroadcastReadyCheck(&data);
         }
@@ -1942,7 +2064,8 @@ GroupJoinBattlegroundResult Group::CanJoinBattlegroundQueue(Battleground const* 
         return ERR_BATTLEGROUND_NONE;
 
     // get a player as reference, to compare other players' stats to (arena team id, level bracket, etc.)
-    Player* reference = GetFirstMember()->GetSource();
+    GroupReference* first = GetFirstMember();
+    Player* reference = first ? first->GetSource() : nullptr;
     if (!reference)
         return ERR_BATTLEGROUND_JOIN_FAILED;
 
@@ -2551,9 +2674,20 @@ void Group::SetDifficultyChangePrevention(DifficultyPreventionChangeType type)
 
 void Group::DoForAllMembers(std::function<void(Player*)> const& worker)
 {
+    if (m_disbanded || !worker)
+        return;
+
+    // Crash-proof: snapshot; worker can RemoveMember/Disband.
+    std::vector<Player*> members;
+    members.reserve(m_memberMgr.getSize());
     for (GroupReference* itr = GetFirstMember(); itr != nullptr; itr = itr->next())
+        if (Player* member = itr->GetSource())
+            members.push_back(member);
+
+    for (Player* member : members)
     {
-        Player* member = itr->GetSource();
+        if (m_disbanded)
+            return;
         if (!member)
             continue;
 

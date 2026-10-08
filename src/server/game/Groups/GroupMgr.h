@@ -20,6 +20,9 @@
 
 #include "Group.h"
 
+#include <utility>
+#include <vector>
+
 class GroupMgr
 {
 private:
@@ -40,12 +43,19 @@ public:
     void LoadGroups();
     void AddGroup(Group* group);
     void RemoveGroup(Group* group);
+    // Crash-proof: only the manager frees groups. Destroy unregisters, marks
+    // the group disbanded (zombie: live memory, all ops no-op) and defers the
+    // actual delete so stale holders cannot UAF. Never `delete` a Group outside.
+    void DestroyGroup(Group* group);
 
 protected:
     typedef std::vector<bool> GroupIds;
     GroupIds            _groupIds;
     ObjectGuid::LowType _nextGroupId;
     GroupContainer      GroupStore;
+    // Zombie graveyard: (group, timestamp). Swept after a grace period.
+    std::vector<std::pair<Group*, uint32>> _groupGraveyard;
+    void SweepGroupGraveyard();
 };
 
 #define sGroupMgr GroupMgr::instance()

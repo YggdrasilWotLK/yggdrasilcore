@@ -187,7 +187,17 @@ protected:
 
 public:
     Group();
+
+    // Crash-proof: after Disband/Destroy the object stays alive as a zombie
+    // until the manager frees it. Stale holders must no-op instead of UAF.
+    bool IsDisbanded() const { return m_disbanded; }
+    void MarkDisbanded() { m_disbanded = true; }
+
+private:
+    friend class GroupMgr;
     ~Group();
+
+public:
 
     // group manipulation methods
     bool   Create(Player* leader);
@@ -358,6 +368,7 @@ protected:
     uint8*              m_subGroupsCounts;
     ObjectGuid          m_guid;
     uint32              m_counter;                      // used only in SMSG_GROUP_LIST
+    bool                m_disbanded = false;            // zombie guard: set on Disband/Destroy, freed later by GroupMgr
     uint32              m_maxEnchantingLevel;
     uint8               m_lfgGroupFlags;
 

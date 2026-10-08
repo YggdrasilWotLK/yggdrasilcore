@@ -2342,7 +2342,7 @@ void Player::UninviteFromGroup()
         if (group->GetMembersCount() <= 1)                       // group has just 1 member => disband
         {
             group->Disband(true);
-            group = nullptr; // gets deleted in disband
+            group = nullptr; // destroyed by the manager (zombie freed after grace)
         }
     }
     else
@@ -2350,7 +2350,7 @@ void Player::UninviteFromGroup()
         if (group->GetInviteeCount() <= 1)
         {
             group->RemoveAllInvites();
-            delete group;
+            sGroupMgr->DestroyGroup(group);
             group = nullptr;
         }
     }

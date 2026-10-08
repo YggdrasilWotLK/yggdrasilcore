@@ -31,6 +31,8 @@ GroupMgr::~GroupMgr()
 {
     for (GroupContainer::iterator itr = GroupStore.begin(); itr != GroupStore.end(); ++itr)
         delete itr->second;
+    for (auto& entry : _groupGraveyard)
+        delete entry.first;
 }
 
 GroupMgr* GroupMgr::instance()
@@ -89,12 +91,48 @@ Group* GroupMgr::GetGroupByGUID(ObjectGuid::LowType groupId) const
 
 void GroupMgr::AddGroup(Group* group)
 {
+    if (!group || group->IsDisbanded())
+        return;
+    SweepGroupGraveyard();
     GroupStore[group->GetGUID().GetCounter()] = group;
 }
 
 void GroupMgr::RemoveGroup(Group* group)
 {
+    if (!group)
+        return;
+    SweepGroupGraveyard();
     GroupStore.erase(group->GetGUID().GetCounter());
+}
+
+// Only the manager frees groups: unregister, mark zombie, delete after grace.
+void GroupMgr::DestroyGroup(Group* group)
+{
+    if (!group)
+        return;
+    SweepGroupGraveyard();
+    for (auto const& entry : _groupGraveyard)
+        if (entry.first == group)
+            return; // already a zombie
+    GroupStore.erase(group->GetGUID().GetCounter());
+    group->MarkDisbanded();
+    _groupGraveyard.emplace_back(group, getMSTime());
+}
+
+void GroupMgr::SweepGroupGraveyard()
+{
+    static constexpr uint32 GROUP_ZOMBIE_GRACE_MS = 300000; // 5 min
+    uint32 now = getMSTime();
+    for (auto itr = _groupGraveyard.begin(); itr != _groupGraveyard.end();)
+    {
+        if (now - itr->second >= GROUP_ZOMBIE_GRACE_MS)
+        {
+            delete itr->first;
+            itr = _groupGraveyard.erase(itr);
+        }
+        else
+            ++itr;
+    }
 }
 
 void GroupMgr::LoadGroups()

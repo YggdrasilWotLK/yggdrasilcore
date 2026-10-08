@@ -25,6 +25,8 @@ GuildMgr::~GuildMgr()
 {
     for (GuildContainer::iterator itr = GuildStore.begin(); itr != GuildStore.end(); ++itr)
         delete itr->second;
+    for (auto& entry : _guildGraveyard)
+        delete entry.first;
 }
 
 GuildMgr* GuildMgr::instance()
@@ -35,12 +37,46 @@ GuildMgr* GuildMgr::instance()
 
 void GuildMgr::AddGuild(Guild* guild)
 {
+    if (!guild || guild->IsDisbanded())
+        return;
+    SweepGuildGraveyard();
     GuildStore[guild->GetId()] = guild;
 }
 
 void GuildMgr::RemoveGuild(uint32 guildId)
 {
+    SweepGuildGraveyard();
     GuildStore.erase(guildId);
+}
+
+// Only the manager frees guilds: unregister, mark zombie, delete after grace.
+void GuildMgr::DestroyGuild(Guild* guild)
+{
+    if (!guild)
+        return;
+    SweepGuildGraveyard();
+    for (auto const& entry : _guildGraveyard)
+        if (entry.first == guild)
+            return; // already a zombie
+    GuildStore.erase(guild->GetId());
+    guild->MarkDisbanded();
+    _guildGraveyard.emplace_back(guild, getMSTime());
+}
+
+void GuildMgr::SweepGuildGraveyard()
+{
+    static constexpr uint32 GUILD_ZOMBIE_GRACE_MS = 300000; // 5 min
+    uint32 now = getMSTime();
+    for (auto itr = _guildGraveyard.begin(); itr != _guildGraveyard.end();)
+    {
+        if (now - itr->second >= GUILD_ZOMBIE_GRACE_MS)
+        {
+            delete itr->first;
+            itr = _guildGraveyard.erase(itr);
+        }
+        else
+            ++itr;
+    }
 }
 
 uint32 GuildMgr::GenerateGuildId()
@@ -66,7 +102,7 @@ Guild* GuildMgr::GetGuildById(uint32 guildId) const
 Guild* GuildMgr::GetGuildByName(std::string_view guildName) const
 {
     for (auto const& [id, guild] : GuildStore)
-        if (StringEqualI(guild->GetName(), guildName))
+        if (guild && StringEqualI(guild->GetName(), guildName))
             return guild;
 
     return nullptr;
@@ -83,7 +119,7 @@ std::string GuildMgr::GetGuildNameById(uint32 guildId) const
 Guild* GuildMgr::GetGuildByLeader(ObjectGuid guid) const
 {
     for (GuildContainer::const_iterator itr = GuildStore.begin(); itr != GuildStore.end(); ++itr)
-        if (itr->second->GetLeaderGUID() == guid)
+        if (itr->second && itr->second->GetLeaderGUID() == guid)
             return itr->second;
 
     return nullptr;
@@ -395,8 +431,9 @@ void GuildMgr::LoadGuilds()
         {
             Guild* guild = itr->second;
             ++itr;
+            // Crash-proof: Destroy unregisters (no dangling store entry).
             if (guild && !guild->Validate())
-                delete guild;
+                DestroyGuild(guild);
         }
 
         LOG_INFO("server.loading", ">> Validated data of loaded guilds in {} ms", GetMSTimeDiffToNow(oldMSTime));
