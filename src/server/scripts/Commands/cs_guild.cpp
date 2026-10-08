@@ -87,7 +87,7 @@ public:
         Guild* guild = new Guild;
         if (!guild->Create(playerTarget, guildName))
         {
-            delete guild;
+            sGuildMgr->DestroyGuild(guild);
             handler->SendErrorMessage(LANG_GUILD_NOT_CREATED);
             return false;
         }

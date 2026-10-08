@@ -1107,8 +1107,25 @@ bool Guild::Create(Player* pLeader, std::string_view name)
 // Disbands guild and deletes all related data from database
 void Guild::Disband()
 {
+    uint32 selfId = m_id;
+    // Crash-proof: zombie or foreign registration => no-op. Only the manager frees.
+    // Fresh never-registered guilds still disband normally.
+    if (m_disbanded)
+        return;
+    if (Guild* registered = sGuildMgr->GetGuildById(selfId))
+        if (registered != this)
+            return;
+    MarkDisbanded();
+
     // Call scripts before guild data removed from database
     sScriptMgr->OnGuildDisband(this);
+
+    // Crash-proof: bail only on foreign registration; unregistered means an
+    // external destroy already ran, but our memory is alive (zombie) so cleanup
+    // below is still safe and keeps DB state consistent.
+    if (Guild* reentry = sGuildMgr->GetGuildById(selfId))
+        if (reentry != this)
+            return;
 
     _BroadcastEvent(GE_DISBANDED);
     // Remove all members
@@ -1152,7 +1169,8 @@ void Guild::Disband()
     trans->Append(stmt);
 
     CharacterDatabase.CommitTransaction(trans);
-    sGuildMgr->RemoveGuild(m_id);
+    // Crash-proof: manager owns the memory (zombie freed after grace period).
+    sGuildMgr->DestroyGuild(this);
 }
 
 void Guild::UpdateMemberData(Player* player, uint8 dataid, uint32 value)
@@ -1202,6 +1220,9 @@ bool Guild::SetName(std::string_view const& name)
 
 void Guild::HandleRoster(WorldSession* session)
 {
+    if (!session || !session->GetPlayer())
+        return;
+
     WorldPackets::Guild::GuildRoster roster;
 
     roster.RankData.reserve(m_ranks.size());
@@ -1249,6 +1270,9 @@ void Guild::HandleRoster(WorldSession* session)
 
 void Guild::HandleQuery(WorldSession* session)
 {
+    if (!session)
+        return;
+
     WorldPackets::Guild::QueryGuildInfoResponse response;
     response.GuildId = m_id;
 
@@ -1534,8 +1558,9 @@ void Guild::HandleAcceptMember(WorldSession* session)
 
 void Guild::HandleLeaveMember(WorldSession* session)
 {
+    if (!session || !session->GetPlayer())
+        return;
     Player* player = session->GetPlayer();
-    bool disband = false;
 
     // If leader is leaving
     if (_IsLeader(player))
@@ -1547,7 +1572,6 @@ void Guild::HandleLeaveMember(WorldSession* session)
         {
             // Guild is disbanded if leader leaves.
             Disband();
-            disband = true;
         }
     }
     else
@@ -1562,8 +1586,8 @@ void Guild::HandleLeaveMember(WorldSession* session)
 
     sCalendarMgr->RemovePlayerGuildEventsAndSignups(player->GetGUID(), GetId());
 
-    if (disband)
-        delete this;
+    // Crash-proof: Disband destroys via the manager (zombie freed after grace).
+    // No `delete this` here; the object stays alive as a no-op zombie.
 }
 
 void Guild::HandleRemoveMember(WorldSession* session, std::string_view name)
@@ -1616,6 +1640,11 @@ void Guild::HandleUpdateMemberRank(WorldSession* session, std::string_view name,
         }
 
         Member const* memberMe = GetMember(player->GetGUID());
+        if (!memberMe)
+        {
+            SendCommandResult(session, type, ERR_GUILD_PERMISSIONS);
+            return;
+        }
         uint8 rankId = memberMe->GetRankId();
         if (demote)
         {
@@ -1785,18 +1814,24 @@ void Guild::HandleMemberLogout(WorldSession* session)
 
 void Guild::HandleDisband(WorldSession* session)
 {
+    if (!session || !session->GetPlayer())
+        return;
     // Only leader can disband guild
     if (_IsLeader(session->GetPlayer()))
     {
         Disband();
         LOG_DEBUG("guild", "Guild Successfully Disbanded");
-        delete this;
+        // Crash-proof: Disband destroys via the manager (zombie freed after
+        // grace). No `delete this`; the object stays alive as a no-op zombie.
     }
 }
 
 // Send data to client
 void Guild::SendInfo(WorldSession* session) const
 {
+    if (!session)
+        return;
+
     WorldPackets::Guild::GuildInfoResponse guildInfo;
     guildInfo.GuildName = m_name;
     guildInfo.CreateDate = m_createdDate;
@@ -2158,16 +2193,36 @@ void Guild::BroadcastToGuild(WorldSession* session, bool officerOnly, std::strin
 
 void Guild::BroadcastPacketToRank(WorldPacket const* packet, uint8 rankId) const
 {
+    if (m_disbanded || !packet)
+        return;
+
+    // Crash-proof: snapshot; SendPacket hooks can mutate members.
+    std::vector<Player*> players;
+    players.reserve(m_members.size());
     for (auto const& [guid, member] : m_members)
         if (member.IsRank(rankId))
             if (Player* player = member.FindPlayer())
-                player->GetSession()->SendPacket(packet);
+                players.push_back(player);
+
+    for (Player* player : players)
+        if (player && player->GetSession())
+            player->GetSession()->SendPacket(packet);
 }
 
 void Guild::BroadcastPacket(WorldPacket const* packet) const
 {
+    if (m_disbanded || !packet)
+        return;
+
+    // Crash-proof: snapshot; SendPacket hooks can mutate members.
+    std::vector<Player*> players;
+    players.reserve(m_members.size());
     for (auto const& [guid, member] : m_members)
         if (Player* player = member.FindPlayer())
+            players.push_back(player);
+
+    for (Player* player : players)
+        if (player && player->GetSession())
             player->GetSession()->SendPacket(packet);
 }
 
@@ -2206,6 +2261,8 @@ void Guild::MassInviteToEvent(WorldSession* session, uint32 minLevel, uint32 max
 // Members handling
 bool Guild::AddMember(ObjectGuid guid, uint8 rankId)
 {
+    if (m_disbanded)
+        return false;
     Player* player = ObjectAccessor::FindConnectedPlayer(guid);
 
     Player* leader = nullptr;
@@ -2249,7 +2306,8 @@ bool Guild::AddMember(ObjectGuid guid, uint8 rankId)
         player->SetGuildIdInvited(0);
         player->SetRank(rankId);
         member.SetStats(player);
-        SendLoginInfo(player->GetSession());
+        if (player->GetSession())
+            SendLoginInfo(player->GetSession());
         name = player->GetName();
     }
     else
@@ -2298,6 +2356,15 @@ bool Guild::AddMember(ObjectGuid guid, uint8 rankId)
 
 void Guild::DeleteMember(ObjectGuid guid, bool isDisbanding, bool isKicked, bool canDeleteGuild)
 {
+    (void)canDeleteGuild; // lifetime is manager-owned; disband path destroys via DestroyGuild
+    // Crash-proof: zombie no-op, except the disband drain which must proceed.
+    if (m_disbanded && !isDisbanding)
+        return;
+    if (Guild* registered = sGuildMgr->GetGuildById(m_id))
+        if (registered != this)
+            return;
+
+    uint32 selfId = m_id;
     ObjectGuid::LowType lowguid = guid.GetCounter();
     Player* player = ObjectAccessor::FindConnectedPlayer(guid);
 
@@ -2305,6 +2372,8 @@ void Guild::DeleteMember(ObjectGuid guid, bool isDisbanding, bool isKicked, bool
     // or when he is removed from guild by gm command
     if (m_leaderGuid == guid && !isDisbanding)
     {
+        std::string oldLeaderName;
+        std::string newLeaderName;
         Member* oldLeader = nullptr;
         Member* newLeader = nullptr;
         for (auto& [guid, member] : m_members)
@@ -2318,26 +2387,40 @@ void Guild::DeleteMember(ObjectGuid guid, bool isDisbanding, bool isKicked, bool
         if (!newLeader)
         {
             Disband();
-            if (canDeleteGuild)
-                delete this;
+            // Crash-proof: Disband destroys via the manager (zombie); never delete here.
             return;
         }
 
         _SetLeaderGUID(*newLeader);
+
+        // Crash-proof: copy everything needed across broadcasts; hooks can mutate m_members.
+        newLeaderName = newLeader->GetName();
+        if (oldLeader)
+            oldLeaderName = oldLeader->GetName();
 
         // If player not online data in data field will be loaded from guild tabs no need to update it !!
         if (Player* newLeaderPlayer = newLeader->FindPlayer())
             newLeaderPlayer->SetRank(GR_GUILDMASTER);
 
         // If leader does not exist (at guild loading with deleted leader) do not send broadcasts
-        if (oldLeader)
+        if (!oldLeaderName.empty())
         {
-            _BroadcastEvent(GE_LEADER_CHANGED, ObjectGuid::Empty, oldLeader->GetName(), newLeader->GetName());
-            _BroadcastEvent(GE_LEFT, guid, oldLeader->GetName());
+            _BroadcastEvent(GE_LEADER_CHANGED, ObjectGuid::Empty, oldLeaderName, newLeaderName);
+            _BroadcastEvent(GE_LEFT, guid, oldLeaderName);
+            // Crash-proof: bail only on foreign registration (zombie memory is alive).
+            if (Guild* reentry = sGuildMgr->GetGuildById(selfId))
+                if (reentry != this)
+                    return;
         }
     }
     // Call script on remove before member is actually removed from guild (and database)
     sScriptMgr->OnGuildRemoveMember(this, player, isDisbanding, isKicked);
+
+    // Crash-proof: bail only on foreign registration (zombie memory is alive,
+    // so finishing the erase on an externally-destroyed guild is still safe).
+    if (Guild* reentry = sGuildMgr->GetGuildById(selfId))
+        if (reentry != this)
+            return;
 
     m_members.erase(lowguid);
 
@@ -2968,7 +3051,7 @@ void Guild::_SendBankList(WorldSession* session /* = nullptr*/, uint8 tabId /*= 
                 continue;
 
             Player* player = member.FindPlayer();
-            if (!player)
+            if (!player || !player->GetSession())
                 continue;
 
             packet.SetWithdrawalsRemaining(_GetMemberRemainingSlots(member, tabId));

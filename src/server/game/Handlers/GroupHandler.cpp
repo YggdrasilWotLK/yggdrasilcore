@@ -181,15 +181,15 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recvData)
     if (!group)
     {
         group = new Group();
-        // new group: if can't add then delete
+        // new group: if can't add then destroy (manager-owned, never delete)
         if (!group->AddLeaderInvite(invitingPlayer))
         {
-            delete group;
+            sGroupMgr->DestroyGroup(group);
             return;
         }
         if (!group->AddInvite(invitedPlayer))
         {
-            delete group;
+            sGroupMgr->DestroyGroup(group);
             return;
         }
     }

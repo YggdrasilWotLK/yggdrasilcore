@@ -678,7 +678,17 @@ public:
     static void SendSaveEmblemResult(WorldSession* session, GuildEmblemError errCode);
 
     Guild();
+
+    // Crash-proof: after Disband/Destroy the object stays alive as a zombie
+    // until the manager frees it. Stale holders must no-op instead of UAF.
+    bool IsDisbanded() const { return m_disbanded; }
+    void MarkDisbanded() { m_disbanded = true; }
+
+private:
+    friend class GuildMgr;
     ~Guild();
+
+public:
 
     bool Create(Player* pLeader, std::string_view name);
     void Disband();
@@ -788,6 +798,7 @@ public:
 
 protected:
     uint32 m_id;
+    bool m_disbanded = false; // zombie guard: set on Disband/Destroy, freed later by GuildMgr
     std::string m_name;
     ObjectGuid m_leaderGuid;
     std::string m_motd;

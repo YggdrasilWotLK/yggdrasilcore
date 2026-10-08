@@ -20,6 +20,9 @@
 
 #include "Guild.h"
 
+#include <utility>
+#include <vector>
+
 class GuildMgr
 {
 private:
@@ -37,6 +40,10 @@ public:
     void LoadGuilds();
     void AddGuild(Guild* guild);
     void RemoveGuild(uint32 guildId);
+    // Crash-proof: only the manager frees guilds. Destroy unregisters, marks
+    // the guild disbanded (zombie: live memory, all ops no-op) and defers the
+    // actual delete so stale holders cannot UAF. Never `delete` a Guild outside.
+    void DestroyGuild(Guild* guild);
 
     uint32 GenerateGuildId();
     void SetNextGuildId(uint32 Id) { NextGuildId = Id; }
@@ -46,6 +53,9 @@ protected:
     typedef std::unordered_map<uint32, Guild*> GuildContainer;
     uint32 NextGuildId;
     GuildContainer GuildStore;
+    // Zombie graveyard: (guild, timestamp). Swept after a grace period.
+    std::vector<std::pair<Guild*, uint32>> _guildGraveyard;
+    void SweepGuildGraveyard();
 };
 
 #define sGuildMgr GuildMgr::instance()

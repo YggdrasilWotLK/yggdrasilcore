@@ -752,7 +752,7 @@ void WorldSession::HandleTurnInPetitionOpcode(WorldPacket& recvData)
 
         if (!guild->Create(_player, name))
         {
-            delete guild;
+            sGuildMgr->DestroyGuild(guild);
             return;
         }
 
