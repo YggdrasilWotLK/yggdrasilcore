@@ -58,9 +58,9 @@ ScriptMgr* ScriptMgr::instance()
     return &instance;
 }
 
-PlayerbotScript::PlayerbotScript(const char* name) : ScriptObject(name)
+ShadowScript::ShadowScript(const char* name) : ScriptObject(name)
 {
-    ScriptRegistry<PlayerbotScript>::AddScript(this);
+    ScriptRegistry<ShadowScript>::AddScript(this);
 }
 
 void ScriptMgr::Initialize()
@@ -132,7 +132,7 @@ void ScriptMgr::Unload()
     SCR_CLEAR<CreatureScript>();
     SCR_CLEAR<DatabaseScript>();
     SCR_CLEAR<DynamicObjectScript>();
-    SCR_CLEAR<ALEScript>();
+    SCR_CLEAR<YLAScript>();
     SCR_CLEAR<FormulaScript>();
     SCR_CLEAR<GameEventScript>();
     SCR_CLEAR<GameObjectScript>();
@@ -148,7 +148,7 @@ void ScriptMgr::Unload()
     SCR_CLEAR<OutdoorPvPScript>();
     SCR_CLEAR<PetScript>();
     SCR_CLEAR<PlayerScript>();
-    SCR_CLEAR<PlayerbotScript>();
+    SCR_CLEAR<ShadowScript>();
     SCR_CLEAR<ServerScript>();
     SCR_CLEAR<SpellSC>();
     SCR_CLEAR<SpellScriptLoader>();
@@ -233,7 +233,7 @@ void ScriptMgr::CheckIfScriptsInDatabaseExist()
                 !ScriptRegistry<ArenaScript>::GetScriptById(sid) &&
                 !ScriptRegistry<GroupScript>::GetScriptById(sid) &&
                 !ScriptRegistry<DatabaseScript>::GetScriptById(sid) &&
-                !ScriptRegistry<PlayerbotScript>::GetScriptById(sid) &&
+                !ScriptRegistry<ShadowScript>::GetScriptById(sid) &&
                 !ScriptRegistry<TicketScript>::GetScriptById(sid))
                 {
                     LOG_ERROR("sql.sql", "Script named '{}' is assigned in the database, but has no code!", scriptName);

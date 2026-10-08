@@ -4,7 +4,7 @@
 
 Yggdrasilcore is an AzerothCore-based open-source game server application and framework designed for emulating support for connections and packets from and sending emulated information to the original abandonware WotLK 3.3.5a client. Read more about the upstream project [here](https://github.com/azerothcore/azerothcore-wotlk).
 
-Our latest mass merge from AzerothCore was [up until this commit in the Playerbots branch](https://github.com/mod-playerbots/azerothcore-wotlk/commit/39187083b04ede6a095e32b39ac4ae4e22dee22f) on 2025-10-25. Only cherry picks are planned hereafter.
+Our latest mass merge from AzerothCore was [up until this commit in the Shadows branch](https://github.com/mod-shadows/azerothcore-wotlk/commit/39187083b04ede6a095e32b39ac4ae4e22dee22f) on 2025-10-25. Only cherry picks are planned hereafter.
 
 Read more about Yggdrasil WoW and see Yggdrasilcore in action [here](https://yggdrasilwow.com/).
 

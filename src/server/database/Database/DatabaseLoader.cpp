@@ -220,7 +220,7 @@ DatabaseLoader& DatabaseLoader::AddDatabase<CharacterDatabaseConnection>(Databas
 template AC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<WorldDatabaseConnection>(DatabaseWorkerPool<WorldDatabaseConnection>&, std::string const&);
 
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
 template AC_DATABASE_API
-DatabaseLoader& DatabaseLoader::AddDatabase<PlayerbotsDatabaseConnection>(DatabaseWorkerPool<PlayerbotsDatabaseConnection>&, std::string const&);
+DatabaseLoader& DatabaseLoader::AddDatabase<ShadowsDatabaseConnection>(DatabaseWorkerPool<ShadowsDatabaseConnection>&, std::string const&);
 #endif

@@ -213,8 +213,8 @@ public:
         handler->PSendSysMessage("Default DBC locale: {}.\nAll available DBC locales: {}", localeNames[defaultLocale], availableLocales);
 
         handler->PSendSysMessage("Using World DB: {}", sWorld->GetDBVersion());
-#ifdef MOD_PLAYERBOTS
-        handler->PSendSysMessage("Using Playerbots DB Revision: {}", sWorld->GetPlayerbotsDBRevision());
+#ifdef MOD_SHADOWS
+        handler->PSendSysMessage("Using Shadows DB Revision: {}", sWorld->GetShadowsDBRevision());
 #endif
         
 
@@ -244,8 +244,8 @@ public:
         handler->PSendSysMessage("LoginDatabase queue size: {}", LoginDatabase.QueueSize());
         handler->PSendSysMessage("CharacterDatabase queue size: {}", CharacterDatabase.QueueSize());
         handler->PSendSysMessage("WorldDatabase queue size: {}", WorldDatabase.QueueSize());
-#ifdef MOD_PLAYERBOTS
-        handler->PSendSysMessage("PlayerbotsDatabase queue size: {}", PlayerbotsDatabase.QueueSize());
+#ifdef MOD_SHADOWS
+        handler->PSendSysMessage("ShadowsDatabase queue size: {}", ShadowsDatabase.QueueSize());
 #endif
         
 

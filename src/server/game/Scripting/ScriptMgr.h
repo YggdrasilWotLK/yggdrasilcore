@@ -105,24 +105,24 @@ namespace Acore::ChatCommands
 
 */
 
-class PlayerbotScript : public ScriptObject
+class ShadowScript : public ScriptObject
 {
 protected:
 
-    PlayerbotScript(const char* name);
+    ShadowScript(const char* name);
 
 public:
     bool IsDatabaseBound() const { return false; }
 
-    [[nodiscard]] virtual bool OnPlayerbotCheckLFGQueue(lfg::Lfg5Guids const& /*guidsList*/) { return true; }
-    virtual void OnPlayerbotCheckKillTask(Player* /*player*/, Unit* /*victim*/) { }
-    virtual void OnPlayerbotCheckPetitionAccount(Player* /*player*/, bool& /*found*/) { }
-    [[nodiscard]] virtual bool OnPlayerbotCheckUpdatesToSend(Player* /*player*/) { return true; }
-    virtual void OnPlayerbotPacketSent(Player* /*player*/, WorldPacket const* /*packet*/) { }
-    virtual void OnPlayerbotUpdate(uint32 /*diff*/) { }
-    virtual void OnPlayerbotUpdateSessions(Player* /*player*/) { }
-    virtual void OnPlayerbotLogout(Player* /*player*/) { }
-    virtual void OnPlayerbotLogoutBots() { }
+    [[nodiscard]] virtual bool OnShadowCheckLFGQueue(lfg::Lfg5Guids const& /*guidsList*/) { return true; }
+    virtual void OnShadowCheckKillTask(Player* /*player*/, Unit* /*victim*/) { }
+    virtual void OnShadowCheckPetitionAccount(Player* /*player*/, bool& /*found*/) { }
+    [[nodiscard]] virtual bool OnShadowCheckUpdatesToSend(Player* /*player*/) { return true; }
+    virtual void OnShadowPacketSent(Player* /*player*/, WorldPacket const* /*packet*/) { }
+    virtual void OnShadowUpdate(uint32 /*diff*/) { }
+    virtual void OnShadowUpdateSessions(Player* /*player*/) { }
+    virtual void OnShadowLogout(Player* /*player*/) { }
+    virtual void OnShadowLogoutBots() { }
 };
 
 class ScriptMgr
@@ -734,17 +734,17 @@ public: /* LootScript */
 
     void OnLootMoney(Player* player, uint32 gold);
 
-public: /* PlayerbotScript */
+public: /* ShadowScript */
     
-    bool OnPlayerbotCheckLFGQueue(lfg::Lfg5Guids const& guidsList);
-    void OnPlayerbotCheckKillTask(Player* player, Unit* victim);
-    void OnPlayerbotCheckPetitionAccount(Player* player, bool& found);
-    bool OnPlayerbotCheckUpdatesToSend(Player* player);
-    void OnPlayerbotPacketSent(Player* player, WorldPacket const* packet);
-    void OnPlayerbotUpdate(uint32 diff);
-    void OnPlayerbotUpdateSessions(Player* player);
-    void OnPlayerbotLogout(Player* player);
-    void OnPlayerbotLogoutBots();
+    bool OnShadowCheckLFGQueue(lfg::Lfg5Guids const& guidsList);
+    void OnShadowCheckKillTask(Player* player, Unit* victim);
+    void OnShadowCheckPetitionAccount(Player* player, bool& found);
+    bool OnShadowCheckUpdatesToSend(Player* player);
+    void OnShadowPacketSent(Player* player, WorldPacket const* packet);
+    void OnShadowUpdate(uint32 diff);
+    void OnShadowUpdateSessions(Player* player);
+    void OnShadowLogout(Player* player);
+    void OnShadowLogoutBots();
 
 public: /* TicketScript */
 

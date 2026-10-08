@@ -43,14 +43,14 @@ jobs:
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
         
-    # - name: Clone Playerbot Module
-    #   run: git clone --depth=1 --branch=master https://github.com/mod-playerbots/mod-playerbots.git modules/mod-playerbots
+    # - name: Clone Shadow Module
+    #   run: git clone --depth=1 --branch=master https://github.com/mod-shadows/mod-shadows.git modules/mod-shadows
 
-    # - name: Checkout Playerbot Module
+    # - name: Checkout Shadow Module
     #   uses: actions/checkout@v3
     #   with:
-    #     repository: 'mod-playerbots/mod-playerbots'
-    #     path: 'modules/mod-playerbots'
+    #     repository: 'mod-shadows/mod-shadows'
+    #     path: 'modules/mod-shadows'
     
     - name: Install Requirements
       run: sudo apt-get update && sudo apt-get install git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev

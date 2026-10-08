@@ -18,11 +18,11 @@
 #include "ScriptMgr.h"
 #include "ScriptMgrMacros.h"
 
-bool ScriptMgr::OnPlayerbotCheckLFGQueue(lfg::Lfg5Guids const& guidsList)
+bool ScriptMgr::OnShadowCheckLFGQueue(lfg::Lfg5Guids const& guidsList)
 {
-    auto ret = IsValidBoolScript<PlayerbotScript>([&](PlayerbotScript* script)
+    auto ret = IsValidBoolScript<ShadowScript>([&](ShadowScript* script)
     {
-        return !script->OnPlayerbotCheckLFGQueue(guidsList);
+        return !script->OnShadowCheckLFGQueue(guidsList);
     });
 
     if (ret && *ret)
@@ -33,27 +33,27 @@ bool ScriptMgr::OnPlayerbotCheckLFGQueue(lfg::Lfg5Guids const& guidsList)
     return true;
 }
 
-void ScriptMgr::OnPlayerbotCheckKillTask(Player* player, Unit* victim)
+void ScriptMgr::OnShadowCheckKillTask(Player* player, Unit* victim)
 {
-    ExecuteScript<PlayerbotScript>([&](PlayerbotScript* script)
+    ExecuteScript<ShadowScript>([&](ShadowScript* script)
     {
-        script->OnPlayerbotCheckKillTask(player, victim);
+        script->OnShadowCheckKillTask(player, victim);
     });
 }
 
-void ScriptMgr::OnPlayerbotCheckPetitionAccount(Player* player, bool& found)
+void ScriptMgr::OnShadowCheckPetitionAccount(Player* player, bool& found)
 {
-    ExecuteScript<PlayerbotScript>([&](PlayerbotScript* script)
+    ExecuteScript<ShadowScript>([&](ShadowScript* script)
     {
-        script->OnPlayerbotCheckPetitionAccount(player, found);
+        script->OnShadowCheckPetitionAccount(player, found);
     });
 }
 
-bool ScriptMgr::OnPlayerbotCheckUpdatesToSend(Player* player)
+bool ScriptMgr::OnShadowCheckUpdatesToSend(Player* player)
 {
-    auto ret = IsValidBoolScript<PlayerbotScript>([&](PlayerbotScript* script)
+    auto ret = IsValidBoolScript<ShadowScript>([&](ShadowScript* script)
     {
-        return !script->OnPlayerbotCheckUpdatesToSend(player);
+        return !script->OnShadowCheckUpdatesToSend(player);
     });
 
     if (ret && *ret)
@@ -64,42 +64,42 @@ bool ScriptMgr::OnPlayerbotCheckUpdatesToSend(Player* player)
     return true;
 }
 
-void ScriptMgr::OnPlayerbotPacketSent(Player* player, WorldPacket const* packet)
+void ScriptMgr::OnShadowPacketSent(Player* player, WorldPacket const* packet)
 {
-    ExecuteScript<PlayerbotScript>([&](PlayerbotScript* script)
+    ExecuteScript<ShadowScript>([&](ShadowScript* script)
     {
-        script->OnPlayerbotPacketSent(player, packet);
+        script->OnShadowPacketSent(player, packet);
     });
 }
 
-void ScriptMgr::OnPlayerbotUpdate(uint32 diff)
+void ScriptMgr::OnShadowUpdate(uint32 diff)
 {
-    ExecuteScript<PlayerbotScript>([&](PlayerbotScript* script)
+    ExecuteScript<ShadowScript>([&](ShadowScript* script)
     {
-        script->OnPlayerbotUpdate(diff);
+        script->OnShadowUpdate(diff);
     });
 }
 
-void ScriptMgr::OnPlayerbotUpdateSessions(Player* player)
+void ScriptMgr::OnShadowUpdateSessions(Player* player)
 {
-    ExecuteScript<PlayerbotScript>([&](PlayerbotScript* script)
+    ExecuteScript<ShadowScript>([&](ShadowScript* script)
     {
-        script->OnPlayerbotUpdateSessions(player);
+        script->OnShadowUpdateSessions(player);
     });
 }
 
-void ScriptMgr::OnPlayerbotLogout(Player* player)
+void ScriptMgr::OnShadowLogout(Player* player)
 {
-    ExecuteScript<PlayerbotScript>([&](PlayerbotScript* script)
+    ExecuteScript<ShadowScript>([&](ShadowScript* script)
     {
-        script->OnPlayerbotLogout(player);
+        script->OnShadowLogout(player);
     });
 }
 
-void ScriptMgr::OnPlayerbotLogoutBots()
+void ScriptMgr::OnShadowLogoutBots()
 {
-    ExecuteScript<PlayerbotScript>([&](PlayerbotScript* script)
+    ExecuteScript<ShadowScript>([&](ShadowScript* script)
     {
-        script->OnPlayerbotLogoutBots();
+        script->OnShadowLogoutBots();
     });
 }

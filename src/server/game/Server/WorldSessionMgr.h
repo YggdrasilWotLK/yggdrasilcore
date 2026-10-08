@@ -87,7 +87,7 @@ public:
 
     void DoForAllOnlinePlayers(std::function<void(Player*)> exec);
 
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
     /// Schedule a bot session logout from any thread. The actual
     /// WorldSession::LogoutPlayer (which deletes the Player object) plus the
     /// session delete run on the world thread inside UpdateSessions.
@@ -101,7 +101,7 @@ private:
     LockedQueue<WorldSession*> _addSessQueue;
     void AddSession_(WorldSession* session);
 
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
     LockedQueue<WorldSession*> _botLogoutQueue;
     std::mutex _botLogoutLock;
     std::unordered_set<WorldSession*> _scheduledBotLogouts;

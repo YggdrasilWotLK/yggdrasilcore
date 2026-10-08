@@ -246,7 +246,7 @@ public:
     void MoveDistract(uint32 time);
     void MovePath(uint32 path_id, bool repeatable);
     void MoveRotate(uint32 time, RotateDirection direction);
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
     void MoveKnockbackFromForPlayer(float srcX, float srcY, float speedXY, float speedZ);
     void MovePointBackwards(uint32 id, float x, float y, float z, bool generatePath = true, bool forceDestination = true, MovementSlot slot = MOTION_SLOT_ACTIVE, float orientation = 0.0f);
 #endif

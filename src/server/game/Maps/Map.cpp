@@ -1737,7 +1737,7 @@ void Map::SendObjectUpdates()
     WorldPacket packet;                                     // here we allocate a std::vector with a size of 0x10000
     for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
     {
-        if (!sScriptMgr->OnPlayerbotCheckUpdatesToSend(iter->first))
+        if (!sScriptMgr->OnShadowCheckUpdatesToSend(iter->first))
         {
             iter->second.Clear();
             continue;
@@ -2132,7 +2132,7 @@ void InstanceMap::CreateInstanceScript(bool load, std::string data, uint32 compl
     if (instance_data)
         isOtherAI = true;
 
-    // if ALE AI was fetched succesfully we should not call CreateInstanceData nor set the unused scriptID
+    // if YLA AI was fetched succesfully we should not call CreateInstanceData nor set the unused scriptID
     if (!isOtherAI)
     {
         InstanceTemplate const* mInstance = sObjectMgr->GetInstanceTemplate(GetId());
@@ -2146,7 +2146,7 @@ void InstanceMap::CreateInstanceScript(bool load, std::string data, uint32 compl
     if (!instance_data)
         return;
 
-    // use mangos behavior if we are dealing with ALE AI
+    // use mangos behavior if we are dealing with YLA AI
     // initialize should then be called only if load is false
     if (!isOtherAI || !load)
     {

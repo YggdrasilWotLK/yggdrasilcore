@@ -16,7 +16,7 @@ We support the following versions of dependencies.
 | ---------------------------- | :----------------: | :------------------: |
 | **master**                   | :white_check_mark: | :large_blue_diamond: |
 | Any non-official fork        |    :red_circle:    |                      |
-| Any Playerbots fork          |    :red_circle:    |                      |
+| Any Shadows fork          |    :red_circle:    |                      |
 | Any NPCBots fork             |    :red_circle:    |                      |
 | Any AC (non-official) repack |    :red_circle:    |                      |
 

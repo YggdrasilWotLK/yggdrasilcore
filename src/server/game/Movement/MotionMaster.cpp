@@ -919,7 +919,7 @@ void MotionMaster::MoveRotate(uint32 time, RotateDirection direction)
     Mutate(new RotateMovementGenerator(time, direction), MOTION_SLOT_ACTIVE);
 }
 
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
 void MotionMaster::MoveKnockbackFromForPlayer(float srcX, float srcY, float speedXY, float speedZ)
 {
     if (speedXY <= 0.1f)

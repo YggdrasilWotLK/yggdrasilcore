@@ -107,7 +107,7 @@ void WorldSessionMgr::UpdateSessions(uint32 const diff)
     ///- Process scheduled bot logouts on the world thread (lifetime control:
     /// no map threads or Lua run here, so the Player delete inside
     /// LogoutPlayer cannot race script execution)
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
     DrainBotLogouts();
 #endif
 
@@ -199,8 +199,8 @@ void WorldSessionMgr::KickAll()
     for (SessionMap::const_iterator itr = _offlineSessions.begin(); itr != _offlineSessions.end(); ++itr)
         itr->second->KickPlayer("KickAll offline sessions");
 
-#ifdef MOD_PLAYERBOTS
-    sScriptMgr->OnPlayerbotLogoutBots();
+#ifdef MOD_SHADOWS
+    sScriptMgr->OnShadowLogoutBots();
 #endif
 }
 
@@ -218,7 +218,7 @@ void WorldSessionMgr::AddSession(WorldSession* session)
     _addSessQueue.add(session);
 }
 
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
 void WorldSessionMgr::ScheduleBotLogout(WorldSession* session)
 {
     if (!session)

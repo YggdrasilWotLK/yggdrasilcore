@@ -37,7 +37,7 @@ set("AC_MODULE_LIST" "")
 set("AC_SCRIPTS_LIST" "")
 set(MOD_ALE_FOUND 0)
 set(MOD_ALE_PATH "")
-set(MOD_PLAYERBOTS_FOUND 0)
+set(MOD_SHADOWS_FOUND 0)
 
 foreach(include ${AC_ADD_SCRIPTS_INCLUDE})
   set("AC_SCRIPTS_INCLUDES" "#include \"${include}\"\n${AC_SCRIPTS_INCLUDES}")
@@ -78,18 +78,18 @@ foreach(SOURCE_MODULE ${MODULES_MODULE_LIST})
   endif()
 
   # Use only static for mod-ALE
-  if (SOURCE_MODULE MATCHES "mod-ale")
+  if (SOURCE_MODULE MATCHES "mod-yla")
     ConfigureALEModule(${SOURCE_MODULE})
   endif()
 
-  if (SOURCE_MODULE MATCHES "mod-playerbots")
-    set(MOD_PLAYERBOTS_FOUND 1)
+  if (SOURCE_MODULE MATCHES "mod-shadows")
+    set(MOD_SHADOWS_FOUND 1)
     target_compile_options(database
       PRIVATE
-        -DMOD_PLAYERBOTS)
+        -DMOD_SHADOWS)
     target_compile_options(game-interface
       INTERFACE
-        -DMOD_PLAYERBOTS)
+        -DMOD_SHADOWS)
   endif()
 
   # Build the Graph values
@@ -370,10 +370,10 @@ target_compile_options(modules
   INTERFACE
     -DCONFIG_FILE_LIST=$<1:"${CONFIG_LIST}">)
 
-if (MOD_PLAYERBOTS_FOUND)
+if (MOD_SHADOWS_FOUND)
     target_compile_options(modules
             PRIVATE
-            -DMOD_PLAYERBOTS)
+            -DMOD_SHADOWS)
 endif()
 
 if (MOD_ALE_FOUND)

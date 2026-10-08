@@ -335,9 +335,9 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
             msg.erase(end, msg.end());
         }
 
-        // Skip validation for playerbots module
-        auto playerbotsHyperlink = msg.find("Hfound:") != std::string::npos;
-        if (!playerbotsHyperlink)
+        // Skip validation for shadows module
+        auto shadowsHyperlink = msg.find("Hfound:") != std::string::npos;
+        if (!shadowsHyperlink)
         {
             // Validate hyperlinks
             if (!ValidateHyperlinksAndMaybeKick(msg))

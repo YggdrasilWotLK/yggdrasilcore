@@ -262,7 +262,7 @@ void WorldSession::SendPacket(WorldPacket const* packet)
         return;
     }
 
-    sScriptMgr->OnPlayerbotPacketSent(GetPlayer(), packet);
+    sScriptMgr->OnShadowPacketSent(GetPlayer(), packet);
 
     if (!m_Socket)
         return;
@@ -414,7 +414,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
                         opHandle->Call(this, *packet);
                         LogUnprocessedTail(packet);
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
                         sScriptMgr->OnPacketReceived(this, *packet);
 #endif
                     }
@@ -435,7 +435,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
                         opHandle->Call(this, *packet);
                         LogUnprocessedTail(packet);
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
                         sScriptMgr->OnPacketReceived(this, *packet);
 #endif
                     }
@@ -448,7 +448,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
                         opHandle->Call(this, *packet);
                         LogUnprocessedTail(packet);
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
                         sScriptMgr->OnPacketReceived(this, *packet);
 #endif
                     }
@@ -467,7 +467,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
                     opHandle->Call(this, *packet);
                     LogUnprocessedTail(packet);
-#ifdef MOD_PLAYERBOTS
+#ifdef MOD_SHADOWS
                     sScriptMgr->OnPacketReceived(this, *packet);
 #endif
                     break;
@@ -558,7 +558,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
     //logout procedure should happen only in World::UpdateSessions() method!!!
     if (updater.ProcessUnsafe())
     {
-        sScriptMgr->OnPlayerbotUpdateSessions(GetPlayer());
+        sScriptMgr->OnShadowUpdateSessions(GetPlayer());
 
         if (m_Socket && m_Socket->IsOpen() && _warden)
         {
@@ -652,7 +652,7 @@ void WorldSession::LogoutPlayer(bool save)
         if (ObjectGuid lguid = _player->GetLootGUID())
             DoLootRelease(lguid);
 
-        sScriptMgr->OnPlayerbotLogout(_player);
+        sScriptMgr->OnShadowLogout(_player);
 
         ///- If the player just died before logging out, make him appear as a ghost
         //FIXME: logout must be delayed in case lost connection with client in time of combat

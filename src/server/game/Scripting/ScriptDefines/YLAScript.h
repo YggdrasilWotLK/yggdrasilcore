@@ -20,10 +20,10 @@
 
 #include "ScriptObject.h"
 
-class ALEScript : public ScriptObject
+class YLAScript : public ScriptObject
 {
 protected:
-    ALEScript(const char* name);
+    YLAScript(const char* name);
 
 public:
     /**
