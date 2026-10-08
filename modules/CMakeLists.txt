@@ -77,12 +77,12 @@ foreach(SOURCE_MODULE ${MODULES_MODULE_LIST})
     set(${MODULE_MODULE_VARIABLE} "static")
   endif()
 
-  # Use only static for mod-ALE
-  if (SOURCE_MODULE MATCHES "mod-yla")
+  # Use only static for mod-YLA (matches mod-ale pre-rename and mod-yla post-rename folders)
+  if (SOURCE_MODULE MATCHES "mod-ale|mod-yla")
     ConfigureALEModule(${SOURCE_MODULE})
   endif()
 
-  if (SOURCE_MODULE MATCHES "mod-shadows")
+  if (SOURCE_MODULE MATCHES "mod-playerbots|mod-shadows")
     set(MOD_SHADOWS_FOUND 1)
     target_compile_options(database
       PRIVATE
