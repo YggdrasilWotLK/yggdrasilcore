@@ -211,7 +211,7 @@ bool BattlefieldWG::Update(uint32 diff)
     {
         if (m_tenacityUpdateTimer <= diff)
         {
-            m_tenacityUpdateTimer = 10000;
+            m_tenacityUpdateTimer = 5000;
             if (!m_updateTenacityList.empty())
                 UpdateTenacity();
             m_updateTenacityList.clear();
