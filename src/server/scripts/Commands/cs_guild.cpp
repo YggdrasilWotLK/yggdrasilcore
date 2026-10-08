@@ -109,7 +109,8 @@ public:
             return false;
 
         targetGuild->Disband();
-        delete targetGuild;
+        // Crash-proof: Disband destroys via GuildMgr (zombie freed after grace).
+        // Never delete here: ~Guild is private to GuildMgr and Disband already unregisters.
 
         return true;
     }
