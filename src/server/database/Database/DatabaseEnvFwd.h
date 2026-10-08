@@ -32,8 +32,8 @@ class CharacterDatabaseConnection;
 class LoginDatabaseConnection;
 class WorldDatabaseConnection;
 
-#ifdef MOD_PLAYERBOTS
-class PlayerbotsDatabaseConnection;
+#ifdef MOD_SHADOWS
+class ShadowsDatabaseConnection;
 #endif
 
 class PreparedStatementBase;
@@ -45,8 +45,8 @@ using CharacterDatabasePreparedStatement = PreparedStatement<CharacterDatabaseCo
 using LoginDatabasePreparedStatement = PreparedStatement<LoginDatabaseConnection>;
 using WorldDatabasePreparedStatement = PreparedStatement<WorldDatabaseConnection>;
 
-#ifdef MOD_PLAYERBOTS
-using PlayerbotsDatabasePreparedStatement = PreparedStatement<PlayerbotsDatabaseConnection>;
+#ifdef MOD_SHADOWS
+using ShadowsDatabasePreparedStatement = PreparedStatement<ShadowsDatabaseConnection>;
 #endif
 
 class PreparedResultSet;
@@ -78,8 +78,8 @@ using CharacterDatabaseTransaction = SQLTransaction<CharacterDatabaseConnection>
 using LoginDatabaseTransaction = SQLTransaction<LoginDatabaseConnection>;
 using WorldDatabaseTransaction = SQLTransaction<WorldDatabaseConnection>;
 
-#ifdef MOD_PLAYERBOTS
-using PlayerbotsDatabaseTransaction = SQLTransaction<PlayerbotsDatabaseConnection>;
+#ifdef MOD_SHADOWS
+using ShadowsDatabaseTransaction = SQLTransaction<ShadowsDatabaseConnection>;
 #endif
 
 class SQLQueryHolderBase;
@@ -93,8 +93,8 @@ using CharacterDatabaseQueryHolder = SQLQueryHolder<CharacterDatabaseConnection>
 using LoginDatabaseQueryHolder = SQLQueryHolder<LoginDatabaseConnection>;
 using WorldDatabaseQueryHolder = SQLQueryHolder<WorldDatabaseConnection>;
 
-#ifdef MOD_PLAYERBOTS
-using PlayerbotsDatabaseQueryHolder = SQLQueryHolder<PlayerbotsDatabaseConnection>;
+#ifdef MOD_SHADOWS
+using ShadowsDatabaseQueryHolder = SQLQueryHolder<ShadowsDatabaseConnection>;
 #endif
 
 class SQLQueryHolderCallback;

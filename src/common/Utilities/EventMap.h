@@ -101,7 +101,7 @@ public:
     * @return Current internal time as uint32 milliseconds
     * 
     * was removed in core https://github.com/azerothcore/azerothcore-wotlk/pull/23121,
-    * but still required atm for mod-playerbot.
+    * but still required atm for mod-shadows.
     */
     uint32 GetTimer() const
     {
@@ -112,7 +112,7 @@ public:
     * @return Time of found even
     *
     * was removed in core https://github.com/azerothcore/azerothcore-wotlk/pull/23121,
-    * but still required atm for mod-playerbot.
+    * but still required atm for mod-shadows.
     */
     uint32 GetNextEventTime(uint16 eventId) const
     {

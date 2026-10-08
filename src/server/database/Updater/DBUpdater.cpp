@@ -177,43 +177,43 @@ std::string DBUpdater<CharacterDatabaseConnection>::GetDBModuleName()
     return "characters";
 }
 
-#ifdef MOD_PLAYERBOTS
-// Playerbots Database
+#ifdef MOD_SHADOWS
+// Shadows Database
 template<>
-std::string DBUpdater<PlayerbotsDatabaseConnection>::GetConfigEntry()
+std::string DBUpdater<ShadowsDatabaseConnection>::GetConfigEntry()
 {
-    return "Updates.Playerbots";
+    return "Updates.Shadows";
 }
 
 template<>
-std::string DBUpdater<PlayerbotsDatabaseConnection>::GetTableName()
+std::string DBUpdater<ShadowsDatabaseConnection>::GetTableName()
 {
-    return "Playerbots";
+    return "Shadows";
 }
 
 template<>
-std::string DBUpdater<PlayerbotsDatabaseConnection>::GetSourceDirectory()
+std::string DBUpdater<ShadowsDatabaseConnection>::GetSourceDirectory()
 {
-    return BuiltInConfig::GetSourceDirectory() + "/modules/mod-playerbots";
+    return BuiltInConfig::GetSourceDirectory() + "/modules/mod-shadows";
 }
 
 template<>
-std::string DBUpdater<PlayerbotsDatabaseConnection>::GetBaseFilesDirectory()
+std::string DBUpdater<ShadowsDatabaseConnection>::GetBaseFilesDirectory()
 {
-    return DBUpdater<PlayerbotsDatabaseConnection>::GetSourceDirectory() + "/data/sql/playerbots/base/";
+    return DBUpdater<ShadowsDatabaseConnection>::GetSourceDirectory() + "/data/sql/shadows/base/";
 }
 
 template<>
-bool DBUpdater<PlayerbotsDatabaseConnection>::IsEnabled(uint32 const updateMask)
+bool DBUpdater<ShadowsDatabaseConnection>::IsEnabled(uint32 const updateMask)
 {
     // This way silences warnings under msvc
-    return (updateMask & DatabaseLoader::DATABASE_PLAYERBOTS) ? true : false;
+    return (updateMask & DatabaseLoader::DATABASE_SHADOWS) ? true : false;
 }
 
 template<>
-std::string DBUpdater<PlayerbotsDatabaseConnection>::GetDBModuleName()
+std::string DBUpdater<ShadowsDatabaseConnection>::GetDBModuleName()
 {
-    return "db_playerbot";
+    return "db_shadow";
 }
 #endif
 
@@ -585,6 +585,6 @@ template class AC_DATABASE_API DBUpdater<LoginDatabaseConnection>;
 template class AC_DATABASE_API DBUpdater<WorldDatabaseConnection>;
 template class AC_DATABASE_API DBUpdater<CharacterDatabaseConnection>;
 
-#ifdef MOD_PLAYERBOTS
-template class AC_DATABASE_API DBUpdater<PlayerbotsDatabaseConnection>;
+#ifdef MOD_SHADOWS
+template class AC_DATABASE_API DBUpdater<ShadowsDatabaseConnection>;
 #endif

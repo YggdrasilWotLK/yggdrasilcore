@@ -3322,7 +3322,7 @@ void Player::learnSpell(uint32 spellId, bool temporary /*= false*/, bool learnFr
     // Xinef: don't allow to learn active spell once more
     if (HasActiveSpell(spellId))
     {
-#ifndef MOD_PLAYERBOTS
+#ifndef MOD_SHADOWS
         LOG_DEBUG("entities.player", "Player ({}) tries to learn already active spell: {}", GetGUID().ToString(), spellId);
 #endif
         return;
@@ -5047,7 +5047,7 @@ void Player::CleanupChannels()
     }
 }
 
-// Playerbot helper if bot talks in a different locale
+// Shadow helper if bot talks in a different locale
 bool Player::IsInChannel(const Channel* c)
 {
     return std::any_of(m_channels.begin(), m_channels.end(), [c](const Channel* chan)

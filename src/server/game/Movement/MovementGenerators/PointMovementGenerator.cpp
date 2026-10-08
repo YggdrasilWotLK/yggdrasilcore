@@ -49,7 +49,7 @@ void PointMovementGenerator<T>::DoInitialize(T* unit)
 
     i_recalculateSpeed = false;
     Movement::MoveSplineInit init(unit);
-    /// Added by mod-playerbots
+    /// Added by mod-shadows
     if (_reverseOrientation)
         init.SetOrientationInversed();
     /// End added

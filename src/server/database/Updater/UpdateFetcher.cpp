@@ -407,7 +407,7 @@ UpdateResult UpdateFetcher::Update(bool const redundancyChecks,
                 //         ">> The file \'{}\' was applied to the database, but is missing in"
                 //         " your update directory now!",
                 //         entry.first);
-                // This is absolutely incompatible with Dockerized playerbots cores. Garbage warning.
+                // This is absolutely incompatible with Dockerized shadows cores. Garbage warning.
 
                 if (doCleanup)
                 {
