@@ -16,7 +16,7 @@
  */
 
 #include "AreaTriggerScript.h"
-#include "ALEScript.h"
+#include "YLAScript.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "ScriptMgrMacros.h"
@@ -26,7 +26,7 @@ bool ScriptMgr::OnAreaTrigger(Player* player, AreaTrigger const* trigger)
     ASSERT(player);
     ASSERT(trigger);
 
-    auto ret = IsValidBoolScript<ALEScript>([&](ALEScript* script)
+    auto ret = IsValidBoolScript<YLAScript>([&](YLAScript* script)
     {
         return script->CanAreaTrigger(player, trigger);
     });

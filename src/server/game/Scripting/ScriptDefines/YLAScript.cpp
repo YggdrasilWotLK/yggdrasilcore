@@ -15,12 +15,12 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ALEScript.h"
+#include "YLAScript.h"
 #include "ScriptMgr.h"
 
-ALEScript::ALEScript(const char* name) : ScriptObject(name)
+YLAScript::YLAScript(const char* name) : ScriptObject(name)
 {
-    ScriptRegistry<ALEScript>::AddScript(this);
+    ScriptRegistry<YLAScript>::AddScript(this);
 }
 
-template class AC_GAME_API ScriptRegistry<ALEScript>;
+template class AC_GAME_API ScriptRegistry<YLAScript>;
