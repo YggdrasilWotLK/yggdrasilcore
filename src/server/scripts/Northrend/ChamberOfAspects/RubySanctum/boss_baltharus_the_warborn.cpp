@@ -55,7 +55,8 @@ enum Spells
     SPELL_CLONE                 = 74511,
     SPELL_REPELLING_WAVE        = 74509,
     SPELL_CLEAR_DEBUFFS         = 34098,
-    SPELL_SPAWN_EFFECT          = 64195
+    SPELL_SPAWN_EFFECT          = 64195,
+    SPELL_STUN                  = 61204 // 2 sec freeze for newly summoned clones, like Rotface big ooze
 };
 
 enum Events
@@ -68,6 +69,7 @@ enum Events
     EVENT_CHECK_HEALTH3         = 6,
     EVENT_KILL_TALK             = 7,
     EVENT_SUMMON_CLONE          = 8,
+    EVENT_REMOVE_STUN           = 9,
 
     EVENT_XERESTRASZA_EVENT_0   = 1,
     EVENT_XERESTRASZA_EVENT_1   = 2,
@@ -109,6 +111,7 @@ public:
 
     bool Execute(uint64 /*execTime*/, uint32 /*diff*/) override
     {
+        _owner->RemoveAurasDueToSpell(SPELL_STUN);
         _owner->SetReactState(REACT_AGGRESSIVE);
         _owner->SetInCombatWithZone();
         return true;
@@ -203,6 +206,7 @@ public:
             summons.Summon(summon);
             summon->SetHealth(me->GetHealth());
             summon->CastSpell(summon, SPELL_SPAWN_EFFECT, true);
+            summon->CastSpell(summon, SPELL_STUN, true); // Freeze for 2 sec, like Rotface big ooze
             summon->SetReactState(REACT_PASSIVE);
             summon->m_Events.AddEventAtOffset(new RestoreFight(summon), 2s);
         }
@@ -286,8 +290,15 @@ public:
         {
         }
 
+        void IsSummonedBy(WorldObject* /*summoner*/) override
+        {
+            me->CastSpell(me, SPELL_STUN, true); // Freeze for 2 sec, like Rotface big ooze
+            _events.ScheduleEvent(EVENT_REMOVE_STUN, 2s);
+        }
+
         void JustEngagedWith(Unit* /*who*/) override
         {
+            me->RemoveAurasDueToSpell(SPELL_STUN);
             _events.Reset();
             _events.ScheduleEvent(EVENT_CLEAVE, 5s, 10s);
             _events.ScheduleEvent(EVENT_BLADE_TEMPEST, 18s, 25s);
@@ -318,6 +329,9 @@ public:
                         if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 45.0f, true, true, -SPELL_ENERVATING_BRAND))
                             me->CastSpell(target, SPELL_ENERVATING_BRAND, true);
                     _events.ScheduleEvent(EVENT_ENERVATING_BRAND, 26s);
+                    break;
+                case EVENT_REMOVE_STUN:
+                    me->RemoveAurasDueToSpell(SPELL_STUN);
                     break;
             }
 
