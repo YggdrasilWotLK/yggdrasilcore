@@ -218,6 +218,14 @@ enum eTimeLost
     SPELL_FROST_CLEAVE          = 51857,
 };
 
+// Rolling pity chance for the shared Vyragosa / TLPD spawn.
+// Zero-initialized on server start (null). Each spawn attempt rolls with
+// (failedAttempts + 1) / 8 chance, so attempts go 1/8, 2/8, ... 8/8.
+// On success the counter resets to 0; on failure it increments (capped at 7),
+// guaranteeing a spawn (Vyragosa or TLPD) by the 8th attempt.
+static uint8 s_rareDrakeFailedAttempts = 0;
+static constexpr uint8 MAX_RARE_DRAKE_ATTEMPTS = 8;
+
 class npc_time_lost_proto_drake : public CreatureScript
 {
 public:
@@ -404,12 +412,43 @@ public:
         bool _started;
         bool _cyclicActive;
 
-        void InitPath()
+        void InitPathRoll()
         {
             _pathIndex = urand(0, 3);
             _lastPoint = 0;
             _nextPoint = 0;
             _cyclicActive = false;
+        }
+
+        // Returns true if the rare should spawn this attempt, false for an
+        // empty cycle (stay hidden, wait for DB respawn timer to roll again).
+        bool RollRareSpawn()
+        {
+            float spawnChance = (s_rareDrakeFailedAttempts + 1) * (100.0f / MAX_RARE_DRAKE_ATTEMPTS);
+            if (!roll_chance_f(spawnChance))
+            {
+                if (s_rareDrakeFailedAttempts < MAX_RARE_DRAKE_ATTEMPTS - 1)
+                    ++s_rareDrakeFailedAttempts;
+
+                return false;
+            }
+
+            s_rareDrakeFailedAttempts = 0;
+            return true;
+        }
+
+        bool InitPath()
+        {
+            InitPathRoll();
+            _started = false;
+
+            // Pity roll: no spawn this cycle on failure.
+            if (!RollRareSpawn())
+            {
+                me->SetVisible(false);
+                _started = true; // mark attempt done so Reset() won't roll twice
+                return false;
+            }
 
             PathPoint const& spawn = SpawnPoints[_pathIndex];
             me->UpdatePosition(spawn.x, spawn.y, spawn.z, me->GetOrientation());
@@ -422,6 +461,7 @@ public:
 
             me->SetVisible(false); // hide at spawn point (anti NPCScan camp), shown once moving
             _started = false;
+            return true;
         }
 
         // Escort-style spline for the rest of the lap. P_{size-1} duplicates
@@ -482,8 +522,10 @@ public:
 
         void JustRespawned() override
         {
-            InitPath();
-            BeginPatrol();
+            if (InitPath())
+                BeginPatrol();
+            else
+                me->DespawnOrUnsummon(); // empty cycle: next DB respawn rolls with +1/8
         }
 
         void Reset() override
@@ -495,8 +537,10 @@ public:
             // Evades must NOT re-roll: they resume via EnterEvadeMode.
             if (!_started)
             {
-                InitPath();
-                BeginPatrol();
+                if (InitPath())
+                    BeginPatrol();
+                else
+                    me->DespawnOrUnsummon(); // empty cycle: next DB respawn rolls with +1/8
             }
         }
 
