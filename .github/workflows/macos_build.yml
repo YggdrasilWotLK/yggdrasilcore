@@ -1,9 +1,9 @@
 name: macos-build
 on:
   push:
-    branches: [ "Playerbot" ]
+    branches: [ "*master*" ]
   pull_request:
-    branches: [ "Playerbot" ]
+    branches: [ "*master*" ]
 
 concurrency:
   group: ${{ github.head_ref }} || concat(${{ github.ref }}, ${{ github.workflow }})

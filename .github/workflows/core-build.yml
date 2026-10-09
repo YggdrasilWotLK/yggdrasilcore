@@ -4,9 +4,9 @@ name: ubuntu-build
 
 on:
   push:
-    branches: [ "Playerbot" ]
+    branches: [ "*master*" ]
   pull_request:
-    branches: [ "Playerbot" ]
+    branches: [ "*master*" ]
 
 jobs:
   build:
