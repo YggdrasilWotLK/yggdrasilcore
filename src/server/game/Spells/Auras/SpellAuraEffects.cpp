@@ -3679,7 +3679,23 @@ void AuraEffect::HandleAuraControlVehicle(AuraApplication const* aurApp, uint8 m
     }
     else
     {
-        caster->_ExitVehicle();
+        // TrinityCore proxy-vehicle seat change: switching between base vehicle and
+        // turret accessory (e.g. siege engines 28312/32627/33060/33109/34776/35069)
+        // leaves a second CONTROL_VEHICLE aura alive. Only detach from the seat,
+        // skip full _ExitVehicle (spline/charm/teleport) so _EnterVehicle can join the next vehicle.
+        bool seatChange = (mode & AURA_EFFECT_HANDLE_CHANGE_AMOUNT)
+            || target->HasAuraTypeWithCaster(SPELL_AURA_CONTROL_VEHICLE, caster->GetGUID());
+
+        if (!seatChange)
+            caster->_ExitVehicle();
+        else if (Vehicle* vehKit = target->GetVehicleKit())
+        {
+            vehKit->RemovePassenger(caster);
+            // Vehicle::RemovePassenger does not clear m_vehicle on this core (unlike Trinity);
+            // clear it here so Unit::_EnterVehicle ASSERT(!m_vehicle) holds for the pending join.
+            if (caster->GetVehicle() == vehKit)
+                caster->SetVehicle(nullptr);
+        }
         // some SPELL_AURA_CONTROL_VEHICLE auras have a dummy effect on the player - remove them
         caster->RemoveAurasDueToSpell(GetId());
     }
