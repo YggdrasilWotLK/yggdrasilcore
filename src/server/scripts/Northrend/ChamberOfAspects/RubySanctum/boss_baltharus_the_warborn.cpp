@@ -56,7 +56,7 @@ enum Spells
     SPELL_REPELLING_WAVE        = 74509,
     SPELL_CLEAR_DEBUFFS         = 34098,
     SPELL_SPAWN_EFFECT          = 64195,
-    SPELL_STUN                  = 61204 // 2 sec freeze for newly summoned clones, like Rotface big ooze
+    SPELL_STUN                  = 61204
 };
 
 enum Events
@@ -206,7 +206,7 @@ public:
             summons.Summon(summon);
             summon->SetHealth(me->GetHealth());
             summon->CastSpell(summon, SPELL_SPAWN_EFFECT, true);
-            summon->CastSpell(summon, SPELL_STUN, true); // Freeze for 2 sec, like Rotface big ooze
+            summon->CastSpell(summon, SPELL_STUN, true);
             summon->SetReactState(REACT_PASSIVE);
             summon->m_Events.AddEventAtOffset(new RestoreFight(summon), 2s);
         }
@@ -292,7 +292,7 @@ public:
 
         void IsSummonedBy(WorldObject* /*summoner*/) override
         {
-            me->CastSpell(me, SPELL_STUN, true); // Freeze for 2 sec, like Rotface big ooze
+            me->CastSpell(me, SPELL_STUN, true);
             _events.ScheduleEvent(EVENT_REMOVE_STUN, 2s);
         }
 
