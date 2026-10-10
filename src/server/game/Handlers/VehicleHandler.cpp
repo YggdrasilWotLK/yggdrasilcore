@@ -23,6 +23,108 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 
+namespace
+{
+    // Salvaged siege engines (vehicle kit 336, e.g. creature 33060) carry the
+    // turret as a nested vehicle accessory. Boarding/exiting both levels in the
+    // same tick wedges the client (forced root + locked orientation), so turret
+    // leaves are split: exit now, re-board the driver seat a moment later.
+    uint32 const SALVAGED_SIEGE_VEHICLE_ID = 336;
+
+    // If the player rides a turret accessory of a salvaged siege engine,
+    // returns the parent (siege) base. Otherwise returns nullptr.
+    Unit* GetSalvagedSiegeParent(Player* player)
+    {
+        Vehicle* turret = player->GetVehicle();
+        if (!turret)
+            return nullptr;
+
+        Unit* turretBase = turret->GetBase();
+        if (!turretBase || turretBase == player)
+            return nullptr;
+
+        Vehicle* parentKit = turretBase->GetVehicle();
+        if (!parentKit || !parentKit->GetVehicleInfo() || parentKit->GetVehicleInfo()->m_ID != SALVAGED_SIEGE_VEHICLE_ID)
+            return nullptr;
+
+        Unit* parentBase = parentKit->GetBase();
+        if (!parentBase || !parentBase->IsAlive() || !parentBase->IsInWorld() || parentBase->IsDuringRemoveFromWorld())
+            return nullptr;
+
+        return parentBase;
+    }
+
+    void ScheduleSalvagedSiegeReboard(Player* player, Unit* parentBase)
+    {
+        ObjectGuid playerGuid = player->GetGUID();
+        ObjectGuid parentGuid = parentBase->GetGUID();
+
+        player->m_Events.AddEvent([playerGuid, parentGuid]()
+        {
+            Player* plr = ObjectAccessor::FindConnectedPlayer(playerGuid);
+            if (!plr || !plr->IsAlive() || !plr->IsInWorld() || plr->IsDuringRemoveFromWorld())
+                return;
+
+            if (plr->GetVehicle()) // boarded something else meanwhile, don't yank
+                return;
+
+            Unit* parent = ObjectAccessor::GetUnit(*plr, parentGuid);
+            if (!parent || !parent->IsAlive() || !parent->IsInWorld() || parent->IsDuringRemoveFromWorld())
+                return;
+
+            Vehicle* parentKit = parent->GetVehicleKit();
+            if (!parentKit || !parentKit->HasEmptySeat(0))
+                return;
+
+            parent->HandleSpellClick(plr, 0);
+        }, Milliseconds(1000));
+    }
+
+    // Exit the turret now. Driver seat free: re-board it a moment later
+    // (point 1). Driver seat taken: teleport out beside the siege, the plain
+    // nested exit spline does not land clientside (point 2).
+    void ExitSalvagedTurret(Player* player, Unit* parent)
+    {
+        if (parent->GetVehicleKit()->HasEmptySeat(0))
+        {
+            player->ExitVehicle();
+            ScheduleSalvagedSiegeReboard(player, parent);
+        }
+        else
+        {
+            Position exitPos = parent->GetPosition();
+            parent->MovePositionToFirstCollision(exitPos, 5.0f, float(M_PI));
+            player->ExitVehicle();
+            player->NearTeleportTo(exitPos.GetPositionX(), exitPos.GetPositionY(), exitPos.GetPositionZ(), exitPos.GetOrientation(), false);
+        }
+    }
+
+    // Point 1+2: leaving the turret. Returns true when handled.
+    bool HandleSalvagedTurretLeave(Player* player)
+    {
+        Unit* parent = GetSalvagedSiegeParent(player);
+        if (!parent)
+            return false;
+
+        ExitSalvagedTurret(player, parent);
+        return true;
+    }
+
+    // Point 1+2 for explicit seat switches: turret -> parent driver seat.
+    bool TrySalvagedTurretSwitchToDriver(Player* player, Unit* destBase, int8 seatId)
+    {
+        if (seatId != 0 || !destBase)
+            return false;
+
+        Unit* parent = GetSalvagedSiegeParent(player);
+        if (!parent || destBase != parent)
+            return false;
+
+        ExitSalvagedTurret(player, parent);
+        return true;
+    }
+} // namespace
+
 void WorldSession::HandleDismissControlledVehicle(WorldPacket& recvData)
 {
     LOG_DEBUG("network", "WORLD: Recvd CMSG_DISMISS_CONTROLLED_VEHICLE");
@@ -32,6 +134,13 @@ void WorldSession::HandleDismissControlledVehicle(WorldPacket& recvData)
     if (!vehicleGUID)                                       // something wrong here...
     {
         recvData.rfinish();                                // prevent warnings spam
+        return;
+    }
+
+    // Salvaged siege turret leave (points 1+2).
+    if (HandleSalvagedTurretLeave(_player))
+    {
+        recvData.rfinish();
         return;
     }
 
@@ -78,11 +187,21 @@ void WorldSession::HandleChangeSeatsOnControlledVehicle(WorldPacket& recvData)
     switch (recvData.GetOpcode())
     {
         case CMSG_REQUEST_VEHICLE_PREV_SEAT:
-            GetPlayer()->ChangeSeat(-1, false);
-            break;
         case CMSG_REQUEST_VEHICLE_NEXT_SEAT:
-            GetPlayer()->ChangeSeat(-1, true);
+        {
+            // Seat arrows from a salvaged turret move to the driver seat when it
+            // is free, otherwise they keep today's behavior (no-op in the turret).
+            bool next = recvData.GetOpcode() == CMSG_REQUEST_VEHICLE_NEXT_SEAT;
+            Unit* parent = GetSalvagedSiegeParent(GetPlayer());
+            if (parent && parent->GetVehicleKit()->HasEmptySeat(0))
+            {
+                GetPlayer()->ExitVehicle();
+                ScheduleSalvagedSiegeReboard(GetPlayer(), parent);
+            }
+            else
+                GetPlayer()->ChangeSeat(-1, next);
             break;
+        }
         case CMSG_CHANGE_SEATS_ON_CONTROLLED_VEHICLE:
             {
                 ObjectGuid guid;        // current vehicle guid
@@ -110,6 +229,11 @@ void WorldSession::HandleChangeSeatsOnControlledVehicle(WorldPacket& recvData)
                     GetPlayer()->ChangeSeat(-1, seatId > 0); // prev/next
                 else if (Unit* vehUnit = ObjectAccessor::GetUnit(*GetPlayer(), accessory))
                 {
+                    // Salvaged turret -> parent driver seat goes through the deferred
+                    // transfer instead of a same-tick exit+enter.
+                    if (TrySalvagedTurretSwitchToDriver(GetPlayer(), vehUnit, seatId))
+                        break;
+
                     if (Vehicle* vehicle = vehUnit->GetVehicleKit())
                         if (vehicle->HasEmptySeat(seatId))
                             vehUnit->HandleSpellClick(GetPlayer(), seatId);
@@ -127,9 +251,16 @@ void WorldSession::HandleChangeSeatsOnControlledVehicle(WorldPacket& recvData)
                 if (vehicle_base->GetGUID() == guid)
                     GetPlayer()->ChangeSeat(seatId);
                 else if (Unit* vehUnit = ObjectAccessor::GetUnit(*GetPlayer(), guid))
+                {
+                    // Salvaged turret -> parent driver seat goes through the deferred
+                    // transfer instead of a same-tick exit+enter.
+                    if (TrySalvagedTurretSwitchToDriver(GetPlayer(), vehUnit, seatId))
+                        break;
+
                     if (Vehicle* vehicle = vehUnit->GetVehicleKit())
                         if (vehicle->HasEmptySeat(seatId))
                             vehUnit->HandleSpellClick(GetPlayer(), seatId);
+                }
                 break;
             }
         default:
@@ -226,6 +357,10 @@ void WorldSession::HandleEjectPassenger(WorldPacket& data)
 void WorldSession::HandleRequestVehicleExit(WorldPacket& /*recvData*/)
 {
     LOG_DEBUG("network", "WORLD: Recvd CMSG_REQUEST_VEHICLE_EXIT");
+
+    // Salvaged siege turret leave (points 1+2).
+    if (HandleSalvagedTurretLeave(GetPlayer()))
+        return;
 
     if (Vehicle* vehicle = GetPlayer()->GetVehicle())
     {

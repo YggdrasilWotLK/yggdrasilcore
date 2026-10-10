@@ -1879,6 +1879,7 @@ public:
     void RemoveVehicleKit();
     [[nodiscard]] Vehicle* GetVehicleKit()const { return m_vehicleKit; }
     [[nodiscard]] Vehicle* GetVehicle()   const { return m_vehicle; }
+    void SetVehicle(Vehicle* vehicle) { m_vehicle = vehicle; }
     bool IsOnVehicle(Unit const* vehicle) const { return m_vehicle && m_vehicle == vehicle->GetVehicleKit(); }
     [[nodiscard]] Unit* GetVehicleBase()  const;
     [[nodiscard]] Creature* GetVehicleCreatureBase() const;
