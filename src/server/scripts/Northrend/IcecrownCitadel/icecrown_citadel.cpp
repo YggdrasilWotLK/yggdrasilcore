@@ -2976,7 +2976,10 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
         bool hordeSide = action == HORDE_AREATRIGGER || action == HORDE_AREATRIGGER + 1;
         Position landingPosition = hordeSide ? posHordeMove : posAllianceMove;
 
-        me->GetMotionMaster()->MovePoint(1, landingPosition);
+        me->SetCanFly(true);
+        me->SetDisableGravity(true);
+        me->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
+        me->GetMotionMaster()->MoveLand(1, landingPosition);
         me->SetHomePosition(landingPosition);
 
         Talk(0);
