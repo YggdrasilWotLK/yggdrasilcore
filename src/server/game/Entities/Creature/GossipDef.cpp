@@ -464,7 +464,9 @@ void PlayerMenu::SendQuestGiverQuestDetails(Quest const* quest, ObjectGuid npcGU
         uint32 questXp;
         if (player && !sScriptMgr->OnPlayerShouldBeRewardedWithMoneyInsteadOfExp(player))
         {
-            questXp = player->CalculateQuestRewardXP(quest);
+            // Repeatable quests (except daily/weekly/monthly/DF) give XP only on first completion (see Player::RewardQuest).
+            bool noXPOnRepeat = player->IsQuestRewarded(quest->GetQuestId()) && !quest->IsDFQuest() && !quest->IsDaily() && !quest->IsWeekly() && !quest->IsMonthly();
+            questXp = noXPOnRepeat ? 0 : player->CalculateQuestRewardXP(quest);
         }
         else
         {
@@ -547,7 +549,18 @@ void PlayerMenu::SendQuestQueryResponse(Quest const* quest) const
     data << uint32(quest->GetRepObjectiveValue2());         // shown in quest log as part of quest objective OPPOSITE faction
 
     data << uint32(quest->GetNextQuestInChain());           // client will request this quest from NPC, if not 0
-    data << uint32(quest->GetXPId());                       // used for calculating rewarded experience
+    {
+        // Repeatable quests (except daily/weekly/monthly/DF) give XP only on first completion (see Player::RewardQuest).
+        // Quest log calculates displayed XP from this field, so send 0 if already rewarded to avoid misleading display.
+        uint32 xpId = quest->GetXPId();
+        if (Player* player = _session->GetPlayer())
+        {
+            bool noXPOnRepeat = player->IsQuestRewarded(quest->GetQuestId()) && !quest->IsDFQuest() && !quest->IsDaily() && !quest->IsWeekly() && !quest->IsMonthly();
+            if (noXPOnRepeat)
+                xpId = 0;
+        }
+        data << uint32(xpId);                                 // used for calculating rewarded experience
+    }
 
     if (quest->HasFlag(QUEST_FLAGS_HIDDEN_REWARDS))
         data << uint32(0);                                  // Hide money rewarded
@@ -716,7 +729,9 @@ void PlayerMenu::SendQuestGiverOfferReward(Quest const* quest, ObjectGuid npcGUI
     uint32 questXp;
     if (player && !sScriptMgr->OnPlayerShouldBeRewardedWithMoneyInsteadOfExp(player))
     {
-        questXp = player->CalculateQuestRewardXP(quest);
+        // Repeatable quests (except daily/weekly/monthly/DF) give XP only on first completion (see Player::RewardQuest).
+        bool noXPOnRepeat = player->IsQuestRewarded(quest->GetQuestId()) && !quest->IsDFQuest() && !quest->IsDaily() && !quest->IsWeekly() && !quest->IsMonthly();
+        questXp = noXPOnRepeat ? 0 : player->CalculateQuestRewardXP(quest);
     }
     else
     {
