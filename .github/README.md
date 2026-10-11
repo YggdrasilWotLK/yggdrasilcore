@@ -4,7 +4,7 @@
 
 Yggdrasilcore is an AzerothCore-based open-source game server application and framework designed for emulating support for connections and packets from and sending emulated information to the original abandonware WotLK 3.3.5a client. Read more about the upstream project [here](https://github.com/azerothcore/azerothcore-wotlk).
 
-Our latest mass merge from AzerothCore was [up until this commit in the Shadows branch](https://github.com/mod-shadows/azerothcore-wotlk/commit/39187083b04ede6a095e32b39ac4ae4e22dee22f) on 2025-10-25. Only cherry picks are planned hereafter.
+Our latest mass merge from AzerothCore was [up until this commit in the Playerbots branch](https://github.com/mod-playerbots/azerothcore-wotlk/commit/39187083b04ede6a095e32b39ac4ae4e22dee22f) on 2025-10-25. Only cherry picks are planned hereafter.
 
 Read more about Yggdrasil WoW and see Yggdrasilcore in action [here](https://yggdrasilwow.com/).
 
@@ -17,7 +17,7 @@ We build every commit on a local Dockerized Ubuntu 24.04 machine before anything
 
 ## Philosophy
 
-The AzerothCore project generally uses a rapid, rolling release system, which sees minimal testing between commits (apart from CI checks). Resultingly, many AzerothCore-based servers that adhere purely to the upstream codebase receive breaking changes more or less weekly. At Yggdrasilcore, we have inverted this logic to instead change purely that which needs changing - and we have decided that stable, functional code, such as threadsafe monoliths, doesn't need to be broken up/refactored/changed past that which is necessary for Blizzlike functionality. (Curiously enough, this train of thought is similar to the original SunwellCore split from TrinityCore, which in turn later birthed AzerothCore, and alas, here we are.)
+The AzerothCore project generally uses a rapid, rolling release system, which sees minimal testing between commits (apart from CI checks and basic runtime testing). Resultingly, many AzerothCore-based servers that adhere purely to the upstream codebase receive breaking changes more or less weekly. At Yggdrasilcore, we have inverted this logic to instead change purely that which needs changing - and we have decided that stable, functional code, such as threadsafe monoliths, doesn't need to be broken up/refactored/changed past that which is necessary for Blizzlike functionality. (Curiously enough, this train of thought is similar to the original SunwellCore split from TrinityCore, which in turn later birthed AzerothCore, and alas, here we are.)
 
 Note that Blizzlike in this regard isn't interpreted as purely based on sniffs. We use more data sources and have a more lax policy on what to accept in our codebase, and consider using Wowhead information or YouTube videos for approximate details as satisfactory. 
 
