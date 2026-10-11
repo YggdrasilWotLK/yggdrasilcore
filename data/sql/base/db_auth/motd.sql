@@ -34,7 +34,7 @@ CREATE TABLE `motd` (
 LOCK TABLES `motd` WRITE;
 /*!40000 ALTER TABLE `motd` DISABLE KEYS */;
 INSERT INTO `motd` VALUES
-(-1,'Welcome to an AzerothCore server.');
+(-1,'Welcome to an Yggdrasilcore server.');
 /*!40000 ALTER TABLE `motd` ENABLE KEYS */;
 UNLOCK TABLES;
 
