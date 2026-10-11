@@ -37,6 +37,10 @@ public:
 
     // Called when the area trigger is activated by a player.
     [[nodiscard]] virtual bool CanAreaTrigger(Player* /*player*/, AreaTrigger const* /*trigger*/) { return false; }
+
+    // Called for every area trigger activation that was not vetoed above.
+    // Unlike CanAreaTrigger this is purely informational and cannot block.
+    virtual void OnAreaTriggerEntry(Player* /*player*/, AreaTrigger const* /*trigger*/) { }
 };
 
 #endif

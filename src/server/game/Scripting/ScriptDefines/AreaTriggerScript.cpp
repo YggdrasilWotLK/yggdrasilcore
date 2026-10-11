@@ -36,6 +36,11 @@ bool ScriptMgr::OnAreaTrigger(Player* player, AreaTrigger const* trigger)
         return false;
     }
 
+    ExecuteScript<YLAScript>([&](YLAScript* script)
+    {
+        script->OnAreaTriggerEntry(player, trigger);
+    });
+
     auto tempScript = ScriptRegistry<AreaTriggerScript>::GetScriptById(sObjectMgr->GetAreaTriggerScriptId(trigger->entry));
     return tempScript ? tempScript->OnTrigger(player, trigger) : false;
 }
