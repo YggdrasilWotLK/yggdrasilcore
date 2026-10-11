@@ -17,6 +17,7 @@
 
 #include "VehicleScript.h"
 #include "ScriptMgr.h"
+#include "ScriptMgrMacros.h"
 #include "Vehicle.h"
 
 void ScriptMgr::OnInstall(Vehicle* veh)
@@ -24,10 +25,10 @@ void ScriptMgr::OnInstall(Vehicle* veh)
     ASSERT(veh);
     ASSERT(veh->GetBase()->IsCreature());
 
-    if (auto tempScript = ScriptRegistry<VehicleScript>::GetScriptById(veh->GetBase()->ToCreature()->GetScriptId()))
+    ExecuteScript<VehicleScript>([&](VehicleScript* script)
     {
-        tempScript->OnInstall(veh);
-    }
+        script->OnInstall(veh);
+    });
 }
 
 void ScriptMgr::OnUninstall(Vehicle* veh)
@@ -35,10 +36,10 @@ void ScriptMgr::OnUninstall(Vehicle* veh)
     ASSERT(veh);
     ASSERT(veh->GetBase()->IsCreature());
 
-    if (auto tempScript = ScriptRegistry<VehicleScript>::GetScriptById(veh->GetBase()->ToCreature()->GetScriptId()))
+    ExecuteScript<VehicleScript>([&](VehicleScript* script)
     {
-        tempScript->OnUninstall(veh);
-    }
+        script->OnUninstall(veh);
+    });
 }
 
 void ScriptMgr::OnReset(Vehicle* veh)
@@ -46,10 +47,10 @@ void ScriptMgr::OnReset(Vehicle* veh)
     ASSERT(veh);
     ASSERT(veh->GetBase()->IsCreature());
 
-    if (auto tempScript = ScriptRegistry<VehicleScript>::GetScriptById(veh->GetBase()->ToCreature()->GetScriptId()))
+    ExecuteScript<VehicleScript>([&](VehicleScript* script)
     {
-        tempScript->OnReset(veh);
-    }
+        script->OnReset(veh);
+    });
 }
 
 void ScriptMgr::OnInstallAccessory(Vehicle* veh, Creature* accessory)
@@ -58,10 +59,10 @@ void ScriptMgr::OnInstallAccessory(Vehicle* veh, Creature* accessory)
     ASSERT(veh->GetBase()->IsCreature());
     ASSERT(accessory);
 
-    if (auto tempScript = ScriptRegistry<VehicleScript>::GetScriptById(veh->GetBase()->ToCreature()->GetScriptId()))
+    ExecuteScript<VehicleScript>([&](VehicleScript* script)
     {
-        tempScript->OnInstallAccessory(veh, accessory);
-    }
+        script->OnInstallAccessory(veh, accessory);
+    });
 }
 
 void ScriptMgr::OnAddPassenger(Vehicle* veh, Unit* passenger, int8 seatId)
@@ -70,10 +71,10 @@ void ScriptMgr::OnAddPassenger(Vehicle* veh, Unit* passenger, int8 seatId)
     ASSERT(veh->GetBase()->IsCreature());
     ASSERT(passenger);
 
-    if (auto tempScript = ScriptRegistry<VehicleScript>::GetScriptById(veh->GetBase()->ToCreature()->GetScriptId()))
+    ExecuteScript<VehicleScript>([&](VehicleScript* script)
     {
-        tempScript->OnAddPassenger(veh, passenger, seatId);
-    }
+        script->OnAddPassenger(veh, passenger, seatId);
+    });
 }
 
 void ScriptMgr::OnRemovePassenger(Vehicle* veh, Unit* passenger)
@@ -82,10 +83,10 @@ void ScriptMgr::OnRemovePassenger(Vehicle* veh, Unit* passenger)
     ASSERT(veh->GetBase()->IsCreature());
     ASSERT(passenger);
 
-    if (auto tempScript = ScriptRegistry<VehicleScript>::GetScriptById(veh->GetBase()->ToCreature()->GetScriptId()))
+    ExecuteScript<VehicleScript>([&](VehicleScript* script)
     {
-        tempScript->OnRemovePassenger(veh, passenger);
-    }
+        script->OnRemovePassenger(veh, passenger);
+    });
 }
 
 VehicleScript::VehicleScript(const char* name)
