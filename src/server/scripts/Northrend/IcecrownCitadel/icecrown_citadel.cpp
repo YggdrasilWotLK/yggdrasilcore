@@ -2936,17 +2936,23 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
         });
 
         _canResetFlyingEffects = true;
+        _landingPos = Position();
+    }
+
+    void GroundFlyingEffects()
+    {
+        me->SetCanFly(false);
+        me->SetDisableGravity(false);
+        me->SetHover(false);
+        me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
+        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+        _canResetFlyingEffects = false;
     }
 
     void Reset() override
     {
         if (!_canResetFlyingEffects)
-        {
-            me->SetCanFly(false);
-            me->SetDisableGravity(false);
-            me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
-            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
-        }
+            GroundFlyingEffects();
     }
 
     void JustEngagedWith(Unit* /*victim*/) override
@@ -2966,6 +2972,8 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
         });
 
         _canResetFlyingEffects = false;
+        if (me->IsFlying() && me->GetMotionMaster()->GetCurrentMovementGeneratorType() != EFFECT_MOTION_TYPE)
+            me->GetMotionMaster()->MoveLand(1, _landingPos);
     }
 
     void DoAction(int32 action) override
@@ -2975,21 +2983,47 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
 
         bool hordeSide = action == HORDE_AREATRIGGER || action == HORDE_AREATRIGGER + 1;
         Position landingPosition = hordeSide ? posHordeMove : posAllianceMove;
+        _landingPos = landingPosition;
 
-        me->GetMotionMaster()->MovePoint(1, landingPosition);
-        me->SetHomePosition(landingPosition);
-
+        me->SetCanFly(true);
+        me->SetDisableGravity(true);
+        me->SetHover(true);
+        me->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
+        // Unattackable until grounded: combat mid-descent replaces the landing
+        // spline with a fly-styled chase (CanFly() is template-true, chase paths
+        // force straight air lines) and MovementInform never fires.
+        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+        me->SendMovementFlagUpdate();
+        _canResetFlyingEffects = false;
         Talk(0);
+
+        // Delay the spline past the summon-create flush so the client
+        // processes CREATE + flying state before SMSG_MONSTER_MOVE.
+        // Same-tick MoveLand races creation and air-walks ~2s.
+        me->m_Events.AddEventAtOffset([this, landingPosition]()
+        {
+            if (!me->IsInWorld() || !me->IsAlive())
+                return;
+            // Re-assert: anything cleared between trigger and move
+            // (e.g. a Reset) must not leave a ground-walk spline.
+            me->SetCanFly(true);
+            me->SetDisableGravity(true);
+            me->SetHover(true);
+            me->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
+            me->SendMovementFlagUpdate();
+            me->GetMotionMaster()->MoveLand(1, landingPosition);
+            me->SetHomePosition(landingPosition);
+        }, 500ms);
     }
 
     void MovementInform(uint32 type, uint32 id) override
     {
-        if (type == EFFECT_MOTION_TYPE && id == 1)
+        if (id == 1 && (type == EFFECT_MOTION_TYPE || type == POINT_MOTION_TYPE))
         {
-            me->SetCanFly(false);
-            me->SetDisableGravity(false);
-            me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
-            _canResetFlyingEffects = false;
+            GroundFlyingEffects();
+            // A chase interrupt can pre-empt the landing spline; resume it.
+            if (Unit* victim = me->GetVictim())
+                me->GetMotionMaster()->MoveChase(victim);
         }
     }
 
@@ -2997,11 +3031,7 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
     {
         ScriptedAI::JustReachedHome();
         if (!_canResetFlyingEffects)
-        {
-            me->SetCanFly(false);
-            me->SetDisableGravity(false);
-            me->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER);
-        }
+            GroundFlyingEffects();
     }
 
     bool CanAIAttack(Unit const* target) const override
@@ -3021,6 +3051,7 @@ struct npc_icc_spire_frostwyrm : public ScriptedAI
     private:
         TaskScheduler _scheduler;
         bool _canResetFlyingEffects;
+        Position _landingPos;
 };
 
 #define VENGEFUL_WP_COUNT 8
