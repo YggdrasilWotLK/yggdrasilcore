@@ -17,6 +17,7 @@ Examples:
 """
 
 import argparse
+import datetime
 import difflib
 import hashlib
 import json
@@ -37,6 +38,44 @@ METHOD_RE = re.compile(
     r"([\w:\<\>\*\&,\s]+?)\s+(\w+)\s*\(([^;{}]*)\)\s*(const)?\s*(override)?\s*(=\s*0|=\s*default|=\s*delete)?\s*[;{]"
 )
 SKIP_NAMES = {"if", "for", "while", "switch", "return", "sizeof"}
+
+CLASS_DECL_RE = re.compile(
+    r"^\s*(?:class|struct)\s+((?:\w+\s+)*\w+)\s*(?::\s*([^{;]*?))?\s*[{;]",
+    re.MULTILINE,
+)
+
+
+def _clean_typename(tok):
+    tok = re.sub(r"<.*", "", tok).strip()
+    parts = tok.split()
+    return parts[-1] if parts else ""
+
+
+def scan_classes(headers):
+    """Map class name -> {bases, file} for the inheritance sidebar."""
+    out = {}
+    for h in headers:
+        try:
+            with open(h, errors="ignore") as f:
+                text = f.read()
+        except OSError:
+            continue
+        for m in CLASS_DECL_RE.finditer(text):
+            if m.group(0).rstrip().endswith(";"):
+                continue  # forward declaration, no bases
+            name = _clean_typename(m.group(1).split(":")[0])
+            if not name or not name[0].isalpha() or name in SKIP_NAMES or name.isupper():
+                continue
+            bases = []
+            if m.group(2):
+                for part in m.group(2).split(","):
+                    b = _clean_typename(re.sub(r"^(public|protected|private|virtual)\s+", "", part.strip()))
+                    if b and b not in bases:
+                        bases.append(b)
+            if name not in out:
+                out[name] = {"bases": bases, "file": os.path.relpath(h, ROOT)}
+    return out
+
 
 def git_diff_files(ref):
     try:
@@ -266,11 +305,16 @@ def ollama_describe(base_url, model, sig, body):
     return "", raw
 
 
-def build_reader(entries, out_dir):
+def build_reader(entries, classes, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, "ai.json"), "w") as f:
         json.dump(entries, f, indent=1)
+    with open(os.path.join(out_dir, "hierarchy.json"), "w") as f:
+        json.dump(classes, f, indent=1)
     index = [
+        {"type": "class", "name": c, "desc": "%d methods" % sum(1 for e in entries if e["class"] == c)}
+        for c in sorted({e["class"] for e in entries})
+    ] + [
         {
             "type": "method",
             "class": e["class"],
@@ -284,99 +328,205 @@ def build_reader(entries, out_dir):
         json.dump(index, f)
     models = [e.get("model") for e in entries if e.get("model")]
     model = max(set(models), key=models.count) if models else "AI model"
+    logo_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
+    if os.path.isfile(logo_src):
+        with open(logo_src, "rb") as fsrc, open(os.path.join(out_dir, "logo.png"), "wb") as fdst:
+            fdst.write(fsrc.read())
     html = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>YggdrasilCore C++ API</title>
-<style>body{font-family:system-ui,sans-serif;background:#14101f;color:#e8e2f5;margin:0;padding-bottom:34px}
-header{padding:12px 16px;background:#1e1830;position:sticky;top:0;display:flex;gap:12px;align-items:center;z-index:5}
-#swrap{position:relative;flex:1;max-width:520px}
+<title>Yggdrasilcore C++ API</title>
+<style>:root{--bg:#14101f;--panel:#1e1830;--card:#1c1530;--line:#3a2d63;--txt:#e8e2f5;--mut:#8f7fc9;--acc:#b79cff}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:40px}
+#topbar{display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--panel);position:sticky;top:0;z-index:5}
+#hamburger{background:none;border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:16px;padding:6px 10px;cursor:pointer}
+#logo{display:flex;gap:10px;align-items:center;color:var(--txt);text-decoration:none;font-weight:700;font-size:16px;white-space:nowrap}
+#logo img{height:34px}
+#swrap{position:relative;flex:1;max-width:520px;margin-left:auto}
 #q{width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid #5b4a8a;background:#100c1c;color:#fff}
-#res{position:absolute;top:110%;left:0;right:0;background:#1e1830;border:1px solid #5b4a8a;border-radius:8px;display:none;max-height:50vh;overflow:auto}
+#res{position:absolute;top:110%;left:0;right:0;background:var(--panel);border:1px solid #5b4a8a;border-radius:8px;display:none;max-height:50vh;overflow:auto}
 #res.open{display:block}
 .sr-item{padding:8px 12px;cursor:pointer;font-size:13px}
-.sr-item:hover{background:#3a2d63}
-.sr-item .c{color:#8f7fc9}
-.sr-item .d{color:#8f7fc9;display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-main{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-#cls{border-right:1px solid #352a55;overflow:auto;max-height:calc(100vh - 57px)}
-#cls button{display:block;width:100%;text-align:left;background:none;border:none;color:#cfc4f5;padding:8px 14px;cursor:pointer}
-#cls button.on{background:#3a2d63;color:#fff}
-#list{padding:16px;max-width:900px}
-.card{border:1px solid #3a2d63;border-radius:10px;margin:0 0 10px;background:#1c1530}
+.sr-item:hover{background:var(--line)}
+.sr-item .c{color:var(--mut)}
+.sr-item .d{color:var(--mut);display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#app{display:grid;grid-template-columns:480px 1fr;min-height:100vh}
+#app.nosb{grid-template-columns:0 1fr}
+#app.nosb #sidebar{display:none}
+#sidebar{display:grid;grid-template-columns:220px 1fr;border-right:1px solid #352a55;overflow:hidden}
+#sidebar nav{overflow:auto;max-height:calc(100vh - 55px)}
+#classcol{border-right:1px solid #352a55}
+.shead{padding:12px 14px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut)}
+#classcol button{display:block;width:100%;text-align:left;background:none;border:none;color:#cfc4f5;padding:7px 14px;cursor:pointer;font-size:14px}
+#classcol button.on{background:var(--line);color:#fff}
+#methodcol button.mitem{display:flex;width:100%;text-align:left;background:none;border:none;color:#cfc4f5;padding:6px 14px;cursor:pointer;font-size:13px;align-items:baseline;gap:7px}
+#methodcol button.mitem.on{background:var(--line);color:#fff}
+#methodcol button.mitem.inherited{color:var(--mut)}
+.own-dot,.inh-dot{flex:none;width:7px;height:7px;border-radius:50%;transform:translateY(-1px)}
+.own-dot{background:var(--acc)}
+.inh-dot{border:1.5px solid var(--mut);box-sizing:border-box}
+#inhtoggle{margin:4px 14px 10px;background:none;border:1px solid var(--line);border-radius:20px;color:var(--txt);padding:5px 14px;font-size:12px;cursor:pointer}
+#inhtoggle[aria-pressed="false"]{opacity:.55}
+body.hideinh #methodcol button.mitem.inherited{display:none}
+#main{padding:20px;max-width:960px}
+.card{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;background:var(--card)}
 .chead{padding:12px 14px;cursor:pointer}
 .chead:hover{background:#241b40;border-radius:10px}
 .chead b{font-size:15px}
-.star{color:#8f7fc9;font-size:12px;margin-left:6px}
-.sig{font-family:monospace;color:#b79cff;font-size:13px;margin-top:4px}
+.star{color:var(--mut);font-size:12px;margin-left:6px}
+.inh-note{font-size:12px;color:var(--mut);margin-left:8px}
+.sig{font-family:monospace;color:var(--acc);font-size:13px;margin-top:4px;overflow-wrap:anywhere}
 .cbody{display:none;padding:0 14px 12px}
 .card.open .cbody{display:block}
 .cbody p{margin:8px 0;line-height:1.5}
 .cbody code{background:#100c1c;padding:1px 5px;border-radius:4px;font-size:12.5px}
-.cbody small{color:#8f7fc9}
-.cbody a{color:#b79cff}
-footer{position:fixed;left:0;right:0;bottom:0;background:#1e1830;border-top:1px solid #352a55;
- color:#8f7fc9;font-size:12px;padding:8px 16px}</style>
-</head><body><header><b>C++ API</b><div id="swrap"><input id="q" placeholder="Search Class::method…" autocomplete="off" spellcheck="false"><div id="res"></div></div></header>
-<main><nav id="cls"></nav><div id="list"></div></main>
-<footer>* Methods marked with &#9733; had their explanations generated by FOOT_MODEL.</footer>
-<script>const D=DATA_PLACEHOLDER;
-const list=document.getElementById("list"),nav=document.getElementById("cls"),
- q=document.getElementById("q"),res=document.getElementById("res");
-const classes=[...new Set(D.map(e=>e.class))].sort();
-const cset=new Set(classes);
-let cur=new URLSearchParams(location.search).get("class");
-let target=new URLSearchParams(location.search).get("method");
+.cbody small{color:var(--mut)}
+.cbody a{color:var(--acc)}
+#home img#homelogo{max-width:100%;height:auto}
+#home .stats{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+#home .stat{border:1px solid var(--line);border-radius:10px;padding:10px 18px;background:var(--card)}
+#home .stat b{font-size:22px;display:block}
+#home .stat span{font-size:12px;color:var(--mut)}
+#home a{color:var(--acc)}
+footer{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid #352a55;
+ color:var(--mut);font-size:12px;padding:8px 16px;display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}</style>
+</head><body>
+<header id="topbar">
+<button id="hamburger" aria-label="Toggle sidebar">☰</button>
+<a id="logo" href="?"><img src="logo.png" alt="" onerror="this.remove()"><span>Yggdrasilcore C++ API</span></a>
+<div id="swrap"><input id="q" placeholder="Search classes and methods…" autocomplete="off" spellcheck="false"><div id="res"></div></div>
+</header>
+<div id="app"><aside id="sidebar">
+<nav id="classcol"><div class="shead">Classes</div></nav>
+<nav id="methodcol"></nav>
+</aside><main id="main"></main></div>
+<footer><span>* Methods marked with &#9733; had their explanations generated by FOOT_MODEL.</span><span>© FOOT_YEAR YggdrasilCore</span></footer>
+<script>const D=DATA_PLACEHOLDER,H=HIER_PLACEHOLDER;
+const main=document.getElementById("main"),classcol=document.getElementById("classcol"),
+ methcol=document.getElementById("methodcol"),q=document.getElementById("q"),res=document.getElementById("res"),
+ app=document.getElementById("app");
+const params=new URLSearchParams(location.search);
+let cur=params.get("class"),target=params.get("method");
 const open=new Set();
 if(cur&&target)open.add(cur+"::"+target);
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+const allClasses=[...new Set(D.map(e=>e.class))].sort();
+const cset=new Set(allClasses);
 function fmt(s){let h=esc(s);
  h=h.replace(/`([^`]+)`/g,"<code>$1</code>");
  h=h.replace(/\\*\\*(.+?)\\*\\*/g,"<strong>$1</strong>");
  h=h.replace(/(^|\\W)\\*([^\\*\\n]+)\\*/g,"$1<em>$2</em>");
  h=h.replace(/\\[(\\w+)\\]/g,(m,c)=>cset.has(c)?'<a href="?class='+c+'">'+c+"</a>":m);
  return h.replace(/\\n/g,"<br>");}
-function card(e,i){const id="m"+i,k=e.class+"::"+e.name,isOpen=open.has(k);
- const d=document.createElement("div");d.className="card"+(isOpen?" open":"");d.id=id;
+function ancestors(cls){const seen=new Set(),stack=[...(H[cls]?H[cls].bases:[])];
+ while(stack.length){const b=stack.pop();if(!b||seen.has(b))continue;seen.add(b);
+  if(H[b])stack.push(...H[b].bases);}return seen;}
+function methodsOf(cls){const anc=ancestors(cls),out=[];
+ D.forEach((e,i)=>{if(e.class===cls)out.push({e:e,i:i,inh:null});
+  else if(anc.has(e.class))out.push({e:e,i:i,inh:e.class});});
+ out.sort((a,b)=>a.e.name.localeCompare(b.e.name));return out;}
+function cardEl(m){const e=m.e,k=e.class+"::"+e.name,isOpen=open.has(k);
+ const d=document.createElement("div");d.className="card"+(isOpen?" open":"");d.id="m"+m.i;
  const h=document.createElement("div");h.className="chead";
  const t=document.createElement("b");t.textContent=k;h.appendChild(t);
  if(e.ai){const s=document.createElement("span");s.className="star";s.textContent="\\u2605";h.appendChild(s);}
+ if(m.inh){const n=document.createElement("span");n.className="inh-note";n.textContent="inherited from "+m.inh;h.appendChild(n);}
  const sg=document.createElement("div");sg.className="sig";sg.textContent=e.sig;h.appendChild(sg);
- h.onclick=()=>{d.classList.toggle("open");
-  if(d.classList.contains("open"))open.add(k);else open.delete(k);};
+ h.onclick=()=>{const was=d.classList.toggle("open");
+  if(was)open.add(k);else open.delete(k);};
  d.appendChild(h);
  const b=document.createElement("div");b.className="cbody";
  const p=document.createElement("p");p.innerHTML=fmt(e.desc||"(no description)");b.appendChild(p);
  const sm=document.createElement("small");sm.textContent=e.file+":"+e.line;b.appendChild(sm);
  d.appendChild(b);return d;}
-function render(){list.innerHTML="";
- D.forEach((e,i)=>{if(cur&&e.class!==cur)return;list.appendChild(card(e,i));});
- [...nav.children].forEach(b=>b.classList.toggle("on",b.textContent===cur));}
-function go(cls,name){cur=cls;render();open.add(cls+"::"+name);
- const idx=D.findIndex(e=>e.class===cls&&e.name===name);
- const el=idx>=0&&document.getElementById("m"+idx);
- if(el){el.classList.add("open");el.scrollIntoView({block:"center"});}
- history.replaceState(null,"","?class="+encodeURIComponent(cls)+"&method="+encodeURIComponent(name));}
-classes.forEach(c=>{const b=document.createElement("button");b.textContent=c;
- b.onclick=()=>{cur=c;target=null;history.replaceState(null,"","?class="+encodeURIComponent(c));render();};
- nav.appendChild(b);});
+function renderSidebar(){
+ classcol.querySelectorAll("button").forEach(x=>x.remove());
+ allClasses.forEach(c=>{const b=document.createElement("button");b.textContent=c;
+  if(c===cur)b.classList.add("on");
+  b.onclick=()=>{location.href="?class="+encodeURIComponent(c);};classcol.appendChild(b);});
+ methcol.innerHTML="";
+ if(!cur||!cset.has(cur))return;
+ const hd=document.createElement("div");hd.className="shead";hd.textContent=cur+" Methods";methcol.appendChild(hd);
+ const t=document.createElement("button");t.id="inhtoggle";t.textContent="Show inherited";
+ t.setAttribute("aria-pressed",document.body.classList.contains("hideinh")?"false":"true");
+ t.onclick=()=>{const h=document.body.classList.toggle("hideinh");t.setAttribute("aria-pressed",h?"false":"true");};
+ methcol.appendChild(t);
+ methodsOf(cur).forEach(m=>{const b=document.createElement("button");
+  b.className="mitem"+(m.inh?" inherited":"");
+  const dot=document.createElement("span");dot.className=m.inh?"inh-dot":"own-dot";b.appendChild(dot);
+  const nm=document.createElement("span");nm.textContent=m.e.name;b.appendChild(nm);
+  if((cur+"::"+m.e.name)===cur+"::"+target)b.classList.add("on");
+  b.onclick=()=>{location.href="?class="+encodeURIComponent(cur)+"&method="+encodeURIComponent(m.e.name);};
+  methcol.appendChild(b);});}
+function renderHome(){main.innerHTML="";
+ const w=document.createElement("div");w.id="home";
+ const im=document.createElement("img");im.id="homelogo";im.src="logo.png";im.alt="Yggdrasil";
+ im.onerror=()=>im.remove();w.appendChild(im);
+ const h=document.createElement("h1");h.textContent="YggdrasilCore C++ API";w.appendChild(h);
+ const p=document.createElement("p");
+ p.textContent="YggdrasilCore is an AzerothCore-based open-source game server for the "
+  + "WotLK 3.3.5a client. This reader documents its C++ core API: classes and methods parsed "
+  + "from the source, with explanations generated by a hosted code model. Pick a class on the "
+  + "left, or search above.";w.appendChild(p);
+ const st=document.createElement("div");st.className="stats";
+ const docd=D.filter(e=>e.desc).length;
+ [["Methods",D.length],["Classes",allClasses.length],["Documented",docd]].forEach(s=>{
+  const d=document.createElement("div");d.className="stat";
+  const b=document.createElement("b");b.textContent=s[1];d.appendChild(b);
+  const sp=document.createElement("span");sp.textContent=s[0];d.appendChild(sp);st.appendChild(d);});
+ w.appendChild(st);
+ const links=document.createElement("p");links.innerHTML="";
+ [["Yggdrasil WoW","https://yggdrasilwow.com/"],
+  ["Source code","https://github.com/YggdrasilWotLK/yggdrasilcore"],
+  ["Lua API docs","https://yggdrasilwotlk.github.io/mod-yla/"]].forEach((l,i)=>{
+  if(i)links.appendChild(document.createTextNode(" · "));
+  const a=document.createElement("a");a.href=l[1];a.textContent=l[0];links.appendChild(a);});
+ w.appendChild(links);main.appendChild(w);}
+function renderClass(){main.innerHTML="";
+ const h=document.createElement("h2");h.textContent=cur;main.appendChild(h);
+ const bases=H[cur]?H[cur].bases:[];
+ if(bases.length){const p=document.createElement("p");
+  p.appendChild(document.createTextNode("Inherits: "));
+  bases.forEach((b,i)=>{if(i)p.appendChild(document.createTextNode(", "));
+   if(cset.has(b)){const a=document.createElement("a");a.href="?class="+encodeURIComponent(b);
+    a.textContent=b;p.appendChild(a);}else p.appendChild(document.createTextNode(b));});
+  main.appendChild(p);}
+ const ms=methodsOf(cur),own=ms.filter(m=>!m.inh).length;
+ const sub=document.createElement("p");sub.style.color="var(--mut)";
+ sub.textContent=own+" own · "+(ms.length-own)+" inherited";main.appendChild(sub);
+ ms.forEach(m=>main.appendChild(cardEl(m)));
+ if(target){const idx=D.findIndex(e=>e.class===cur&&e.name===target);
+  const el=idx>=0&&document.getElementById("m"+idx);
+  if(el){el.classList.add("open");el.scrollIntoView({block:"center"});}}}
+function render(){renderSidebar();
+ if(!cur||!cset.has(cur))renderHome();else renderClass();}
+document.getElementById("hamburger").onclick=()=>app.classList.toggle("nosb");
 q.addEventListener("input",()=>{const v=q.value.trim().toLowerCase();
  if(!v){res.classList.remove("open");res.innerHTML="";return;}
- const hits=D.filter(e=>(e.class+"::"+e.name).toLowerCase().includes(v)||
-  (e.desc&&e.desc.toLowerCase().includes(v))).slice(0,30);
+ const ch=allClasses.filter(c=>c.toLowerCase().includes(v)).slice(0,5).map(c=>({t:"class",c:c,n:c,d:""}));
+ const mh=D.filter(e=>(e.class+"::"+e.name).toLowerCase().includes(v)||
+  (e.desc&&e.desc.toLowerCase().includes(v))).slice(0,25).map(e=>({t:"method",c:e.class,n:e.name,d:e.desc}));
+ const hits=ch.concat(mh);
  if(!hits.length){res.classList.remove("open");res.innerHTML="";return;}
- res.innerHTML="";hits.forEach(e=>{const d=document.createElement("div");d.className="sr-item";
-  const t=document.createElement("div");t.innerHTML='<span class="c"></span>';
-  t.querySelector(".c").textContent=e.class+".";
-  const nm=document.createElement("span");nm.textContent=e.name;t.appendChild(nm);d.appendChild(t);
-  const ds=document.createElement("span");ds.className="d";ds.textContent=(e.desc||"").slice(0,120);d.appendChild(ds);
-  d.onclick=()=>{res.classList.remove("open");q.value="";go(e.class,e.name);};
+ res.innerHTML="";hits.forEach(x=>{const d=document.createElement("div");d.className="sr-item";
+  const t=document.createElement("div");
+  if(x.t==="method"){t.innerHTML='<span class="c"></span>';
+   t.querySelector(".c").textContent=x.c+".";
+   const nm=document.createElement("span");nm.textContent=x.n;t.appendChild(nm);}
+  else t.textContent="Class: "+x.n;
+  d.appendChild(t);
+  if(x.d){const ds=document.createElement("span");ds.className="d";ds.textContent=(x.d||"").slice(0,120);d.appendChild(ds);}
+  d.onclick=()=>{res.classList.remove("open");q.value="";
+   location.href=x.t==="method"?"?class="+encodeURIComponent(x.c)+"&method="+encodeURIComponent(x.n)
+    :"?class="+encodeURIComponent(x.n);};
   res.appendChild(d);});
  res.classList.add("open");});
 document.addEventListener("click",e=>{if(!q.contains(e.target)&&!res.contains(e.target))res.classList.remove("open");});
 q.addEventListener("keydown",e=>{if(e.key==="Escape"){res.classList.remove("open");q.blur();}});
 render();</script></body></html>"""
     html = html.replace("DATA_PLACEHOLDER", json.dumps(entries))
+    html = html.replace("HIER_PLACEHOLDER", json.dumps(classes))
     html = html.replace("FOOT_MODEL", model)
+    html = html.replace("FOOT_YEAR", str(datetime.date.today().year))
     with open(os.path.join(out_dir, "index.html"), "w") as f:
         f.write(html)
 
@@ -408,6 +558,7 @@ def main():
     print("model: %s @ %s" % (model, a.endpoint), flush=True)
 
     headers = find_headers(a.scope)
+    classes = scan_classes(headers)
     diff_files = git_diff_files(a.diff_ref) if a.diff_ref else set()
 
     try:
@@ -452,7 +603,7 @@ def main():
             if done % 25 == 0:  # crash-safe: flush cache + reader incrementally
                 with open(a.cache, "w") as f:
                     json.dump(cache, f, indent=1)
-                build_reader(entries, a.out)
+                build_reader(entries, classes, a.out)
                 print("progress: new=%d cached=%d failed=%d" % (done, skipped, failed), flush=True)
 
     # keep cached entries for files outside diff scope so reader stays complete
@@ -476,7 +627,7 @@ def main():
     os.makedirs(os.path.dirname(a.cache), exist_ok=True)
     with open(a.cache, "w") as f:
         json.dump(cache, f, indent=1)
-    build_reader(entries, a.out)
+    build_reader(entries, classes, a.out)
     print("headers=%d entries=%d new=%d cached=%d failed=%d" % (len(headers), len(entries), done, skipped, failed))
 
 
