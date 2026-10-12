@@ -341,7 +341,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);marg
 #hamburger{background:none;border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:16px;padding:6px 10px;cursor:pointer}
 #logo{display:flex;gap:10px;align-items:center;color:var(--txt);text-decoration:none;font-weight:700;font-size:16px;white-space:nowrap}
 #logo img{height:34px}
-#swrap{position:relative;flex:1;max-width:520px;margin-left:auto}
+#swrap{position:relative;flex:1;margin-left:12px}
 #q{width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid #5b4a8a;background:#100c1c;color:#fff}
 #res{position:absolute;top:110%;left:0;right:0;background:var(--panel);border:1px solid #5b4a8a;border-radius:8px;display:none;max-height:50vh;overflow:auto}
 #res.open{display:block}
@@ -350,7 +350,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);marg
 .sr-item .c{color:var(--mut)}
 .sr-item .d{color:var(--mut);display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #app{display:grid;grid-template-columns:480px 1fr;min-height:100vh}
-#app.nosb{grid-template-columns:0 1fr}
+#app.nosb{grid-template-columns:1fr}
 #app.nosb #sidebar{display:none}
 #sidebar{display:grid;grid-template-columns:220px 1fr;border-right:1px solid #352a55;overflow:hidden}
 #sidebar nav{overflow:auto;max-height:calc(100vh - 55px)}
@@ -364,8 +364,8 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);marg
 .own-dot,.inh-dot{flex:none;width:7px;height:7px;border-radius:50%;transform:translateY(-1px)}
 .own-dot{background:var(--acc)}
 .inh-dot{border:1.5px solid var(--mut);box-sizing:border-box}
-#inhtoggle{margin:4px 14px 10px;background:none;border:1px solid var(--line);border-radius:20px;color:var(--txt);padding:5px 14px;font-size:12px;cursor:pointer}
-#inhtoggle[aria-pressed="false"]{opacity:.55}
+#inhtoggle{margin:4px 14px 10px;background:#6d28d9;border:1px solid #6d28d9;border-radius:20px;color:#fff;padding:5px 14px;font-size:12px;cursor:pointer}
+#inhtoggle[aria-pressed="false"]{background:none;border-color:var(--line);color:var(--mut)}
 body.hideinh #methodcol button.mitem.inherited{display:none}
 #main{padding:20px;max-width:960px}
 .card{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;background:var(--card)}
@@ -392,7 +392,7 @@ footer{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top
 </head><body>
 <header id="topbar">
 <button id="hamburger" aria-label="Toggle sidebar">☰</button>
-<a id="logo" href="?"><img src="logo.png" alt="" onerror="this.remove()"><span>Yggdrasilcore C++ API</span></a>
+<a id="logo" href="?"><span>Yggdrasilcore C++ API</span></a>
 <div id="swrap"><input id="q" placeholder="Search classes and methods…" autocomplete="off" spellcheck="false"><div id="res"></div></div>
 </header>
 <div id="app"><aside id="sidebar">
