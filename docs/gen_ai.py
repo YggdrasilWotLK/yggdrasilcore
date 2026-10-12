@@ -98,6 +98,32 @@ def find_headers(scope_dirs):
     return sorted(headers)
 
 
+def header_inline(header_path, lineno):
+    """Body of a header-inline definition starting at/after decl line, else ''."""
+    try:
+        with open(header_path, errors="ignore") as f:
+            lines = f.readlines()
+    except OSError:
+        return ""
+    buf, depth, started = [], 0, False
+    for ln in lines[lineno - 1 : lineno + 9]:
+        if not started and "{" not in ln:
+            if len(buf) >= 2:
+                return ""  # pure declaration, definition lives elsewhere (or nowhere)
+            buf.append(ln)
+            continue
+        for ch in ln:
+            if ch == "{":
+                depth += 1
+                started = True
+            elif ch == "}":
+                depth -= 1
+        buf.append(ln)
+        if started and depth <= 0:
+            break
+    return "".join(buf) if started else ""
+
+
 def find_impl(cls, method, header_path):
     """(body, relpath, line1) of the Class::Method .cpp definition,
     or ('', '', 0) if none (e.g. header-inline)."""
@@ -254,7 +280,7 @@ def valid_desc(sig, what, effects):
     """Strict gate: returns cleaned desc or ''."""
     what = re.sub(r"\s+", " ", THINK_RE.sub("", what or "")).strip()
     effects = re.sub(r"\s+", " ", THINK_RE.sub("", effects or "")).strip()
-    if not (25 <= len(what) <= 500):
+    if not (12 <= len(what) <= 500):
         return ""
     if ECHO_RE.search(what):
         return ""
@@ -341,276 +367,11 @@ def build_reader(entries, classes, out_dir):
         if os.path.isfile(fav_src):
             with open(fav_src, "rb") as fsrc, open(os.path.join(out_dir, _fav), "wb") as fdst:
                 fdst.write(fsrc.read())
-    html = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Yggdrasilcore C++ API</title>
-<link rel="icon" href="favicon.ico">
-<link rel="icon" type="image/png" href="favicon.png">
-<style>:root{--bg:#14101f;--panel:#1e1830;--card:#1c1530;--line:#3a2d63;--txt:#e8e2f5;--mut:#8f7fc9;--acc:#b79cff}
-*,*::before,*::after{box-sizing:border-box}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:40px;font-size:14px}
-#topbar{grid-column:1/-1;display:flex;gap:12px;align-items:center;min-height:52px;padding:8px 16px;background:var(--panel);border-bottom:1px solid #352a55;z-index:10}
-#hamburger{background:none;border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:16px;padding:6px 10px;cursor:pointer}
-#logo{display:flex;gap:10px;align-items:center;color:var(--txt);text-decoration:none;font-weight:700;font-size:16px;white-space:nowrap}
-#logo img{height:34px}
-#swrap{position:relative;flex:1;margin-left:12px}
-#q{width:100%;box-sizing:border-box;padding:6px 12px;font-size:13px;border-radius:8px;border:1px solid #5b4a8a;background:#100c1c;color:#fff}
-#res{position:absolute;top:110%;left:0;right:0;background:var(--panel);border:1px solid #5b4a8a;border-radius:8px;display:none;max-height:50vh;overflow:auto}
-#res.open{display:block}
-.sr-item{padding:8px 12px;cursor:pointer;font-size:13px}
-.sr-item:hover{background:var(--line)}
-.sr-item .c{color:var(--mut)}
-.sr-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;flex:none}
-.sr-badge.class{background:#6d28d9;color:#fff}
-.sr-badge.method{background:#2d4a6e;color:#8fb8ec}
-.sr-item .d{color:var(--mut);display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-html,body{height:100%;overflow:hidden}
-#app{display:grid;grid-template-rows:auto 1fr;grid-template-columns:480px 1fr;height:100vh;transition:grid-template-columns .25s ease}
-@media (min-width:901px){
-#app.sidebar-collapsed{grid-template-columns:1fr}
-#app.sidebar-collapsed #sidebar{display:none}
-}
-@media (max-width:900px){
-#app{grid-template-columns:1fr}
-#sidebar{position:fixed;top:52px;left:0;bottom:36px;width:min(480px,92vw);z-index:50;transform:translateX(-100%);transition:transform .2s}
-#sidebar.open{transform:translateX(0)}
-#sidebar-overlay{display:none;position:fixed;left:0;right:0;top:52px;bottom:0;background:#0006;z-index:49}
-#sidebar-overlay.open{display:block}
-}
-#sidebar{grid-row:2;display:grid;grid-template-columns:220px 1fr;border-right:1px solid #352a55;min-height:0;overflow:hidden;background:var(--bg)}
-#sidebar nav{overflow-y:auto;min-height:0}
-#main{grid-row:2;overflow-y:auto;min-height:0}
-#classcol{border-right:1px solid #352a55}
-.shead{padding:12px 14px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut)}
-#classcol button.titem{display:flex;width:100%;text-align:left;background:none;border:none;color:#cfc4f5;padding:7px 14px;cursor:pointer;font-size:14px;align-items:baseline;gap:6px}
-#classcol button.titem.on{background:var(--line);color:#fff}
-#classcol .tree-arrow{color:var(--mut);font-size:11px;flex:none}
-#classcol .ccount{margin-left:auto;font-size:11px;color:var(--mut);flex:none}
-#methodcol .hint{padding:8px 14px;color:var(--mut);font-size:13px}
-#methodcol button.mitem{display:flex;width:100%;text-align:left;background:none;border:none;color:#cfc4f5;padding:6px 14px;cursor:pointer;font-size:13px;align-items:baseline;gap:7px}
-#methodcol button.mitem.on{background:var(--line);color:#fff}
-#methodcol button.mitem.inherited{color:var(--mut)}
-.own-dot,.inh-dot{flex:none;width:7px;height:7px;border-radius:50%;transform:translateY(-1px)}
-.own-dot{background:var(--acc)}
-.inh-dot{border:1.5px solid var(--mut);box-sizing:border-box}
-#inhtoggle{margin:4px 14px 10px;background:#6d28d9;border:1px solid #6d28d9;border-radius:20px;color:#fff;padding:5px 14px;font-size:12px;cursor:pointer}
-#inhtoggle[aria-pressed="false"]{background:none;border-color:var(--line);color:var(--mut)}
-body.hideinh #methodcol button.mitem.inherited{display:none}
-#main{padding:20px;max-width:960px}
-.card{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;background:var(--card)}
-.chead{padding:12px 14px;cursor:pointer}
-.chead:hover{background:#241b40;border-radius:10px}
-.chead b{font-size:15px}
-.star{color:var(--mut);font-size:12px;margin-left:6px}
-.cnt{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:10px;padding:0 7px;margin-left:6px;white-space:nowrap}
-.inh-note{font-size:12px;color:var(--mut);margin-left:8px}
-.sig{font-family:monospace;color:var(--acc);font-size:13px;margin-top:4px;overflow-wrap:anywhere}
-.cbody{display:none;padding:0 14px 12px}
-.card.open .cbody{display:block}
-.cbody p{margin:8px 0;line-height:1.5}
-.cbody code{background:#100c1c;padding:1px 5px;border-radius:4px;font-size:12.5px}
-.cbody small{color:var(--mut)}
-.cbody a{color:var(--acc)}
-#home img#homelogo{max-width:100%;height:auto}
-#home .stats{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
-#home .stat{border:1px solid var(--line);border-radius:10px;padding:10px 18px;background:var(--card)}
-#home .stat b{font-size:22px;display:block}
-#home .stat span{font-size:12px;color:var(--mut)}
-#home a{color:var(--acc)}
-footer{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid #352a55;
- color:var(--mut);font-size:12px;padding:8px 16px;display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}</style>
-</head><body>
-<div id="app">
-<header id="topbar">
-<button id="hamburger" aria-label="Toggle sidebar">☰</button>
-<a id="logo" href="?"><span>Yggdrasilcore C++ API</span></a>
-<div id="swrap"><input id="q" placeholder="Search classes and methods…" autocomplete="off" spellcheck="false"><div id="res"></div></div>
-</header>
-<aside id="sidebar">
-<nav id="classcol"><div class="shead">Classes</div></nav>
-<nav id="methodcol"></nav>
-</aside><div id="sidebar-overlay"></div><main id="main"></main></div>
-<footer><span>* Methods marked with &#9733; had their explanations generated by FOOT_MODEL.</span><span>© FOOT_YEAR Yggdrasilcore</span></footer>
-<script>const D=DATA_PLACEHOLDER,H=HIER_PLACEHOLDER,SRC_BASE="SRC_BASE_PLACEHOLDER";
-const main=document.getElementById("main"),classcol=document.getElementById("classcol"),
- methcol=document.getElementById("methodcol"),q=document.getElementById("q"),res=document.getElementById("res"),
- app=document.getElementById("app");
-const params=new URLSearchParams(location.search);
-let cur=params.get("class"),target=params.get("method");
-const open=new Set();
-if(cur&&target)open.add(cur+"::"+target);
-function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-const allClasses=[...new Set(D.map(e=>e.class))].sort();
-const cset=new Set(allClasses);
-function fmt(s){let h=esc(s);
- h=h.replace(/`([^`]+)`/g,"<code>$1</code>");
- h=h.replace(/\\*\\*(.+?)\\*\\*/g,"<strong>$1</strong>");
- h=h.replace(/(^|\\W)\\*([^\\*\\n]+)\\*/g,"$1<em>$2</em>");
- h=h.replace(/\\[(\\w+)\\]/g,(m,c)=>cset.has(c)?'<a href="?class='+c+'">'+c+"</a>":m);
- return h.replace(/\\n/g,"<br>");}
-function ancestors(cls){const seen=new Set(),stack=[...(H[cls]?H[cls].bases:[])];
- while(stack.length){const b=stack.pop();if(!b||seen.has(b))continue;seen.add(b);
-  if(H[b])stack.push(...H[b].bases);}return seen;}
-function normSig(s){return s.replace(/=[^,)]*/g,"").replace(/\\s+/g," ").trim();}
-function groupsFor(cls){const anc=ancestors(cls),seen=new Set(),byName={};
- const push=(e,inh)=>{const k=e.name+"|"+normSig(e.sig);if(seen.has(k))return;seen.add(k);
-  (byName[e.name]||(byName[e.name]=[])).push({e:e,inh:inh});};
- D.forEach(e=>{if(e.class===cls)push(e,null);});
- anc.forEach(a=>{D.forEach(e=>{if(e.class===a)push(e,a);});});
- return Object.keys(byName).sort().map(n=>({name:n,items:byName[n]}));}
-function groupCard(cls,g){const k=cls+"::"+g.name,isOpen=open.has(k);
- const d=document.createElement("div");d.className="card"+(isOpen?" open":"");d.id="m-"+cls+"-"+g.name;
- const h=document.createElement("div");h.className="chead";
- const t=document.createElement("b");t.textContent=k;h.appendChild(t);
- if(g.items.some(x=>x.e.ai)){const s=document.createElement("span");s.className="star";s.textContent="\u2605";h.appendChild(s);}
- if(g.items.length>1){const n=document.createElement("span");n.className="cnt";n.textContent=g.items.length+" signatures";h.appendChild(n);}
- h.onclick=()=>{const was=d.classList.toggle("open");
-  if(was)open.add(k);else open.delete(k);};
- d.appendChild(h);
- const b=document.createElement("div");b.className="cbody";
- g.items.forEach(x=>{const e=x.e;
-  if(x.inh){const n=document.createElement("div");n.className="inh-note";n.textContent="inherited from "+x.inh;b.appendChild(n);}
-  const sg=document.createElement("div");sg.className="sig";sg.textContent=e.sig;b.appendChild(sg);
-  const p=document.createElement("p");p.innerHTML=fmt(e.desc||"(no description)");b.appendChild(p);
-  const L=e.impl||{file:e.file,line:e.line};
-  const sm=document.createElement("small");
-  const a=document.createElement("a");a.href=SRC_BASE+L.file+"#L"+L.line;
-  a.textContent=L.file+":"+L.line;a.target="_blank";a.rel="noopener";sm.appendChild(a);b.appendChild(sm);});
- d.appendChild(b);return d;}
-function renderSidebar(){
- classcol.innerHTML='<div class="shead">Classes</div>';
- const kids={},hasKids=new Set();
- allClasses.forEach(c=>{const bs=((H[c]||{}).bases||[]).filter(b=>cset.has(b));
-  if(!bs.length)(kids[""]||(kids[""]=[])).push(c);
-  else bs.forEach(b=>{(kids[b]||(kids[b]=[])).push(c);hasKids.add(b);});});
- let collapsed={};try{collapsed=JSON.parse(localStorage.getItem("ygg-cpp-tree")||"{}");}catch(e){collapsed={};}
- function saveTree(){try{localStorage.setItem("ygg-cpp-tree",JSON.stringify(collapsed));}catch(e){}}
- function addNode(parent,cls,depth,trail){
-  if(trail.includes(cls))return;
-  const b=document.createElement("button");b.className="titem";b.style.paddingLeft=(14+depth*14)+"px";
-  if(hasKids.has(cls)){const ar=document.createElement("span");ar.className="tree-arrow";
-   ar.textContent=collapsed[cls]?"▸":"▾";
-   ar.onclick=(ev)=>{ev.stopPropagation();collapsed[cls]=!collapsed[cls];saveTree();renderSidebar();};
-   b.appendChild(ar);}
-  const nm=document.createElement("span");nm.textContent=cls;b.appendChild(nm);
-  const ct=document.createElement("span");ct.className="ccount";
-  ct.textContent=D.filter(e=>e.class===cls).length;b.appendChild(ct);
-  if(cls===cur)b.classList.add("on");
-  b.onclick=()=>{location.href="?class="+encodeURIComponent(cls);};
-  parent.appendChild(b);
-  if(hasKids.has(cls)&&!collapsed[cls])(kids[cls]||[]).sort().forEach(k=>addNode(parent,k,depth+1,trail.concat(cls)));}
- (kids[""]||[]).sort().forEach(c=>addNode(classcol,c,0,[]));
- methcol.innerHTML="";
- if(!cur||!cset.has(cur)){
-  const hd=document.createElement("div");hd.className="shead";hd.textContent="All methods";methcol.appendChild(hd);
-  const seenA=new Set(),rows=[];
-  [...D].sort((a,b)=>a.name.localeCompare(b.name)||a.class.localeCompare(b.class)).forEach(e=>{
-   const k=e.class+"::"+e.name;let r=rows.find(r=>r.k===k);
-   if(!r){r={k:k,e:e,n:0};rows.push(r);}r.n++;});
-  rows.forEach(r=>{const b=document.createElement("button");b.className="mitem";
-   const dot=document.createElement("span");dot.className="own-dot";b.appendChild(dot);
-   const t=document.createElement("span");
-   const pc=document.createElement("span");pc.style.color="var(--mut)";pc.textContent=r.e.class+".";t.appendChild(pc);
-   const nm=document.createElement("span");nm.textContent=r.e.name;t.appendChild(nm);b.appendChild(t);
-   if(r.n>1){const c=document.createElement("span");c.className="cnt";c.textContent="×"+r.n;b.appendChild(c);}
-   b.onclick=()=>{location.href="?class="+encodeURIComponent(r.e.class)+"&method="+encodeURIComponent(r.e.name);};
-   methcol.appendChild(b);});
-  return;}
- const hd=document.createElement("div");hd.className="shead";hd.textContent=cur+" Methods";methcol.appendChild(hd);
- const t=document.createElement("button");t.id="inhtoggle";t.textContent="Show inherited";
- t.setAttribute("aria-pressed",document.body.classList.contains("hideinh")?"false":"true");
- t.onclick=()=>{const h=document.body.classList.toggle("hideinh");t.setAttribute("aria-pressed",h?"false":"true");};
- methcol.appendChild(t);
- groupsFor(cur).forEach(g=>{const b=document.createElement("button");
-  const own=!g.items[0].inh;
-  b.className="mitem"+(own?"":" inherited");
-  const dot=document.createElement("span");dot.className=own?"own-dot":"inh-dot";b.appendChild(dot);
-  const nm=document.createElement("span");nm.textContent=g.name;b.appendChild(nm);
-  if(g.items.length>1){const c=document.createElement("span");c.className="cnt";c.textContent="×"+g.items.length;b.appendChild(c);}
-  if((cur+"::"+g.name)===cur+"::"+target)b.classList.add("on");
-  b.onclick=()=>{location.href="?class="+encodeURIComponent(cur)+"&method="+encodeURIComponent(g.name);};
-  methcol.appendChild(b);});}
-function renderHome(){main.innerHTML="";
- const w=document.createElement("div");w.id="home";
- const im=document.createElement("img");im.id="homelogo";im.src="logo.png";im.alt="Yggdrasil";
- im.onerror=()=>im.remove();w.appendChild(im);
- const h=document.createElement("h1");h.textContent="Yggdrasilcore C++ API";w.appendChild(h);
- const p=document.createElement("p");
- p.textContent="Yggdrasilcore is an AzerothCore-based open-source game server for the "
-  + "WotLK 3.3.5a client. This reader documents its C++ core API: classes and methods parsed "
-  + "from the source, with explanations generated by a hosted code model. Pick a class on the "
-  + "left, or search above.";w.appendChild(p);
- const st=document.createElement("div");st.className="stats";
- const docd=D.filter(e=>e.desc).length;
- [["Methods",D.length],["Classes",allClasses.length],["Documented",docd]].forEach(s=>{
-  const d=document.createElement("div");d.className="stat";
-  const b=document.createElement("b");b.textContent=s[1];d.appendChild(b);
-  const sp=document.createElement("span");sp.textContent=s[0];d.appendChild(sp);st.appendChild(d);});
- w.appendChild(st);
- const links=document.createElement("p");links.innerHTML="";
- [["Yggdrasil WoW","https://yggdrasilwow.com/"],
-  ["Source code","https://github.com/YggdrasilWotLK/yggdrasilcore"],
-  ["Lua API docs","https://yggdrasilwotlk.github.io/mod-yla/"]].forEach((l,i)=>{
-  if(i)links.appendChild(document.createTextNode(" · "));
-  const a=document.createElement("a");a.href=l[1];a.textContent=l[0];links.appendChild(a);});
- w.appendChild(links);main.appendChild(w);}
-function renderClass(){main.innerHTML="";
- const h=document.createElement("h2");h.textContent=cur;main.appendChild(h);
- const bases=H[cur]?H[cur].bases:[];
- if(bases.length){const p=document.createElement("p");
-  p.appendChild(document.createTextNode("Inherits: "));
-  bases.forEach((b,i)=>{if(i)p.appendChild(document.createTextNode(", "));
-   if(cset.has(b)){const a=document.createElement("a");a.href="?class="+encodeURIComponent(b);
-    a.textContent=b;p.appendChild(a);}else p.appendChild(document.createTextNode(b));});
-  main.appendChild(p);}
- const ms=groupsFor(cur),own=ms.filter(g=>!g.items[0].inh).length;
- const sub=document.createElement("p");sub.style.color="var(--mut)";
- sub.textContent=own+" own · "+(ms.length-own)+" inherited";main.appendChild(sub);
- ms.forEach(g=>main.appendChild(groupCard(cur,g)));
- if(target){const el=document.getElementById("m-"+cur+"-"+target);
-  if(el){el.classList.add("open");
-   const mr=main.getBoundingClientRect(),r=el.getBoundingClientRect();
-   main.scrollTop+=r.top-mr.top-main.clientHeight/2+r.height/2;}}}
-function render(){renderSidebar();
- if(!cur||!cset.has(cur))renderHome();else renderClass();}
-const sidebar=document.getElementById("sidebar"),overlay=document.getElementById("sidebar-overlay");
-const desktop=()=>window.matchMedia("(min-width: 901px)").matches;
-function setCollapsed(c){app.classList.toggle("sidebar-collapsed",c);
- try{localStorage.setItem("ygg-cpp-sb",c?"1":"0");}catch(e){}}
-document.getElementById("hamburger").onclick=()=>{
- if(desktop()){setCollapsed(!app.classList.contains("sidebar-collapsed"));}
- else{const o=!sidebar.classList.contains("open");
-  sidebar.classList.toggle("open",o);overlay.classList.toggle("open",o);}};
-overlay.onclick=()=>{sidebar.classList.remove("open");overlay.classList.remove("open");};
-function fitOverlay(){overlay.style.top=document.getElementById("topbar").offsetHeight+"px";}
-window.addEventListener("resize",fitOverlay);fitOverlay();
-window.addEventListener("resize",()=>{
- if(!desktop()&&app.classList.contains("sidebar-collapsed"))setCollapsed(false);});
-try{if(localStorage.getItem("ygg-cpp-sb")==="1"&&desktop())setCollapsed(true);}catch(e){}
-q.addEventListener("input",()=>{const v=q.value.trim().toLowerCase();
- if(!v){res.classList.remove("open");res.innerHTML="";return;}
- const ch=allClasses.filter(c=>c.toLowerCase().includes(v)).slice(0,5).map(c=>({t:"class",c:c,n:c,d:""}));
- const mh=D.filter(e=>(e.class+"::"+e.name).toLowerCase().includes(v)||
-  (e.desc&&e.desc.toLowerCase().includes(v))).slice(0,25).map(e=>({t:"method",c:e.class,n:e.name,d:e.desc}));
- const hits=ch.concat(mh);
- if(!hits.length){res.classList.remove("open");res.innerHTML="";return;}
- res.innerHTML="";hits.forEach(x=>{const d=document.createElement("div");d.className="sr-item";
-  const bg=document.createElement("span");bg.className="sr-badge "+x.t;bg.textContent=x.t;d.appendChild(bg);
-  const t=document.createElement("div");
-  if(x.t==="method"){t.innerHTML='<span class="c"></span>';
-   t.querySelector(".c").textContent=x.c+".";
-   const nm=document.createElement("span");nm.textContent=x.n;t.appendChild(nm);}
-  else t.textContent="Class: "+x.n;
-  d.appendChild(t);
-  if(x.d){const ds=document.createElement("span");ds.className="d";ds.textContent=(x.d||"").slice(0,120);d.appendChild(ds);}
-  d.onclick=()=>{res.classList.remove("open");q.value="";
-   location.href=x.t==="method"?"?class="+encodeURIComponent(x.c)+"&method="+encodeURIComponent(x.n)
-    :"?class="+encodeURIComponent(x.n);};
-  res.appendChild(d);});
- res.classList.add("open");});
-document.addEventListener("click",e=>{if(!q.contains(e.target)&&!res.contains(e.target))res.classList.remove("open");});
-q.addEventListener("keydown",e=>{if(e.key==="Escape"){res.classList.remove("open");q.blur();}});
-render();</script></body></html>"""
+    tpl_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(tpl_dir, "reader_template.html")) as f:
+        html = f.read()
+    with open(os.path.join(tpl_dir, "vendor", "yla-style.css")) as f:
+        html = html.replace("YLA_CSS_PLACEHOLDER", f.read())
     html = html.replace("DATA_PLACEHOLDER", json.dumps(entries))
     html = html.replace("HIER_PLACEHOLDER", json.dumps(classes))
     html = html.replace("FOOT_MODEL", model)
@@ -665,6 +426,9 @@ def main():
         for e in parse_header(h):
             body, impl_file, impl_line = find_impl(e["class"], e["name"], h)
             e["impl"] = {"file": impl_file, "line": impl_line} if impl_file else None
+            if not body.strip():
+                # header-inline definition (e.g. one-line getters) as grounding
+                body = header_inline(h, e["line"])
             hsh = body_hash(e, body)
             sigh = hashlib.sha1(e["sig"].encode()).hexdigest()[:8]
             key = "%s::%s@%s:%s" % (e["class"], e["name"], sigh, mtag)
