@@ -349,7 +349,7 @@ def build_reader(entries, classes, out_dir):
 <style>:root{--bg:#14101f;--panel:#1e1830;--card:#1c1530;--line:#3a2d63;--txt:#e8e2f5;--mut:#8f7fc9;--acc:#b79cff}
 *,*::before,*::after{box-sizing:border-box}
 body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:40px;font-size:14px}
-#topbar{grid-column:1/-1;display:flex;gap:12px;align-items:center;height:52px;padding:8px 16px;background:var(--panel);border-bottom:1px solid #352a55;z-index:10;overflow:hidden}
+#topbar{grid-column:1/-1;display:flex;gap:12px;align-items:center;min-height:52px;padding:8px 16px;background:var(--panel);border-bottom:1px solid #352a55;z-index:10}
 #hamburger{background:none;border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:16px;padding:6px 10px;cursor:pointer}
 #logo{display:flex;gap:10px;align-items:center;color:var(--txt);text-decoration:none;font-weight:700;font-size:16px;white-space:nowrap}
 #logo img{height:34px}
@@ -365,7 +365,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);marg
 .sr-badge.method{background:#2d4a6e;color:#8fb8ec}
 .sr-item .d{color:var(--mut);display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html,body{height:100%;overflow:hidden}
-#app{display:grid;grid-template-rows:52px 1fr;grid-template-columns:480px 1fr;height:100vh;transition:grid-template-columns .25s ease}
+#app{display:grid;grid-template-rows:auto 1fr;grid-template-columns:480px 1fr;height:100vh;transition:grid-template-columns .25s ease}
 @media (min-width:901px){
 #app.sidebar-collapsed{grid-template-columns:0 1fr}
 #app.sidebar-collapsed #sidebar{border-right-color:transparent}
@@ -581,6 +581,8 @@ document.getElementById("hamburger").onclick=()=>{
  else{const o=!sidebar.classList.contains("open");
   sidebar.classList.toggle("open",o);overlay.classList.toggle("open",o);}};
 overlay.onclick=()=>{sidebar.classList.remove("open");overlay.classList.remove("open");};
+function fitOverlay(){overlay.style.top=document.getElementById("topbar").offsetHeight+"px";}
+window.addEventListener("resize",fitOverlay);fitOverlay();
 window.addEventListener("resize",()=>{
  if(!desktop()&&app.classList.contains("sidebar-collapsed"))setCollapsed(false);});
 try{if(localStorage.getItem("ygg-cpp-sb")==="1"&&desktop())setCollapsed(true);}catch(e){}
