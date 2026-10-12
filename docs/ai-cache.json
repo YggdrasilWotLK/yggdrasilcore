@@ -28026,27 +28026,6 @@
    "model": "qwen3.5:4b"
   }
  },
- "Player::RemoveTimedAchievement@51fc0251:qwen3-5-4b": {
-  "hash": "d2a6a5c423c5",
-  "desc": "",
-  "raw": "{\"what\": \"Removes a specific timed achievement by delegating to the achievement manager with the provided type and entry ID\", \"effects\": \"none\"}",
-  "entry": {
-   "class": "Player",
-   "name": "RemoveTimedAchievement",
-   "sig": "void RemoveTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry)",
-   "file": "src/server/game/Entities/Player/Player.h",
-   "line": 2530,
-   "access": "public",
-   "impl": {
-    "file": "src/server/game/Entities/Player/Player.cpp",
-    "line": 14013
-   },
-   "hash": "d2a6a5c423c5",
-   "desc": "",
-   "ai": true,
-   "model": "qwen3.5:4b"
-  }
- },
  "Player::CompletedAchievement@720be669:qwen3-5-4b": {
   "hash": "5e46b1b5d390",
   "desc": "Delegates the completion of an achievement to the achievement manager by passing the provided achievement entry.",
