@@ -1,30 +1,23 @@
 name: ai-docs
 
-# Fully autonomous AI C++ docs. No human review gate by design.
-# Layout: the code branch is READ-ONLY for docs; the script, hash cache,
-# and Pages artifact all live on the `docs` branch. This file must live
-# on the default branch to run; add it via web UI
+# C++ API docs. Code branch is read-only; script, cache, and Pages
+# artifact live on the `docs` branch. This file must live on the default
+# branch to run; add it via web UI
 # (PATs without `workflow` scope cannot push workflow files).
 #
-# - Single provider: GitHub Models (hosted inference, GITHUB_TOKEN, no keys).
-#   `--model auto` picks the biggest Qwen coder from the model catalog.
-# - Incremental: only changed functions hit the LLM (hash cache on docs branch).
-# - Never fails the job on LLM errors; gaps render as "(no description)".
+# - Ollama + 4B model on the runner (CPU, no keys, no GPU).
+# - Incremental over the hash cache on the docs branch (limit caps LLM calls).
 
 on:
   push:
     branches: ['*master*']
     paths: ["src/server/game/**", "src/common/**"]
-  schedule: [{cron: "0 3 * * 0"}]
+  schedule: [{cron: "0 3 * * *"}]
   workflow_dispatch:
     inputs:
       model:
-        description: Model id or 'auto'
-        default: auto
-        required: false
-      full_rebuild:
-        description: Ignore cache and regenerate all
-        default: "false"
+        description: Ollama model
+        default: qwen3.5:4b
         required: false
       limit:
         description: Max new LLM calls (0 = unlimited)
@@ -32,10 +25,9 @@ on:
         required: false
 
 permissions:
-  contents: write # push the cache back to the docs branch (never master-shadows)
+  contents: write # push the cache back to the docs branch (never the code branch)
   pages: write
   id-token: write
-  models: read # GitHub Models inference via GITHUB_TOKEN
 
 concurrency:
   group: ai-docs
@@ -54,14 +46,17 @@ jobs:
         uses: actions/checkout@v4
         with: {ref: docs, path: site}
 
-      - name: Generate docs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Pull model and serve
         run: |
-          ARGS="--root . --cache site/docs/ai-cache.json --out site/docs/dist --model ${{ inputs.model || 'auto' }}"
-          if [ "${{ inputs.full_rebuild || 'false' }}" != "true" ]; then
-            ARGS="$ARGS --diff-ref HEAD~1"
-          fi
+          ollama pull "${{ inputs.model || 'qwen3.5:4b' }}"
+          (ollama serve &>/tmp/ollama.log & sleep 8; ollama list)
+
+      - name: Generate docs
+        run: |
+          ARGS="--root . --cache site/docs/ai-cache.json --out site/docs/dist --model ${{ inputs.model || 'qwen3.5:4b' }}"
           if [ "${{ inputs.limit || '200' }}" != "0" ]; then
             ARGS="$ARGS --limit ${{ inputs.limit || '200' }}"
           fi
