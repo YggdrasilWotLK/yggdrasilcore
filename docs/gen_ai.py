@@ -202,12 +202,9 @@ ECHO_RE = re.compile(
 )
 
 
-def _post(url, payload, timeout=240, token=""):
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = "Bearer " + token
+def _post(url, payload, timeout=300):
     req = urllib.request.Request(
-        url, data=json.dumps(payload).encode(), headers=headers
+        url, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}
     )
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode())
@@ -230,43 +227,16 @@ def valid_desc(sig, what, effects):
     return "%s Side effects: %s" % (what, effects)
 
 
-GH_ENDPOINT = "https://models.github.ai/inference"
-
-
-def resolve_model(endpoint, token, want):
-    """Pick a model id. 'auto' prefers the biggest Qwen coder in the catalog."""
-    if want != "auto":
-        return want
-    req = urllib.request.Request(
-        endpoint.rstrip("/") + "/models",
-        headers={"Authorization": "Bearer " + token} if token else {},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            ids = [m.get("id", "") for m in json.loads(r.read().decode()).get("data", [])]
-    except Exception as e:
-        print("WARN model catalog unavailable: %s" % e, file=sys.stderr)
-        return "qwen2.5-coder-32b-instruct"
-    qwens = sorted({i for i in ids if "qwen" in i.lower() and "coder" in i.lower()})
-    big = [i for i in qwens if "32" in i] or qwens
-    if big:
-        return big[0]
-    small = [i for i in ids if "mini" in i.lower()]
-    return small[0] if small else (ids[0] if ids else "qwen2.5-coder-32b-instruct")
-
-
-def openai_describe(endpoint, token, model, sig, body):
-    """Returns (desc, raw). JSON-schema contract, one retry, else gap."""
-    url = endpoint.rstrip("/") + "/chat/completions"
-    schema = dict(SCHEMA)
+def ollama_describe(base_url, model, sig, body):
+    """Returns (desc, raw). Native Ollama chat: thinking off, JSON-schema
+    contract, one retry, else gap."""
+    url = base_url.rstrip("/") + "/api/chat"
     base = {
         "model": model,
-        "temperature": 0,
-        "max_tokens": 300,
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {"name": "doc", "strict": True, "schema": schema},
-        },
+        "stream": False,
+        "think": False,
+        "format": SCHEMA,
+        "options": {"temperature": 0, "num_ctx": 2048, "num_predict": 300},
     }
     content = USER_TMPL.format(sig=sig, body=body[:2000])
     msgs = [
@@ -281,8 +251,8 @@ def openai_describe(endpoint, token, model, sig, body):
                 payload["messages"].append(
                     {"role": "user", "content": "Too vague. Name the concrete actions, checks and calls."}
                 )
-            data = _post(url, payload, timeout=300, token=token)
-            raw = (data.get("choices", [{}])[0].get("message", {}).get("content") or "").strip()
+            data = _post(url, payload)
+            raw = (data.get("message", {}).get("content") or "").strip()
             try:
                 obj = json.loads(raw)
             except ValueError:
@@ -290,7 +260,7 @@ def openai_describe(endpoint, token, model, sig, body):
             desc = valid_desc(sig, obj.get("what"), obj.get("effects"))
             if desc:
                 return desc, raw
-        except Exception as e:  # never fail the job; 429s just become gaps
+        except Exception as e:  # never fail the job
             print("WARN llm failed: %s" % e, file=sys.stderr)
             return "", raw
     return "", raw
@@ -418,12 +388,9 @@ def main():
                     help="Source tree to parse (default: repo containing this script)")
     ap.add_argument("--cache", default=None)
     ap.add_argument("--out", default=None)
-    ap.add_argument("--endpoint", default=GH_ENDPOINT,
-                    help="OpenAI-compatible base URL (GitHub Models default, or http://localhost:11434/v1)")
-    ap.add_argument("--token", default=os.environ.get("GITHUB_TOKEN", ""),
-                    help="Bearer token (GITHUB_TOKEN in Actions)")
-    ap.add_argument("--model", default="auto",
-                    help="'auto' picks the biggest Qwen coder from the model catalog")
+    ap.add_argument("--endpoint", default="http://localhost:11434",
+                    help="Ollama base URL")
+    ap.add_argument("--model", default="qwen3.5:4b")
     ap.add_argument("--diff-ref", default="")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--dry-run", action="store_true")
@@ -437,7 +404,7 @@ def main():
     if not a.out:
         a.out = os.path.join(ROOT, "docs", "dist")
 
-    model = resolve_model(a.endpoint, a.token, a.model)
+    model = a.model
     print("model: %s @ %s" % (model, a.endpoint), flush=True)
 
     headers = find_headers(a.scope)
@@ -473,7 +440,7 @@ def main():
             elif not body.strip():
                 desc, raw = "", ""  # no definition found: honest gap, not signature paraphrase
             else:
-                desc, raw = openai_describe(a.endpoint, a.token, model, e["sig"], body)
+                desc, raw = ollama_describe(a.endpoint, model, e["sig"], body)
                 if not desc and not raw:
                     failed += 1
             entry = dict(e, hash=hsh, desc=desc, ai=not a.dry_run, model=None if a.dry_run else model)
