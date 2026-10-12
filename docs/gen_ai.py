@@ -569,7 +569,9 @@ function renderClass(){main.innerHTML="";
  sub.textContent=own+" own · "+(ms.length-own)+" inherited";main.appendChild(sub);
  ms.forEach(g=>main.appendChild(groupCard(cur,g)));
  if(target){const el=document.getElementById("m-"+cur+"-"+target);
-  if(el){el.classList.add("open");el.scrollIntoView({block:"center"});}}}
+  if(el){el.classList.add("open");
+   const mr=main.getBoundingClientRect(),r=el.getBoundingClientRect();
+   main.scrollTop+=r.top-mr.top-main.clientHeight/2+r.height/2;}}}
 function render(){renderSidebar();
  if(!cur||!cset.has(cur))renderHome();else renderClass();}
 const sidebar=document.getElementById("sidebar"),overlay=document.getElementById("sidebar-overlay");
