@@ -9,7 +9,11 @@ YLA_CSS_PLACEHOLDER
 <style>
 /* Fluid layout: sidebars size to content, everything scales with viewport. */
 #app{grid-template-columns:auto minmax(0,1fr)}
-#sidebar{grid-template-columns:max-content max-content;max-width:72vw;transition:max-width .25s ease}
+#sidebar{grid-template-columns:max-content max-content;max-width:72vw;transition:max-width .25s ease,transform .2s ease}
+@media (max-width:900px){
+#app{grid-template-columns:1fr}
+#sidebar{grid-template-columns:max-content max-content}
+}
 @media (min-width:901px){
 #app.sidebar-collapsed #sidebar{max-width:0;border-right-color:transparent}
 #app.sidebar-collapsed #sidebar nav{overflow:hidden}
