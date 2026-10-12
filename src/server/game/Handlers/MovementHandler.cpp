@@ -43,14 +43,14 @@
 
 static void NormalizeFlightStateOnTeleportArrival(Player* player)
 {
-    // Stale CAN_FLY/FLYING must not survive the teleport without a
-    // flight-granting aura (flying-mount or flight-form auras only).
+    // Dismounted arrivals must not keep flight flags. Portal use strips the
+    // mount, but the server keeps stale CAN_FLY across the teleport, so an
+    // indoors arrival ends up dismounted and still able to fly.
     if (!player || player->IsGameMaster() || player->IsInFlight())
         return;
 
-    if (player->HasAuraType(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED) ||
-        player->HasAuraType(SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED_NOT_STACKING) ||
-        player->HasAuraType(SPELL_AURA_FLY))
+    // Mounted flyers and flight-form (SPELL_AURA_FLY, needs no mount) keep theirs.
+    if (player->HasAuraType(SPELL_AURA_MOUNTED) || player->HasAuraType(SPELL_AURA_FLY))
         return;
 
     player->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING);
@@ -266,9 +266,9 @@ void WorldSession::HandleMoveWorldportAck()
     GetPlayer()->GetZoneAndAreaId(newzone, newarea);
     GetPlayer()->UpdateZone(newzone, newarea);
 
-    // Normalize flight state on arrival: stale CAN_FLY/FLYING must not survive
-    // the map change without a flight-granting aura (flying-mount or
-    // flight-form auras only). Single funnel for spell/GO/hearth/summon/BG
+    // Normalize flight state on arrival: dismounted arrivals must not keep
+    // CAN_FLY/FLYING. Mounted flyers and flight-form keep theirs.
+    // Single funnel for spell/GO/hearth/summon/BG
     // teleports, real players and shadows alike.
     NormalizeFlightStateOnTeleportArrival(GetPlayer());
 
@@ -346,9 +346,8 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
         }
     }
 
-    // Same-map portals (e.g. EK -> Stormwind indoors) strip the mount on GO
-    // use but keep stale server CAN_FLY across the teleport; normalize here
-    // just like the far-teleport path, after UpdateZone aura strips.
+    // Same-map portals (e.g. EK -> Stormwind indoors): dismounted arrivals
+    // must not keep stale CAN_FLY either. Same check as the far-teleport path.
     NormalizeFlightStateOnTeleportArrival(plMover);
 
     // resummon pet
