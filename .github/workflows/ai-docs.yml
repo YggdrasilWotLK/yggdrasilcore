@@ -1,0 +1,87 @@
+name: ai-docs
+
+# Fully autonomous AI C++ docs. No human review gate by design.
+# Layout: the code branch is READ-ONLY for docs; the script, hash cache,
+# and Pages artifact all live on the `docs` branch. This file must live
+# on the default branch to run; add it via web UI
+# (PATs without `workflow` scope cannot push workflow files).
+#
+# - Single provider: GitHub Models (hosted inference, GITHUB_TOKEN, no keys).
+#   `--model auto` picks the biggest Qwen coder from the model catalog.
+# - Incremental: only changed functions hit the LLM (hash cache on docs branch).
+# - Never fails the job on LLM errors; gaps render as "(no description)".
+
+on:
+  push:
+    branches: ['*master*']
+    paths: ["src/server/game/**", "src/common/**"]
+  schedule: [{cron: "0 3 * * 0"}]
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model id or 'auto'
+        default: auto
+        required: false
+      full_rebuild:
+        description: Ignore cache and regenerate all
+        default: "false"
+        required: false
+      limit:
+        description: Max new LLM calls (0 = unlimited)
+        default: "200"
+        required: false
+
+permissions:
+  contents: write # push the cache back to the docs branch (never master-shadows)
+  pages: write
+  id-token: write
+  models: read # GitHub Models inference via GITHUB_TOKEN
+
+concurrency:
+  group: ai-docs
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Check out code (read-only)
+        uses: actions/checkout@v4
+        with: {fetch-depth: 50}
+
+      - name: Check out docs branch (script + cache)
+        uses: actions/checkout@v4
+        with: {ref: docs, path: site}
+
+      - name: Generate docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS="--root . --cache site/docs/ai-cache.json --out site/docs/dist --model ${{ inputs.model || 'auto' }}"
+          if [ "${{ inputs.full_rebuild || 'false' }}" != "true" ]; then
+            ARGS="$ARGS --diff-ref HEAD~1"
+          fi
+          if [ "${{ inputs.limit || '200' }}" != "0" ]; then
+            ARGS="$ARGS --limit ${{ inputs.limit || '200' }}"
+          fi
+          python3 site/docs/gen_ai.py $ARGS
+
+      - name: Commit cache back to docs branch
+        run: |
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/ai-cache.json
+          if git diff --cached --quiet; then
+            echo "No cache changes"
+          else
+            git commit -m "ai-docs: refresh cache [skip ci]"
+            git push origin docs
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: site/docs/dist}
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
