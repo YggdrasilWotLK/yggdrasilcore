@@ -449,7 +449,7 @@ def main():
     except (OSError, ValueError):
         cache = {}
 
-    entries, done, skipped, failed = [], 0, 0, 0
+    entries, done, skipped, failed, visited = [], 0, 0, 0, set()
     mtag = re.sub(r"\W+", "-", model)
     for h in headers:
         rel = os.path.relpath(h, ROOT)
@@ -460,6 +460,7 @@ def main():
             hsh = body_hash(e, body)
             sigh = hashlib.sha1(e["sig"].encode()).hexdigest()[:8]
             key = "%s::%s@%s:%s" % (e["class"], e["name"], sigh, mtag)
+            visited.add(key)
             hit = cache.get(key)
             if hit and hit.get("hash") == hsh and hit.get("entry", {}).get("model") == model:
                 entries.append(hit["entry"])  # empty desc is also a stored outcome
@@ -498,6 +499,12 @@ def main():
             if key not in seen and hit.get("entry"):
                 entries.append(hit["entry"])
     entries.sort(key=lambda e: (e["class"], e["name"]))
+
+    if not diff_files and not a.dry_run and (not a.limit or done < a.limit):
+        # full pass completed: drop keys for deleted methods
+        for key in list(cache.keys()):
+            if key not in visited:
+                del cache[key]
 
     os.makedirs(os.path.dirname(a.cache), exist_ok=True)
     with open(a.cache, "w") as f:
