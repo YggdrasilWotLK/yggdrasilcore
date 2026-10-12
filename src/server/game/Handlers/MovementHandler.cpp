@@ -308,6 +308,10 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
 
     plMover->UpdatePosition(dest, true);
 
+    // reset fall baseline on arrival: stale pre-teleport packets processed
+    // after the ack would otherwise re-arm it and kill on landing
+    plMover->SetFallInformation(GameTime::GetGameTime().count(), dest.GetPositionZ());
+
     // xinef: teleport pets if they are not unsummoned
     if (Pet* pet = plMover->GetPet())
     {
