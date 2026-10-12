@@ -487,9 +487,15 @@ function renderSidebar(){
  (kids[""]||[]).sort().forEach(c=>addNode(classcol,c,0,[]));
  methcol.innerHTML="";
  if(!cur||!cset.has(cur)){
-  const hd=document.createElement("div");hd.className="shead";hd.textContent="Methods";methcol.appendChild(hd);
-  const hint=document.createElement("div");hint.className="hint";
-  hint.textContent="← Select a class to list its methods.";methcol.appendChild(hint);
+  const hd=document.createElement("div");hd.className="shead";hd.textContent="All methods";methcol.appendChild(hd);
+  const all=[...D].sort((a,b)=>a.name.localeCompare(b.name));
+  all.forEach(e=>{const b=document.createElement("button");b.className="mitem";
+   const dot=document.createElement("span");dot.className="own-dot";b.appendChild(dot);
+   const t=document.createElement("span");
+   const pc=document.createElement("span");pc.style.color="var(--mut)";pc.textContent=e.class+".";t.appendChild(pc);
+   const nm=document.createElement("span");nm.textContent=e.name;t.appendChild(nm);b.appendChild(t);
+   b.onclick=()=>{location.href="?class="+encodeURIComponent(e.class)+"&method="+encodeURIComponent(e.name);};
+   methcol.appendChild(b);});
   return;}
  const hd=document.createElement("div");hd.className="shead";hd.textContent=cur+" Methods";methcol.appendChild(hd);
  const t=document.createElement("button");t.id="inhtoggle";t.textContent="Show inherited";
