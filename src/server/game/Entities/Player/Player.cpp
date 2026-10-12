@@ -4485,7 +4485,6 @@ void Player::BuildPlayerRepop()
     }
     GetMap()->AddToMap(corpse);
     SetHealth(1); // convert player body to ghost
-    SetMovement(MOVE_WATER_WALK);
     SetWaterWalking(true);
 
     if (!IsImmobilizedState())
@@ -11740,7 +11739,7 @@ void Player::SendInitialPacketsAfterAddToMap()
         GetSession()->IncrementOrderCounter();
     }
 
-    if (HasAuraType(SPELL_AURA_WATER_WALK))
+    if (HasAuraType(SPELL_AURA_WATER_WALK) || HasAura(8326))
     {
         uint32 const counter = GetSession()->GetOrderCounter();
         setCompoundState << uint8(2 + GetPackGUID().size() + 4);
