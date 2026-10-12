@@ -98,8 +98,9 @@ def find_headers(scope_dirs):
     return sorted(headers)
 
 
-def find_body(cls, method, header_path):
-    """Grab up to 60 lines of Class::Method body from sibling .cpp files."""
+def find_impl(cls, method, header_path):
+    """(body, relpath, line1) of the Class::Method .cpp definition,
+    or ('', '', 0) if none (e.g. header-inline)."""
     stem = os.path.splitext(header_path)[0]
     candidates = [stem + ".cpp"]
     # also try same directory siblings, e.g. Player.cpp vs Player.h
@@ -128,8 +129,8 @@ def find_body(cls, method, header_path):
                     if chunk and NEXT_DEF_RE.match(bl):
                         break
                     chunk.append(bl)
-                return "".join(chunk)
-    return ""
+                return "".join(chunk), os.path.relpath(cpp, ROOT), i + 1
+    return "", "", 0
 
 
 def parse_header(path):
@@ -335,9 +336,14 @@ def build_reader(entries, classes, out_dir):
     if os.path.isfile(logo_src):
         with open(logo_src, "rb") as fsrc, open(os.path.join(out_dir, "logo.png"), "wb") as fdst:
             fdst.write(fsrc.read())
+    fav_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "favicon.png")
+    if os.path.isfile(fav_src):
+        with open(fav_src, "rb") as fsrc, open(os.path.join(out_dir, "favicon.png"), "wb") as fdst:
+            fdst.write(fsrc.read())
     html = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Yggdrasilcore C++ API</title>
+<link rel="icon" href="favicon.png">
 <style>:root{--bg:#14101f;--panel:#1e1830;--card:#1c1530;--line:#3a2d63;--txt:#e8e2f5;--mut:#8f7fc9;--acc:#b79cff}
 body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:40px}
 #topbar{grid-column:1/-1;display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid #352a55;z-index:10}
@@ -394,6 +400,7 @@ body.hideinh #methodcol button.mitem.inherited{display:none}
 .chead:hover{background:#241b40;border-radius:10px}
 .chead b{font-size:15px}
 .star{color:var(--mut);font-size:12px;margin-left:6px}
+.cnt{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:10px;padding:0 7px;margin-left:6px;white-space:nowrap}
 .inh-note{font-size:12px;color:var(--mut);margin-left:8px}
 .sig{font-family:monospace;color:var(--acc);font-size:13px;margin-top:4px;overflow-wrap:anywhere}
 .cbody{display:none;padding:0 14px 12px}
@@ -442,25 +449,31 @@ function fmt(s){let h=esc(s);
 function ancestors(cls){const seen=new Set(),stack=[...(H[cls]?H[cls].bases:[])];
  while(stack.length){const b=stack.pop();if(!b||seen.has(b))continue;seen.add(b);
   if(H[b])stack.push(...H[b].bases);}return seen;}
-function methodsOf(cls){const anc=ancestors(cls),out=[];
- D.forEach((e,i)=>{if(e.class===cls)out.push({e:e,i:i,inh:null});
-  else if(anc.has(e.class))out.push({e:e,i:i,inh:e.class});});
- out.sort((a,b)=>a.e.name.localeCompare(b.e.name));return out;}
-function cardEl(m){const e=m.e,k=e.class+"::"+e.name,isOpen=open.has(k);
- const d=document.createElement("div");d.className="card"+(isOpen?" open":"");d.id="m"+m.i;
+function normSig(s){return s.replace(/=[^,)]*/g,"").replace(/\\s+/g," ").trim();}
+function groupsFor(cls){const anc=ancestors(cls),seen=new Set(),byName={};
+ const push=(e,inh)=>{const k=e.name+"|"+normSig(e.sig);if(seen.has(k))return;seen.add(k);
+  (byName[e.name]||(byName[e.name]=[])).push({e:e,inh:inh});};
+ D.forEach(e=>{if(e.class===cls)push(e,null);});
+ anc.forEach(a=>{D.forEach(e=>{if(e.class===a)push(e,a);});});
+ return Object.keys(byName).sort().map(n=>({name:n,items:byName[n]}));}
+function groupCard(cls,g){const k=cls+"::"+g.name,isOpen=open.has(k);
+ const d=document.createElement("div");d.className="card"+(isOpen?" open":"");d.id="m-"+cls+"-"+g.name;
  const h=document.createElement("div");h.className="chead";
  const t=document.createElement("b");t.textContent=k;h.appendChild(t);
- if(e.ai){const s=document.createElement("span");s.className="star";s.textContent="\\u2605";h.appendChild(s);}
- if(m.inh){const n=document.createElement("span");n.className="inh-note";n.textContent="inherited from "+m.inh;h.appendChild(n);}
- const sg=document.createElement("div");sg.className="sig";sg.textContent=e.sig;h.appendChild(sg);
+ if(g.items.some(x=>x.e.ai)){const s=document.createElement("span");s.className="star";s.textContent="\u2605";h.appendChild(s);}
+ if(g.items.length>1){const n=document.createElement("span");n.className="cnt";n.textContent=g.items.length+" signatures";h.appendChild(n);}
  h.onclick=()=>{const was=d.classList.toggle("open");
   if(was)open.add(k);else open.delete(k);};
  d.appendChild(h);
  const b=document.createElement("div");b.className="cbody";
- const p=document.createElement("p");p.innerHTML=fmt(e.desc||"(no description)");b.appendChild(p);
- const sm=document.createElement("small");
- const a=document.createElement("a");a.href=SRC_BASE+e.file+"#L"+e.line;
- a.textContent=e.file+":"+e.line;a.target="_blank";a.rel="noopener";sm.appendChild(a);b.appendChild(sm);
+ g.items.forEach(x=>{const e=x.e;
+  if(x.inh){const n=document.createElement("div");n.className="inh-note";n.textContent="inherited from "+x.inh;b.appendChild(n);}
+  const sg=document.createElement("div");sg.className="sig";sg.textContent=e.sig;b.appendChild(sg);
+  const p=document.createElement("p");p.innerHTML=fmt(e.desc||"(no description)");b.appendChild(p);
+  const L=e.impl||{file:e.file,line:e.line};
+  const sm=document.createElement("small");
+  const a=document.createElement("a");a.href=SRC_BASE+L.file+"#L"+L.line;
+  a.textContent=L.file+":"+L.line;a.target="_blank";a.rel="noopener";sm.appendChild(a);b.appendChild(sm);});
  d.appendChild(b);return d;}
 function renderSidebar(){
  classcol.innerHTML='<div class="shead">Classes</div>';
@@ -488,13 +501,17 @@ function renderSidebar(){
  methcol.innerHTML="";
  if(!cur||!cset.has(cur)){
   const hd=document.createElement("div");hd.className="shead";hd.textContent="All methods";methcol.appendChild(hd);
-  const all=[...D].sort((a,b)=>a.name.localeCompare(b.name));
-  all.forEach(e=>{const b=document.createElement("button");b.className="mitem";
+  const seenA=new Set(),rows=[];
+  [...D].sort((a,b)=>a.name.localeCompare(b.name)||a.class.localeCompare(b.class)).forEach(e=>{
+   const k=e.class+"::"+e.name;let r=rows.find(r=>r.k===k);
+   if(!r){r={k:k,e:e,n:0};rows.push(r);}r.n++;});
+  rows.forEach(r=>{const b=document.createElement("button");b.className="mitem";
    const dot=document.createElement("span");dot.className="own-dot";b.appendChild(dot);
    const t=document.createElement("span");
-   const pc=document.createElement("span");pc.style.color="var(--mut)";pc.textContent=e.class+".";t.appendChild(pc);
-   const nm=document.createElement("span");nm.textContent=e.name;t.appendChild(nm);b.appendChild(t);
-   b.onclick=()=>{location.href="?class="+encodeURIComponent(e.class)+"&method="+encodeURIComponent(e.name);};
+   const pc=document.createElement("span");pc.style.color="var(--mut)";pc.textContent=r.e.class+".";t.appendChild(pc);
+   const nm=document.createElement("span");nm.textContent=r.e.name;t.appendChild(nm);b.appendChild(t);
+   if(r.n>1){const c=document.createElement("span");c.className="cnt";c.textContent="×"+r.n;b.appendChild(c);}
+   b.onclick=()=>{location.href="?class="+encodeURIComponent(r.e.class)+"&method="+encodeURIComponent(r.e.name);};
    methcol.appendChild(b);});
   return;}
  const hd=document.createElement("div");hd.className="shead";hd.textContent=cur+" Methods";methcol.appendChild(hd);
@@ -502,12 +519,14 @@ function renderSidebar(){
  t.setAttribute("aria-pressed",document.body.classList.contains("hideinh")?"false":"true");
  t.onclick=()=>{const h=document.body.classList.toggle("hideinh");t.setAttribute("aria-pressed",h?"false":"true");};
  methcol.appendChild(t);
- methodsOf(cur).forEach(m=>{const b=document.createElement("button");
-  b.className="mitem"+(m.inh?" inherited":"");
-  const dot=document.createElement("span");dot.className=m.inh?"inh-dot":"own-dot";b.appendChild(dot);
-  const nm=document.createElement("span");nm.textContent=m.e.name;b.appendChild(nm);
-  if((cur+"::"+m.e.name)===cur+"::"+target)b.classList.add("on");
-  b.onclick=()=>{location.href="?class="+encodeURIComponent(cur)+"&method="+encodeURIComponent(m.e.name);};
+ groupsFor(cur).forEach(g=>{const b=document.createElement("button");
+  const own=!g.items[0].inh;
+  b.className="mitem"+(own?"":" inherited");
+  const dot=document.createElement("span");dot.className=own?"own-dot":"inh-dot";b.appendChild(dot);
+  const nm=document.createElement("span");nm.textContent=g.name;b.appendChild(nm);
+  if(g.items.length>1){const c=document.createElement("span");c.className="cnt";c.textContent="×"+g.items.length;b.appendChild(c);}
+  if((cur+"::"+g.name)===cur+"::"+target)b.classList.add("on");
+  b.onclick=()=>{location.href="?class="+encodeURIComponent(cur)+"&method="+encodeURIComponent(g.name);};
   methcol.appendChild(b);});}
 function renderHome(){main.innerHTML="";
  const w=document.createElement("div");w.id="home";
@@ -542,12 +561,11 @@ function renderClass(){main.innerHTML="";
    if(cset.has(b)){const a=document.createElement("a");a.href="?class="+encodeURIComponent(b);
     a.textContent=b;p.appendChild(a);}else p.appendChild(document.createTextNode(b));});
   main.appendChild(p);}
- const ms=methodsOf(cur),own=ms.filter(m=>!m.inh).length;
+ const ms=groupsFor(cur),own=ms.filter(g=>!g.items[0].inh).length;
  const sub=document.createElement("p");sub.style.color="var(--mut)";
  sub.textContent=own+" own · "+(ms.length-own)+" inherited";main.appendChild(sub);
- ms.forEach(m=>main.appendChild(cardEl(m)));
- if(target){const idx=D.findIndex(e=>e.class===cur&&e.name===target);
-  const el=idx>=0&&document.getElementById("m"+idx);
+ ms.forEach(g=>main.appendChild(groupCard(cur,g)));
+ if(target){const el=document.getElementById("m-"+cur+"-"+target);
   if(el){el.classList.add("open");el.scrollIntoView({block:"center"});}}}
 function render(){renderSidebar();
  if(!cur||!cset.has(cur))renderHome();else renderClass();}
@@ -639,7 +657,8 @@ def main():
         if diff_files and rel not in diff_files:
             continue
         for e in parse_header(h):
-            body = find_body(e["class"], e["name"], h)
+            body, impl_file, impl_line = find_impl(e["class"], e["name"], h)
+            e["impl"] = {"file": impl_file, "line": impl_line} if impl_file else None
             hsh = body_hash(e, body)
             sigh = hashlib.sha1(e["sig"].encode()).hexdigest()[:8]
             key = "%s::%s@%s:%s" % (e["class"], e["name"], sigh, mtag)
