@@ -2497,6 +2497,8 @@ public:
     // older counter are stale old-map packets and must be ignored on arrival.
     void SetMapChangeOrderCounter() { m_mapChangeOrderCounter = GetSession()->GetOrderCounter(); }
     uint32 GetMapChangeOrderCounter() const { return m_mapChangeOrderCounter; }
+    uint32 GetPendingFlightChange() const { return m_pendingFlightChangeCounter; }
+    void SetPendingFlightChange(uint32 counter) { m_pendingFlightChangeCounter = counter; }
     bool CanKnockback() { return m_canKnockback; }
     void SetCanKnockback(bool value) { m_canKnockback = value; }
 
@@ -2976,6 +2978,7 @@ private:
     bool m_canTeleport;
     bool m_canKnockback;
     uint32 m_mapChangeOrderCounter;
+    uint32 m_pendingFlightChangeCounter;
 
     std::unique_ptr<PetStable> m_petStable;
 

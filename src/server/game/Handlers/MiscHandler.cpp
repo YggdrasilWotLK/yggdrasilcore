@@ -1537,6 +1537,9 @@ void WorldSession::HandleMoveFlagChangeOpcode(WorldPacket& recv_data)
         return;
     }
 
+    if (_player->GetPendingFlightChange() == counter && opcode == CMSG_MOVE_SET_CAN_FLY_ACK)
+        _player->SetPendingFlightChange(false);
+
     Opcodes response;
 
     switch (recv_data.GetOpcode())

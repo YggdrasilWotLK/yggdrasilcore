@@ -399,6 +399,7 @@ Player::Player(WorldSession* session): Unit(), m_mover(this)
     m_NeedToSaveGlyphs = false;
     m_MountBlockId = 0;
     m_mapChangeOrderCounter = 0;
+    m_pendingFlightChangeCounter = 0;
     m_realDodge = 0.0f;
     m_realParry = 0.0f;
     m_pendingSpectatorForBG = 0;
