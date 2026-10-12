@@ -336,14 +336,16 @@ def build_reader(entries, classes, out_dir):
     if os.path.isfile(logo_src):
         with open(logo_src, "rb") as fsrc, open(os.path.join(out_dir, "logo.png"), "wb") as fdst:
             fdst.write(fsrc.read())
-    fav_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "favicon.png")
-    if os.path.isfile(fav_src):
-        with open(fav_src, "rb") as fsrc, open(os.path.join(out_dir, "favicon.png"), "wb") as fdst:
-            fdst.write(fsrc.read())
+    for _fav in ("favicon.png", "favicon.ico"):
+        fav_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), _fav)
+        if os.path.isfile(fav_src):
+            with open(fav_src, "rb") as fsrc, open(os.path.join(out_dir, _fav), "wb") as fdst:
+                fdst.write(fsrc.read())
     html = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Yggdrasilcore C++ API</title>
-<link rel="icon" href="favicon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="icon" type="image/png" href="favicon.png">
 <style>:root{--bg:#14101f;--panel:#1e1830;--card:#1c1530;--line:#3a2d63;--txt:#e8e2f5;--mut:#8f7fc9;--acc:#b79cff}
 body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:40px}
 #topbar{grid-column:1/-1;display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid #352a55;z-index:10}
