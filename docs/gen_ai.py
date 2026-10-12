@@ -347,13 +347,14 @@ def build_reader(entries, classes, out_dir):
 <link rel="icon" href="favicon.ico">
 <link rel="icon" type="image/png" href="favicon.png">
 <style>:root{--bg:#14101f;--panel:#1e1830;--card:#1c1530;--line:#3a2d63;--txt:#e8e2f5;--mut:#8f7fc9;--acc:#b79cff}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:40px}
-#topbar{grid-column:1/-1;display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid #352a55;z-index:10}
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding-bottom:40px;font-size:14px}
+#topbar{grid-column:1/-1;display:flex;gap:12px;align-items:center;height:52px;padding:8px 16px;background:var(--panel);border-bottom:1px solid #352a55;z-index:10;overflow:hidden}
 #hamburger{background:none;border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:16px;padding:6px 10px;cursor:pointer}
 #logo{display:flex;gap:10px;align-items:center;color:var(--txt);text-decoration:none;font-weight:700;font-size:16px;white-space:nowrap}
 #logo img{height:34px}
 #swrap{position:relative;flex:1;margin-left:12px}
-#q{width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid #5b4a8a;background:#100c1c;color:#fff}
+#q{width:100%;box-sizing:border-box;padding:6px 12px;font-size:13px;border-radius:8px;border:1px solid #5b4a8a;background:#100c1c;color:#fff}
 #res{position:absolute;top:110%;left:0;right:0;background:var(--panel);border:1px solid #5b4a8a;border-radius:8px;display:none;max-height:50vh;overflow:auto}
 #res.open{display:block}
 .sr-item{padding:8px 12px;cursor:pointer;font-size:13px}
