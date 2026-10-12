@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     name: ubuntu-24.04-g++
     env:
+      CCACHE_DIR: ${{ github.workspace }}/var/ccache
       CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime
       CCACHE_CPP2: "true"
 
