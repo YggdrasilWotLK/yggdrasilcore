@@ -1,30 +1,38 @@
-## CONTRIBUTING
+## Contributing
 
-AzerothCore can also serve as a learning resource for aspiring developers who want to understand how WoW servers work, how MMORPGs are structured, how game server emulators are created, or to improve their C++ and SQL knowledge.
+Yggdrasilcore is a privately managed repository. We do not recommend emulation
+enthusiasts follow it. If you want to contribute to emulation generally,
+contribute to the upstream [AzerothCore project](https://www.azerothcore.org/wiki/contribute)
+instead.
 
-If you want to contribute to the project, you will find a lot of resources that will guide you in our [wiki](https://www.azerothcore.org/wiki/contribute).
+## What we accept here
 
-We also recommend you read our [Contributor Covenant Code of Conduct](https://github.com/azerothcore/azerothcore-wotlk/blob/master/.github/CODE_OF_CONDUCT.md).
+- Cherry-picks and fixes that serve Yggdrasil WoW's Blizzlike gameplay.
+- Blizzlike evidence is interpreted loosely: sniffs, Wowhead data, or video
+  evidence are satisfactory. It does not have to be sniff-only.
+- Stable, functional code is left alone. Do not refactor working systems for
+  style or architecture reasons.
 
-Feel free to join our [Discord server](https://discord.gg/gkt4y2x).
+## What we do not accept
 
-## AUTHORS & CONTRIBUTORS
+- General feature requests or content unrelated to Yggdrasil WoW.
+- Refactors of stable code, format-only churn, or upstream sync requests.
+- Changes that cannot build as described below.
 
-This project exists thanks to the [authors](https://github.com/azerothcore/azerothcore-wotlk/blob/master/AUTHORS).
+## Supported build environments (only)
 
-## IMPORTANT LINKS
+- Docker, as defined in `apps/docker/Dockerfile` and `docker-compose.yml`.
+- Native Ubuntu 24.04, as defined in `.github/workflows/core-build.yml`.
 
-- [Doxygen documentation](https://www.azerothcore.org/pages/doxygen/index.html)
-- [Website](http://www.azerothcore.org/)
-- [AzerothCore catalogue](http://www.azerothcore.org/catalogue.html  "Modules, tools, and other stuff for AzerothCore") (modules, tools, etc...)
-- [Our Discord server](https://discord.gg/gkt4y2x)
-- [Our wiki](http://www.azerothcore.org/wiki "Easy to use and developed by AzerothCore founder")
-- [Our forum](https://github.com/azerothcore/azerothcore-wotlk/discussions/)
-- [Our Facebook page](https://www.facebook.com/AzerothCore/)
-- [Our LinkedIn page](https://www.linkedin.com/company/azerothcore/)
+We do not support any other OS, distro version, compiler, IDE setup
+(VSCode/devcontainer), Nix flakes, the `acore.sh` installer flow, or repacks.
+Bug reports and pull requests using those will be closed.
 
-All contributions, big or small, are appreciated <3
+## Pull request requirements
 
-The AzerothCore Staff appreciate all the help and contribution that *you* put your time into.
-
-Thank you!
+- It builds: `docker compose build` and the Ubuntu 24.04 CI build pass.
+- It is tested in-game by the author. Describe what you tested and what
+  regressions you checked (spells, scripts, SAI, DB changes).
+- Cherry-picks credit the original authors via the proper `--author` tag.
+- Read the [project introduction](../.github/README.md) and the
+  [Code of Conduct](./CODE_OF_CONDUCT.md) first.
