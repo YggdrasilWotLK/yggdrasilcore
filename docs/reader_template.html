@@ -27,30 +27,21 @@ YLA_CSS_PLACEHOLDER
 .src-link{font-size:12px;color:var(--muted);margin-top:10px}
 .src-link a{color:var(--purple);text-decoration:none}
 .src-link a:hover{text-decoration:underline}
-.hero{margin:10px 0 26px}
-.hero img{max-width:min(100%,560px);height:auto;display:block;margin-bottom:14px}
-.hero .eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--purple);margin-bottom:8px}
-.hero h1{font-size:clamp(28px,4vw,40px);margin:0 0 10px}
-.hero .tagline{font-size:clamp(14px,1.6vw,17px);color:var(--text);line-height:1.7;max-width:min(680px,100%)}
-.cta-row{display:flex;gap:10px;margin:16px 0 4px;flex-wrap:wrap}
+.hero{max-width:min(760px,100%);margin:0 auto;padding:8vh 4vw 4vh;text-align:center}
+.hero img{max-width:min(100%,480px);height:auto;display:block;margin:0 auto 18px}
+.hero .eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--purple);margin-bottom:10px}
+.hero h1{font-size:clamp(30px,4.5vw,44px);margin:0 0 12px}
+.hero .tagline{font-size:clamp(14px,1.6vw,17px);color:var(--muted);line-height:1.7;margin:0 auto;max-width:min(600px,100%)}
+.cta-row{display:flex;gap:10px;margin:22px 0 6px;flex-wrap:wrap;justify-content:center}
 .cta{border:1px solid var(--purple2);border-radius:20px;padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;background:none;color:var(--text);font-family:inherit}
 .cta.primary{background:var(--purple2);color:#fff}
 .cta:hover{border-color:var(--purple3);color:var(--purple3)}
 .cta.primary:hover{background:var(--purple3);color:#fff}
-.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;margin:4px 0 18px}
-.how-step{border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--surface)}
-.how-step b:first-child{display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--purple2);color:#fff;font-size:12px;text-align:center;line-height:24px;margin-right:8px}
-.how-step span{display:block;margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6}
-.hero .tagline{font-size:16px;color:var(--text);line-height:1.7;max-width:640px}
-.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0;justify-content:center}
 .stat{border:1px solid var(--border);border-radius:var(--radius);padding:12px 22px;background:var(--surface2)}
 .stat b{font-size:24px;display:block;color:var(--purple3)}
 .stat span{font-size:12px;color:var(--muted)}
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin:8px 0 18px}
-.feat{border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--surface2)}
-.feat b{display:block;margin-bottom:6px;color:var(--purple3)}
-.feat span{font-size:13px;color:var(--muted);line-height:1.6}
-.home-links{margin-top:6px}
+.home-links{margin-top:10px;text-align:center}
 .home-links a{color:var(--purple);text-decoration:none}
 .home-links a:hover{text-decoration:underline}
 footer#foot{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);
@@ -231,24 +222,6 @@ function renderHome(){
   const b=document.createElement("b");b.textContent=s[1];d.appendChild(b);
   const sp=document.createElement("span");sp.textContent=s[0];d.appendChild(sp);st.appendChild(d);});
  w.appendChild(st);
- const fg=document.createElement("div");fg.className="feat-grid";
- [["Browse the API","Pick a class in the tree to list its own and inherited methods, overloads grouped per name."],
-  ["Instant search","Find any class or method by name or description from the top bar."],
-  ["Follow inheritance","Base-class methods appear inline, marked where they come from."],
-  ["Jump to source","Every method links straight to its definition on GitHub."]].forEach(f=>{
-  const d=document.createElement("div");d.className="feat";
-  const b=document.createElement("b");b.textContent=f[0];d.appendChild(b);
-  const sp=document.createElement("span");sp.textContent=f[1];d.appendChild(sp);fg.appendChild(d);});
- w.appendChild(fg);
- const how=document.createElement("div");how.className="how";
- [["1","Parsed","Headers are scanned nightly; signatures, inheritance and call sites extracted."],
-  ["2","Explained","Each method gets a one-line explanation from a code model."],
-  ["3","Published","This static reader rebuilds and deploys to Pages automatically."]].forEach(s=>{
-  const d=document.createElement("div");d.className="how-step";
-  const n=document.createElement("b");n.textContent=s[0];d.appendChild(n);
-  const t=document.createElement("b");t.textContent=s[1];d.appendChild(t);
-  const sp=document.createElement("span");sp.textContent=s[2];d.appendChild(sp);how.appendChild(d);});
- w.appendChild(how);
  const links=document.createElement("p");links.className="home-links";
  [["Yggdrasil WoW","https://yggdrasilwow.com/"],
   ["Source code","https://github.com/YggdrasilWotLK/yggdrasilcore"],
