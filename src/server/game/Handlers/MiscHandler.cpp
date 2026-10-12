@@ -1519,6 +1519,13 @@ void WorldSession::HandleMoveFlagChangeOpcode(WorldPacket& recv_data)
 
     sScriptMgr->AnticheatSetCanFlybyServer(_player, movementInfo.HasMovementFlag(MOVEMENTFLAG_CAN_FLY));
 
+    // stale async ack from before the last map change: ignore
+    if (_player->GetMapChangeOrderCounter() && counter <= _player->GetMapChangeOrderCounter())
+    {
+        recv_data.rfinish(); // prevent warnings spam
+        return;
+    }
+
     Unit* mover = _player->m_mover;
     Player* plrMover = mover->ToPlayer();
 

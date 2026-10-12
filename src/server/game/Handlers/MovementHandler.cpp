@@ -248,6 +248,22 @@ void WorldSession::HandleMoveWorldportAck()
     GetPlayer()->GetZoneAndAreaId(newzone, newarea);
     GetPlayer()->UpdateZone(newzone, newarea);
 
+    // Normalize flight state on arrival: stale CAN_FLY/FLYING must not survive
+    // the map change without a flight-granting aura (flying-mount or
+    // flight-form auras only). Single funnel for spell/GO/hearth/summon/BG
+    // teleports, real players and shadows alike.
+    if (!GetPlayer()->IsGameMaster() && !GetPlayer()->IsInFlight())
+    {
+        if (!GetPlayer()->HasAuraType(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED) &&
+            !GetPlayer()->HasAuraType(SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED_NOT_STACKING) &&
+            !GetPlayer()->HasAuraType(SPELL_AURA_FLY))
+        {
+            GetPlayer()->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING);
+            GetPlayer()->SetCanFly(false);
+            GetPlayer()->GetSession()->IncrementOrderCounter();
+        }
+    }
+
     // honorless target
     if (GetPlayer()->pvpInfo.IsHostile)
         GetPlayer()->CastSpell(GetPlayer(), 2479, true);
@@ -693,6 +709,13 @@ void WorldSession::HandleForceSpeedChangeAck(WorldPacket& recvData)
         return;
     }
 
+    // stale async ack from before the last map change: ignore
+    if (_player->GetMapChangeOrderCounter() && counter <= _player->GetMapChangeOrderCounter())
+    {
+        recvData.rfinish(); // prevent warnings spam
+        return;
+    }
+
     if (!ProcessMovementInfo(movementInfo, mover, _player, recvData))
     {
         recvData.rfinish();                     // prevent warnings spam
@@ -1002,6 +1025,13 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recvData)
     {
         if (mover->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT))
             return;
+    }
+
+    // stale async ack from before the last map change: ignore
+    if (_player->GetMapChangeOrderCounter() && counter <= _player->GetMapChangeOrderCounter())
+    {
+        recvData.rfinish(); // prevent warnings spam
+        return;
     }
 
     if (!ProcessMovementInfo(movementInfo, mover, _player, recvData))
