@@ -163,56 +163,9 @@ services:
     # Activate with `docker compose --profile tools ...`
     profiles: [tools]
 
-  # Dev server with the ./azerothcore folder binded from the host
-  # Please use Linux, WSL2 or any ext-compatible filesystem
-  # to avoid performance issues
-  #
-  # This is primarily intended for use with the "devcontainer" project
-  #
-  # This is provided primarily for development, though it doesn't receive
-  # first-class support
-  yggdrasilcore-dev-server:
-    tty: true
-    image: acore/yggdrasilcore-wotlk-dev-server:${DOCKER_IMAGE_TAG:-master}
-    build:
-      context: .
-      dockerfile: ./apps/docker/Dockerfile.dev-server
-      args:
-        USER_ID: ${DOCKER_USER_ID:-1000}
-        GROUP_ID: ${DOCKER_GROUP_ID:-1000}
-        DOCKER_USER: ${DOCKER_USER:-acore}
-      target: dev
-    env_file:
-        ${DOCKER_AC_ENV_FILE:-conf/dist/env.ac}
-    environment:
-      AC_DATA_DIR: "/azerothcore/env/dist/data"
-      AC_LOGS_DIR: "/azerothcore/env/dist/logs"
-      AC_LOGIN_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
-      AC_WORLD_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_world"
-      AC_CHARACTER_DATABASE_INFO: "yggdrasilcore-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_characters"
-    ports:
-      - ${DOCKER_AUTH_EXTERNAL_PORT:-3724}:3724
-      - ${DOCKER_WORLD_EXTERNAL_PORT:-8085}:8085
-      - ${DOCKER_SOAP_EXTERNAL_PORT:-7878}:7878
-    volumes:
-      - ${DOCKER_VOL_ROOT:-.}:/azerothcore:cached
-      # [osxfs optimization]: https://stackoverflow.com/a/63437557/1964544
-      - yggdrasilcore-build-dev:/azerothcore/var/build
-      - yggdrasilcore-ccache-dev:/azerothcore/var/ccache
-      # this is not the directory of the extracted data! It's the client folder used by the extractors
-      - ${DOCKER_AC_CLIENT_FOLDER:-./var/client}:/azerothcore/env/dist/bin/Data
-    # Activate with `docker compose --profile dev ...`
-    profiles: [dev]
-    depends_on:
-      yggdrasilcore-database:
-        condition: service_healthy
-
 volumes:
   yggdrasilcore-database:
   yggdrasilcore-client-data:
-  # Used for dev server
-  yggdrasilcore-build-dev:
-  yggdrasilcore-ccache-dev:
 
 networks:
   yggdrasilcore-network:
