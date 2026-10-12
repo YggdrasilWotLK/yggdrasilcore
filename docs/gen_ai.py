@@ -374,8 +374,11 @@ html,body{height:100%;overflow:hidden}
 #main{grid-row:2;overflow-y:auto;min-height:0}
 #classcol{border-right:1px solid #352a55}
 .shead{padding:12px 14px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut)}
-#classcol button{display:block;width:100%;text-align:left;background:none;border:none;color:#cfc4f5;padding:7px 14px;cursor:pointer;font-size:14px}
-#classcol button.on{background:var(--line);color:#fff}
+#classcol button.titem{display:flex;width:100%;text-align:left;background:none;border:none;color:#cfc4f5;padding:7px 14px;cursor:pointer;font-size:14px;align-items:baseline;gap:6px}
+#classcol button.titem.on{background:var(--line);color:#fff}
+#classcol .tree-arrow{color:var(--mut);font-size:11px;flex:none}
+#classcol .ccount{margin-left:auto;font-size:11px;color:var(--mut);flex:none}
+#methodcol .hint{padding:8px 14px;color:var(--mut);font-size:13px}
 #methodcol button.mitem{display:flex;width:100%;text-align:left;background:none;border:none;color:#cfc4f5;padding:6px 14px;cursor:pointer;font-size:13px;align-items:baseline;gap:7px}
 #methodcol button.mitem.on{background:var(--line);color:#fff}
 #methodcol button.mitem.inherited{color:var(--mut)}
@@ -408,12 +411,13 @@ body.hideinh #methodcol button.mitem.inherited{display:none}
 footer{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid #352a55;
  color:var(--mut);font-size:12px;padding:8px 16px;display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}</style>
 </head><body>
+<div id="app">
 <header id="topbar">
 <button id="hamburger" aria-label="Toggle sidebar">☰</button>
 <a id="logo" href="?"><span>Yggdrasilcore C++ API</span></a>
 <div id="swrap"><input id="q" placeholder="Search classes and methods…" autocomplete="off" spellcheck="false"><div id="res"></div></div>
 </header>
-<div id="app"><aside id="sidebar">
+<aside id="sidebar">
 <nav id="classcol"><div class="shead">Classes</div></nav>
 <nav id="methodcol"></nav>
 </aside><div id="sidebar-overlay"></div><main id="main"></main></div>
@@ -459,16 +463,33 @@ function cardEl(m){const e=m.e,k=e.class+"::"+e.name,isOpen=open.has(k);
  a.textContent=e.file+":"+e.line;a.target="_blank";a.rel="noopener";sm.appendChild(a);b.appendChild(sm);
  d.appendChild(b);return d;}
 function renderSidebar(){
- classcol.querySelectorAll("button").forEach(x=>x.remove());
- allClasses.forEach(c=>{const b=document.createElement("button");b.textContent=c;
-  if(c===cur)b.classList.add("on");
-  b.onclick=()=>{location.href="?class="+encodeURIComponent(c);};classcol.appendChild(b);});
+ classcol.innerHTML='<div class="shead">Classes</div>';
+ const kids={},hasKids=new Set();
+ allClasses.forEach(c=>{const bs=((H[c]||{}).bases||[]).filter(b=>cset.has(b));
+  if(!bs.length)(kids[""]||(kids[""]=[])).push(c);
+  else bs.forEach(b=>{(kids[b]||(kids[b]=[])).push(c);hasKids.add(b);});});
+ let collapsed={};try{collapsed=JSON.parse(localStorage.getItem("ygg-cpp-tree")||"{}");}catch(e){collapsed={};}
+ function saveTree(){try{localStorage.setItem("ygg-cpp-tree",JSON.stringify(collapsed));}catch(e){}}
+ function addNode(parent,cls,depth,trail){
+  if(trail.includes(cls))return;
+  const b=document.createElement("button");b.className="titem";b.style.paddingLeft=(14+depth*14)+"px";
+  if(hasKids.has(cls)){const ar=document.createElement("span");ar.className="tree-arrow";
+   ar.textContent=collapsed[cls]?"▸":"▾";
+   ar.onclick=(ev)=>{ev.stopPropagation();collapsed[cls]=!collapsed[cls];saveTree();renderSidebar();};
+   b.appendChild(ar);}
+  const nm=document.createElement("span");nm.textContent=cls;b.appendChild(nm);
+  const ct=document.createElement("span");ct.className="ccount";
+  ct.textContent=D.filter(e=>e.class===cls).length;b.appendChild(ct);
+  if(cls===cur)b.classList.add("on");
+  b.onclick=()=>{location.href="?class="+encodeURIComponent(cls);};
+  parent.appendChild(b);
+  if(hasKids.has(cls)&&!collapsed[cls])(kids[cls]||[]).sort().forEach(k=>addNode(parent,k,depth+1,trail.concat(cls)));}
+ (kids[""]||[]).sort().forEach(c=>addNode(classcol,c,0,[]));
  methcol.innerHTML="";
  if(!cur||!cset.has(cur)){
-  const hd=document.createElement("div");hd.className="shead";hd.textContent="Classes";methcol.appendChild(hd);
-  allClasses.forEach(c=>{const b=document.createElement("button");
-   b.className="mitem";const nm=document.createElement("span");nm.textContent=c;b.appendChild(nm);
-   b.onclick=()=>{location.href="?class="+encodeURIComponent(c);};methcol.appendChild(b);});
+  const hd=document.createElement("div");hd.className="shead";hd.textContent="Methods";methcol.appendChild(hd);
+  const hint=document.createElement("div");hint.className="hint";
+  hint.textContent="← Select a class to list its methods.";methcol.appendChild(hint);
   return;}
  const hd=document.createElement("div");hd.className="shead";hd.textContent=cur+" Methods";methcol.appendChild(hd);
  const t=document.createElement("button");t.id="inhtoggle";t.textContent="Show inherited";
