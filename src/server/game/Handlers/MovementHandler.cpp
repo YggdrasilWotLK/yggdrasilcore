@@ -41,6 +41,24 @@
 
 #define MOVEMENT_PACKET_TIME_DELAY 0
 
+static void NormalizeFlightStateOnTeleportArrival(Player* player)
+{
+    // Stale CAN_FLY/FLYING must not survive the teleport without a
+    // flight-granting aura (flying-mount or flight-form auras only).
+    if (!player || player->IsGameMaster() || player->IsInFlight())
+        return;
+
+    if (player->HasAuraType(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED) ||
+        player->HasAuraType(SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED_NOT_STACKING) ||
+        player->HasAuraType(SPELL_AURA_FLY))
+        return;
+
+    player->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING);
+    player->SetCanFly(false);
+    if (player->GetSession())
+        player->GetSession()->IncrementOrderCounter();
+}
+
 void WorldSession::HandleMoveWorldportAckOpcode(WorldPacket& /*recvData*/)
 {
     LOG_DEBUG("network", "WORLD: got MSG_MOVE_WORLDPORT_ACK.");
@@ -252,17 +270,7 @@ void WorldSession::HandleMoveWorldportAck()
     // the map change without a flight-granting aura (flying-mount or
     // flight-form auras only). Single funnel for spell/GO/hearth/summon/BG
     // teleports, real players and shadows alike.
-    if (!GetPlayer()->IsGameMaster() && !GetPlayer()->IsInFlight())
-    {
-        if (!GetPlayer()->HasAuraType(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED) &&
-            !GetPlayer()->HasAuraType(SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED_NOT_STACKING) &&
-            !GetPlayer()->HasAuraType(SPELL_AURA_FLY))
-        {
-            GetPlayer()->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING);
-            GetPlayer()->SetCanFly(false);
-            GetPlayer()->GetSession()->IncrementOrderCounter();
-        }
-    }
+    NormalizeFlightStateOnTeleportArrival(GetPlayer());
 
     // honorless target
     if (GetPlayer()->pvpInfo.IsHostile)
@@ -337,6 +345,11 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
                 plMover->UpdatePvP(false, false);
         }
     }
+
+    // Same-map portals (e.g. EK -> Stormwind indoors) strip the mount on GO
+    // use but keep stale server CAN_FLY across the teleport; normalize here
+    // just like the far-teleport path, after UpdateZone aura strips.
+    NormalizeFlightStateOnTeleportArrival(plMover);
 
     // resummon pet
     GetPlayer()->ResummonPetTemporaryUnSummonedIfAny();
