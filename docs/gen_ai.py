@@ -367,9 +367,8 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);marg
 html,body{height:100%;overflow:hidden}
 #app{display:grid;grid-template-rows:auto 1fr;grid-template-columns:480px 1fr;height:100vh;transition:grid-template-columns .25s ease}
 @media (min-width:901px){
-#app.sidebar-collapsed{grid-template-columns:0 1fr}
-#app.sidebar-collapsed #sidebar{border-right-color:transparent}
-#app.sidebar-collapsed #main{grid-column:2}
+#app.sidebar-collapsed{grid-template-columns:1fr}
+#app.sidebar-collapsed #sidebar{display:none}
 }
 @media (max-width:900px){
 #app{grid-template-columns:1fr}
