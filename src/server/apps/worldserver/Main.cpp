@@ -261,6 +261,11 @@ int main(int argc, char** argv)
     // Loading modules configs before scripts
     sConfigMgr->LoadModulesConfigs();
 
+    // Loggers were initialized from app configs only; module configs (and
+    // env overrides) arrived after. Re-read so startup uses the same
+    // Appender/Logger set as `reload conf` (World::LoadConfigSettings(true)).
+    sLog->LoadFromConfig();
+
     sScriptMgr->SetScriptLoader(AddScripts);
     sScriptMgr->SetModulesLoader(AddModulesScripts);
 
