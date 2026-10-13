@@ -648,7 +648,6 @@ void WorldState::AddSunsReachProgress(uint32 questId)
     if (previousValue != newValue)
         SendWorldstateUpdate(m_sunsReachData.m_sunsReachReclamationMutex, m_sunsReachData.m_sunsReachReclamationPlayers, newValue, worldState);
 
-    bool save = true;
     uint32 counterValue = m_sunsReachData.m_sunsReachReclamationCounters[counter];
     uint32 modifier = 1;
     if (otherCounter != -1)
@@ -658,7 +657,6 @@ void WorldState::AddSunsReachProgress(uint32 questId)
     }
     if (counterValue >= sWorld->getIntConfig(CONFIG_SUNSREACH_COUNTER_MAX) * modifier)
     {
-        save = false;
         switch (questId)
         {
             case QUEST_ERRATIC_BEHAVIOR:
@@ -709,8 +707,7 @@ void WorldState::AddSunsReachProgress(uint32 questId)
             }
         }
     }
-    if (save)
-        Save(SAVE_ID_QUEL_DANAS);
+    Save(SAVE_ID_QUEL_DANAS);
 }
 
 void WorldState::HandleSunsReachPhaseTransition(uint32 newPhase)
@@ -899,6 +896,7 @@ void WorldState::HandleSunwellGateTransition(uint32 newGate)
 void WorldState::SetSunsReachCounter(SunsReachCounters index, uint32 value)
 {
     m_sunsReachData.m_sunsReachReclamationCounters[index] = value;
+    Save(SAVE_ID_QUEL_DANAS);
 }
 
 void WorldState::StopSunsReachPhase(bool forward)
@@ -1166,10 +1164,8 @@ void WorldState::AddSunwellGateProgress(uint32 questId)
     newValue = m_sunsReachData.GetSunwellGatePercentage(m_sunsReachData.m_gate);
     if (previousValue != newValue)
         SendWorldstateUpdate(m_sunsReachData.m_sunsReachReclamationMutex, m_sunsReachData.m_sunsReachReclamationPlayers, newValue, worldState);
-    bool save = true;
     if (m_sunsReachData.m_gateCounters[counter] >= COUNTER_MAX_VAL_REQ_SWP_GATES)
     {
-        save = false;
         switch (questId)
         {
             case QUEST_AGAMATH_THE_FIRST_GATE:
@@ -1192,13 +1188,13 @@ void WorldState::AddSunwellGateProgress(uint32 questId)
             }
         }
     }
-    if (save)
-        Save(SAVE_ID_QUEL_DANAS);
+    Save(SAVE_ID_QUEL_DANAS);
 }
 
 void WorldState::SetSunwellGateCounter(SunwellGateCounters index, uint32 value)
 {
     m_sunsReachData.m_gateCounters[index] = value;
+    Save(SAVE_ID_QUEL_DANAS);
 }
 
 void WorldState::StartSunwellGatePhase()
@@ -1493,6 +1489,7 @@ TimePoint WorldState::GetSITimer(SITimers timer)
 void WorldState::SetSITimer(SITimers timer, TimePoint timePoint)
 {
     m_siData.m_timers[timer] = timePoint;
+    Save(SAVE_ID_SCOURGE_INVASION);
 }
 
 uint32 WorldState::GetBattlesWon()
@@ -1519,6 +1516,7 @@ void WorldState::SetLastAttackZone(uint32 zoneId)
 {
     std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
     m_siData.m_lastAttackZone = zoneId;
+    Save(SAVE_ID_SCOURGE_INVASION);
 }
 
 void WorldState::BroadcastSIWorldstates()
