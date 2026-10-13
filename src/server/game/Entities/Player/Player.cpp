@@ -4618,6 +4618,11 @@ void Player::KillPlayer()
         SendCorpseReclaimDelay(corpseReclaimDelay);
 
     sScriptMgr->OnPlayerJustDied(this);
+
+    if (Vehicle* vehicle = GetVehicle())
+        if (Unit* vehicleBase = vehicle->GetBase())
+            if (vehicleBase->IsPlayer() || vehicleBase->GetVehicle())
+                NearTeleportTo(GetPositionX(), GetPositionY(), GetPositionZ() + 0.01f, GetOrientation());
     // don't create corpse at this moment, player might be falling
 
     // update visibility
