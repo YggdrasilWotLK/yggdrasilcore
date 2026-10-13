@@ -23779,9 +23779,9 @@
   }
  },
  "Player::KillPlayer@c2c1dbf5:qwen3-5-4b": {
-  "hash": "97b6afacde5f",
-  "desc": "Executes the death sequence for a player by handling fall mechanics if flying without transport, sending movement root status, disabling timers, setting the corpse state, applying release timer flags based on map instanceability and resurrection auras, calculating and sending corpse reclaim delay, notifying scripts of the death, and performing near-teleportation logic for vehicles.",
-  "raw": "{\"what\": \"Executes the death sequence for a player by handling fall mechanics if flying without transport, sending movement root status, disabling timers, setting the corpse state, applying release timer flags based on map instanceability and resurrection auras, calculating and sending corpse reclaim delay, notifying scripts of the death, and performing near-teleportation logic for vehicles.\", \"effects\": \"none\"}",
+  "hash": "6a7474be7f2e",
+  "desc": "Executes the death sequence for a player by handling fall mechanics if flying without transport, sending movement root status, disabling timers, setting the corpse state, applying release timer flags based on map instanceability and resurrection auras, setting a 6-minute repop delay, calculating and sending corpse reclaim delay, notifying the script manager of the death, and updating visibility.",
+  "raw": "{\"what\": \"Executes the death sequence for a player by handling fall mechanics if flying without transport, sending movement root status, disabling timers, setting the corpse state, applying release timer flags based on map instanceability and resurrection auras, setting a 6-minute repop delay, calculating and sending corpse reclaim delay, notifying the script manager of the death, and updating visibility.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Player",
    "name": "KillPlayer",
@@ -23793,8 +23793,8 @@
     "file": "src/server/game/Entities/Player/Player.cpp",
     "line": 4595
    },
-   "hash": "97b6afacde5f",
-   "desc": "Executes the death sequence for a player by handling fall mechanics if flying without transport, sending movement root status, disabling timers, setting the corpse state, applying release timer flags based on map instanceability and resurrection auras, calculating and sending corpse reclaim delay, notifying scripts of the death, and performing near-teleportation logic for vehicles.",
+   "hash": "6a7474be7f2e",
+   "desc": "Executes the death sequence for a player by handling fall mechanics if flying without transport, sending movement root status, disabling timers, setting the corpse state, applying release timer flags based on map instanceability and resurrection auras, setting a 6-minute repop delay, calculating and sending corpse reclaim delay, notifying the script manager of the death, and updating visibility.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
