@@ -19601,6 +19601,11 @@ void Unit::_ExitVehicle(Position const* exitPosition)
         }
     }
 
+    if (player && vehicle)
+        if (Unit* exitingBase = vehicle->GetBase())
+            if (exitingBase->IsPlayer() || exitingBase->GetVehicle())
+                pos.Relocate(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ() + 0.01f, pos.GetOrientation());
+
     AddUnitState(UNIT_STATE_MOVE);
 
     if (player)
