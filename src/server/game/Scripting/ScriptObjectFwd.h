@@ -30,6 +30,7 @@ class Aura;
 class AuraApplication;
 class AuraEffect;
 class AuraScript;
+class Battlefield;
 class Battleground;
 class BattlegroundMap;
 class BattlegroundQueue;

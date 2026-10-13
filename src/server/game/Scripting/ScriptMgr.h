@@ -623,6 +623,10 @@ public: /* BGScript */
     void OnBattlegroundDestroy(Battleground* bg);
     void OnBattlegroundCreate(Battleground* bg);
 
+public: /* BattlefieldScript */
+    void OnBattlefieldStart(Battlefield* bf);
+    void OnBattlefieldEnd(Battlefield* bf, bool endByTimer);
+
 public: /* Arena Team Script */
     void OnGetSlotByType(const uint32 type, uint8& slot);
     void OnGetArenaPoints(ArenaTeam* at, float& points);

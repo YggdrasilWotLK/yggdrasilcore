@@ -21,6 +21,7 @@
 #include "AccountScript.h"
 #include "AchievementCriteriaScript.h"
 #include "AchievementScript.h"
+#include "AllBattlefieldScript.h"
 #include "AllBattlegroundScript.h"
 #include "AllCommandScript.h"
 #include "AllCreatureScript.h"
