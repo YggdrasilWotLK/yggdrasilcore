@@ -379,3 +379,14 @@ ObjectGuid CharacterCache::GetCharacterGroupGuidByGuid(ObjectGuid guid) const
 
     return itr->second.GroupGuid;
 }
+
+std::vector<CharacterCacheEntry> CharacterCache::GetCharacterCacheSnapshot() const
+{
+    std::vector<CharacterCacheEntry> snapshot;
+    snapshot.reserve(_characterCacheStore.size());
+    for (auto const& pair : _characterCacheStore)
+    {
+        snapshot.push_back(pair.second);
+    }
+    return snapshot;
+}

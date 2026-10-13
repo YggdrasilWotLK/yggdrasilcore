@@ -29,6 +29,7 @@
 #include "MiscPackets.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
+#include "ScriptMgr.h"
 #include "Transport.h"
 #include "WorldPacket.h"
 #include "WorldSessionMgr.h"
@@ -371,6 +372,8 @@ void Battlefield::StartBattle()
 
     OnBattleStart();
 
+    sScriptMgr->OnBattlefieldStart(this);
+
     SendUpdateWorldStates();
 }
 
@@ -392,6 +395,8 @@ void Battlefield::EndBattle(bool endByTimer)
         DoPlaySoundToAll(BF_HORDE_WINS);
 
     OnBattleEnd(endByTimer);
+
+    sScriptMgr->OnBattlefieldEnd(this, endByTimer);
 
     // Unmark battlefield group to prevent it from becoming stale 
     for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)

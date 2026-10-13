@@ -87,6 +87,7 @@ void ScriptMgr::Initialize()
     ScriptRegistry<ArenaScript>::InitEnabledHooksIfNeeded(ARENAHOOK_END);
     ScriptRegistry<ArenaTeamScript>::InitEnabledHooksIfNeeded(ARENATEAMHOOK_END);
     ScriptRegistry<AuctionHouseScript>::InitEnabledHooksIfNeeded(AUCTIONHOUSEHOOK_END);
+    ScriptRegistry<AllBattlefieldScript>::InitEnabledHooksIfNeeded(ALLBATTLEFIELDHOOK_END);
     ScriptRegistry<BGScript>::InitEnabledHooksIfNeeded(ALLBATTLEGROUNDHOOK_END);
     ScriptRegistry<CommandSC>::InitEnabledHooksIfNeeded(ALLCOMMANDHOOK_END);
     ScriptRegistry<DatabaseScript>::InitEnabledHooksIfNeeded(DATABASEHOOK_END);
@@ -123,6 +124,7 @@ void ScriptMgr::Unload()
     SCR_CLEAR<ArenaScript>();
     SCR_CLEAR<ArenaTeamScript>();
     SCR_CLEAR<AuctionHouseScript>();
+    SCR_CLEAR<AllBattlefieldScript>();
     SCR_CLEAR<BGScript>();
     SCR_CLEAR<BattlegroundMapScript>();
     SCR_CLEAR<BattlegroundScript>();
