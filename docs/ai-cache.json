@@ -39184,9 +39184,9 @@
   }
  },
  "Unit::SetCanFly@b7bfe362:qwen3-5-4b": {
-  "hash": "523bac2f6e5b",
-  "desc": "Enables or disables the flying capability for a unit by modifying its movement flags and sending corresponding network packets to clients. Side effects: modifies internal movement state; sends network packets to controlling player or server",
-  "raw": "{\"what\": \"Enables or disables the flying capability for a unit by modifying its movement flags and sending corresponding network packets to clients.\", \"effects\": \"modifies internal movement state; sends network packets to controlling player or server\"}",
+  "hash": "9ec77a5424c9",
+  "desc": "Updates the unit's ability to fly by adding or removing a movement flag if not client-controlled, and sends network packets to notify clients of the change if the unit is in the world. Side effects: modifies internal movement state; sends network packets",
+  "raw": "{\"what\": \"Updates the unit's ability to fly by adding or removing a movement flag if not client-controlled, and sends network packets to notify clients of the change if the unit is in the world.\", \"effects\": \"modifies internal movement state; sends network packets\"}",
   "entry": {
    "class": "Unit",
    "name": "SetCanFly",
@@ -39198,8 +39198,8 @@
     "file": "src/server/game/Entities/Unit/Unit.cpp",
     "line": 20420
    },
-   "hash": "523bac2f6e5b",
-   "desc": "Enables or disables the flying capability for a unit by modifying its movement flags and sending corresponding network packets to clients. Side effects: modifies internal movement state; sends network packets to controlling player or server",
+   "hash": "9ec77a5424c9",
+   "desc": "Updates the unit's ability to fly by adding or removing a movement flag if not client-controlled, and sends network packets to notify clients of the change if the unit is in the world. Side effects: modifies internal movement state; sends network packets",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -42974,6 +42974,78 @@
    },
    "hash": "d2a6a5c423c5",
    "desc": "",
+   "ai": true,
+   "model": "qwen3.5:4b"
+  }
+ },
+ "Player::SetMapChangeOrderCounter@bbd7ebfa:qwen3-5-4b": {
+  "hash": "2da3c3945d90",
+  "desc": "Updates the map change order counter with the current session's order counter value.",
+  "raw": "{\"what\": \"Updates the map change order counter with the current session's order counter value.\", \"effects\": \"none\"}",
+  "entry": {
+   "class": "Player",
+   "name": "SetMapChangeOrderCounter",
+   "sig": "void SetMapChangeOrderCounter()",
+   "file": "src/server/game/Entities/Player/Player.h",
+   "line": 2498,
+   "access": "public",
+   "impl": null,
+   "hash": "2da3c3945d90",
+   "desc": "Updates the map change order counter with the current session's order counter value.",
+   "ai": true,
+   "model": "qwen3.5:4b"
+  }
+ },
+ "Player::GetMapChangeOrderCounter@f96dea6e:qwen3-5-4b": {
+  "hash": "e3b5bdb637ca",
+  "desc": "Returns the current map change order counter value",
+  "raw": "{\"what\": \"Returns the current map change order counter value\", \"effects\": \"none\"}",
+  "entry": {
+   "class": "Player",
+   "name": "GetMapChangeOrderCounter",
+   "sig": "uint32 GetMapChangeOrderCounter() const",
+   "file": "src/server/game/Entities/Player/Player.h",
+   "line": 2499,
+   "access": "public",
+   "impl": null,
+   "hash": "e3b5bdb637ca",
+   "desc": "Returns the current map change order counter value",
+   "ai": true,
+   "model": "qwen3.5:4b"
+  }
+ },
+ "Player::GetPendingFlightChange@3d64f5ad:qwen3-5-4b": {
+  "hash": "46b4b5e92f5c",
+  "desc": "Returns the current value of the pending flight change counter",
+  "raw": "{\"what\": \"Returns the current value of the pending flight change counter\", \"effects\": \"none\"}",
+  "entry": {
+   "class": "Player",
+   "name": "GetPendingFlightChange",
+   "sig": "uint32 GetPendingFlightChange() const",
+   "file": "src/server/game/Entities/Player/Player.h",
+   "line": 2500,
+   "access": "public",
+   "impl": null,
+   "hash": "46b4b5e92f5c",
+   "desc": "Returns the current value of the pending flight change counter",
+   "ai": true,
+   "model": "qwen3.5:4b"
+  }
+ },
+ "Player::SetPendingFlightChange@defbd506:qwen3-5-4b": {
+  "hash": "cdafef166ccf",
+  "desc": "Updates the pending flight change counter to the specified value",
+  "raw": "{\"what\": \"Updates the pending flight change counter to the specified value\", \"effects\": \"none\"}",
+  "entry": {
+   "class": "Player",
+   "name": "SetPendingFlightChange",
+   "sig": "void SetPendingFlightChange(uint32 counter)",
+   "file": "src/server/game/Entities/Player/Player.h",
+   "line": 2501,
+   "access": "public",
+   "impl": null,
+   "hash": "cdafef166ccf",
+   "desc": "Updates the pending flight change counter to the specified value",
    "ai": true,
    "model": "qwen3.5:4b"
   }
