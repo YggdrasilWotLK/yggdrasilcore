@@ -19,6 +19,17 @@
 #include "ScriptMgr.h"
 #include "ScriptMgrMacros.h"
 
+AllBattlefieldScript::AllBattlefieldScript(char const* name, std::vector<uint16> enabledHooks) :
+    ScriptObject(name, ALLBATTLEFIELDHOOK_END)
+{
+    // If empty - enable all available hooks.
+    if (enabledHooks.empty())
+        for (uint16 i = 0; i < ALLBATTLEFIELDHOOK_END; ++i)
+            enabledHooks.emplace_back(i);
+
+    ScriptRegistry<AllBattlefieldScript>::AddScript(this, std::move(enabledHooks));
+}
+
 void ScriptMgr::OnBattlefieldStart(Battlefield* bf)
 {
     CALL_ENABLED_HOOKS(AllBattlefieldScript, ALLBATTLEFIELDHOOK_ON_BATTLEFIELD_START, script->OnBattlefieldStart(bf));
