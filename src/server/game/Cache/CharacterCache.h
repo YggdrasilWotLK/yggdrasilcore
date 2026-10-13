@@ -23,6 +23,7 @@
 #include "ObjectGuid.h"
 #include "Optional.h"
 #include <string>
+#include <vector>
 
 struct CharacterCacheEntry
 {
@@ -78,6 +79,9 @@ class AC_GAME_API CharacterCache
         [[nodiscard]] ObjectGuid::LowType GetCharacterGuildIdByGuid(ObjectGuid guid) const;
         [[nodiscard]] uint32 GetCharacterArenaTeamIdByGuid(ObjectGuid guid, uint8 type) const;
         [[nodiscard]] ObjectGuid GetCharacterGroupGuidByGuid(ObjectGuid guid) const;
+
+        // Snapshot of every cached character (online and offline). World-thread only.
+        [[nodiscard]] std::vector<CharacterCacheEntry> GetCharacterCacheSnapshot() const;
 };
 
 #define sCharacterCache CharacterCache::instance()
