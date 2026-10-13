@@ -20437,6 +20437,7 @@ void Unit::SetCanFly(bool enable)
         if (Player const* player = GetClientControlling())
         {
             uint32 const counter = player->GetSession()->GetOrderCounter();
+            const_cast<Player*>(player)->SetPendingFlightChange(counter);
 
             WorldPacket data(enable ? SMSG_MOVE_SET_CAN_FLY : SMSG_MOVE_UNSET_CAN_FLY, GetPackGUID().size() + 4);
             data << GetPackGUID();

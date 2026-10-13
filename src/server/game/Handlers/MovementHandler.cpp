@@ -41,6 +41,24 @@
 
 #define MOVEMENT_PACKET_TIME_DELAY 0
 
+static void NormalizeFlightStateOnTeleportArrival(Player* player)
+{
+    // Dismounted arrivals must not keep flight flags. Portal use strips the
+    // mount, but the server keeps stale CAN_FLY across the teleport, so an
+    // indoors arrival ends up dismounted and still able to fly.
+    if (!player || player->IsGameMaster() || player->IsInFlight())
+        return;
+
+    // Mounted flyers and flight-form (SPELL_AURA_FLY, needs no mount) keep theirs.
+    if (player->HasAuraType(SPELL_AURA_MOUNTED) || player->HasAuraType(SPELL_AURA_FLY))
+        return;
+
+    player->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING);
+    player->SetCanFly(false);
+    if (player->GetSession())
+        player->GetSession()->IncrementOrderCounter();
+}
+
 void WorldSession::HandleMoveWorldportAckOpcode(WorldPacket& /*recvData*/)
 {
     LOG_DEBUG("network", "WORLD: got MSG_MOVE_WORLDPORT_ACK.");
@@ -105,6 +123,15 @@ void WorldSession::HandleMoveWorldportAck()
     GetPlayer()->UpdatePositionData();
 
     GetPlayer()->SendInitialPacketsBeforeAddToMap();
+
+    // stale pending flight change from before the map change: its ack will
+    // never arrive, drop server CAN_FLY unless a flight aura is present
+    if (GetPlayer()->GetPendingFlightChange() <= GetPlayer()->GetMapChangeOrderCounter())
+    {
+        if (!GetPlayer()->HasIncreaseMountedFlightSpeedAura() && !GetPlayer()->HasFlyAura())
+            GetPlayer()->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_CAN_FLY);
+    }
+
     if (!GetPlayer()->GetMap()->AddPlayerToMap(GetPlayer()))
     {
         LOG_ERROR("network.opcode", "WORLD: failed to teleport player {} ({}) to map {} because of unknown reason!",
@@ -248,6 +275,12 @@ void WorldSession::HandleMoveWorldportAck()
     GetPlayer()->GetZoneAndAreaId(newzone, newarea);
     GetPlayer()->UpdateZone(newzone, newarea);
 
+    // Normalize flight state on arrival: dismounted arrivals must not keep
+    // CAN_FLY/FLYING. Mounted flyers and flight-form keep theirs.
+    // Single funnel for spell/GO/hearth/summon/BG
+    // teleports, real players and shadows alike.
+    NormalizeFlightStateOnTeleportArrival(GetPlayer());
+
     // honorless target
     if (GetPlayer()->pvpInfo.IsHostile)
         GetPlayer()->CastSpell(GetPlayer(), 2479, true);
@@ -292,6 +325,10 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
 
     plMover->UpdatePosition(dest, true);
 
+    // reset fall baseline on arrival: stale pre-teleport packets processed
+    // after the ack would otherwise re-arm it and kill on landing
+    plMover->SetFallInformation(GameTime::GetGameTime().count(), dest.GetPositionZ());
+
     // xinef: teleport pets if they are not unsummoned
     if (Pet* pet = plMover->GetPet())
     {
@@ -317,6 +354,10 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
                 plMover->UpdatePvP(false, false);
         }
     }
+
+    // Same-map portals (e.g. EK -> Stormwind indoors): dismounted arrivals
+    // must not keep stale CAN_FLY either. Same check as the far-teleport path.
+    NormalizeFlightStateOnTeleportArrival(plMover);
 
     // resummon pet
     GetPlayer()->ResummonPetTemporaryUnSummonedIfAny();
@@ -693,6 +734,13 @@ void WorldSession::HandleForceSpeedChangeAck(WorldPacket& recvData)
         return;
     }
 
+    // stale async ack from before the last map change: ignore
+    if (_player->GetMapChangeOrderCounter() && counter <= _player->GetMapChangeOrderCounter())
+    {
+        recvData.rfinish(); // prevent warnings spam
+        return;
+    }
+
     if (!ProcessMovementInfo(movementInfo, mover, _player, recvData))
     {
         recvData.rfinish();                     // prevent warnings spam
@@ -1002,6 +1050,13 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recvData)
     {
         if (mover->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT))
             return;
+    }
+
+    // stale async ack from before the last map change: ignore
+    if (_player->GetMapChangeOrderCounter() && counter <= _player->GetMapChangeOrderCounter())
+    {
+        recvData.rfinish(); // prevent warnings spam
+        return;
     }
 
     if (!ProcessMovementInfo(movementInfo, mover, _player, recvData))

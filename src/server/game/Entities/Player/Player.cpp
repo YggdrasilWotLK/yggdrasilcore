@@ -398,6 +398,8 @@ Player::Player(WorldSession* session): Unit(), m_mover(this)
 
     m_NeedToSaveGlyphs = false;
     m_MountBlockId = 0;
+    m_mapChangeOrderCounter = 0;
+    m_pendingFlightChangeCounter = 0;
     m_realDodge = 0.0f;
     m_realParry = 0.0f;
     m_pendingSpectatorForBG = 0;
@@ -1557,6 +1559,10 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
 
             //remove auras before removing from map...
             RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
+
+            // stamp the packet counter so stale async movement acks from the
+            // old map can be recognized and ignored on arrival
+            SetMapChangeOrderCounter();
 
             if (!GetSession()->PlayerLogout())
             {
