@@ -20,6 +20,7 @@
 
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include <mutex>
 #include <string>
 
 class Player;
@@ -269,7 +270,7 @@ private:
 
     bool ShouldAnnouncePlayer(Player const* player) const;
 
-    [[nodiscard]] bool IsOn(ObjectGuid who) const { return playersStore.find(who) != playersStore.end(); }
+    [[nodiscard]] bool IsOn(ObjectGuid who) const { std::lock_guard<std::recursive_mutex> lock(_channelLock); return playersStore.find(who) != playersStore.end(); }
     [[nodiscard]] bool IsBanned(ObjectGuid guid) const;
 
     void UpdateChannelInDB() const;
@@ -279,12 +280,14 @@ private:
 
     [[nodiscard]] uint8 GetPlayerFlags(ObjectGuid guid) const
     {
+        std::lock_guard<std::recursive_mutex> lock(_channelLock);
         PlayerContainer::const_iterator itr = playersStore.find(guid);
         return itr != playersStore.end() ? itr->second.flags : 0;
     }
 
     void SetModerator(ObjectGuid guid, bool set)
     {
+        std::lock_guard<std::recursive_mutex> lock(_channelLock);
         PlayerInfo& pinfo = playersStore[guid];
         if (pinfo.IsModerator() != set)
         {
@@ -301,6 +304,7 @@ private:
 
     void SetMute(ObjectGuid guid, bool set)
     {
+        std::lock_guard<std::recursive_mutex> lock(_channelLock);
         PlayerInfo& pinfo = playersStore[guid];
         if (pinfo.IsMuted() != set)
         {
@@ -333,5 +337,8 @@ private:
     PlayerContainer playersStore;
     BannedContainer bannedStore;
     PlayersWatchingContainer playersWatchingStore;
+    // Guards all three stores. Methods call each other (Join->SetOwner),
+    // so recursive: same-thread nesting is safe, cross-thread serializes.
+    mutable std::recursive_mutex _channelLock;
 };
 #endif

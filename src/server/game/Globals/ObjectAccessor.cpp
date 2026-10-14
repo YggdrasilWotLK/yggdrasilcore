@@ -84,19 +84,25 @@ namespace PlayerNameMapHolder
 {
     typedef std::unordered_map<std::string, Player*> MapType;
     static MapType PlayerNameMap;
+    // Insert/erase run on map worker threads (teleport/logout) while
+    // lookups run on world/session threads. Same pattern as HashMapHolder.
+    static std::shared_mutex PlayerNameMapLock;
 
     void Insert(Player* p)
     {
+        std::unique_lock<std::shared_mutex> lock(PlayerNameMapLock);
         PlayerNameMap[p->GetName()] = p;
     }
 
     void Remove(Player* p)
     {
+        std::unique_lock<std::shared_mutex> lock(PlayerNameMapLock);
         PlayerNameMap.erase(p->GetName());
     }
 
     void RemoveByName(std::string const& name)
     {
+        std::unique_lock<std::shared_mutex> lock(PlayerNameMapLock);
         PlayerNameMap.erase(name);
     }
 
@@ -106,6 +112,7 @@ namespace PlayerNameMapHolder
         if (!normalizePlayerName(charName))
             return nullptr;
 
+        std::shared_lock<std::shared_mutex> lock(PlayerNameMapLock);
         auto itr = PlayerNameMap.find(charName);
         return (itr != PlayerNameMap.end()) ? itr->second : nullptr;
     }
