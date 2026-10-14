@@ -47,6 +47,17 @@ public:
     MovementGeneratorType GetMovementGeneratorType() { return POINT_MOTION_TYPE; }
 
     bool GetDestination(float& x, float& y, float& z) const { x = i_x; y = i_y; z = i_z; return true; }
+
+    // Rebuilds the spline for the stored destination after an external stop
+    // (e.g. gossip freeze) killed it. Safe to call while rooted: DoInitialize
+    // then only arms the relaunch, which fires once the lock clears.
+    void Relaunch(T* unit)
+    {
+        // Drop a stale calculated path so it is rebuilt from the current position.
+        if (_generatePath)
+            m_precomputedPath.clear();
+        DoInitialize(unit);
+    }
 private:
     uint32 id;
     float i_x, i_y, i_z;
