@@ -41,14 +41,8 @@ static bool FollowHopBlocked(Unit const* owner, G3D::Vector3 const& a, G3D::Vect
         return true;
     float rx, ry, rz;
     if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
-    {
-        // Players only: forgive ledge climbs and stair inclines on the shin ray.
-        if (!owner->IsPlayer() || !PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::hypot(b.x - a.x, b.y - a.y)))
-            return true;
-    }
-    // Players only: a walkable incline is not an unclimbable step.
-    if (!PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, owner->GetCollisionHeight()) &&
-        (!owner->IsPlayer() || !PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::hypot(b.x - a.x, b.y - a.y))))
+        return true;
+    if (!PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, owner->GetCollisionHeight()))
         return true;
     return false;
 }
@@ -241,6 +235,32 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
 
     if (cutPath)
         i_path->ShortenPathUntilDist(G3D::Vector3(x, y, z), maxTarget);
+
+    // Pets only: stop instead of cutting through edges no player could climb.
+    // Downhill legs are falling (gravity handles those); uphill legs must pass
+    // either the climb formula or the bake grade.
+    if (cOwner && cOwner->IsPet())
+    {
+        G3D::Vector3 prev = i_path->GetStartPosition();
+        for (G3D::Vector3 const& pt : i_path->GetPath())
+        {
+            float const dz = pt.z - prev.z;
+            if (dz > 0.0f)
+            {
+                float const dx = pt.x - prev.x, dy = pt.y - prev.y;
+                float const flat = std::sqrt(dx * dx + dy * dy);
+                if (flat > 0.01f &&
+                    !PathGenerator::IsWalkableClimb(prev.x, prev.y, prev.z, pt.x, pt.y, pt.z, owner->GetCollisionHeight()) &&
+                    !PathGenerator::IsVetoForgivenGrade(dz, flat))
+                {
+                    cOwner->SetCannotReachTarget(i_target.getTarget()->GetGUID());
+                    owner->StopMoving();
+                    return true;
+                }
+            }
+            prev = pt;
+        }
+    }
 
     if (cOwner)
     {
