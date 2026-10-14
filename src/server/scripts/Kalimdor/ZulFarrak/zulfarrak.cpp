@@ -574,6 +574,68 @@ public:
     }
 };
 
+/*######
+## go_shallow_grave
+######*/
+
+enum ShallowGraveSpells
+{
+    SPELL_SUMMON_ZULFARRAK_ZOMBIES = 10247
+};
+
+class go_shallow_grave : public GameObjectScript
+{
+public:
+    go_shallow_grave() : GameObjectScript("go_shallow_grave") { }
+
+    struct go_shallow_graveAI : public GameObjectAI
+    {
+        go_shallow_graveAI(GameObject* go) : GameObjectAI(go) { }
+
+        void Reset() override
+        {
+            _casted = false;
+            _despawned = false;
+        }
+
+        bool GossipHello(Player* /*player*/, bool /*reportUse*/) override
+        {
+            // Cast 10247 once per grave on first click, but do not consume
+            // the interaction so the chest loot window still opens
+            if (!_casted)
+            {
+                _casted = true;
+
+                // Summon chances are handled by
+                // spell_zulfarrak_summon_zulfarrak_zombies in instance_zulfarrak.cpp
+                me->CastSpell(nullptr, SPELL_SUMMON_ZULFARRAK_ZOMBIES);
+            }
+
+            return false;
+        }
+
+        void OnStateChanged(uint32 state, Unit* /*unit*/) override
+        {
+            // Chest is consumable, so core despawns it once loot is taken.
+            // Enforce a long respawn here so it stays gone while the instance exists.
+            if (state == GO_JUST_DEACTIVATED && !_despawned)
+            {
+                _despawned = true;
+                me->DespawnOrUnsummon(1s, Seconds(WEEK));
+            }
+        }
+
+    private:
+        bool _casted = false;
+        bool _despawned = false;
+    };
+
+    GameObjectAI* GetAI(GameObject* go) const override
+    {
+        return GetZulFarrakAI<go_shallow_graveAI>(go);
+    }
+};
+
 enum ShadowPriestSezzizEnum
 {
     SPELL_SHADOW_BOLT       = 15537,
@@ -726,4 +788,5 @@ void AddSC_zulfarrak()
     new npc_weegli_blastfuse();
     new npc_shadowpriest_sezziz();
     new go_troll_cage();
+    new go_shallow_grave();
 }
