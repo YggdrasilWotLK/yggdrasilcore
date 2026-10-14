@@ -40,10 +40,26 @@ static bool FollowHopBlocked(Unit const* owner, G3D::Vector3 const& a, G3D::Vect
             phase, LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
         return true;
     float rx, ry, rz;
+    // Pets climbing walkable inclines (stairs clip riser lips at shin height):
+    // grade forgiveness replaces the strict per-step climb check there.
+    bool const petGrade = [&]()
+    {
+        Creature const* creature = owner->ToCreature();
+        if (!creature || !creature->IsPet())
+            return false;
+        float const dx = b.x - a.x, dy = b.y - a.y;
+        return PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::sqrt(dx * dx + dy * dy));
+    }();
     if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
-        return true;
+    {
+        if (!petGrade)
+            return true;
+    }
     if (!PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, owner->GetCollisionHeight()))
-        return true;
+    {
+        if (!petGrade)
+            return true;
+    }
     return false;
 }
 
@@ -810,6 +826,15 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         }
 
         owner->AddUnitState(UNIT_STATE_FOLLOW_MOVE);
+
+        // Pets with no mesh path: hop ground-snapped steps instead of driving
+        // the straight shortcut through geometry.
+        if (i_path->GetPathType() & PATHFIND_NOPATH)
+        {
+            if (Creature const* cOwner = owner->ToCreature())
+                if (cOwner->IsPet() && tryHopPrefix())
+                    return true;
+        }
 
         Movement::MoveSplineInit init(owner);
         init.MovebyPath(i_path->GetPath());
