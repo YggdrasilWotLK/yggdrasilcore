@@ -18,6 +18,7 @@
 #include "TargetedMovementGenerator.h"
 #include "Creature.h"
 #include "CreatureAI.h"
+#include "Log.h"
 #include "Map.h"
 #include "MoveSplineInit.h"
 #include "Pet.h"
@@ -285,6 +286,10 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
 
     owner->AddUnitState(UNIT_STATE_CHASE_MOVE);
     i_recalculateTravel = true;
+
+    if (cOwner && cOwner->IsPet())
+        LOG_DEBUG("movement", "Pet chase drive {} points type {}",
+            i_path->GetPath().size(), (uint32)i_path->GetPathType());
 
     Movement::MoveSplineInit init(owner);
     init.MovebyPath(i_path->GetPath());
@@ -803,6 +808,11 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         };
 
         bool success = i_path->CalculatePath(x, y, z, forceDest);
+        if (Creature const* cFollow = owner->ToCreature())
+            if (cFollow->IsPet())
+                LOG_DEBUG("movement", "Pet follow dest ({:.1f}, {:.1f}, {:.1f}) master ({:.1f}, {:.1f}, {:.1f}) predicted {} pathtype {}",
+                    x, y, z, target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(),
+                    targetIsMoving ? 1 : 0, (uint32)i_path->GetPathType());
         if (!success || (i_path->GetPathType() & PATHFIND_NOPATH && !followingMaster))
         {
             if (tryHopPrefix())
@@ -835,6 +845,11 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
                 if (cOwner->IsPet() && tryHopPrefix())
                     return true;
         }
+
+        if (Creature const* cDrive = owner->ToCreature())
+            if (cDrive->IsPet())
+                LOG_DEBUG("movement", "Pet follow drive {} points type {}",
+                    i_path->GetPath().size(), (uint32)i_path->GetPathType());
 
         Movement::MoveSplineInit init(owner);
         init.MovebyPath(i_path->GetPath());
