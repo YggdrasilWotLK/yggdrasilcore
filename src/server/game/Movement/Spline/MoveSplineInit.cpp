@@ -250,10 +250,25 @@ namespace
                 for (uint8 s = 0; s < 4 && clean; ++s)
                     if (IsSegmentBlocked(unit, *chain[s], *chain[s + 1], groundMode))
                     {
-                        // The straight chord crosses too: nothing to route around,
-                        // spline through it like the straight line does.
+                        // Blocked chord on a mesh-approved leg (stair corner-cut): split
+                        // it with a ground-snapped midpoint instead of driving through.
                         if (IsSegmentBlocked(unit, p1, p2, groundMode))
+                        {
+                            if (repair < SMOOTH_MAX_DETOURS && controls.size() < SMOOTH_MAX_CONTROLS)
+                            {
+                                Vector3 mid = (*chain[s] + *chain[s + 1]) * 0.5f;
+                                if (groundMode)
+                                    mid.z = SnapControlPointZ(unit, mid.x, mid.y, mid.z);
+                                if (!IsSegmentBlocked(unit, *chain[s], mid, groundMode) &&
+                                    !IsSegmentBlocked(unit, mid, *chain[s + 1], groundMode))
+                                {
+                                    controls.insert(controls.begin() + k + 1, mid);
+                                    clean = false; // restart the scan over the repaired path
+                                    continue;
+                                }
+                            }
                             continue;
+                        }
                         if (repair == SMOOTH_MAX_DETOURS || controls.size() >= SMOOTH_MAX_CONTROLS)
                             return false;
                         Vector3 push = (*chain[s] + *chain[s + 1]) * 0.5f;
@@ -365,7 +380,7 @@ namespace
             Vector3 const& a = path[i];
             Vector3 const& b = path[i + 1];
             float const flatDist = std::hypot(b.x - a.x, b.y - a.y);
-            if (flatDist < 8.0f)
+            if (flatDist < 4.0f)
                 continue;
 
             float const groundA = unit->GetMapHeight(a.x, a.y, a.z);

@@ -327,6 +327,15 @@ bool ChaseMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         mutualChase = true;
     }
 
+    // Pets chasing across layers: angled near-points are meaningless without
+    // shared ground, go to center instead of routing sideways.
+    if (angle && !mutualChase && cOwner && cOwner->IsPet() &&
+        std::fabs(target->GetPositionZ() - owner->GetPositionZ()) > VETO_STEP_UP_HEIGHT)
+    {
+        angle = Optional<ChaseAngle>();
+        mutualChase = true;
+    }
+
     // periodically check if we're already in the expected range...
     i_recheckDistance.Update(time_diff);
     if (i_recheckDistance.Passed())
