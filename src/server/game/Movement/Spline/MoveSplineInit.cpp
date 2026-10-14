@@ -134,11 +134,7 @@ namespace
 
         float rx, ry, rz;
         if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
-        {
-            // Players only: forgive ledge climbs that clip the shin ray.
-            if (!unit->IsPlayer() || b.z - a.z > VETO_STEP_UP_HEIGHT || a.z - b.z > VETO_STEP_UP_HEIGHT)
-                return true;
-        }
+            return true;
 
         if (groundMode)
         {
@@ -219,6 +215,26 @@ namespace
         return false;
     }
 
+    // Hull check, pets only: the center line clears but the model's half-width
+    // would scrape the edge. Side rays at the unit's object size.
+    bool IsHullClipped(Unit const* unit, Vector3 const& a, Vector3 const& b)
+    {
+        Creature const* creature = unit->ToCreature();
+        if (!creature || !creature->IsPet())
+            return false;
+        float const clearance = unit->GetObjectSize();
+        if (clearance <= 0.01f)
+            return false;
+        float const dx = b.x - a.x, dy = b.y - a.y;
+        float const len = std::hypot(dx, dy);
+        if (len < 0.01f)
+            return false;
+        float const nx = -dy / len * clearance, ny = dx / len * clearance;
+        Vector3 const aL(a.x + nx, a.y + ny, a.z), bL(b.x + nx, b.y + ny, b.z);
+        Vector3 const aR(a.x - nx, a.y - ny, a.z), bR(b.x - nx, b.y - ny, b.z);
+        return IsSegmentBlocked(unit, aL, bL, true) || IsSegmentBlocked(unit, aR, bR, true);
+    }
+
     bool IsSmoothedCurveValid(Unit* unit, PointsArray& controls, bool groundMode)
     {
         if (controls.size() < 3)
@@ -245,13 +261,33 @@ namespace
                     EvaluateCatmullRomSegment(p0, p1, p2, p3, (float(s) + 1.0f) * 0.25f, samples[s]);
 
                 Vector3 const* chain[5] = { &prev, &samples[0], &samples[1], &samples[2], &p2 };
+                auto segBad = [&](Vector3 const& u, Vector3 const& v) -> bool
+                {
+                    if (IsSegmentBlocked(unit, u, v, groundMode))
+                        return true;
+                    return groundMode && IsHullClipped(unit, u, v);
+                };
                 for (uint8 s = 0; s < 4 && clean; ++s)
-                    if (IsSegmentBlocked(unit, *chain[s], *chain[s + 1], groundMode))
+                    if (segBad(*chain[s], *chain[s + 1]))
                     {
-                        // The straight chord crosses too: nothing to route around,
-                        // spline through it like the straight line does.
+                        // Blocked chord on a mesh-approved leg (stair corner-cut): split
+                        // it with a ground-snapped midpoint instead of driving through.
                         if (IsSegmentBlocked(unit, p1, p2, groundMode))
+                        {
+                            if (repair < SMOOTH_MAX_DETOURS && controls.size() < SMOOTH_MAX_CONTROLS)
+                            {
+                                Vector3 mid = (*chain[s] + *chain[s + 1]) * 0.5f;
+                                if (groundMode)
+                                    mid.z = SnapControlPointZ(unit, mid.x, mid.y, mid.z);
+                                if (!segBad(*chain[s], mid) && !segBad(mid, *chain[s + 1]))
+                                {
+                                    controls.insert(controls.begin() + k + 1, mid);
+                                    clean = false; // restart the scan over the repaired path
+                                    continue;
+                                }
+                            }
                             continue;
+                        }
                         if (repair == SMOOTH_MAX_DETOURS || controls.size() >= SMOOTH_MAX_CONTROLS)
                             return false;
                         Vector3 push = (*chain[s] + *chain[s + 1]) * 0.5f;
@@ -318,9 +354,14 @@ namespace
 
             float const legA = std::hypot(candidate.x - src.x, candidate.y - src.y);
             float const legB = std::hypot(refTarget.x - candidate.x, refTarget.y - candidate.y);
+            auto segOk = [&](Vector3 const& u, Vector3 const& v) -> bool
+            {
+                if (IsSegmentBlocked(unit, u, v, groundMode))
+                    return false;
+                return !(groundMode && IsHullClipped(unit, u, v));
+            };
             if (legA >= SMOOTH_MIN_SEGMENT && legB >= SMOOTH_MIN_SEGMENT &&
-                !IsSegmentBlocked(unit, src, candidate, groundMode) &&
-                !IsSegmentBlocked(unit, candidate, refTarget, groundMode))
+                segOk(src, candidate) && segOk(candidate, refTarget))
             {
                 out = candidate;
                 return true;
@@ -340,9 +381,14 @@ namespace
 
         float const legA = std::hypot(collinear.x - src.x, collinear.y - src.y);
         float const legB = std::hypot(refTarget.x - collinear.x, refTarget.y - collinear.y);
+        auto segOk = [&](Vector3 const& u, Vector3 const& v) -> bool
+        {
+            if (IsSegmentBlocked(unit, u, v, groundMode))
+                return false;
+            return !(groundMode && IsHullClipped(unit, u, v));
+        };
         if (legA >= SMOOTH_MIN_SEGMENT && legB >= SMOOTH_MIN_SEGMENT &&
-            !IsSegmentBlocked(unit, src, collinear, groundMode) &&
-            !IsSegmentBlocked(unit, collinear, refTarget, groundMode))
+            segOk(src, collinear) && segOk(collinear, refTarget))
         {
             out = collinear;
             return true;
@@ -363,7 +409,7 @@ namespace
             Vector3 const& a = path[i];
             Vector3 const& b = path[i + 1];
             float const flatDist = std::hypot(b.x - a.x, b.y - a.y);
-            if (flatDist < 8.0f)
+            if (flatDist < 4.0f)
                 continue;
 
             float const groundA = unit->GetMapHeight(a.x, a.y, a.z);

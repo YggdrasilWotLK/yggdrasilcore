@@ -40,14 +40,26 @@ static bool FollowHopBlocked(Unit const* owner, G3D::Vector3 const& a, G3D::Vect
             phase, LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
         return true;
     float rx, ry, rz;
+    // Pets climbing walkable inclines (stairs clip riser lips at shin height):
+    // grade forgiveness replaces the strict per-step climb check there.
+    bool const petGrade = [&]()
+    {
+        Creature const* creature = owner->ToCreature();
+        if (!creature || !creature->IsPet())
+            return false;
+        float const dx = b.x - a.x, dy = b.y - a.y;
+        return PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::sqrt(dx * dx + dy * dy));
+    }();
     if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
     {
-        // Players only: forgive ledge climbs that clip the shin ray.
-        if (!owner->IsPlayer() || b.z - a.z > VETO_STEP_UP_HEIGHT || a.z - b.z > VETO_STEP_UP_HEIGHT)
+        if (!petGrade)
             return true;
     }
     if (!PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, owner->GetCollisionHeight()))
-        return true;
+    {
+        if (!petGrade)
+            return true;
+    }
     return false;
 }
 
@@ -240,6 +252,32 @@ bool ChaseMovementGenerator<T>::DispatchSplineToPosition(T* owner, float x, floa
     if (cutPath)
         i_path->ShortenPathUntilDist(G3D::Vector3(x, y, z), maxTarget);
 
+    // Pets only: stop instead of cutting through edges no player could climb.
+    // Downhill legs are falling (gravity handles those); uphill legs must pass
+    // either the climb formula or the bake grade.
+    if (cOwner && cOwner->IsPet())
+    {
+        G3D::Vector3 prev = i_path->GetStartPosition();
+        for (G3D::Vector3 const& pt : i_path->GetPath())
+        {
+            float const dz = pt.z - prev.z;
+            if (dz > 0.0f)
+            {
+                float const dx = pt.x - prev.x, dy = pt.y - prev.y;
+                float const flat = std::sqrt(dx * dx + dy * dy);
+                if (flat > 0.01f &&
+                    !PathGenerator::IsWalkableClimb(prev.x, prev.y, prev.z, pt.x, pt.y, pt.z, owner->GetCollisionHeight()) &&
+                    !PathGenerator::IsVetoForgivenGrade(dz, flat))
+                {
+                    cOwner->SetCannotReachTarget(i_target.getTarget()->GetGUID());
+                    owner->StopMoving();
+                    return true;
+                }
+            }
+            prev = pt;
+        }
+    }
+
     if (cOwner)
     {
         cOwner->SetCannotReachTarget();
@@ -320,6 +358,15 @@ bool ChaseMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
     // Prevent almost infinite spinning for pets with mutualTarget
     // _mutualChase is false for previous check
     if (angle && !mutualChase && !_mutualChase && mutualTarget && chaseRange < meleeRange && cOwner && cOwner->IsPet())
+    {
+        angle = Optional<ChaseAngle>();
+        mutualChase = true;
+    }
+
+    // Pets chasing across layers: angled near-points are meaningless without
+    // shared ground, go to center instead of routing sideways.
+    if (angle && !mutualChase && cOwner && cOwner->IsPet() &&
+        std::fabs(target->GetPositionZ() - owner->GetPositionZ()) > VETO_STEP_UP_HEIGHT)
     {
         angle = Optional<ChaseAngle>();
         mutualChase = true;
@@ -697,6 +744,10 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         if (targetIsMoving)
         {
             Position predictedPosition = PredictPosition(target);
+            // Prediction extrapolates blindly and lands inside collision when the
+            // target runs in place against a wall; use the real position then.
+            if (!target->IsWithinLOS(predictedPosition.GetPositionX(), predictedPosition.GetPositionY(), predictedPosition.GetPositionZ()))
+                predictedPosition = target->GetPosition();
             if (_lastPredictedPosition && _lastPredictedPosition->GetExactDistSq(&predictedPosition) < 0.25f)
                 return true;
 
@@ -779,6 +830,15 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         }
 
         owner->AddUnitState(UNIT_STATE_FOLLOW_MOVE);
+
+        // Pets with no mesh path: hop ground-snapped steps instead of driving
+        // the straight shortcut through geometry.
+        if (i_path->GetPathType() & PATHFIND_NOPATH)
+        {
+            if (Creature const* cOwner = owner->ToCreature())
+                if (cOwner->IsPet() && tryHopPrefix())
+                    return true;
+        }
 
         Movement::MoveSplineInit init(owner);
         init.MovebyPath(i_path->GetPath());

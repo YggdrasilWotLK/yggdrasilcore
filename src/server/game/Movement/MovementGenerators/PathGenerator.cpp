@@ -185,11 +185,7 @@ bool PathGenerator::ValidatePlayerMove()
             return true;
         float rx, ry, rz;
         if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
-        {
-            // Ledge climbs clip the side face at shin height; high rays still veto walls.
-            if (b.z - a.z > VETO_STEP_UP_HEIGHT || a.z - b.z > VETO_STEP_UP_HEIGHT)
-                return true;
-        }
+            return true;
         return false;
     };
     if (unit->CanFly())
@@ -1160,6 +1156,16 @@ float PathGenerator::GetRequiredHeightToClimb(float x, float y, float z, float d
     float slopeAngleDegree = (slopeAngle * 180.0f / M_PI);
     float climbableHeight = sourceHeight - (sourceHeight * (slopeAngleDegree / 100));
     return climbableHeight;
+}
+
+bool PathGenerator::IsVetoForgivenGrade(float dz, float flatDist)
+{
+    float const adz = dz < 0.0f ? -dz : dz;
+    if (adz <= VETO_STEP_UP_HEIGHT)
+        return true;
+    if (adz < 0.5f || flatDist < 0.01f)
+        return false;
+    return (adz / flatDist) <= VETO_WALKABLE_GRADE;
 }
 
 bool PathGenerator::InRangeYZX(float const* v1, float const* v2, float r, float h) const

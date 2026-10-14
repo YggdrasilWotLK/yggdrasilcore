@@ -43,6 +43,8 @@ class WorldObject;
 
 // Vertical step forgiven on the shin-height veto ray (ledge climbs clip it).
 constexpr float VETO_STEP_UP_HEIGHT = 2.0f;
+// Walkable incline forgiven on the shin-height veto ray: tan(60), the bake slope.
+constexpr float VETO_WALKABLE_GRADE = 1.733f;
 
 enum PathType
 {
@@ -76,6 +78,8 @@ class PathGenerator
         [[nodiscard]] bool IsSwimmableSegment(float const* v1, float const* v2, bool checkSwim = true) const;
         [[nodiscard]] bool IsSwimmableSegment(float x, float y, float z, float destX, float destY, float destZ, bool checkSwim = true) const;
         [[nodiscard]] static float GetRequiredHeightToClimb(float x, float y, float z, float destX, float destY, float destZ, float sourceHeight);
+        // True when a shin-ray hit may be forgiven: small step, or walkable incline.
+        [[nodiscard]] static bool IsVetoForgivenGrade(float dz, float flatDist);
 
         // option setters - use optional
 
