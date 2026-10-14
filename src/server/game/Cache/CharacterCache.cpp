@@ -43,13 +43,13 @@ CharacterCache* CharacterCache::instance()
 *
 * @param guid Requires a guid to call
 * @return Name, Gender, Race, Class and Level of player character
-* Example Usage:
-* @code
-*    CharacterCacheEntry const* characterInfo = sCharacterCache->GetCharacterCacheByGuid(GUID);
-*    if (!characterInfo)
-*        return;
-*
-*    std::string playerName = characterInfo->Name;
+ * Example Usage:
+ * @code
+ *    Optional<CharacterCacheEntry> characterInfo = sCharacterCache->GetCharacterCacheByGuid(GUID);
+ *    if (!characterInfo)
+ *        return;
+ *
+ *    std::string playerName = characterInfo->Name;
 *    uint8 playerGender = characterInfo->Sex;
 *    uint8 playerRace = characterInfo->Race;
 *    uint8 playerClass = characterInfo->Class;
@@ -276,28 +276,28 @@ bool CharacterCache::HasCharacterCacheEntry(ObjectGuid const& guid) const
     return _characterCacheStore.find(guid) != _characterCacheStore.end();
 }
 
-CharacterCacheEntry const* CharacterCache::GetCharacterCacheByGuid(ObjectGuid const& guid) const
+Optional<CharacterCacheEntry> CharacterCache::GetCharacterCacheByGuid(ObjectGuid const& guid) const
 {
     std::shared_lock<std::shared_mutex> lock(_cacheLock);
     auto itr = _characterCacheStore.find(guid);
     if (itr != _characterCacheStore.end())
     {
-        return &itr->second;
+        return itr->second;
     }
 
-    return nullptr;
+    return {};
 }
 
-CharacterCacheEntry const* CharacterCache::GetCharacterCacheByName(std::string const& name) const
+Optional<CharacterCacheEntry> CharacterCache::GetCharacterCacheByName(std::string const& name) const
 {
     std::shared_lock<std::shared_mutex> lock(_cacheLock);
     auto itr = _characterCacheByNameStore.find(name);
     if (itr != _characterCacheByNameStore.end())
     {
-        return itr->second;
+        return *itr->second;
     }
 
-    return nullptr;
+    return {};
 }
 
 ObjectGuid CharacterCache::GetCharacterGuidByName(std::string const& name) const

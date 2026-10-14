@@ -1062,7 +1062,7 @@ public:
                 return true;
             }
 
-            if (CharacterCacheEntry const* cache = sCharacterCache->GetCharacterCacheByName(player->GetName()))
+            if (Optional<CharacterCacheEntry> cache = sCharacterCache->GetCharacterCacheByName(player->GetName()))
             {
                 std::string accName;
                 AccountMgr::GetName(cache->AccountId, accName);

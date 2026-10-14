@@ -107,7 +107,7 @@ bool ArenaTeam::AddMember(ObjectGuid playerGuid)
     }
     else
     {
-        CharacterCacheEntry const* playerData = sCharacterCache->GetCharacterCacheByGuid(playerGuid);
+        Optional<CharacterCacheEntry> playerData = sCharacterCache->GetCharacterCacheByGuid(playerGuid);
         if (!playerData)
         {
             return false;

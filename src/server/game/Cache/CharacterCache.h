@@ -65,8 +65,10 @@ class AC_GAME_API CharacterCache
         void IncreaseCharacterMailCount(ObjectGuid const& guid) { UpdateCharacterMailCount(guid, 1); };
 
         [[nodiscard]] bool HasCharacterCacheEntry(ObjectGuid const& guid) const;
-        [[nodiscard]] CharacterCacheEntry const* GetCharacterCacheByGuid(ObjectGuid const& guid) const;
-        [[nodiscard]] CharacterCacheEntry const* GetCharacterCacheByName(std::string const& name) const;
+        // Copy-out: never hand out pointers into the stores, entries
+        // may be erased on other threads after the lock is released.
+        [[nodiscard]] Optional<CharacterCacheEntry> GetCharacterCacheByGuid(ObjectGuid const& guid) const;
+        [[nodiscard]] Optional<CharacterCacheEntry> GetCharacterCacheByName(std::string const& name) const;
 
         void UpdateCharacterGroup(ObjectGuid const& guid, ObjectGuid groupGUID);
         void ClearCharacterGroup(ObjectGuid const& guid) { UpdateCharacterGroup(guid, ObjectGuid::Empty); };

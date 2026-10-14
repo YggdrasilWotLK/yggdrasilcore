@@ -31,7 +31,7 @@
 
 void WorldSession::SendNameQueryOpcode(ObjectGuid guid)
 {
-    CharacterCacheEntry const* playerData = sCharacterCache->GetCharacterCacheByGuid(guid);
+    Optional<CharacterCacheEntry> playerData = sCharacterCache->GetCharacterCacheByGuid(guid);
 
     WorldPackets::Query::NameQueryResponse nameQueryResponse;
     nameQueryResponse.Guid = guid.WriteAsPacked();

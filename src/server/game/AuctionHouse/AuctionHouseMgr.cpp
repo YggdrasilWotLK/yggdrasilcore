@@ -213,12 +213,12 @@ void AuctionHouseMgr::SendAuctionSuccessfulMail(AuctionEntry* auction, Character
             .SendMailTo(trans, MailReceiver(owner, auction->owner.GetCounter()), auction, MAIL_CHECK_MASK_COPIED, sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY));
 
         if (auction->bid >= 500 * GOLD)
-            if (CharacterCacheEntry const* gpd = sCharacterCache->GetCharacterCacheByGuid(auction->bidder))
+            if (Optional<CharacterCacheEntry> gpd = sCharacterCache->GetCharacterCacheByGuid(auction->bidder))
             {
                 Player* bidder = ObjectAccessor::FindConnectedPlayer(auction->bidder);
                 std::string owner_name = "";
                 uint8 owner_level = 0;
-                if (CharacterCacheEntry const* gpd_owner = sCharacterCache->GetCharacterCacheByGuid(auction->owner))
+                if (Optional<CharacterCacheEntry> gpd_owner = sCharacterCache->GetCharacterCacheByGuid(auction->owner))
                 {
                     owner_name = gpd_owner->Name;
                     owner_level = gpd_owner->Level;

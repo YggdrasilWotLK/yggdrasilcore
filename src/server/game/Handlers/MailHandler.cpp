@@ -182,7 +182,7 @@ void WorldSession::HandleSendMail(WorldPacket& recvData)
     else
     {
         // xinef: get data from global storage
-        if (CharacterCacheEntry const* playerData = sCharacterCache->GetCharacterCacheByGuid(receiverGuid))
+        if (Optional<CharacterCacheEntry> playerData = sCharacterCache->GetCharacterCacheByGuid(receiverGuid))
         {
             rc_teamId = Player::TeamIdForRace(playerData->Race);
             mails_count = playerData->MailCount;
