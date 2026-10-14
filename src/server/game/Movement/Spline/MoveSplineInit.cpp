@@ -834,7 +834,13 @@ namespace
         {
             PathGenerator path(unit);
             bool result = path.CalculatePath(dest.x, dest.y, dest.z, forceDestination);
-            if (result && !(path.GetPathType() & PATHFIND_NOPATH))
+            bool const groundedPlayer = unit->IsPlayer() && !unit->CanFly() && !unit->IsFalling() &&
+                !unit->HasUnitState(UNIT_STATE_IN_FLIGHT) && !unit->IsInWater() &&
+                !unit->IsUnderWater() && !unit->GetTransport();
+            // Grounded players never drive floating endpoints: FARFROMPOLY_END
+            // means the destination is off-mesh and the line cuts through air.
+            if (result && !(path.GetPathType() & PATHFIND_NOPATH) &&
+                !(groundedPlayer && (path.GetPathType() & PATHFIND_FARFROMPOLY_END)))
             {
                 MovebyPath(path.GetPath());
                 return;
@@ -842,9 +848,7 @@ namespace
             // No mesh path for a grounded player: stay instead of shortcutting straight
             // through floors/walls. (CalculatePath already vetoed and repaired what it
             // could; this only triggers on NOPATH/invalid.)
-            if (unit->IsPlayer() && !unit->CanFly() && !unit->IsFalling() &&
-                !unit->HasUnitState(UNIT_STATE_IN_FLIGHT) && !unit->IsInWater() &&
-                !unit->IsUnderWater() && !unit->GetTransport())
+            if (groundedPlayer)
                 return;
         }
 
