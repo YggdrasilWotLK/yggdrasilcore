@@ -57,7 +57,7 @@ public:
             return false;
         }
 
-        CharacterCacheEntry const* cache = sCharacterCache->GetCharacterCacheByGuid(player->GetGUID());
+        Optional<CharacterCacheEntry> cache = sCharacterCache->GetCharacterCacheByGuid(player->GetGUID());
 
         if (!cache)
         {

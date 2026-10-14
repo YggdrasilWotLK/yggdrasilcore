@@ -1084,7 +1084,7 @@ namespace lfg
                         talents[0] = 0;
                         talents[1] = 0;
                         talents[2] = 0;
-                        if (CharacterCacheEntry const* gpd = sCharacterCache->GetCharacterCacheByGuid(mitr->guid))
+                        if (Optional<CharacterCacheEntry> gpd = sCharacterCache->GetCharacterCacheByGuid(mitr->guid))
                         {
                             level = gpd->Level;
                             Class = gpd->Class;

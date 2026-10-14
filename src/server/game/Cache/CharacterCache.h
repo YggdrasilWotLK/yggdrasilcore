@@ -23,6 +23,7 @@
 #include "ObjectGuid.h"
 #include "Optional.h"
 #include <string>
+#include <shared_mutex>
 #include <vector>
 
 struct CharacterCacheEntry
@@ -64,8 +65,10 @@ class AC_GAME_API CharacterCache
         void IncreaseCharacterMailCount(ObjectGuid const& guid) { UpdateCharacterMailCount(guid, 1); };
 
         [[nodiscard]] bool HasCharacterCacheEntry(ObjectGuid const& guid) const;
-        [[nodiscard]] CharacterCacheEntry const* GetCharacterCacheByGuid(ObjectGuid const& guid) const;
-        [[nodiscard]] CharacterCacheEntry const* GetCharacterCacheByName(std::string const& name) const;
+        // Copy-out: never hand out pointers into the stores, entries
+        // may be erased on other threads after the lock is released.
+        [[nodiscard]] Optional<CharacterCacheEntry> GetCharacterCacheByGuid(ObjectGuid const& guid) const;
+        [[nodiscard]] Optional<CharacterCacheEntry> GetCharacterCacheByName(std::string const& name) const;
 
         void UpdateCharacterGroup(ObjectGuid const& guid, ObjectGuid groupGUID);
         void ClearCharacterGroup(ObjectGuid const& guid) { UpdateCharacterGroup(guid, ObjectGuid::Empty); };
@@ -80,8 +83,13 @@ class AC_GAME_API CharacterCache
         [[nodiscard]] uint32 GetCharacterArenaTeamIdByGuid(ObjectGuid guid, uint8 type) const;
         [[nodiscard]] ObjectGuid GetCharacterGroupGuidByGuid(ObjectGuid guid) const;
 
-        // Snapshot of every cached character (online and offline). World-thread only.
+        // Snapshot of every cached character (online and offline).
         [[nodiscard]] std::vector<CharacterCacheEntry> GetCharacterCacheSnapshot() const;
+
+    private:
+        // Guards both file-static stores. Reads (group/mail/level updates
+        // and lookups) come from all threads; keep sections leaf-only.
+        mutable std::shared_mutex _cacheLock;
 };
 
 #define sCharacterCache CharacterCache::instance()

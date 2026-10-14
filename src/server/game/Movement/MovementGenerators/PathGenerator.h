@@ -41,6 +41,9 @@ class WorldObject;
 #define VERTEX_SIZE       3
 #define INVALID_POLYREF   0
 
+// Vertical step forgiven on the shin-height veto ray (ledge climbs clip it).
+constexpr float VETO_STEP_UP_HEIGHT = 2.0f;
+
 enum PathType
 {
     PATHFIND_BLANK             = 0x00,   // path not built yet

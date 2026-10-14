@@ -134,7 +134,11 @@ namespace
 
         float rx, ry, rz;
         if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
-            return true;
+        {
+            // Players only: forgive ledge climbs that clip the shin ray.
+            if (!unit->IsPlayer() || b.z - a.z > VETO_STEP_UP_HEIGHT || a.z - b.z > VETO_STEP_UP_HEIGHT)
+                return true;
+        }
 
         if (groundMode)
         {

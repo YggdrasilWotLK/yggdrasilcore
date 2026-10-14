@@ -635,7 +635,7 @@ void WorldSession::HandleCharDeleteOpcode(WorldPacket& recvData)
         return;
     }
 
-    if (CharacterCacheEntry const* playerData = sCharacterCache->GetCharacterCacheByGuid(guid))
+            if (Optional<CharacterCacheEntry> playerData = sCharacterCache->GetCharacterCacheByGuid(guid))
     {
         accountId = playerData->AccountId;
         name = playerData->Name;
@@ -1663,7 +1663,7 @@ void WorldSession::HandleCharCustomizeCallback(std::shared_ptr<CharacterCustomiz
     }
 
     // get the players old (at this moment current) race
-    CharacterCacheEntry const* playerData = sCharacterCache->GetCharacterCacheByGuid(customizeInfo->Guid);
+    Optional<CharacterCacheEntry> playerData = sCharacterCache->GetCharacterCacheByGuid(customizeInfo->Guid);
     if (!playerData)
     {
         SendCharCustomize(CHAR_CREATE_ERROR, customizeInfo.get());
@@ -1970,7 +1970,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
     ObjectGuid::LowType lowGuid = factionChangeInfo->Guid.GetCounter();
 
     // get the players old (at this moment current) race
-    CharacterCacheEntry const* playerData = sCharacterCache->GetCharacterCacheByGuid(factionChangeInfo->Guid);
+    Optional<CharacterCacheEntry> playerData = sCharacterCache->GetCharacterCacheByGuid(factionChangeInfo->Guid);
     if (!playerData)
     {
         SendCharFactionChange(CHAR_CREATE_ERROR, factionChangeInfo.get());
