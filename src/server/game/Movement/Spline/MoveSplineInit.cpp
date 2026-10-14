@@ -354,9 +354,14 @@ namespace
 
             float const legA = std::hypot(candidate.x - src.x, candidate.y - src.y);
             float const legB = std::hypot(refTarget.x - candidate.x, refTarget.y - candidate.y);
+            auto segOk = [&](Vector3 const& u, Vector3 const& v) -> bool
+            {
+                if (IsSegmentBlocked(unit, u, v, groundMode))
+                    return false;
+                return !(groundMode && IsHullClipped(unit, u, v));
+            };
             if (legA >= SMOOTH_MIN_SEGMENT && legB >= SMOOTH_MIN_SEGMENT &&
-                !IsSegmentBlocked(unit, src, candidate, groundMode) &&
-                !IsSegmentBlocked(unit, candidate, refTarget, groundMode))
+                segOk(src, candidate) && segOk(candidate, refTarget))
             {
                 out = candidate;
                 return true;
@@ -376,9 +381,14 @@ namespace
 
         float const legA = std::hypot(collinear.x - src.x, collinear.y - src.y);
         float const legB = std::hypot(refTarget.x - collinear.x, refTarget.y - collinear.y);
+        auto segOk = [&](Vector3 const& u, Vector3 const& v) -> bool
+        {
+            if (IsSegmentBlocked(unit, u, v, groundMode))
+                return false;
+            return !(groundMode && IsHullClipped(unit, u, v));
+        };
         if (legA >= SMOOTH_MIN_SEGMENT && legB >= SMOOTH_MIN_SEGMENT &&
-            !IsSegmentBlocked(unit, src, collinear, groundMode) &&
-            !IsSegmentBlocked(unit, collinear, refTarget, groundMode))
+            segOk(src, collinear) && segOk(collinear, refTarget))
         {
             out = collinear;
             return true;
