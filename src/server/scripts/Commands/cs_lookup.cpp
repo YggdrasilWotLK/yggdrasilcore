@@ -1664,7 +1664,7 @@ public:
                     uint8 plevel = 0, prace = 0, pclass = 0;
                     bool online = ObjectAccessor::FindPlayerByLowGUID(guid) != nullptr;
 
-                    if (CharacterCacheEntry const* gpd = sCharacterCache->GetCharacterCacheByName(name))
+                    if (Optional<CharacterCacheEntry> gpd = sCharacterCache->GetCharacterCacheByName(name))
                     {
                         plevel = gpd->Level;
                         prace = gpd->Race;

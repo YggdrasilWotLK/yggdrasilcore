@@ -49,7 +49,7 @@ void WorldSession::HandleAddFriendOpcode(WorldPacket& recv_data)
     if (!friendGuid)
         return;
 
-    CharacterCacheEntry const* playerData = sCharacterCache->GetCharacterCacheByGuid(friendGuid);
+    Optional<CharacterCacheEntry> playerData = sCharacterCache->GetCharacterCacheByGuid(friendGuid);
     if (!playerData)
         return;
 

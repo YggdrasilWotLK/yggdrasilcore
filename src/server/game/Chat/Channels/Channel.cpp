@@ -351,7 +351,7 @@ void Channel::KickOrBan(Player const* player, std::string const& badname, bool b
         {
             if (ObjectGuid guid = sCharacterCache->GetCharacterGuidByName(badname))
             {
-                if (CharacterCacheEntry const* gpd = sCharacterCache->GetCharacterCacheByGuid(guid))
+                if (Optional<CharacterCacheEntry> gpd = sCharacterCache->GetCharacterCacheByGuid(guid))
                 {
                     if (Player::TeamIdForRace(gpd->Race) == Player::TeamIdForRace(player->getRace()))
                     {
