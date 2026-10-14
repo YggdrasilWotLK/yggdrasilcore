@@ -215,6 +215,26 @@ namespace
         return false;
     }
 
+    // Hull check, pets only: the center line clears but the model's half-width
+    // would scrape the edge. Side rays at the unit's object size.
+    bool IsHullClipped(Unit const* unit, Vector3 const& a, Vector3 const& b)
+    {
+        Creature const* creature = unit->ToCreature();
+        if (!creature || !creature->IsPet())
+            return false;
+        float const clearance = unit->GetObjectSize();
+        if (clearance <= 0.01f)
+            return false;
+        float const dx = b.x - a.x, dy = b.y - a.y;
+        float const len = std::hypot(dx, dy);
+        if (len < 0.01f)
+            return false;
+        float const nx = -dy / len * clearance, ny = dx / len * clearance;
+        Vector3 const aL(a.x + nx, a.y + ny, a.z), bL(b.x + nx, b.y + ny, b.z);
+        Vector3 const aR(a.x - nx, a.y - ny, a.z), bR(b.x - nx, b.y - ny, b.z);
+        return IsSegmentBlocked(unit, aL, bL, true) || IsSegmentBlocked(unit, aR, bR, true);
+    }
+
     bool IsSmoothedCurveValid(Unit* unit, PointsArray& controls, bool groundMode)
     {
         if (controls.size() < 3)
@@ -241,8 +261,14 @@ namespace
                     EvaluateCatmullRomSegment(p0, p1, p2, p3, (float(s) + 1.0f) * 0.25f, samples[s]);
 
                 Vector3 const* chain[5] = { &prev, &samples[0], &samples[1], &samples[2], &p2 };
+                auto segBad = [&](Vector3 const& u, Vector3 const& v) -> bool
+                {
+                    if (IsSegmentBlocked(unit, u, v, groundMode))
+                        return true;
+                    return groundMode && IsHullClipped(unit, u, v);
+                };
                 for (uint8 s = 0; s < 4 && clean; ++s)
-                    if (IsSegmentBlocked(unit, *chain[s], *chain[s + 1], groundMode))
+                    if (segBad(*chain[s], *chain[s + 1]))
                     {
                         // Blocked chord on a mesh-approved leg (stair corner-cut): split
                         // it with a ground-snapped midpoint instead of driving through.
@@ -253,8 +279,7 @@ namespace
                                 Vector3 mid = (*chain[s] + *chain[s + 1]) * 0.5f;
                                 if (groundMode)
                                     mid.z = SnapControlPointZ(unit, mid.x, mid.y, mid.z);
-                                if (!IsSegmentBlocked(unit, *chain[s], mid, groundMode) &&
-                                    !IsSegmentBlocked(unit, mid, *chain[s + 1], groundMode))
+                                if (!segBad(*chain[s], mid) && !segBad(mid, *chain[s + 1]))
                                 {
                                     controls.insert(controls.begin() + k + 1, mid);
                                     clean = false; // restart the scan over the repaired path
