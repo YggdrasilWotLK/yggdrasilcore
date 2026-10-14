@@ -152,7 +152,7 @@ public:
                             me->SetFaction(FACTION_MONSTER);
                             Player* target = ObjectAccessor::GetPlayer(*me, PlayerGUID);
 
-                            switchFactionIfAlive(NPC_WEEGLI, target);
+                            // Weegli doesn't fight - he runs to the gate (triggered via DoAction above)
                             switchFactionIfAlive(NPC_RAVEN, target);
                             switchFactionIfAlive(NPC_ORO, target);
                             switchFactionIfAlive(NPC_MURTA, target);
@@ -390,16 +390,34 @@ public:
         {
             instance = creature->GetInstanceScript();
             destroyingDoor = false;
+            doorRunStarted = false;
+            bombPlaced = false;
             outroTimer = 2000;
             outroStage = 0;
+            runTimer = 0;
         }
 
         uint32 Bomb_Timer;
         uint32 LandMine_Timer;
         uint32 outroTimer;
+        uint32 runTimer;
         uint8 outroStage;
         bool destroyingDoor;
+        bool doorRunStarted;
+        bool bombPlaced;
         InstanceScript* instance;
+
+        static constexpr uint32 POINT_DOOR = 0;
+        static constexpr uint32 POINT_GENERIC = 1;
+        static constexpr uint32 POINT_ESCAPE = 2;
+
+        // Door staging in front of GO_END_DOOR (1854.53, 1142.89, 16.08)
+        static constexpr float DOOR_X = 1858.57f;
+        static constexpr float DOOR_Y = 1146.35f;
+        static constexpr float DOOR_Z = 14.745f;
+        static constexpr float DOOR_O = 3.85f;
+        static constexpr float DOOR_ARRIVE_DIST = 10.0f;
+        static constexpr uint32 RUN_TIMEOUT_MS = 20000;
 
         void InitializeAI() override
         {
@@ -420,34 +438,105 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            if (!UpdateVictim())
+            // Door run has priority over everything: keep moving to the gate
+            // and trigger the bomb by proximity, not only by MovementInform.
+            // MovementInform alone caused in-place bombs when the 56y path
+            // failed and fired immediately.
+            if (doorRunStarted && !bombPlaced)
             {
-                if (destroyingDoor)
+                if (me->IsInCombat())
                 {
-                    if (outroTimer <= diff)
+                    me->CombatStop(true);
+                    me->GetThreatMgr().ClearAllThreat();
+                }
+
+                float dist = me->GetDistance(DOOR_X, DOOR_Y, DOOR_Z);
+                if (dist <= DOOR_ARRIVE_DIST)
+                {
+                    me->GetMotionMaster()->Clear(false);
+                    me->StopMoving();
+                    bombPlaced = true;
+                    destroyingDoor = true;
+                    outroStage = 0;
+                    outroTimer = 1500;
+                }
+                else
+                {
+                    // Re-path if idle (covers failed MovePoint) so he really
+                    // walks towards the gate instead of standing still.
+                    if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() != POINT_MOTION_TYPE)
                     {
-                        switch (outroStage)
-                        {
-                            case 0:
-                                DoCastSelf(SPELL_WEEGLIS_BARREL);
-                                outroTimer = 2000;
-                                ++outroStage;
-                                break;
-                            case 1:
-                                me->GetMotionMaster()->MovePoint(2, 1871.18f, 1100.f, 8.88f);
-                                Talk(SAY_WEEGLI_OUT_OF_HERE);
-                                me->DespawnOrUnsummon(8s);
-                                instance->SetData(DATA_PYRAMID, PYRAMID_GATES_DESTROYED);
-                                destroyingDoor = false;
-                                break;
-                        }
+                        me->GetMotionMaster()->Clear(false);
+                        me->GetMotionMaster()->MovePoint(POINT_DOOR, { DOOR_X, DOOR_Y, DOOR_Z, DOOR_O });
+                    }
+
+                    if (runTimer <= diff)
+                    {
+                        // Failsafe: path blocked - teleport to the gate staging
+                        // so the bomb visual and SmartScript are at the gate,
+                        // then run the normal bomb -> escape -> open sequence.
+                        me->GetMotionMaster()->Clear(false);
+                        me->NearTeleportTo(DOOR_X, DOOR_Y, DOOR_Z, DOOR_O);
+                        bombPlaced = true;
+                        destroyingDoor = true;
+                        outroStage = 0;
+                        outroTimer = 1000;
                     }
                     else
                     {
-                        outroTimer -= diff;
+                        runTimer -= diff;
                     }
                 }
+                return;
+            }
 
+            // Bomb sequence must finish even if something attacks him.
+            if (destroyingDoor)
+            {
+                if (me->IsInCombat())
+                {
+                    me->CombatStop(true);
+                    me->GetThreatMgr().ClearAllThreat();
+                }
+
+                if (outroTimer <= diff)
+                {
+                    switch (outroStage)
+                    {
+                        case 0:
+                            // Place the bomb at the gate, not where gossip happened.
+                            // SPELL_WEEGLIS_BARREL summons Weegli's Armed Barrel (141612)
+                            // which explodes and opens GO_END_DOOR via SmartScript.
+                            DoCastSelf(SPELL_WEEGLIS_BARREL);
+                            outroTimer = 4000;
+                            ++outroStage;
+                            break;
+                        case 1:
+                            Talk(SAY_WEEGLI_OUT_OF_HERE);
+                            me->GetMotionMaster()->Clear(false);
+                            me->GetMotionMaster()->MovePoint(POINT_ESCAPE, 1871.18f, 1100.f, 8.88f);
+                            me->DespawnOrUnsummon(8s);
+                            // Open the gate even if the barrel SmartScript proximity fails.
+                            // Instance also opens it on PYRAMID_GATES_DESTROYED.
+                            if (instance)
+                            {
+                                instance->SetData(DATA_PYRAMID, PYRAMID_GATES_DESTROYED);
+                                if (GameObject* door = ObjectAccessor::GetGameObject(*me, instance->GetGuidData(GO_END_DOOR)))
+                                    door->UseDoorOrButton();
+                            }
+                            destroyingDoor = false;
+                            break;
+                    }
+                }
+                else
+                {
+                    outroTimer -= diff;
+                }
+                return;
+            }
+
+            if (!UpdateVictim())
+            {
                 return;
             }
 
@@ -495,15 +584,40 @@ public:
             {
                 instance->SetData(DATA_PYRAMID, PYRAMID_MOVED_DOWNSTAIRS);
             }
-            else if (instance->GetData(DATA_PYRAMID) == PYRAMID_DESTROY_GATES)
-            {
-                destroyingDoor = true;
-            }
+            // Do NOT start destroyingDoor here: bomb must only be placed
+            // after the dedicated MovePoint(POINT_DOOR) arrival in MovementInform.
+            // Starting it on any home arrival caused in-place bombs and a gate that never opens.
         }
 
-        void MovementInform(uint32 type, uint32 /*id*/) override
+        void MovementInform(uint32 type, uint32 id) override
         {
             if (type != POINT_MOTION_TYPE)
+            {
+                return;
+            }
+
+            if (id == POINT_DOOR)
+            {
+                // Fast path; proximity check in UpdateAI covers the case
+                // where this fires without actually reaching the gate.
+                if (doorRunStarted && !bombPlaced && instance && instance->GetData(DATA_PYRAMID) == PYRAMID_DESTROY_GATES)
+                {
+                    float dist = me->GetDistance(DOOR_X, DOOR_Y, DOOR_Z);
+                    if (dist <= DOOR_ARRIVE_DIST + 5.0f)
+                    {
+                        me->GetMotionMaster()->Clear(false);
+                        me->StopMoving();
+                        bombPlaced = true;
+                        destroyingDoor = true;
+                        outroStage = 0;
+                        outroTimer = 1500;
+                    }
+                    // else: ignore spurious arrival, UpdateAI keeps walking
+                }
+                return;
+            }
+
+            if (id == POINT_ESCAPE)
             {
                 return;
             }
@@ -518,22 +632,56 @@ public:
             {
                 instance->SetData(DATA_PYRAMID, PYRAMID_MOVED_DOWNSTAIRS);
             }
-            else if (instance->GetData(DATA_PYRAMID) == PYRAMID_DESTROY_GATES)
-            {
-                destroyingDoor = true;
-            }
+        }
+
+        void DoAction(int32 /*param*/) override
+        {
+            // Called by Sergeant Bly when his fight starts: Weegli doesn't fight,
+            // he runs to the gate and blows it up.
+            DestroyDoor();
         }
 
         void DestroyDoor()
         {
-            if (me->IsAlive())
+            if (!me->IsAlive() || doorRunStarted)
             {
-                me->SetFaction(FACTION_FRIENDLY);
-                me->SetWalk(false);
-                me->GetMotionMaster()->MovePoint(0, { 1858.57f, 1146.35f, 14.745f, 3.85f });
-                me->SetHomePosition(1858.57f, 1146.35f, 14.745f, 3.85f);
-                Talk(SAY_WEEGLI_OK_I_GO);
+                return;
+            }
+
+            uint32 phase = instance ? instance->GetData(DATA_PYRAMID) : PYRAMID_NOT_STARTED;
+            // DESTROY_GATES allowed as retry after restart/evade when AI state was lost.
+            if (phase != PYRAMID_KILLED_ALL_TROLLS && phase != PYRAMID_MOVED_DOWNSTAIRS && phase != PYRAMID_DESTROY_GATES)
+            {
+                return;
+            }
+
+            doorRunStarted = true;
+            bombPlaced = false;
+            destroyingDoor = false;
+            outroStage = 0;
+            outroTimer = 2000;
+            runTimer = RUN_TIMEOUT_MS;
+            me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+            me->SetFaction(FACTION_FRIENDLY);
+            me->SetReactState(REACT_PASSIVE);
+            me->SetImmuneToAll(true);
+            me->CombatStop(true);
+            me->GetThreatMgr().ClearAllThreat();
+            me->SetWalk(false);
+            me->GetMotionMaster()->Clear(false);
+            me->GetMotionMaster()->MovePoint(POINT_DOOR, { DOOR_X, DOOR_Y, DOOR_Z, DOOR_O });
+            me->SetHomePosition(DOOR_X, DOOR_Y, DOOR_Z, DOOR_O);
+            Talk(SAY_WEEGLI_OK_I_GO);
+            if (phase != PYRAMID_DESTROY_GATES)
                 instance->SetData(DATA_PYRAMID, PYRAMID_DESTROY_GATES);
+        }
+
+        void JustDied(Unit* /*killer*/) override
+        {
+            // Allow retry instead of soft-locking at DESTROY_GATES with a dead Weegli.
+            if (instance && instance->GetData(DATA_PYRAMID) == PYRAMID_DESTROY_GATES && !bombPlaced)
+            {
+                instance->SetData(DATA_PYRAMID, PYRAMID_MOVED_DOWNSTAIRS);
             }
         }
 

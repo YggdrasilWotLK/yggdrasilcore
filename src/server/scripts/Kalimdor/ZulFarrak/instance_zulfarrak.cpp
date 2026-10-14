@@ -185,7 +185,7 @@ public:
             {
                 case GO_END_DOOR:
                     EndDoorGUID = gameobject->GetGUID();
-                    if (PyramidPhase == PYRAMID_DONE)
+                    if (PyramidPhase >= PYRAMID_GATES_DESTROYED)
                     {
                         HandleGameObject(gameobject->GetGUID(), true, gameobject);
                     }
@@ -210,6 +210,12 @@ public:
             {
                 case DATA_PYRAMID:
                     PyramidPhase = data;
+                    if (data == PYRAMID_GATES_DESTROYED)
+                    {
+                        // Weegli's bomb went off: open the gate to the last boss.
+                        if (GameObject* door = instance->GetGameObject(EndDoorGUID))
+                            HandleGameObject(EndDoorGUID, true, door);
+                    }
                     break;
                 case DATA_GAHZRILLA:
                     GahzrillaSummoned = data;
