@@ -185,7 +185,13 @@ bool PathGenerator::ValidatePlayerMove()
             return true;
         float rx, ry, rz;
         if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
-            return true;
+        {
+            // Walkable inclines (stairs) clip riser lips at shin height even
+            // though the leg is a legitimate climb; walls still veto.
+            float const dx = b.x - a.x, dy = b.y - a.y;
+            if (!IsVetoForgivenGrade(b.z - a.z, std::sqrt(dx * dx + dy * dy)))
+                return true;
+        }
         return false;
     };
     if (unit->CanFly())
@@ -265,6 +271,20 @@ bool PathGenerator::ValidatePlayerMove()
         }
         if (repairs >= 3)
             return false;
+        // First split the span: a ground-snapped midpoint hugs stairs and clears
+        // edge clips that a lateral sidestep cannot route around.
+        {
+            G3D::Vector3 c((prev.x + pt.x) * 0.5f, (prev.y + pt.y) * 0.5f, (prev.z + pt.z) * 0.5f);
+            _source->UpdateAllowedPositionZ(c.x, c.y, c.z);
+            if (!segmentBlocked(prev, c) && !segmentBlocked(c, pt))
+            {
+                repaired.push_back(c);
+                repaired.push_back(pt);
+                prev = pt;
+                ++repairs;
+                continue;
+            }
+        }
         float dx = pt.x - prev.x, dy = pt.y - prev.y;
         float len = std::sqrt(dx * dx + dy * dy);
         if (len < 0.01f)

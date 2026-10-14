@@ -40,26 +40,10 @@ static bool FollowHopBlocked(Unit const* owner, G3D::Vector3 const& a, G3D::Vect
             phase, LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
         return true;
     float rx, ry, rz;
-    // Pets climbing walkable inclines (stairs clip riser lips at shin height):
-    // grade forgiveness replaces the strict per-step climb check there.
-    bool const petGrade = [&]()
-    {
-        Creature const* creature = owner->ToCreature();
-        if (!creature || !creature->IsPet())
-            return false;
-        float const dx = b.x - a.x, dy = b.y - a.y;
-        return PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::sqrt(dx * dx + dy * dy));
-    }();
     if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
-    {
-        if (!petGrade)
-            return true;
-    }
+        return true;
     if (!PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, owner->GetCollisionHeight()))
-    {
-        if (!petGrade)
-            return true;
-    }
+        return true;
     return false;
 }
 
