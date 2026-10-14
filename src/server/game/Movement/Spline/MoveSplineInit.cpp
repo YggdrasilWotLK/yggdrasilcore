@@ -134,7 +134,11 @@ namespace
 
         float rx, ry, rz;
         if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
-            return true;
+        {
+            // Players only: walkable inclines clip riser lips at shin height.
+            if (!unit->IsPlayer() || !PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::hypot(b.x - a.x, b.y - a.y)))
+                return true;
+        }
 
         if (groundMode)
         {
@@ -143,7 +147,9 @@ namespace
                 unit->CanSwim() &&
                 map->IsInWater(phase, a.x, a.y, a.z, collisionHeight) &&
                 map->IsInWater(phase, b.x, b.y, b.z, collisionHeight);
-            if (!swimmable && !PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, collisionHeight))
+            // Players only: a walkable incline is not an unclimbable step.
+            if (!swimmable && !PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, collisionHeight) &&
+                (!unit->IsPlayer() || !PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::hypot(b.x - a.x, b.y - a.y))))
                 return true;
         }
         return false;
