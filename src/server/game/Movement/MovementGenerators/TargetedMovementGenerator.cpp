@@ -749,6 +749,10 @@ bool FollowMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         if (targetIsMoving)
         {
             Position predictedPosition = PredictPosition(target);
+            // Prediction extrapolates blindly and lands inside collision when the
+            // target runs in place against a wall; use the real position then.
+            if (!target->IsWithinLOS(predictedPosition.GetPositionX(), predictedPosition.GetPositionY(), predictedPosition.GetPositionZ()))
+                predictedPosition = target->GetPosition();
             if (_lastPredictedPosition && _lastPredictedPosition->GetExactDistSq(&predictedPosition) < 0.25f)
                 return true;
 
