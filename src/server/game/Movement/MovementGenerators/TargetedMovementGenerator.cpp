@@ -42,11 +42,13 @@ static bool FollowHopBlocked(Unit const* owner, G3D::Vector3 const& a, G3D::Vect
     float rx, ry, rz;
     if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
     {
-        // Players only: forgive ledge climbs that clip the shin ray.
-        if (!owner->IsPlayer() || b.z - a.z > VETO_STEP_UP_HEIGHT || a.z - b.z > VETO_STEP_UP_HEIGHT)
+        // Players only: forgive ledge climbs and stair inclines on the shin ray.
+        if (!owner->IsPlayer() || !PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::hypot(b.x - a.x, b.y - a.y)))
             return true;
     }
-    if (!PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, owner->GetCollisionHeight()))
+    // Players only: a walkable incline is not an unclimbable step.
+    if (!PathGenerator::IsWalkableClimb(a.x, a.y, a.z, b.x, b.y, b.z, owner->GetCollisionHeight()) &&
+        (!owner->IsPlayer() || !PathGenerator::IsVetoForgivenGrade(b.z - a.z, std::hypot(b.x - a.x, b.y - a.y))))
         return true;
     return false;
 }
