@@ -22,6 +22,7 @@
 #include "Config.h"
 #include "Errors.h"
 #include "Log.h"
+#include <shared_mutex>
 #include <variant>
 
 template<typename ConfigEnum>
@@ -57,6 +58,7 @@ public:
         ASSERT(configIndex < _configs.size(), "Config index out of bounds");
         T const& configValue = sConfigMgr->GetOption<T>(configName, defaultValue);
 
+        std::unique_lock<std::shared_mutex> lock(_cacheLock);
         bool configValueChanged = false;
         if (_reloading)
         {
@@ -85,6 +87,7 @@ public:
     template<class T>
     void OverwriteConfigValue(ConfigEnum const config, T const& value)
     {
+        std::unique_lock<std::shared_mutex> lock(_cacheLock);
         uint32 const configIndex = static_cast<uint32>(config);
         ASSERT(configIndex < _configs.size(), "Config index out of bounds");
         size_t const oldValueTypeIndex = _configs[configIndex].index();
@@ -96,6 +99,7 @@ public:
     template<class T>
     T GetConfigValue(ConfigEnum const config) const
     {
+        std::shared_lock<std::shared_mutex> lock(_cacheLock);
         uint32 const configIndex = static_cast<uint32>(config);
         ASSERT(configIndex < _configs.size(), "Config index out of bounds");
         ASSERT(_configs[configIndex].index() != 0, "Config value must already be set");
@@ -106,9 +110,10 @@ public:
         return *value;
     }
 
-    // Custom handling for string configs to convert from std::string to std::string_view
-    std::string_view GetConfigValue(ConfigEnum const config) const
+    // Copy-out: views would dangle across reload reassignment.
+    std::string GetConfigValue(ConfigEnum const config) const
     {
+        std::shared_lock<std::shared_mutex> lock(_cacheLock);
         uint32 const configIndex = static_cast<uint32>(config);
         ASSERT(configIndex < _configs.size(), "Config index out of bounds");
         ASSERT(_configs[configIndex].index() != 0, "Config value must already be set");
@@ -140,6 +145,9 @@ private:
 
     std::vector<std::variant<std::monostate, float, bool, uint32, std::string>> _configs;
     bool _reloading;
+    // Guards _configs. Reads run on all threads every tick, writes on
+    // world-thread init/reload. Leaf-only, never hold across callbacks.
+    mutable std::shared_mutex _cacheLock;
 };
 
 #endif
