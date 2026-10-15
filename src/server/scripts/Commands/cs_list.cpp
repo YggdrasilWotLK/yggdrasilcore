@@ -16,6 +16,7 @@
  */
 
 #include "Chat.h"
+#include <mutex>
 #include "CommandScript.h"
 #include "Creature.h"
 #include "DBCStores.h"
@@ -110,6 +111,7 @@ public:
                 // If map found, try to find active version of this creature
                 if (thisMap)
                 {
+                    std::lock_guard<std::recursive_mutex> lock(*thisMap->GetStoreLock());
                     auto const creBounds = thisMap->GetCreatureBySpawnIdStore().equal_range(guid);
                     if (creBounds.first != creBounds.second)
                     {
@@ -396,6 +398,7 @@ public:
                 // If map found, try to find active version of this object
                 if (thisMap)
                 {
+                    std::lock_guard<std::recursive_mutex> lock(*thisMap->GetStoreLock());
                     auto const goBounds = thisMap->GetGameObjectBySpawnIdStore().equal_range(guid);
                     if (goBounds.first != goBounds.second)
                     {

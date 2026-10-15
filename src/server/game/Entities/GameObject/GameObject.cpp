@@ -16,6 +16,7 @@
  */
 
 #include "AccountMgr.h"
+#include <mutex>
 #include "BattlegroundAV.h"
 #include "CellImpl.h"
 #include "CreatureAISelector.h"
@@ -145,9 +146,9 @@ void GameObject::AddToWorld()
         if (m_zoneScript)
             m_zoneScript->OnGameObjectCreate(this);
 
-        GetMap()->GetObjectsStore().Insert<GameObject>(GetGUID(), this);
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Insert<GameObject>(GetGUID(), this); }
         if (m_spawnId)
-            GetMap()->GetGameObjectBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetGameObjectBySpawnIdStore().insert(std::make_pair(m_spawnId, this)); }
 
         if (m_model)
         {
@@ -193,8 +194,8 @@ void GameObject::RemoveFromWorld()
         WorldObject::RemoveFromWorld();
 
         if (m_spawnId)
-            Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this);
-        GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID());
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this); }
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID()); }
     }
 }
 

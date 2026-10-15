@@ -19,6 +19,7 @@
 #define ACORE_SMARTSCRIPT_H
 
 #include "Creature.h"
+#include <mutex>
 #include "GridNotifiers.h"
 #include "SmartScriptMgr.h"
 #include "Spell.h"
@@ -141,6 +142,7 @@ public:
 
     GameObject* FindGameObjectNear(WorldObject* searchObject, ObjectGuid::LowType guid) const
     {
+        std::lock_guard<std::recursive_mutex> lock(*searchObject->GetMap()->GetStoreLock());
         auto bounds = searchObject->GetMap()->GetGameObjectBySpawnIdStore().equal_range(guid);
         if (bounds.first == bounds.second)
             return nullptr;
@@ -150,6 +152,7 @@ public:
 
     Creature* FindCreatureNear(WorldObject* searchObject, ObjectGuid::LowType guid) const
     {
+        std::lock_guard<std::recursive_mutex> lock(*searchObject->GetMap()->GetStoreLock());
         auto bounds = searchObject->GetMap()->GetCreatureBySpawnIdStore().equal_range(guid);
         if (bounds.first == bounds.second)
             return nullptr;
