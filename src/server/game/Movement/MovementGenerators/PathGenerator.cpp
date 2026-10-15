@@ -177,9 +177,7 @@ bool PathGenerator::ValidatePlayerMove()
     uint32 const phase = _source->GetPhaseMask();
     auto segmentBlocked = [&](G3D::Vector3 const& a, G3D::Vector3 const& b) -> bool
     {
-        // Grade veto: uphill legs steeper than the player climb limit are never
-        // walkable, even when the rays thread past the geometry along wall
-        // faces baked through by artifact. Flyers climb over; downhill falls.
+        // Grade veto: uphill past player grade is never walkable, clear rays or not.
         if (!unit->CanFly())
         {
             float const gdx = b.x - a.x, gdy = b.y - a.y;
@@ -197,9 +195,7 @@ bool PathGenerator::ValidatePlayerMove()
         float rx, ry, rz;
         if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
         {
-            // Walkable inclines (stairs) clip riser lips at shin height even
-            // though the leg is a legitimate climb; walls still veto. Players
-            // use the stricter client climb limit.
+            // Stair inclines clip the shin ray; walls still veto.
             float const dx = b.x - a.x, dy = b.y - a.y;
             if (!IsVetoForgivenGrade(b.z - a.z, std::sqrt(dx * dx + dy * dy), VETO_PLAYER_GRADE))
                 return true;
