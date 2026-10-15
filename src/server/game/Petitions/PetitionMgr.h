@@ -78,6 +78,7 @@ public:
 
     // Petitions
     void AddPetition(ObjectGuid petitionGUID, ObjectGuid ownerGuid, std::string const& name, uint8 type, uint32 petitionId);
+    void SetPetitionName(ObjectGuid petitionGUID, std::string const& name);
     void RemovePetition(ObjectGuid petitionGUID);
     void RemovePetitionByOwnerAndType(ObjectGuid ownerGuid, uint8 type);
     Optional<Petition> GetPetition(ObjectGuid petitionGUID) const;

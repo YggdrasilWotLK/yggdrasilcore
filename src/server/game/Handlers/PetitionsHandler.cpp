@@ -381,8 +381,8 @@ void WorldSession::HandlePetitionRenameOpcode(WorldPacket& recvData)
 
     CharacterDatabase.Execute(stmt);
 
-    // xinef: update petition container
-    const_cast<Petition*>(petition)->petitionName = newName;
+    // Update the live store entry (petition is a copy-out Optional).
+    sPetitionMgr->SetPetitionName(petitionGuid, newName);
 
     LOG_DEBUG("network", "Petition ({}) renamed to {}", petitionGuid.ToString(), newName);
     WorldPacket data(MSG_PETITION_RENAME, (8 + newName.size() + 1));

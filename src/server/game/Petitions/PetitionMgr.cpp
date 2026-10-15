@@ -120,6 +120,14 @@ void PetitionMgr::AddPetition(ObjectGuid petitionGUID, ObjectGuid ownerGuid, std
     s.signatureMap.clear();
 }
 
+void PetitionMgr::SetPetitionName(ObjectGuid petitionGUID, std::string const& name)
+{
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
+    auto it = PetitionStore.find(petitionGUID);
+    if (it != PetitionStore.end())
+        it->second.petitionName = name;
+}
+
 void PetitionMgr::RemovePetition(ObjectGuid petitionGUID)
 {
     std::lock_guard<std::recursive_mutex> lock(_petitionLock);
