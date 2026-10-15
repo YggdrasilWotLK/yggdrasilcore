@@ -124,6 +124,7 @@ Channel* ChannelMgr::GetJoinChannel(std::string const& name, uint32 channelId)
     Utf8toWStr(name, wname);
     wstrToLower(wname);
 
+    std::lock_guard<std::mutex> lock(_channelsLock);
     ChannelMap::const_iterator i = channels.find(wname);
 
     if (i == channels.end())
@@ -142,6 +143,7 @@ Channel* ChannelMgr::GetChannel(std::string const& name, Player* player, bool pk
     Utf8toWStr(name, wname);
     wstrToLower(wname);
 
+    std::lock_guard<std::mutex> lock(_channelsLock);
     ChannelMap::const_iterator i = channels.find(wname);
 
     if (i == channels.end())
@@ -157,6 +159,16 @@ Channel* ChannelMgr::GetChannel(std::string const& name, Player* player, bool pk
     }
 
     return i->second;
+}
+
+std::vector<Channel*> ChannelMgr::GetChannelsSnapshot() const
+{
+    std::lock_guard<std::mutex> lock(_channelsLock);
+    std::vector<Channel*> snapshot;
+    snapshot.reserve(channels.size());
+    for (auto const& pair : channels)
+        snapshot.push_back(pair.second);
+    return snapshot;
 }
 
 uint32 ChannelMgr::_channelIdMax = 0;

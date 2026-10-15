@@ -19,9 +19,13 @@
 #define _PETITIONMGR_H
 
 #include "ObjectGuid.h"
+#include "Optional.h"
 
-#include <unordered_map>
 #include <map>
+#include <mutex>
+#include <shared_mutex>
+#include <unordered_map>
+#include <vector>
 
 #define CHARTER_DISPLAY_ID 16161
 
@@ -74,19 +78,21 @@ public:
 
     // Petitions
     void AddPetition(ObjectGuid petitionGUID, ObjectGuid ownerGuid, std::string const& name, uint8 type, uint32 petitionId);
+    void SetPetitionName(ObjectGuid petitionGUID, std::string const& name);
     void RemovePetition(ObjectGuid petitionGUID);
     void RemovePetitionByOwnerAndType(ObjectGuid ownerGuid, uint8 type);
-    Petition const* GetPetition(ObjectGuid petitionGUID) const;
-    Petition const* GetPetitionById(uint32 petitionId) const;
-    Petition const* GetPetitionByOwnerWithType(ObjectGuid ownerGuid, uint8 type) const;
-    PetitionContainer* GetPetitionStore() { return &PetitionStore; }
+    Optional<Petition> GetPetition(ObjectGuid petitionGUID) const;
+    Optional<Petition> GetPetitionById(uint32 petitionId) const;
+    Optional<Petition> GetPetitionByOwnerWithType(ObjectGuid ownerGuid, uint8 type) const;
+    // Copy-out guids: the store mutates on other threads, never iterate it.
+    std::vector<ObjectGuid> GetPetitionGuids() const;
 
     // Signatures
     void AddSignature(ObjectGuid petitionGUID, uint32 accountId, ObjectGuid playerGuid);
     void RemoveSignaturesByPlayer(ObjectGuid playerGuid);
     void RemoveSignaturesByPlayerAndType(ObjectGuid playerGuid, uint8 type);
-    Signatures const* GetSignature(ObjectGuid petitionGUID) const;
-    SignatureContainer* GetSignatureStore() { return &SignatureStore; }
+    void RemoveSignature(ObjectGuid petitionGUID, ObjectGuid playerGuid);
+    Optional<Signatures> GetSignature(ObjectGuid petitionGUID) const;
 
     uint32 GeneratePetitionId();
     uint32 GetPetitionIdByItemGuid(ObjectGuid petitionItemGuid) const;
@@ -99,6 +105,9 @@ protected:
     std::unordered_map<uint32, ObjectGuid> PetitionIdToItemGuid;
     // Next petition id (kept < 2^31)
     uint32 _nextPetitionId = 1;
+    // Guards all three stores. Methods nest (removers call getters),
+    // so recursive; leaf-only versus outside locks.
+    mutable std::recursive_mutex _petitionLock;
 };
 
 #define sPetitionMgr PetitionMgr::instance()

@@ -379,24 +379,10 @@ public: // pussywizard: public class Member
     };
 
     // pussywizard: public GetMember
-    inline const Member* GetMember(ObjectGuid guid) const
-    {
-        auto itr = m_members.find(guid.GetCounter());
-        return (itr != m_members.end()) ? &itr->second : nullptr;
-    }
-    inline Member* GetMember(ObjectGuid guid)
-    {
-        auto itr = m_members.find(guid.GetCounter());
-        return (itr != m_members.end()) ? &itr->second : nullptr;
-    }
-    inline Member* GetMember(std::string_view name)
-    {
-        for (auto& m_member : m_members)
-            if (m_member.second.GetName() == name)
-                return &m_member.second;
-
-        return nullptr;
-    }
+    // Copy-out: entries mutate/erase on other threads, never hold them.
+    Optional<Member> GetMember(ObjectGuid guid) const;
+    Optional<Member> GetMember(ObjectGuid guid);
+    Optional<Member> GetMember(std::string_view name);
 
 private:
     // Base class for event entries

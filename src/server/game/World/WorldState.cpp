@@ -160,6 +160,7 @@ void WorldState::LoadWorldStates()
 // Setting a worldstate will save it to DB
 void WorldState::setWorldState(uint32 index, uint64 timeValue)
 {
+    std::lock_guard<std::mutex> guard(_mutex);
     auto const& it = _worldstates.find(index);
     if (it != _worldstates.end())
     {
@@ -181,6 +182,7 @@ void WorldState::setWorldState(uint32 index, uint64 timeValue)
 
 uint64 WorldState::getWorldState(uint32 index) const
 {
+    std::lock_guard<std::mutex> guard(_mutex);
     auto const& itr = _worldstates.find(index);
     return itr != _worldstates.end() ? itr->second : 0;
 }

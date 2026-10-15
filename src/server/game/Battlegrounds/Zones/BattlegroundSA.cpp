@@ -16,6 +16,7 @@
  */
 
 #include "BattlegroundSA.h"
+#include "GroupMgr.h"
 #include "Chat.h"
 #include "GameGraveyard.h"
 #include "GameObject.h"
@@ -74,6 +75,7 @@ BattlegroundSA::~BattlegroundSA()
 
 void BattlegroundSA::Init()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Battleground::Init();
 
     TotalTime = 0s;
@@ -89,11 +91,13 @@ void BattlegroundSA::Init()
 
 bool BattlegroundSA::SetupBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return ResetObjs();
 }
 
 bool BattlegroundSA::ResetObjs()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
         SendTransportsRemove(itr->second);
 
@@ -293,6 +297,7 @@ bool BattlegroundSA::ResetObjs()
 
 void BattlegroundSA::StartShips()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (ShipsStarted)
         return;
 
@@ -315,6 +320,7 @@ void BattlegroundSA::StartShips()
 
 void BattlegroundSA::PostUpdateImpl(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (InitSecondRound)
     {
         if (UpdateWaitTimer < diff)
@@ -461,14 +467,17 @@ void BattlegroundSA::PostUpdateImpl(uint32 diff)
 
 void BattlegroundSA::StartingEventCloseDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
 }
 
 void BattlegroundSA::StartingEventOpenDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
 }
 
 void BattlegroundSA::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     bool const ally_attacks = Attackers == TEAM_ALLIANCE;
     bool const horde_attacks = Attackers == TEAM_HORDE;
 
@@ -511,6 +520,7 @@ void BattlegroundSA::FillInitialWorldStates(WorldPackets::WorldState::InitWorldS
 
 void BattlegroundSA::AddPlayer(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Battleground::AddPlayer(player);
     PlayerScores.emplace(player->GetGUID().GetCounter(), new BattlegroundSAScore(player->GetGUID()));
 
@@ -520,10 +530,12 @@ void BattlegroundSA::AddPlayer(Player* player)
 
 void BattlegroundSA::RemovePlayer(Player* /*player*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
 }
 
 void BattlegroundSA::HandleAreaTrigger(Player* /*Source*/, uint32 /*Trigger*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // this is wrong way to implement these things. On official it done by gameobject spell cast.
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
@@ -531,6 +543,7 @@ void BattlegroundSA::HandleAreaTrigger(Player* /*Source*/, uint32 /*Trigger*/)
 
 void BattlegroundSA::TeleportPlayers()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
     {
         if (Player* player = itr->second)
@@ -565,6 +578,7 @@ void BattlegroundSA::TeleportPlayers()
 
 void BattlegroundSA::TeleportToEntrancePosition(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (player->GetTeamId() != Attackers)
     {
         player->TeleportTo(MAP_STRAND_OF_THE_ANCIENTS, 1209.7f, -65.16f, 70.1f, 0.0f, 0);
@@ -586,6 +600,7 @@ void BattlegroundSA::TeleportToEntrancePosition(Player* player)
 
 void BattlegroundSA::DefendersPortalTeleport(GameObject* portal, Player* plr)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (plr->GetTeamId() == Attackers)
         return;
 
@@ -615,6 +630,7 @@ void BattlegroundSA::DefendersPortalTeleport(GameObject* portal, Player* plr)
 
 void BattlegroundSA::EventPlayerDamagedGO(Player* /*player*/, GameObject* go, uint32 eventType)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!go || !go->GetGOInfo())
         return;
 
@@ -678,6 +694,7 @@ void BattlegroundSA::EventPlayerDamagedGO(Player* /*player*/, GameObject* go, ui
 
 void BattlegroundSA::HandleKillUnit(Creature* creature, Player* killer)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (creature->GetEntry() == NPC_DEMOLISHER_SA)
     {
         UpdatePlayerScore(killer, SCORE_DESTROYED_DEMOLISHER, 1);
@@ -692,6 +709,7 @@ void BattlegroundSA::HandleKillUnit(Creature* creature, Player* killer)
  */
 void BattlegroundSA::OverrideGunFaction()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!BgCreatures[0])
         return;
 
@@ -710,6 +728,7 @@ void BattlegroundSA::OverrideGunFaction()
 
 void BattlegroundSA::DemolisherStartState(bool start)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!BgCreatures[0])
         return;
 
@@ -743,6 +762,7 @@ void BattlegroundSA::DemolisherStartState(bool start)
 
 void BattlegroundSA::DestroyGate(Player* player, GameObject* go)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 i = GetGateIDFromEntry(go->GetEntry());
     if (!GateStatus[i])
         return;
@@ -793,6 +813,7 @@ void BattlegroundSA::DestroyGate(Player* player, GameObject* go)
 
 GraveyardStruct const* BattlegroundSA::GetClosestGraveyard(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     GraveyardStruct const* closest = nullptr;
     float mindist = 999999.0f;
     float x, y;
@@ -829,6 +850,7 @@ GraveyardStruct const* BattlegroundSA::GetClosestGraveyard(Player* player)
 
 void BattlegroundSA::SendTime()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Milliseconds end_of_round = (EndRoundTimer - TotalTime);
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_SA_TIMER_MINUTES, end_of_round / 1min);
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_SA_TIMER_SECONDS_FIRST_DIGIT, (end_of_round % 1min) / 10s);
@@ -837,6 +859,7 @@ void BattlegroundSA::SendTime()
 
 bool BattlegroundSA::CanInteractWithObject(uint32 objectId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     switch (objectId)
     {
         case BG_SA_TITAN_RELIC:
@@ -868,6 +891,7 @@ bool BattlegroundSA::CanInteractWithObject(uint32 objectId)
 
 void BattlegroundSA::UpdateObjectInteractionFlags(uint32 objectId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GameObject* go = GetBGObject(objectId))
     {
         if (CanInteractWithObject(objectId))
@@ -879,6 +903,7 @@ void BattlegroundSA::UpdateObjectInteractionFlags(uint32 objectId)
 
 void BattlegroundSA::UpdateObjectInteractionFlags()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint8 i = BG_SA_CENTRAL_FLAG; i <= BG_SA_LEFT_FLAG; ++i)
         UpdateObjectInteractionFlags(i);
     UpdateObjectInteractionFlags(BG_SA_TITAN_RELIC);
@@ -886,6 +911,7 @@ void BattlegroundSA::UpdateObjectInteractionFlags()
 
 void BattlegroundSA::EventPlayerClickedOnFlag(Player* Source, GameObject* gameObject)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     switch (gameObject->GetEntry())
     {
         case 191307:
@@ -910,6 +936,7 @@ void BattlegroundSA::EventPlayerClickedOnFlag(Player* Source, GameObject* gameOb
 
 void BattlegroundSA::CaptureGraveyard(BG_SA_Graveyards i, Player* Source)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GraveyardStatus[i] == Attackers || Source->GetTeamId() != Attackers)
         return;
 
@@ -1039,6 +1066,7 @@ void BattlegroundSA::CaptureGraveyard(BG_SA_Graveyards i, Player* Source)
 
 void BattlegroundSA::EventPlayerUsedGO(Player* Source, GameObject* object)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (object->GetEntry() == BG_SA_ObjEntries[BG_SA_TITAN_RELIC] && CanInteractWithObject(BG_SA_TITAN_RELIC))
     {
         if (Source->GetTeamId() == Attackers)
@@ -1081,12 +1109,14 @@ void BattlegroundSA::EventPlayerUsedGO(Player* Source, GameObject* object)
 
 void BattlegroundSA::ToggleTimer()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     TimerEnabled = !TimerEnabled;
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_SA_ENABLE_TIMER, (TimerEnabled) ? 1 : 0);
 }
 
 void BattlegroundSA::EndBattleground(TeamId winnerTeamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     //honor reward for winning
     RewardHonorToTeam(GetBonusHonorFromKill(1), winnerTeamId);
 
@@ -1099,6 +1129,7 @@ void BattlegroundSA::EndBattleground(TeamId winnerTeamId)
 
 void BattlegroundSA::UpdateDemolisherSpawns()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint8 i = BG_SA_DEMOLISHER_1; i <= BG_SA_DEMOLISHER_8; i++)
     {
         if (BgCreatures[i])
@@ -1132,6 +1163,7 @@ void BattlegroundSA::UpdateDemolisherSpawns()
 
 void BattlegroundSA::SendTransportInit(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (BgObjects[BG_SA_BOAT_ONE] ||  BgObjects[BG_SA_BOAT_TWO])
     {
         UpdateData transData;
@@ -1147,6 +1179,7 @@ void BattlegroundSA::SendTransportInit(Player* player)
 
 void BattlegroundSA::SendTransportsRemove(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (BgObjects[BG_SA_BOAT_ONE] ||  BgObjects[BG_SA_BOAT_TWO])
     {
         UpdateData transData;
@@ -1162,6 +1195,7 @@ void BattlegroundSA::SendTransportsRemove(Player* player)
 
 bool BattlegroundSA::AllowDefenseOfTheAncients(Player* source)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (source->GetTeamId() == Attackers)
         return false;
 

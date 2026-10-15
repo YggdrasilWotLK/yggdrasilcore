@@ -34,6 +34,8 @@ void WhoListCacheMgr::Update()
     _whoListStorage.clear();
     _whoListStorage.reserve(sWorldSessionMgr->GetPlayerCount() + 1);
 
+    // Shared ownership of the iteration: logins/logouts take unique_lock.
+    std::shared_lock<std::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
     for (auto const& [guid, player] : ObjectAccessor::GetPlayers())
     {
         if (!player->FindMap() || player->GetSession()->PlayerLoading())

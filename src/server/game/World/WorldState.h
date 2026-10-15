@@ -324,7 +324,7 @@ class WorldState
         bool _isMagtheridonHeadSpawnedAlliance;
         SunsReachReclamationData m_sunsReachData;
         std::map<uint32, std::atomic<WorldStateConditionState>> _transportStates; // atomic to avoid having to lock
-        std::mutex _mutex; // all World State operations are threat unsafe
+        mutable std::mutex _mutex; // guards _worldstates; all operations take it
 
         // Scourge Invasion
     public:

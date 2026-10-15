@@ -831,7 +831,7 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
     if (uint32 guildId = sCharacterCache->GetCharacterGuildIdByGuid(pCurrChar->GetGUID()))
     {
         Guild* guild = sGuildMgr->GetGuildById(guildId);
-        Guild::Member const* member = guild ? guild->GetMember(pCurrChar->GetGUID()) : nullptr;
+        Optional<Guild::Member> member = guild ? guild->GetMember(pCurrChar->GetGUID()) : Optional<Guild::Member>{};
         if (member)
         {
             pCurrChar->SetInGuild(guildId);

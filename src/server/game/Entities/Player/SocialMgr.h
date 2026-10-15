@@ -21,6 +21,7 @@
 #include "DatabaseEnv.h"
 #include "ObjectGuid.h"
 #include <map>
+#include <shared_mutex>
 
 class Player;
 class WorldPacket;
@@ -114,8 +115,10 @@ class PlayerSocial
         bool HasIgnore(ObjectGuid const& ignore_guid) const;
         ObjectGuid const& GetPlayerGUID() const { return m_playerGUID; }
         void SetPlayerGUID(ObjectGuid const& guid) { m_playerGUID = guid; }
+        // Assumes the SocialMgr lock held (only called with it held).
         uint32 GetNumberOfSocialsWithFlag(SocialFlag flag) const;
     private:
+        // Assumes the SocialMgr lock held (only called with it held).
         bool _checkContact(ObjectGuid const& guid, SocialFlag flags) const;
         typedef std::map<ObjectGuid, FriendInfo> PlayerSocialMap;
         PlayerSocialMap m_playerSocialMap;
@@ -130,8 +133,13 @@ class SocialMgr
 
     public:
         static SocialMgr* instance();
+        std::shared_mutex* GetSocialLock() const { return &_socialLock; }
         // Misc
-        void RemovePlayerSocial(ObjectGuid const& guid) { m_socialMap.erase(guid); }
+        void RemovePlayerSocial(ObjectGuid const& guid)
+        {
+            std::unique_lock<std::shared_mutex> lock(_socialLock);
+            m_socialMap.erase(guid);
+        }
         static void GetFriendInfo(Player* player, ObjectGuid const& friendGUID, FriendInfo& friendInfo);
         // Packet management
         void MakeFriendStatusPacket(FriendsResult result, ObjectGuid const& friend_guid, WorldPacket* data);
@@ -142,6 +150,9 @@ class SocialMgr
     private:
         typedef std::map<ObjectGuid, PlayerSocial> SocialMap;
         SocialMap m_socialMap;
+        // Guards m_socialMap and every PlayerSocial map. Contact-list reads
+        // run on session threads, writes on world; keep sections leaf-only.
+        mutable std::shared_mutex _socialLock;
 };
 
 #define sSocialMgr SocialMgr::instance()

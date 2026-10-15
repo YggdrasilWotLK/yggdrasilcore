@@ -16,6 +16,7 @@
  */
 
 #include "BattlegroundNA.h"
+#include "GroupMgr.h"
 #include "Player.h"
 #include "WorldPacket.h"
 #include "WorldStateDefines.h"
@@ -27,12 +28,14 @@ BattlegroundNA::BattlegroundNA()
 
 void BattlegroundNA::StartingEventCloseDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = BG_NA_OBJECT_DOOR_1; i <= BG_NA_OBJECT_DOOR_4; ++i)
         SpawnBGObject(i, RESPAWN_IMMEDIATELY);
 }
 
 void BattlegroundNA::StartingEventOpenDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = BG_NA_OBJECT_DOOR_1; i <= BG_NA_OBJECT_DOOR_2; ++i)
         DoorOpen(i);
 
@@ -42,12 +45,14 @@ void BattlegroundNA::StartingEventOpenDoors()
 
 bool BattlegroundNA::HandlePlayerUnderMap(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     player->NearTeleportTo(4055.504395f, 2919.660645f, 13.611241f, player->GetOrientation());
     return true;
 }
 
 void BattlegroundNA::HandleAreaTrigger(Player* player, uint32 trigger)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -67,12 +72,14 @@ void BattlegroundNA::HandleAreaTrigger(Player* player, uint32 trigger)
 
 void BattlegroundNA::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_NA_ARENA_SHOW, 1);
     Arena::FillInitialWorldStates(packet);
 }
 
 bool BattlegroundNA::SetupBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // gates
     if (!AddObject(BG_NA_OBJECT_DOOR_1, BG_NA_OBJECT_TYPE_DOOR_1, 4031.854f, 2966.833f, 12.0462f,  -2.648788f, 0, 0, 0.9697962f, -0.2439165f, RESPAWN_IMMEDIATELY)
             || !AddObject(BG_NA_OBJECT_DOOR_2, BG_NA_OBJECT_TYPE_DOOR_2, 4081.179f, 2874.97f,  12.00171f, 0.4928045f, 0, 0, 0.2439165f, 0.9697962f,  RESPAWN_IMMEDIATELY)

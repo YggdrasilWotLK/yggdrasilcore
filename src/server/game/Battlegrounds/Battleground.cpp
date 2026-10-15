@@ -121,6 +121,7 @@ namespace Acore
 template<class Do>
 void Battleground::BroadcastWorker(Do& _do)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
         _do(itr->second);
 }
@@ -248,6 +249,7 @@ Battleground::~Battleground()
 
 void Battleground::Update(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // pussywizard:
     m_UpdateTimer += diff;
     if (m_UpdateTimer < BATTLEGROUND_UPDATE_INTERVAL)
@@ -324,6 +326,7 @@ void Battleground::Update(uint32 diff)
 
 inline void Battleground::_CheckSafePositions(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     float maxDist = GetStartMaxDist();
     if (!maxDist)
         return;
@@ -350,6 +353,7 @@ inline void Battleground::_CheckSafePositions(uint32 diff)
 
 inline void Battleground::_ProcessResurrect(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // *********************************************************
     // ***        BATTLEGROUND RESURRECTION SYSTEM           ***
     // *********************************************************
@@ -413,6 +417,7 @@ inline void Battleground::_ProcessResurrect(uint32 diff)
 
 TeamId Battleground::GetPrematureWinner()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetPlayersCountByTeam(TEAM_ALLIANCE) >= GetMinPlayersPerTeam())
         return TEAM_ALLIANCE;
     else if (GetPlayersCountByTeam(TEAM_HORDE) >= GetMinPlayersPerTeam())
@@ -423,6 +428,7 @@ TeamId Battleground::GetPrematureWinner()
 
 inline void Battleground::_ProcessProgress(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // *********************************************************
     // ***           BATTLEGROUND BALLANCE SYSTEM            ***
     // *********************************************************
@@ -465,6 +471,7 @@ inline void Battleground::_ProcessProgress(uint32 diff)
 
 inline void Battleground::_ProcessJoin(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // *********************************************************
     // ***           BATTLEGROUND STARTING SYSTEM            ***
     // *********************************************************
@@ -680,6 +687,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
 
 inline void Battleground::_ProcessLeave(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // *********************************************************
     // ***           BATTLEGROUND ENDING SYSTEM              ***
     // *********************************************************
@@ -700,24 +708,28 @@ inline void Battleground::_ProcessLeave(uint32 diff)
 
 void Battleground::SetTeamStartPosition(TeamId teamId, Position const& pos)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     ASSERT(teamId < TEAM_NEUTRAL);
     _startPosition[teamId] = pos;
 }
 
 Position const* Battleground::GetTeamStartPosition(TeamId teamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     ASSERT(teamId < TEAM_NEUTRAL);
     return &_startPosition[teamId];
 }
 
 void Battleground::SendPacketToAll(WorldPacket const* packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
         itr->second->GetSession()->SendPacket(packet);
 }
 
 void Battleground::SendPacketToTeam(TeamId teamId, WorldPacket const* packet, Player* sender, bool self)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
         if (itr->second->GetBgTeamId() == teamId && (self || sender != itr->second))
             itr->second->GetSession()->SendPacket(packet);
@@ -725,11 +737,13 @@ void Battleground::SendPacketToTeam(TeamId teamId, WorldPacket const* packet, Pl
 
 void Battleground::SendChatMessage(Creature* source, uint8 textId, WorldObject* target /*= nullptr*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     sCreatureTextMgr->SendChat(source, textId, target);
 }
 
 void Battleground::SendBroadcastText(uint32 id, ChatMsg msgType, WorldObject const* target)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!sObjectMgr->GetBroadcastText(id))
     {
         LOG_ERROR("bg.battleground", "Battleground::SendBroadcastText: `broadcast_text` (ID: {}) was not found", id);
@@ -743,11 +757,13 @@ void Battleground::SendBroadcastText(uint32 id, ChatMsg msgType, WorldObject con
 
 void Battleground::PlaySoundToAll(uint32 soundID)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     SendPacketToAll(WorldPackets::Misc::Playsound(soundID).Write());
 }
 
 void Battleground::CastSpellOnTeam(uint32 spellId, TeamId teamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
         if (itr->second->GetBgTeamId() == teamId)
             itr->second->CastSpell(itr->second, spellId, true);
@@ -755,6 +771,7 @@ void Battleground::CastSpellOnTeam(uint32 spellId, TeamId teamId)
 
 void Battleground::RemoveAuraOnTeam(uint32 spellId, TeamId teamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
         if (itr->second->GetBgTeamId() == teamId)
             itr->second->RemoveAura(spellId);
@@ -762,6 +779,7 @@ void Battleground::RemoveAuraOnTeam(uint32 spellId, TeamId teamId)
 
 void Battleground::YellToAll(Creature* creature, char const* text, uint32 language)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
     {
         WorldPacket data;
@@ -772,6 +790,7 @@ void Battleground::YellToAll(Creature* creature, char const* text, uint32 langua
 
 void Battleground::RewardHonorToTeam(uint32 honor, TeamId teamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
         if (itr->second->GetBgTeamId() == teamId)
             UpdatePlayerScore(itr->second, SCORE_BONUS_HONOR, honor);
@@ -779,6 +798,7 @@ void Battleground::RewardHonorToTeam(uint32 honor, TeamId teamId)
 
 void Battleground::RewardReputationToTeam(uint32 factionId, uint32 reputation, TeamId teamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
         if (itr->second->GetBgTeamId() == teamId)
         {
@@ -794,6 +814,7 @@ void Battleground::RewardReputationToTeam(uint32 factionId, uint32 reputation, T
 
 uint32 Battleground::GetRealRepFactionForPlayer(uint32 factionId, Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (player)
     {
         // if the bg team is not the original team, reverse reputation
@@ -822,6 +843,7 @@ uint32 Battleground::GetRealRepFactionForPlayer(uint32 factionId, Player* player
 
 void Battleground::UpdateWorldState(uint32 variable, uint32 value)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     WorldPackets::WorldState::UpdateWorldState worldstate;
     worldstate.VariableID = variable;
     worldstate.Value = value;
@@ -830,6 +852,7 @@ void Battleground::UpdateWorldState(uint32 variable, uint32 value)
 
 void Battleground::EndBattleground(PvPTeamId winnerTeamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // xinef: if this is true, it means that endbattleground is called second time
     // skip to avoid double rating reduce / add
     // can bug out due to multithreading ?
@@ -977,6 +1000,7 @@ void Battleground::EndBattleground(PvPTeamId winnerTeamId)
 
 void Battleground::SpiritOfCompetitionEvent(PvPTeamId winnerTeamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     bool isDraw = winnerTeamId == PVP_TEAM_NEUTRAL;
 
     std::vector<Player*> filteredPlayers;
@@ -1002,6 +1026,7 @@ void Battleground::SpiritOfCompetitionEvent(PvPTeamId winnerTeamId) const
 
 uint32 Battleground::GetBonusHonorFromKill(uint32 kills) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     //variable kills means how many honorable kills you scored (so we need kills * honor_for_one_kill)
     uint32 maxLevel = std::min<uint32>(GetMaxLevel(), 80U);
     return Acore::Honor::hk_honor_at_level(maxLevel, float(kills));
@@ -1009,11 +1034,13 @@ uint32 Battleground::GetBonusHonorFromKill(uint32 kills) const
 
 void Battleground::BlockMovement(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     player->SetClientControl(player, 0);                          // movement disabled NOTE: the effect will be automatically removed by client when the player is teleported from the battleground, so no need to send with uint8(1) in RemovePlayerAtLeave()
 }
 
 void Battleground::RemovePlayerAtLeave(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     TeamId teamId = player->GetBgTeamId();
 
     // check if the player was a participant of the match, or only entered through gm command
@@ -1109,6 +1136,7 @@ void Battleground::RemovePlayerAtLeave(Player* player)
 // this method is called when creating bg
 void Battleground::Init()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     SetWinner(PVP_TEAM_NEUTRAL);
     SetStatus(STATUS_WAIT_QUEUE);
     SetStartTime(0);
@@ -1142,6 +1170,7 @@ void Battleground::Init()
 
 void Battleground::StartBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     SetStartTime(0);
     SetLastResurrectTime(0);
 
@@ -1158,6 +1187,7 @@ void Battleground::StartBattleground()
 
 void Battleground::AddPlayer(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // remove afk from player
     if (player->HasPlayerFlag(PLAYER_FLAGS_AFK))
         player->ToggleAFK();
@@ -1220,6 +1250,7 @@ void Battleground::AddPlayer(Player* player)
 // this method adds player to his team's bg group, or sets his correct group if player is already in bg group
 void Battleground::AddOrSetPlayerToCorrectBgGroup(Player* player, TeamId teamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (player->GetGroup() && (player->GetGroup()->isBGGroup() || player->GetGroup()->isBFGroup()))
     {
         LOG_INFO("misc", "Battleground::AddOrSetPlayerToCorrectBgGroup - player is already in {} group!", (player->GetGroup()->isBGGroup() ? "BG" : "BF"));
@@ -1256,6 +1287,7 @@ void Battleground::AddOrSetPlayerToCorrectBgGroup(Player* player, TeamId teamId)
 // This method should be called only once ... it adds pointer to queue
 void Battleground::AddToBGFreeSlotQueue()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!_InBGFreeSlotQueue && isBattleground())
     {
         sBattlegroundMgr->AddToBGFreeSlotQueue(m_RealTypeID, this);
@@ -1266,6 +1298,7 @@ void Battleground::AddToBGFreeSlotQueue()
 // This method removes this battleground from free queue - it must be called when deleting battleground
 void Battleground::RemoveFromBGFreeSlotQueue()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (_InBGFreeSlotQueue)
     {
         sBattlegroundMgr->RemoveFromBGFreeSlotQueue(m_RealTypeID, m_InstanceID);
@@ -1275,6 +1308,7 @@ void Battleground::RemoveFromBGFreeSlotQueue()
 
 uint32 Battleground::GetFreeSlotsForTeam(TeamId teamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!(GetStatus() == STATUS_IN_PROGRESS || GetStatus() == STATUS_WAIT_JOIN))
         return 0;
 
@@ -1322,11 +1356,13 @@ uint32 Battleground::GetFreeSlotsForTeam(TeamId teamId) const
 
 uint32 Battleground::GetMaxFreeSlots() const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return std::max<uint32>(GetFreeSlotsForTeam(TEAM_ALLIANCE), GetFreeSlotsForTeam(TEAM_HORDE));
 }
 
 bool Battleground::HasFreeSlots() const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_WAIT_JOIN && GetStatus() != STATUS_IN_PROGRESS)
         return false;
     for (uint8 i = 0; i < PVP_TEAMS_COUNT; ++i)
@@ -1337,12 +1373,14 @@ bool Battleground::HasFreeSlots() const
 
 void Battleground::SpectatorsSendPacket(WorldPacket& data)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (SpectatorList::const_iterator itr = m_Spectators.begin(); itr != m_Spectators.end(); ++itr)
         (*itr)->GetSession()->SendPacket(&data);
 }
 
 void Battleground::ReadyMarkerClicked(Player* p)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!isArena() || GetStatus() >= STATUS_IN_PROGRESS || GetStartDelayTime() <= BG_START_DELAY_15S || (m_Events & BG_STARTING_EVENT_3) || p->IsSpectator())
         return;
     readyMarkerClickedSet.insert(p->GetGUID());
@@ -1359,6 +1397,7 @@ void Battleground::ReadyMarkerClicked(Player* p)
 
 void Battleground::BuildPvPLogDataPacket(WorldPacket& data)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint8 type = (isArena() ? 1 : 0);
 
     data.Initialize(MSG_PVP_LOG_DATA, 1 + 1 + 4 + 40 * GetPlayerScores()->size());
@@ -1389,6 +1428,7 @@ void Battleground::BuildPvPLogDataPacket(WorldPacket& data)
 
 bool Battleground::UpdatePlayerScore(Player* player, uint32 type, uint32 value, bool doAddHonor)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     auto const& itr = PlayerScores.find(player->GetGUID().GetCounter());
     if (itr == PlayerScores.end()) // player not found...
         return false;
@@ -1403,6 +1443,7 @@ bool Battleground::UpdatePlayerScore(Player* player, uint32 type, uint32 value, 
 
 void Battleground::AddPlayerToResurrectQueue(ObjectGuid npc_guid, ObjectGuid player_guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     m_ReviveQueue[npc_guid].push_back(player_guid);
 
     Player* player = ObjectAccessor::FindPlayer(player_guid);
@@ -1414,6 +1455,7 @@ void Battleground::AddPlayerToResurrectQueue(ObjectGuid npc_guid, ObjectGuid pla
 
 void Battleground::RemovePlayerFromResurrectQueue(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (std::map<ObjectGuid, GuidVector>::iterator itr = m_ReviveQueue.begin(); itr != m_ReviveQueue.end(); ++itr)
         for (GuidVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2)
             if (*itr2 == player->GetGUID())
@@ -1426,6 +1468,7 @@ void Battleground::RemovePlayerFromResurrectQueue(Player* player)
 
 void Battleground::RelocateDeadPlayers(ObjectGuid queueIndex)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // Those who are waiting to resurrect at this node are taken to the closest own node's graveyard
     GuidVector& ghostList = m_ReviveQueue[queueIndex];
     if (!ghostList.empty())
@@ -1450,6 +1493,7 @@ void Battleground::RelocateDeadPlayers(ObjectGuid queueIndex)
 
 bool Battleground::AddObject(uint32 type, uint32 entry, float x, float y, float z, float o, float rotation0, float rotation1, float rotation2, float rotation3, uint32 /*respawnTime*/, GOState goState)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // If the assert is called, means that BgObjects must be resized!
     ASSERT(type < BgObjects.size());
 
@@ -1506,6 +1550,7 @@ bool Battleground::AddObject(uint32 type, uint32 entry, float x, float y, float 
 // It would be nice to correctly implement GO_ACTIVATED state and open/close doors in gameobject code
 void Battleground::DoorClose(uint32 type)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GameObject* obj = GetBgMap()->GetGameObject(BgObjects[type]))
     {
         // If doors are open, close it
@@ -1522,6 +1567,7 @@ void Battleground::DoorClose(uint32 type)
 
 void Battleground::DoorOpen(uint32 type)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GameObject* obj = GetBgMap()->GetGameObject(BgObjects[type]))
     {
         obj->SetLootState(GO_ACTIVATED);
@@ -1534,6 +1580,7 @@ void Battleground::DoorOpen(uint32 type)
 
 GameObject* Battleground::GetBGObject(uint32 type)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     GameObject* obj = GetBgMap()->GetGameObject(BgObjects[type]);
     if (!obj)
         LOG_ERROR("bg.battleground", "Battleground::GetBGObject: gameobject (type: {}, {}) not found for BG (map: {}, instance id: {})!",
@@ -1543,6 +1590,7 @@ GameObject* Battleground::GetBGObject(uint32 type)
 
 Creature* Battleground::GetBGCreature(uint32 type)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Creature* creature = GetBgMap()->GetCreature(BgCreatures[type]);
     if (!creature)
         LOG_ERROR("bg.battleground", "Battleground::GetBGCreature: creature (type: {}, {}) not found for BG (map: {}, instance id: {})!",
@@ -1552,6 +1600,7 @@ Creature* Battleground::GetBGCreature(uint32 type)
 
 void Battleground::SpawnBGObject(uint32 type, uint32 respawntime, uint32 forceRespawnDelay)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (Map* map = FindBgMap())
         if (GameObject* obj = map->GetGameObject(BgObjects[type]))
         {
@@ -1572,6 +1621,7 @@ void Battleground::SpawnBGObject(uint32 type, uint32 respawntime, uint32 forceRe
 
 Creature* Battleground::AddCreature(uint32 entry, uint32 type, float x, float y, float z, float o, uint32 respawntime, MotionTransport* transport)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // If the assert is called, means that BgCreatures must be resized!
     ASSERT(type < BgCreatures.size());
 
@@ -1635,6 +1685,7 @@ Creature* Battleground::AddCreature(uint32 entry, uint32 type, float x, float y,
 
 bool Battleground::DelCreature(uint32 type)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!BgCreatures[type])
         return true;
 
@@ -1654,6 +1705,7 @@ bool Battleground::DelCreature(uint32 type)
 
 bool Battleground::DelObject(uint32 type)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!BgObjects[type])
         return true;
 
@@ -1674,6 +1726,7 @@ bool Battleground::DelObject(uint32 type)
 
 bool Battleground::AddSpiritGuide(uint32 type, float x, float y, float z, float o, TeamId teamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 entry = (teamId == TEAM_ALLIANCE) ? BG_CREATURE_ENTRY_A_SPIRITGUIDE : BG_CREATURE_ENTRY_H_SPIRITGUIDE;
 
     if (Creature* creature = AddCreature(entry, type, x, y, z, o))
@@ -1698,6 +1751,7 @@ bool Battleground::AddSpiritGuide(uint32 type, float x, float y, float z, float 
 
 void Battleground::EndNow()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     RemoveFromBGFreeSlotQueue();
     SetStatus(STATUS_WAIT_LEAVE);
     SetEndTime(0);
@@ -1705,6 +1759,7 @@ void Battleground::EndNow()
 
 void Battleground::HandleTriggerBuff(GameObject* gameObject)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // Xinef: crash fix?
     if (GetStatus() != STATUS_IN_PROGRESS || !GetPlayersSize() || BgObjects.empty())
         return;
@@ -1755,6 +1810,7 @@ void Battleground::HandleTriggerBuff(GameObject* gameObject)
 
 void Battleground::HandleKillPlayer(Player* victim, Player* killer)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // Keep in mind that for arena this will have to be changed a bit
 
     // Add +1 deaths
@@ -1790,11 +1846,13 @@ void Battleground::HandleKillPlayer(Player* victim, Player* killer)
 
 TeamId Battleground::GetOtherTeamId(TeamId teamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return teamId != TEAM_NEUTRAL ? (teamId == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE) : TEAM_NEUTRAL;
 }
 
 bool Battleground::IsPlayerInBattleground(ObjectGuid guid) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     BattlegroundPlayerMap::const_iterator itr = m_Players.find(guid);
     if (itr != m_Players.end())
         return true;
@@ -1803,6 +1861,7 @@ bool Battleground::IsPlayerInBattleground(ObjectGuid guid) const
 
 void Battleground::PlayerAddedToBGCheckIfBGIsRunning(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_WAIT_LEAVE)
         return;
 
@@ -1818,6 +1877,7 @@ void Battleground::PlayerAddedToBGCheckIfBGIsRunning(Player* player)
 
 uint32 Battleground::GetAlivePlayersCountByTeam(TeamId teamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 count = 0;
     for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
         if (itr->second->IsAlive() && !itr->second->HasByteFlag(UNIT_FIELD_BYTES_2, 3, FORM_SPIRITOFREDEMPTION) && itr->second->GetBgTeamId() == teamId)
@@ -1828,11 +1888,13 @@ uint32 Battleground::GetAlivePlayersCountByTeam(TeamId teamId) const
 
 void Battleground::SetHoliday(bool is_holiday)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     m_HonorMode = is_holiday ? BG_HOLIDAY : BG_NORMAL;
 }
 
 int32 Battleground::GetObjectType(ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = 0; i < BgObjects.size(); ++i)
         if (BgObjects[i] == guid)
             return i;
@@ -1845,6 +1907,7 @@ int32 Battleground::GetObjectType(ObjectGuid guid)
 
 void Battleground::SetBgRaid(TeamId teamId, Group* bg_raid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Group*& old_raid = m_BgRaids[teamId];
     if (old_raid)
         old_raid->SetBattlegroundGroup(nullptr);
@@ -1855,11 +1918,13 @@ void Battleground::SetBgRaid(TeamId teamId, Group* bg_raid)
 
 GraveyardStruct const* Battleground::GetClosestGraveyard(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return sGraveyard->GetClosestGraveyard(player, player->GetBgTeamId());
 }
 
 void Battleground::SetBracket(PvPDifficultyEntry const* bracketEntry)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     m_IsTemplate = false;
     m_BracketId = bracketEntry->GetBracketId();
     SetLevelRange(bracketEntry->minLevel, bracketEntry->maxLevel);
@@ -1867,12 +1932,14 @@ void Battleground::SetBracket(PvPDifficultyEntry const* bracketEntry)
 
 void Battleground::StartTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
         itr->second->StartTimedAchievement(type, entry);
 }
 
 uint32 Battleground::GetTeamScore(TeamId teamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (teamId == TEAM_ALLIANCE || teamId == TEAM_HORDE)
         return m_TeamScores[teamId];
 
@@ -1882,11 +1949,13 @@ uint32 Battleground::GetTeamScore(TeamId teamId) const
 
 void Battleground::RewardXPAtKill(Player* killer, Player* victim)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (sWorld->getBoolConfig(CONFIG_BG_XP_FOR_KILL) && killer && victim)
         killer->RewardPlayerAndGroupAtKill(victim, true);
 }
 
 uint8 Battleground::GetUniqueBracketId() const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return GetMaxLevel() / 10;
 }

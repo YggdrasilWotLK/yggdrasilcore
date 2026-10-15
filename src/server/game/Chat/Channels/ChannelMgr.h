@@ -21,7 +21,9 @@
 #include "Channel.h"
 #include "World.h"
 #include <map>
+#include <mutex>
 #include <string>
+#include <vector>
 
 #define MAX_CHANNEL_PASS_STR 31
 
@@ -40,7 +42,10 @@ public:
 
     Channel* GetJoinChannel(std::string const& name, uint32 channel_id);
     Channel* GetChannel(std::string const& name, Player* p, bool pkt = true);
+    // Deprecated: escapes the live map, do not iterate it. Use the snapshot.
     const ChannelMap& GetChannels() const { return channels; }
+    // Snapshot copy: the map mutates on other threads, never iterate it live.
+    std::vector<Channel*> GetChannelsSnapshot() const;
     static void LoadChannels();
 
     static void LoadChannelRights();
@@ -50,6 +55,9 @@ public:
 
 private:
     ChannelMap channels;
+    // Guards channels. Join flows insert from map threads (LFG auto-join)
+    // while lookups run anywhere; leaf-only, never hold across channel ops.
+    mutable std::mutex _channelsLock;
     TeamId _teamId;
     static ChannelRightsMap channels_rights;
     static ChannelRights channelRightsEmpty; // when not found in the map, reference to this is returned
