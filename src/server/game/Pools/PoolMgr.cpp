@@ -16,6 +16,7 @@
  */
 
 #include "PoolMgr.h"
+#include <mutex>
 #include "Containers.h"
 #include "Log.h"
 #include "MapMgr.h"
@@ -197,6 +198,7 @@ void PoolGroup<Creature>::Despawn1Object(ObjectGuid::LowType guid)
         Map* map = sMapMgr->CreateBaseMap(data->mapid);
         if (!map->Instanceable())
         {
+            std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
             auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(guid);
             for (auto itr = creatureBounds.first; itr != creatureBounds.second;)
             {
@@ -219,6 +221,7 @@ void PoolGroup<GameObject>::Despawn1Object(ObjectGuid::LowType guid)
         Map* map = sMapMgr->CreateBaseMap(data->mapid);
         if (!map->Instanceable())
         {
+            std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
             auto gameobjectBounds = map->GetGameObjectBySpawnIdStore().equal_range(guid);
             for (auto itr = gameobjectBounds.first; itr != gameobjectBounds.second;)
             {

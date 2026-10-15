@@ -16,6 +16,7 @@
  */
 
 #include "Map.h"
+#include <mutex>
 #include "Battleground.h"
 #include "CellImpl.h"
 #include "Chat.h"
@@ -2372,21 +2373,25 @@ void BattlegroundMap::RemoveAllPlayers()
 
 Corpse* Map::GetCorpse(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return _objectsStore.Find<Corpse>(guid);
 }
 
 Creature* Map::GetCreature(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return _objectsStore.Find<Creature>(guid);
 }
 
 GameObject* Map::GetGameObject(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return _objectsStore.Find<GameObject>(guid);
 }
 
 Pet* Map::GetPet(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return dynamic_cast<Pet*>(_objectsStore.Find<Creature>(guid));
 }
 
@@ -2401,6 +2406,7 @@ Transport* Map::GetTransport(ObjectGuid const& guid)
 
 DynamicObject* Map::GetDynamicObject(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return _objectsStore.Find<DynamicObject>(guid);
 }
 
@@ -2663,6 +2669,7 @@ void Map::AddCorpse(Corpse* corpse)
     corpse->SetMap(this);
 
     GridCoord const gridCoord = Acore::ComputeGridCoord(corpse->GetPositionX(), corpse->GetPositionY());
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     _corpsesByGrid[gridCoord.GetId()].insert(corpse);
     if (corpse->GetType() != CORPSE_BONES)
         _corpsesByPlayer[corpse->GetOwnerGUID()] = corpse;
@@ -2684,6 +2691,7 @@ void Map::RemoveCorpse(Corpse* corpse)
         corpse->ResetMap();
     }
 
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     _corpsesByGrid[gridCoord.GetId()].erase(corpse);
     if (corpse->GetType() != CORPSE_BONES)
         _corpsesByPlayer.erase(corpse->GetOwnerGUID());
@@ -2749,19 +2757,25 @@ void Map::RemoveOldCorpses()
     time_t now = GameTime::GetGameTime().count();
 
     std::vector<ObjectGuid> corpses;
-    corpses.reserve(_corpsesByPlayer.size());
+    {
+        std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
+        corpses.reserve(_corpsesByPlayer.size());
 
-    for (auto const& p : _corpsesByPlayer)
-        if (p.second->IsExpired(now))
-            corpses.push_back(p.first);
+        for (auto const& p : _corpsesByPlayer)
+            if (p.second->IsExpired(now))
+                corpses.push_back(p.first);
+    }
 
     for (ObjectGuid const& ownerGuid : corpses)
         ConvertCorpseToBones(ownerGuid);
 
     std::vector<Corpse*> expiredBones;
-    for (Corpse* bones : _corpseBones)
-        if (bones->IsExpired(now))
-            expiredBones.push_back(bones);
+    {
+        std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
+        for (Corpse* bones : _corpseBones)
+            if (bones->IsExpired(now))
+                expiredBones.push_back(bones);
+    }
 
     for (Corpse* bones : expiredBones)
     {
