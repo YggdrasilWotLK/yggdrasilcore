@@ -461,9 +461,9 @@
   }
  },
  "Creature::PauseMovementForInteraction@71b9ffee:qwen3-5-4b": {
-  "hash": "f8744eec17b0",
-  "desc": "Temporarily halts the creature's movement for a specified duration to allow interaction with a player, while excluding owned creatures, active escorts, escorted targets, and combat situations. Side effects: Applies an aura to the caster indicating the stop, updates an internal lock-protected map tracking which creatures are paused by which players, and prevents further movement until the timer expires.",
-  "raw": "{\n  \"what\": \"Temporarily halts the creature's movement for a specified duration to allow interaction with a player, while excluding owned creatures, active escorts, escorted targets, and combat situations.\",\n  \"effects\": \"Applies an aura to the caster indicating the stop, updates an internal lock-protected map tracking which creatures are paused by which players, and prevents further movement until the timer expires.\"\n}",
+  "hash": "a6977eb9cee7",
+  "desc": "Pauses the movement of a creature to allow interaction with a specific player, while excluding owned creatures, active escorts, escorted units, and creatures currently in combat. Side effects: The creature's movement generator is saved, its destination and home position are recorded, and movement is halted until the interaction completes or the pause timer expires.",
+  "raw": "{\"what\": \"Pauses the movement of a creature to allow interaction with a specific player, while excluding owned creatures, active escorts, escorted units, and creatures currently in combat.\", \"effects\": \"The creature's movement generator is saved, its destination and home position are recorded, and movement is halted until the interaction completes or the pause timer expires.\"}",
   "entry": {
    "class": "Creature",
    "name": "PauseMovementForInteraction",
@@ -471,16 +471,20 @@
    "file": "src/server/game/Entities/Creature/Creature.h",
    "line": 90,
    "access": "public",
-   "hash": "f8744eec17b0",
-   "desc": "Temporarily halts the creature's movement for a specified duration to allow interaction with a player, while excluding owned creatures, active escorts, escorted targets, and combat situations. Side effects: Applies an aura to the caster indicating the stop, updates an internal lock-protected map tracking which creatures are paused by which players, and prevents further movement until the timer expires.",
+   "impl": {
+    "file": "src/server/game/Entities/Creature/Creature.cpp",
+    "line": 3070
+   },
+   "hash": "a6977eb9cee7",
+   "desc": "Pauses the movement of a creature to allow interaction with a specific player, while excluding owned creatures, active escorts, escorted units, and creatures currently in combat. Side effects: The creature's movement generator is saved, its destination and home position are recorded, and movement is halted until the interaction completes or the pause timer expires.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
  },
  "Creature::ClearInteractionStop@2b3fc9e7:qwen3-5-4b": {
-  "hash": "b541f880389d",
-  "desc": "Removes the interaction stop aura placed by a specific player on the creature, resumes movement, and clears the corresponding entry from the internal interaction stop map. Side effects: The aura is removed; movement state is temporarily resumed then paused again; the interaction stop map entry for the specified player is erased.",
-  "raw": "{\n  \"what\": \"Removes the interaction stop aura placed by a specific player on the creature, resumes movement, and clears the corresponding entry from the internal interaction stop map.\",\n  \"effects\": \"The aura is removed; movement state is temporarily resumed then paused again; the interaction stop map entry for the specified player is erased.\"\n}",
+  "hash": "00d1cd404744",
+  "desc": "Removes the interaction stop aura applied to a specific player by this creature, resumes movement and interaction logic, and cleans up internal state tracking for that player. Side effects: Removes aura from target player; resumes movement and interaction; updates internal pause/resume flags; removes entry from interaction stop map.",
+  "raw": "{\n  \"what\": \"Removes the interaction stop aura applied to a specific player by this creature, resumes movement and interaction logic, and cleans up internal state tracking for that player.\",\n  \"effects\": \"Removes aura from target player; resumes movement and interaction; updates internal pause/resume flags; removes entry from interaction stop map.\"\n}",
   "entry": {
    "class": "Creature",
    "name": "ClearInteractionStop",
@@ -488,8 +492,12 @@
    "file": "src/server/game/Entities/Creature/Creature.h",
    "line": 92,
    "access": "public",
-   "hash": "b541f880389d",
-   "desc": "Removes the interaction stop aura placed by a specific player on the creature, resumes movement, and clears the corresponding entry from the internal interaction stop map. Side effects: The aura is removed; movement state is temporarily resumed then paused again; the interaction stop map entry for the specified player is erased.",
+   "impl": {
+    "file": "src/server/game/Entities/Creature/Creature.cpp",
+    "line": 3124
+   },
+   "hash": "00d1cd404744",
+   "desc": "Removes the interaction stop aura applied to a specific player by this creature, resumes movement and interaction logic, and cleans up internal state tracking for that player. Side effects: Removes aura from target player; resumes movement and interaction; updates internal pause/resume flags; removes entry from interaction stop map.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -43046,6 +43054,27 @@
    "impl": null,
    "hash": "cdafef166ccf",
    "desc": "Updates the pending flight change counter to the specified value",
+   "ai": true,
+   "model": "qwen3.5:4b"
+  }
+ },
+ "Creature::ResumeInteractionMovement@63e2b4c0:qwen3-5-4b": {
+  "hash": "f573c55722e8",
+  "desc": "Resumes the movement of a creature after an interaction has ended by releasing any frozen state, restoring its home position, and relaunching point motion generators if applicable. Side effects: Sets the internal interaction stop resume flag to invalid, updates the creature's home position, logs debug information regarding unfreezing status, and potentially relaunches motion slots for point-based movement.",
+  "raw": "{\n  \"what\": \"Resumes the movement of a creature after an interaction has ended by releasing any frozen state, restoring its home position, and relaunching point motion generators if applicable.\",\n  \"effects\": \"Sets the internal interaction stop resume flag to invalid, updates the creature's home position, logs debug information regarding unfreezing status, and potentially relaunches motion slots for point-based movement.\"\n}",
+  "entry": {
+   "class": "Creature",
+   "name": "ResumeInteractionMovement",
+   "sig": "void ResumeInteractionMovement()",
+   "file": "src/server/game/Entities/Creature/Creature.h",
+   "line": 93,
+   "access": "public",
+   "impl": {
+    "file": "src/server/game/Entities/Creature/Creature.cpp",
+    "line": 3156
+   },
+   "hash": "f573c55722e8",
+   "desc": "Resumes the movement of a creature after an interaction has ended by releasing any frozen state, restoring its home position, and relaunching point motion generators if applicable. Side effects: Sets the internal interaction stop resume flag to invalid, updates the creature's home position, logs debug information regarding unfreezing status, and potentially relaunches motion slots for point-based movement.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
