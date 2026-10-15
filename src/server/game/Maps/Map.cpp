@@ -442,8 +442,7 @@ void Map::Update(const uint32 t_diff, const uint32 s_diff, bool  /*thread*/)
         _dynamicTree.update(t_diff);
 
     // Update world sessions and players
-    // Snapshot guids first: logins/teleports mutate the list from other
-    // threads, and resolved players are liveness-checked below.
+    // Snapshot guids; the list mutates on other threads.
     std::vector<ObjectGuid> sessionGuids;
     {
         std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
@@ -482,8 +481,7 @@ void Map::Update(const uint32 t_diff, const uint32 s_diff, bool  /*thread*/)
     resetMarkedCells();
 
     // Update players
-    // Snapshot guids first: logins/teleports mutate the list from other
-    // threads, and resolved players are liveness-checked below.
+    // Snapshot guids; the list mutates on other threads.
     std::vector<ObjectGuid> updateGuids;
     {
         std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
