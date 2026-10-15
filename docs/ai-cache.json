@@ -21993,9 +21993,9 @@
   }
  },
  "Player::RemovePetitionsAndSigns@39b28d49:qwen3-5-4b": {
-  "hash": "6f97512ed403",
-  "desc": "Removes petition signatures associated with a specific object GUID from both in-memory storage and the database, optionally filtering by type; if type is 10, it also deletes all signatures for that owner.",
-  "raw": "{\"what\": \"Removes petition signatures associated with a specific object GUID from both in-memory storage and the database, optionally filtering by type; if type is 10, it also deletes all signatures for that owner.\", \"effects\": \"none\"}",
+  "hash": "47e3fe4f12c4",
+  "desc": "Removes signatures from a specific player for all petitions matching the given type or a global petition removal, and notifies the charter owner of any removed signature.",
+  "raw": "{\"what\": \"Removes signatures from a specific player for all petitions matching the given type or a global petition removal, and notifies the charter owner of any removed signature.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Player",
    "name": "RemovePetitionsAndSigns",
@@ -22005,10 +22005,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/Player.cpp",
-    "line": 10169
+    "line": 10175
    },
-   "hash": "6f97512ed403",
-   "desc": "Removes petition signatures associated with a specific object GUID from both in-memory storage and the database, optionally filtering by type; if type is 10, it also deletes all signatures for that owner.",
+   "hash": "47e3fe4f12c4",
+   "desc": "Removes signatures from a specific player for all petitions matching the given type or a global petition removal, and notifies the charter owner of any removed signature.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -29550,85 +29550,85 @@
   }
  },
  "PlayerSocial::AddToSocialList@6aca822b:qwen3-5-4b": {
-  "hash": "1a8ca154a44b",
-  "desc": "Adds a social relationship (friend or ignore) for the specified player to the current player's social list, updating flags in memory and persisting changes to the database.",
-  "raw": "{\"what\": \"Adds a social relationship (friend or ignore) for the specified player to the current player's social list, updating flags in memory and persisting changes to the database.\", \"effects\": \"none\"}",
+  "hash": "e123cba28107",
+  "desc": "Adds a specific social relationship flag (e.g., FRIEND) to the player's social list for a given friend GUID, handling both new relationships and updates to existing ones while enforcing client-side limits. Side effects: Updates the database with the new or modified social flags; returns false if the client limit is reached.",
+  "raw": "{\"what\": \"Adds a specific social relationship flag (e.g., FRIEND) to the player's social list for a given friend GUID, handling both new relationships and updates to existing ones while enforcing client-side limits.\", \"effects\": \"Updates the database with the new or modified social flags; returns false if the client limit is reached.\"}",
   "entry": {
    "class": "PlayerSocial",
    "name": "AddToSocialList",
    "sig": "bool AddToSocialList(ObjectGuid const& friend_guid, SocialFlag flag)",
    "file": "src/server/game/Entities/Player/SocialMgr.h",
-   "line": 107,
+   "line": 108,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/SocialMgr.cpp",
     "line": 40
    },
-   "hash": "1a8ca154a44b",
-   "desc": "Adds a social relationship (friend or ignore) for the specified player to the current player's social list, updating flags in memory and persisting changes to the database.",
+   "hash": "e123cba28107",
+   "desc": "Adds a specific social relationship flag (e.g., FRIEND) to the player's social list for a given friend GUID, handling both new relationships and updates to existing ones while enforcing client-side limits. Side effects: Updates the database with the new or modified social flags; returns false if the client limit is reached.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
  },
  "PlayerSocial::RemoveFromSocialList@aa3599f6:qwen3-5-4b": {
-  "hash": "f705560080af",
-  "desc": "Removes a specific social flag from another player's social list. If the target player does not exist in the map, it returns immediately. If the flag is removed and the player has no remaining social flags, the entry is deleted from the database; otherwise, only the flag is updated. Side effects: Updates or deletes the player's social relationship record in the database based on whether the flag removal results in zero flags.",
-  "raw": "{\n  \"what\": \"Removes a specific social flag from another player's social list. If the target player does not exist in the map, it returns immediately. If the flag is removed and the player has no remaining social flags, the entry is deleted from the database; otherwise, only the flag is updated.\",\n  \"effects\": \"Updates or deletes the player's social relationship record in the database based on whether the flag removal results in zero flags.\"\n}",
+  "hash": "44b388f7983b",
+  "desc": "Removes a specific social relationship (flag) between the current player and another player from both the in-game data structure and the database. If the relationship is completely removed (all flags cleared), it deletes the entry entirely; otherwise, it updates the flags. Side effects: Modifies the player's social list in memory and executes SQL queries to update or delete records in the CharacterDatabase.",
+  "raw": "{\"what\": \"Removes a specific social relationship (flag) between the current player and another player from both the in-game data structure and the database. If the relationship is completely removed (all flags cleared), it deletes the entry entirely; otherwise, it updates the flags.\", \"effects\": \"Modifies the player's social list in memory and executes SQL queries to update or delete records in the CharacterDatabase.\"}",
   "entry": {
    "class": "PlayerSocial",
    "name": "RemoveFromSocialList",
    "sig": "void RemoveFromSocialList(ObjectGuid const& friend_guid, SocialFlag flag)",
    "file": "src/server/game/Entities/Player/SocialMgr.h",
-   "line": 108,
+   "line": 109,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/SocialMgr.cpp",
-    "line": 74
+    "line": 75
    },
-   "hash": "f705560080af",
-   "desc": "Removes a specific social flag from another player's social list. If the target player does not exist in the map, it returns immediately. If the flag is removed and the player has no remaining social flags, the entry is deleted from the database; otherwise, only the flag is updated. Side effects: Updates or deletes the player's social relationship record in the database based on whether the flag removal results in zero flags.",
+   "hash": "44b388f7983b",
+   "desc": "Removes a specific social relationship (flag) between the current player and another player from both the in-game data structure and the database. If the relationship is completely removed (all flags cleared), it deletes the entry entirely; otherwise, it updates the flags. Side effects: Modifies the player's social list in memory and executes SQL queries to update or delete records in the CharacterDatabase.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
  },
  "PlayerSocial::SetFriendNote@444cac75:qwen3-5-4b": {
-  "hash": "f80e1063822d",
-  "desc": "Updates the note associated with a specific friend in the player's social map by truncating the input string to 48 characters and executing a database update, while also synchronizing the local map. Side effects: modifies the database record for the character's social notes and updates the internal m_playerSocialMap",
-  "raw": "{\"what\": \"Updates the note associated with a specific friend in the player's social map by truncating the input string to 48 characters and executing a database update, while also synchronizing the local map.\", \"effects\": \"modifies the database record for the character's social notes and updates the internal m_playerSocialMap\"}",
+  "hash": "ac5148264bf6",
+  "desc": "Updates the friendship note for a specific friend by truncating the input to 48 characters and executing a database update, while also synchronizing the local map.",
+  "raw": "{\"what\": \"Updates the friendship note for a specific friend by truncating the input to 48 characters and executing a database update, while also synchronizing the local map.\", \"effects\": \"none\"}",
   "entry": {
    "class": "PlayerSocial",
    "name": "SetFriendNote",
    "sig": "void SetFriendNote(ObjectGuid const& friendGuid, std::string note)",
    "file": "src/server/game/Entities/Player/SocialMgr.h",
-   "line": 109,
+   "line": 110,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/SocialMgr.cpp",
-    "line": 105
+    "line": 107
    },
-   "hash": "f80e1063822d",
-   "desc": "Updates the note associated with a specific friend in the player's social map by truncating the input string to 48 characters and executing a database update, while also synchronizing the local map. Side effects: modifies the database record for the character's social notes and updates the internal m_playerSocialMap",
+   "hash": "ac5148264bf6",
+   "desc": "Updates the friendship note for a specific friend by truncating the input to 48 characters and executing a database update, while also synchronizing the local map.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
  },
  "PlayerSocial::SendSocialList@22d30ed0:qwen3-5-4b": {
-  "hash": "7ea6cfc10989",
-  "desc": "Constructs and begins populating a WorldPacket containing the player's social contact list (friends, ignored, muted), filtering entries based on provided flags and enforcing client-side limits for friend and ignore counts.",
-  "raw": "{\"what\": \"Constructs and begins populating a WorldPacket containing the player's social contact list (friends, ignored, muted), filtering entries based on provided flags and enforcing client-side limits for friend and ignore counts.\", \"effects\": \"none\"}",
+  "hash": "17526f1df661",
+  "desc": "Retrieves the player's social contacts (friends and ignored players) from the server database, filters them based on provided flags, and constructs a network packet to send this list to the client while enforcing per-client limits for friends and ignored counts.",
+  "raw": "{\"what\": \"Retrieves the player's social contacts (friends and ignored players) from the server database, filters them based on provided flags, and constructs a network packet to send this list to the client while enforcing per-client limits for friends and ignored counts.\", \"effects\": \"None\"}",
   "entry": {
    "class": "PlayerSocial",
    "name": "SendSocialList",
    "sig": "void SendSocialList(Player* player, uint32 flags)",
    "file": "src/server/game/Entities/Player/SocialMgr.h",
-   "line": 111,
+   "line": 112,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/SocialMgr.cpp",
-    "line": 124
+    "line": 127
    },
-   "hash": "7ea6cfc10989",
-   "desc": "Constructs and begins populating a WorldPacket containing the player's social contact list (friends, ignored, muted), filtering entries based on provided flags and enforcing client-side limits for friend and ignore counts.",
+   "hash": "17526f1df661",
+   "desc": "Retrieves the player's social contacts (friends and ignored players) from the server database, filters them based on provided flags, and constructs a network packet to send this list to the client while enforcing per-client limits for friends and ignored counts.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -29753,41 +29753,23 @@
    "model": "qwen3.5:4b"
   }
  },
- "SocialMgr::RemovePlayerSocial@a0daf068:qwen3-5-4b": {
-  "hash": "6810f26493fe",
-  "desc": "Removes the specified player from the social map by erasing their entry using their ObjectGuid.",
-  "raw": "{\"what\": \"Removes the specified player from the social map by erasing their entry using their ObjectGuid.\", \"effects\": \"none\"}",
-  "entry": {
-   "class": "SocialMgr",
-   "name": "RemovePlayerSocial",
-   "sig": "void RemovePlayerSocial(ObjectGuid const& guid)",
-   "file": "src/server/game/Entities/Player/SocialMgr.h",
-   "line": 134,
-   "access": "public",
-   "impl": null,
-   "hash": "6810f26493fe",
-   "desc": "Removes the specified player from the social map by erasing their entry using their ObjectGuid.",
-   "ai": true,
-   "model": "qwen3.5:4b"
-  }
- },
  "SocialMgr::GetFriendInfo@d73a07e8:qwen3-5-4b": {
-  "hash": "8375e1afc8f3",
-  "desc": "Retrieves and populates friend information (status, location, level, class, and notes) for a specific player based on visibility rules that exclude GMs/MODERATORS from seeing each other unless configured otherwise. Side effects: Modifies the `friendInfo` object with status, area, level, class, and note data; may return early if the player is null, the friend is offline, or the friend is a GM account.",
-  "raw": "{\"what\": \"Retrieves and populates friend information (status, location, level, class, and notes) for a specific player based on visibility rules that exclude GMs/MODERATORS from seeing each other unless configured otherwise.\", \"effects\": \"Modifies the `friendInfo` object with status, area, level, class, and note data; may return early if the player is null, the friend is offline, or the friend is a GM account.\"}",
+  "hash": "b10941310e15",
+  "desc": "Retrieves and populates friendship information for a specific player, including status, location, level, class, and notes, while applying visibility rules based on team affiliation, account security levels, and global visibility settings. Side effects: Modifies the `friendInfo` object with status (offline/online/AFK), area, level, class, and note data; may return early if player is null, friend is offline/unreachable, or restricted by GM/admin privileges.",
+  "raw": "{\"what\": \"Retrieves and populates friendship information for a specific player, including status, location, level, class, and notes, while applying visibility rules based on team affiliation, account security levels, and global visibility settings.\", \"effects\": \"Modifies the `friendInfo` object with status (offline/online/AFK), area, level, class, and note data; may return early if player is null, friend is offline/unreachable, or restricted by GM/admin privileges.\"}",
   "entry": {
    "class": "SocialMgr",
    "name": "GetFriendInfo",
    "sig": "void GetFriendInfo(Player* player, ObjectGuid const& friendGUID, FriendInfo& friendInfo)",
    "file": "src/server/game/Entities/Player/SocialMgr.h",
-   "line": 135,
+   "line": 143,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/SocialMgr.cpp",
-    "line": 212
+    "line": 225
    },
-   "hash": "8375e1afc8f3",
-   "desc": "Retrieves and populates friend information (status, location, level, class, and notes) for a specific player based on visibility rules that exclude GMs/MODERATORS from seeing each other unless configured otherwise. Side effects: Modifies the `friendInfo` object with status, area, level, class, and note data; may return early if the player is null, the friend is offline, or the friend is a GM account.",
+   "hash": "b10941310e15",
+   "desc": "Retrieves and populates friendship information for a specific player, including status, location, level, class, and notes, while applying visibility rules based on team affiliation, account security levels, and global visibility settings. Side effects: Modifies the `friendInfo` object with status (offline/online/AFK), area, level, class, and note data; may return early if player is null, friend is offline/unreachable, or restricted by GM/admin privileges.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -29835,43 +29817,43 @@
   }
  },
  "SocialMgr::BroadcastToFriendListers@6988e54a:qwen3-5-4b": {
-  "hash": "a835d11dbf22",
-  "desc": "Iterates through the social map to find friends of the given player and broadcasts a packet to them, applying visibility rules based on team affiliation, account security levels, and global visibility settings.",
-  "raw": "{\"what\": \"Iterates through the social map to find friends of the given player and broadcasts a packet to them, applying visibility rules based on team affiliation, account security levels, and global visibility settings.\", \"effects\": \"None\"}",
+  "hash": "fe09e8e64a85",
+  "desc": "Iterates through the social map to find all players marked as friends with the input player, then sends the provided packet to those friends if they meet visibility and permission criteria (excluding high-security accounts unless the friend is on the same team or two-side who list is enabled).",
+  "raw": "{\"what\": \"Iterates through the social map to find all players marked as friends with the input player, then sends the provided packet to those friends if they meet visibility and permission criteria (excluding high-security accounts unless the friend is on the same team or two-side who list is enabled).\", \"effects\": \"None\"}",
   "entry": {
    "class": "SocialMgr",
    "name": "BroadcastToFriendListers",
    "sig": "void BroadcastToFriendListers(Player* player, WorldPacket* packet)",
    "file": "src/server/game/Entities/Player/SocialMgr.h",
-   "line": 139,
+   "line": 147,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/SocialMgr.cpp",
-    "line": 294
+    "line": 317
    },
-   "hash": "a835d11dbf22",
-   "desc": "Iterates through the social map to find friends of the given player and broadcasts a packet to them, applying visibility rules based on team affiliation, account security levels, and global visibility settings.",
+   "hash": "fe09e8e64a85",
+   "desc": "Iterates through the social map to find all players marked as friends with the input player, then sends the provided packet to those friends if they meet visibility and permission criteria (excluding high-security accounts unless the friend is on the same team or two-side who list is enabled).",
    "ai": true,
    "model": "qwen3.5:4b"
   }
  },
  "SocialMgr::LoadFromDB@a9b15149:qwen3-5-4b": {
-  "hash": "d4c3ffb8bb01",
-  "desc": "Retrieves and populates a PlayerSocial object from the database using the provided query result and player GUID. Side effects: Updates the internal m_socialMap with the retrieved data, sets the player GUID on the social object, and adds friend relationships to m_playerSocialMap if rows exist in the query result.",
-  "raw": "{\n  \"what\": \"Retrieves and populates a PlayerSocial object from the database using the provided query result and player GUID.\",\n  \"effects\": \"Updates the internal m_socialMap with the retrieved data, sets the player GUID on the social object, and adds friend relationships to m_playerSocialMap if rows exist in the query result.\"\n}",
+  "hash": "64cbd7197385",
+  "desc": "Retrieves and populates a PlayerSocial object from the database using a prepared query result, locking access to prevent concurrent modifications. Side effects: Updates the internal player social map with friend relationships and notes based on the fetched rows.",
+  "raw": "{\"what\": \"Retrieves and populates a PlayerSocial object from the database using a prepared query result, locking access to prevent concurrent modifications.\", \"effects\": \"Updates the internal player social map with friend relationships and notes based on the fetched rows.\"}",
   "entry": {
    "class": "SocialMgr",
    "name": "LoadFromDB",
    "sig": "PlayerSocial* LoadFromDB(PreparedQueryResult result, ObjectGuid const& guid)",
    "file": "src/server/game/Entities/Player/SocialMgr.h",
-   "line": 141,
+   "line": 149,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/SocialMgr.cpp",
-    "line": 319
+    "line": 343
    },
-   "hash": "d4c3ffb8bb01",
-   "desc": "Retrieves and populates a PlayerSocial object from the database using the provided query result and player GUID. Side effects: Updates the internal m_socialMap with the retrieved data, sets the player GUID on the social object, and adds friend relationships to m_playerSocialMap if rows exist in the query result.",
+   "hash": "64cbd7197385",
+   "desc": "Retrieves and populates a PlayerSocial object from the database using a prepared query result, locking access to prevent concurrent modifications. Side effects: Updates the internal player social map with friend relationships and notes based on the fetched rows.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
