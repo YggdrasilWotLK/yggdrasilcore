@@ -177,6 +177,17 @@ bool PathGenerator::ValidatePlayerMove()
     uint32 const phase = _source->GetPhaseMask();
     auto segmentBlocked = [&](G3D::Vector3 const& a, G3D::Vector3 const& b) -> bool
     {
+        // Grade veto: uphill legs steeper than the player climb limit are never
+        // walkable, even when the rays thread past the geometry along wall
+        // faces baked through by artifact. Flyers climb over; downhill falls.
+        if (!unit->CanFly())
+        {
+            float const gdx = b.x - a.x, gdy = b.y - a.y;
+            float const gflat = std::sqrt(gdx * gdx + gdy * gdy);
+            float const gdz = b.z - a.z;
+            if (gdz > 0.5f && gflat >= 0.01f && (gdz / gflat) > VETO_PLAYER_GRADE)
+                return true;
+        }
         if (!map->isInLineOfSight(a.x, a.y, a.z + high, b.x, b.y, b.z + high, phase,
                 LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
             return true;
