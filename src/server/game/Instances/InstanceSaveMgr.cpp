@@ -21,6 +21,7 @@
 #include "GameTime.h"
 #include "GridNotifiers.h"
 #include "Group.h"
+#include "GroupMgr.h"
 #include "InstanceScript.h"
 #include "Log.h"
 #include "Map.h"
@@ -65,6 +66,7 @@ InstanceSaveMgr* InstanceSaveMgr::instance()
 */
 InstanceSave* InstanceSaveMgr::AddInstanceSave(uint32 mapId, uint32 instanceId, Difficulty difficulty, bool startup /*=false*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     ASSERT(!GetInstanceSave(instanceId));
 
     MapEntry const* entry = sMapStore.LookupEntry(mapId);
@@ -107,17 +109,20 @@ InstanceSave* InstanceSaveMgr::AddInstanceSave(uint32 mapId, uint32 instanceId, 
 
 InstanceSave* InstanceSaveMgr::GetInstanceSave(uint32 InstanceId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     InstanceSaveHashMap::iterator itr = m_instanceSaveById.find(InstanceId);
     return itr != m_instanceSaveById.end() ? itr->second : nullptr;
 }
 
 bool InstanceSaveMgr::DeleteInstanceSaveIfNeeded(uint32 InstanceId, bool skipMapCheck)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return DeleteInstanceSaveIfNeeded(GetInstanceSave(InstanceId), skipMapCheck);
 }
 
 bool InstanceSaveMgr::DeleteInstanceSaveIfNeeded(InstanceSave* save, bool skipMapCheck, bool deleteSave /*= true*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // pussywizard: save is removed only when there are no more players bound AND the map doesn't exist
     // pussywizard: this function is called when unbinding a player and when unloading a map
     if (!lock_instLists && save && save->m_playerList.empty() && (skipMapCheck || !sMapMgr->FindMap(save->GetMapId(), save->GetInstanceId())))
@@ -164,6 +169,7 @@ InstanceSave::~InstanceSave()
 
 void InstanceSave::InsertToDB()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     std::string data;
     uint32 completedEncounters = 0;
 
@@ -196,6 +202,7 @@ void InstanceSave::InsertToDB()
 
 time_t InstanceSave::GetResetTimeForDB()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // only save the reset time for normal instances
     MapEntry const* entry = sMapStore.LookupEntry(GetMapId());
     if (!entry || entry->map_type == MAP_RAID || GetDifficulty() == DUNGEON_DIFFICULTY_HEROIC)
@@ -207,22 +214,26 @@ time_t InstanceSave::GetResetTimeForDB()
 // to cache or not to cache, that is the question
 InstanceTemplate const* InstanceSave::GetTemplate()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return sObjectMgr->GetInstanceTemplate(m_mapid);
 }
 
 MapEntry const* InstanceSave::GetMapEntry()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return sMapStore.LookupEntry(m_mapid);
 }
 
 void InstanceSave::AddPlayer(ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     std::lock_guard<std::mutex> guard(_lock);
     m_playerList.push_back(guid);
 }
 
 bool InstanceSave::RemovePlayer(ObjectGuid guid, InstanceSaveMgr* ism)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     bool deleteSave = false;
     {
         std::lock_guard lg(_lock);
@@ -243,12 +254,14 @@ bool InstanceSave::RemovePlayer(ObjectGuid guid, InstanceSaveMgr* ism)
 
 void InstanceSaveMgr::SanitizeInstanceSavedData()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SANITIZE_INSTANCE_SAVED_DATA);
     CharacterDatabase.Execute(stmt);
 }
 
 void InstanceSaveMgr::DeleteInstanceSavedData(uint32 instanceId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (instanceId)
     {
         CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DELETE_INSTANCE_SAVED_DATA);
@@ -259,6 +272,7 @@ void InstanceSaveMgr::DeleteInstanceSavedData(uint32 instanceId)
 
 void InstanceSaveMgr::LoadInstances()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 oldMSTime = getMSTime();
 
     // Delete character_instance for non-existent character
@@ -298,6 +312,7 @@ void InstanceSaveMgr::LoadInstances()
 
 void InstanceSaveMgr::LoadResetTimes()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     time_t now = GameTime::GetGameTime().count();
     time_t today = (now / DAY) * DAY;
 
@@ -373,6 +388,7 @@ void InstanceSaveMgr::LoadResetTimes()
 
 void InstanceSaveMgr::LoadInstanceSaves()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     QueryResult result = CharacterDatabase.Query("SELECT id, map, resettime, difficulty, completedEncounters, data FROM instance ORDER BY id ASC");
     if (result)
     {
@@ -404,6 +420,7 @@ void InstanceSaveMgr::LoadInstanceSaves()
 
 void InstanceSaveMgr::LoadCharacterBinds()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     lock_instLists = true;
 
     QueryResult result = CharacterDatabase.Query("SELECT guid, instance, permanent, extended FROM character_instance");
@@ -456,11 +473,13 @@ void InstanceSaveMgr::LoadCharacterBinds()
 
 void InstanceSaveMgr::ScheduleReset(time_t time, InstResetEvent event)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     m_resetTimeQueue.insert(std::pair<time_t, InstResetEvent>(time, event));
 }
 
 void InstanceSaveMgr::Update()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     time_t now = GameTime::GetGameTime().count();
     time_t t;
     bool resetOccurred = false;
@@ -508,6 +527,7 @@ void InstanceSaveMgr::Update()
 
 void InstanceSaveMgr::_ResetSave(InstanceSaveHashMap::iterator& itr)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     lock_instLists = true;
 
     GuidList& pList = itr->second->m_playerList;
@@ -560,6 +580,7 @@ void InstanceSaveMgr::_ResetSave(InstanceSaveHashMap::iterator& itr)
 
 void InstanceSaveMgr::_ResetOrWarnAll(uint32 mapid, Difficulty difficulty, bool warn, time_t resetTime)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // global reset for all instances of the given map
     MapEntry const* mapEntry = sMapStore.LookupEntry(mapid);
     if (!mapEntry->Instanceable())
@@ -636,6 +657,7 @@ void InstanceSaveMgr::_ResetOrWarnAll(uint32 mapid, Difficulty difficulty, bool 
 
 InstancePlayerBind* InstanceSaveMgr::PlayerBindToInstance(ObjectGuid guid, InstanceSave* save, bool permanent, Player* player /*= nullptr*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     InstancePlayerBind& bind = playerBindStorage[guid]->m[save->GetDifficulty()][save->GetMapId()];
     ASSERT(!bind.perm || permanent); // ensure there's no changing permanent to temporary, this can be done only by unbinding
 
@@ -708,6 +730,7 @@ InstancePlayerBind* InstanceSaveMgr::PlayerBindToInstance(ObjectGuid guid, Insta
 
 void InstanceSaveMgr::PlayerUnbindInstance(ObjectGuid guid, uint32 mapid, Difficulty difficulty, bool deleteFromDB, Player* player /*= nullptr*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     BoundInstancesMapWrapper* w = playerBindStorage[guid];
     BoundInstancesMap::iterator itr = w->m[difficulty].find(mapid);
     if (itr != w->m[difficulty].end())
@@ -731,6 +754,7 @@ void InstanceSaveMgr::PlayerUnbindInstance(ObjectGuid guid, uint32 mapid, Diffic
 
 void InstanceSaveMgr::PlayerUnbindInstanceNotExtended(ObjectGuid guid, uint32 mapid, Difficulty difficulty, Player* player /*= nullptr*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     BoundInstancesMapWrapper* w = playerBindStorage[guid];
     BoundInstancesMap::iterator itr = w->m[difficulty].find(mapid);
     if (itr != w->m[difficulty].end())
@@ -751,6 +775,7 @@ void InstanceSaveMgr::PlayerUnbindInstanceNotExtended(ObjectGuid guid, uint32 ma
 
 InstancePlayerBind* InstanceSaveMgr::PlayerGetBoundInstance(ObjectGuid guid, uint32 mapid, Difficulty difficulty)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Difficulty difficulty_fixed = ( IsSharedDifficultyMap(mapid) ? Difficulty(difficulty % 2) : difficulty);
 
     MapDifficulty const* mapDiff = GetDownscaledMapDifficultyData(mapid, difficulty_fixed);
@@ -773,6 +798,7 @@ InstancePlayerBind* InstanceSaveMgr::PlayerGetBoundInstance(ObjectGuid guid, uin
 
 bool InstanceSaveMgr::PlayerIsPermBoundToInstance(ObjectGuid guid, uint32 mapid, Difficulty difficulty)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (InstancePlayerBind* bind = PlayerGetBoundInstance(guid, mapid, difficulty))
         if (bind->perm)
             return true;
@@ -781,6 +807,7 @@ bool InstanceSaveMgr::PlayerIsPermBoundToInstance(ObjectGuid guid, uint32 mapid,
 
 BoundInstancesMap const& InstanceSaveMgr::PlayerGetBoundInstances(ObjectGuid guid, Difficulty difficulty)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     PlayerBindStorage::iterator itr = playerBindStorage.find(guid);
     if (itr != playerBindStorage.end())
         return itr->second->m[difficulty];
@@ -789,18 +816,21 @@ BoundInstancesMap const& InstanceSaveMgr::PlayerGetBoundInstances(ObjectGuid gui
 
 void InstanceSaveMgr::PlayerCreateBoundInstancesMaps(ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (playerBindStorage.find(guid) == playerBindStorage.end())
         playerBindStorage[guid] = new BoundInstancesMapWrapper;
 }
 
 InstanceSave* InstanceSaveMgr::PlayerGetInstanceSave(ObjectGuid guid, uint32 mapid, Difficulty difficulty)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     InstancePlayerBind* pBind = PlayerGetBoundInstance(guid, mapid, difficulty);
     return (pBind ? pBind->save : nullptr);
 }
 
 uint32 InstanceSaveMgr::PlayerGetDestinationInstanceId(Player* player, uint32 mapid, Difficulty difficulty)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // returning 0 means a new instance will be created
     // non-zero implicates that InstanceSave exists
 
@@ -818,6 +848,7 @@ uint32 InstanceSaveMgr::PlayerGetDestinationInstanceId(Player* player, uint32 ma
 
 void InstanceSaveMgr::CopyBinds(ObjectGuid from, ObjectGuid to, Player* toPlr)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (from == to)
         return;
 
@@ -832,6 +863,7 @@ void InstanceSaveMgr::CopyBinds(ObjectGuid from, ObjectGuid to, Player* toPlr)
 
 void InstanceSaveMgr::UnbindAllFor(InstanceSave* save)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 mapId = save->GetMapId();
     Difficulty difficulty = save->GetDifficulty();
     GuidList players = save->m_playerList;

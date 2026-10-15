@@ -16,6 +16,7 @@
  */
 
 #include "BattlegroundBE.h"
+#include "GroupMgr.h"
 #include "Log.h"
 #include "Player.h"
 #include "WorldPacket.h"
@@ -29,6 +30,7 @@ BattlegroundBE::BattlegroundBE()
 
 void BattlegroundBE::StartingEventCloseDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = BG_BE_OBJECT_DOOR_1; i <= BG_BE_OBJECT_DOOR_4; ++i)
         SpawnBGObject(i, RESPAWN_IMMEDIATELY);
 
@@ -38,6 +40,7 @@ void BattlegroundBE::StartingEventCloseDoors()
 
 void BattlegroundBE::StartingEventOpenDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = BG_BE_OBJECT_DOOR_1; i <= BG_BE_OBJECT_DOOR_2; ++i)
         DoorOpen(i);
 
@@ -47,12 +50,14 @@ void BattlegroundBE::StartingEventOpenDoors()
 
 bool BattlegroundBE::HandlePlayerUnderMap(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     player->NearTeleportTo(6238.930176f, 262.963470f, 0.889519f, player->GetOrientation());
     return true;
 }
 
 void BattlegroundBE::HandleAreaTrigger(Player* player, uint32 trigger)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // this is wrong way to implement these things. On official it done by gameobject spell cast.
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
@@ -91,12 +96,14 @@ void BattlegroundBE::HandleAreaTrigger(Player* player, uint32 trigger)
 
 void BattlegroundBE::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_BE_ARENA_SHOW, 1);
     Arena::FillInitialWorldStates(packet);
 }
 
 bool BattlegroundBE::SetupBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // gates
     if (!AddObject(BG_BE_OBJECT_DOOR_1, BG_BE_OBJECT_TYPE_DOOR_1, 6287.277f, 282.1877f, 3.810925f, -2.260201f, 0, 0, 0.9044551f, -0.4265689f, RESPAWN_IMMEDIATELY)
             || !AddObject(BG_BE_OBJECT_DOOR_2, BG_BE_OBJECT_TYPE_DOOR_2, 6189.546f, 241.7099f, 3.101481f, 0.8813917f, 0, 0, 0.4265689f, 0.9044551f, RESPAWN_IMMEDIATELY)
