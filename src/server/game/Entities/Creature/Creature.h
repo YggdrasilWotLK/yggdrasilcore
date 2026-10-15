@@ -90,13 +90,10 @@ public:
     void PauseMovementForInteraction(Player* caster);
     // Releases this creature if it was stopped by the given player.
     void ClearInteractionStop(Player* player);
-    // Re-initiates movement interrupted by PauseMovementForInteraction, if any.
     void ResumeInteractionMovement();
     // Logout failover: releases every creature stopped by the given player.
     static void ClearInteractionStopsBy(Player* player);
 
-    // Snapshot of movement state taken when an interaction stop freezes the creature,
-    // so the release can log what was interrupted and re-initiate it.
     struct InteractionStopResume
     {
         bool valid = false;

@@ -2076,7 +2076,6 @@ void Creature::setDeathState(DeathState state, bool despawn)
 
         ReplaceAllNpcFlags(NPCFlags(cinfo->npcflag));
         ClearUnitState(uint32(UNIT_STATE_ALL_STATE & ~(UNIT_STATE_IGNORE_PATHFINDING | UNIT_STATE_NO_ENVIRONMENT_UPD)));
-        // Movement is re-initialized below; any pending interaction-stop resume is stale.
         _interactionStopResume.valid = false;
         SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
 
@@ -3088,9 +3087,6 @@ void Creature::PauseMovementForInteraction(Player* caster)
     if (!pause)
         return;
 
-    // Snapshot movement state before freezing, so the release can log what was
-    // interrupted and re-initiate it. First stop wins: a second player talking
-    // to the same NPC must not overwrite the original resume point.
     if (!_interactionStopResume.valid)
     {
         _interactionStopResume.valid = true;
@@ -3133,7 +3129,6 @@ void Creature::ClearInteractionStop(Player* player)
     // Only release if the stop aura was placed by this player
     if (!GetAura(INTERACTION_STOP_AURA, player->GetGUID()))
     {
-        // No stop left at all (e.g. combat already dropped the aura): discard any stale resume point.
         if (!HasAura(INTERACTION_STOP_AURA))
             _interactionStopResume.valid = false;
         return;
@@ -3145,7 +3140,6 @@ void Creature::ClearInteractionStop(Player* player)
     ResumeMovement();
     PauseMovement(1);
 
-    // Re-initiate whatever movement the freeze interrupted, if anything.
     ResumeInteractionMovement();
 
     {
@@ -3164,7 +3158,6 @@ void Creature::ResumeInteractionMovement()
     if (!_interactionStopResume.valid)
         return;
 
-    // Still held by another player: keep the snapshot for their release.
     if (HasAura(INTERACTION_STOP_AURA))
     {
         LOG_DEBUG("entities.unit", "Creature {} (entry {}) interaction stop released by one player but still held by another, keeping freeze",
@@ -3175,7 +3168,6 @@ void Creature::ResumeInteractionMovement()
     InteractionStopResume snapshot = _interactionStopResume;
     _interactionStopResume.valid = false;
 
-    // Undo the SetHomePosition(GetPosition()) applied by gossip handlers at freeze time.
     SetHomePosition(snapshot.home);
 
     LOG_DEBUG("entities.unit", "Creature {} (entry {}) unfrozen after interaction: wasMoving={}, movegen={}",
@@ -3186,11 +3178,6 @@ void Creature::ResumeInteractionMovement()
     if (AI() && AI()->IsEscorted())
         return;
 
-    // SmartScript-driven MovePoint (POINT_MOTION_TYPE) loses its spline to StopMoving()
-    // at freeze time, and its generator has no Pause/Resume of its own, so without an
-    // explicit relaunch DoUpdate just expires the generator and the move is silently
-    // dropped (SmartAI even gets a bogus arrival inform). Waypoint/random movers
-    // self-resume via their pause timers and are intentionally left alone.
     if (snapshot.movegen == POINT_MOTION_TYPE && movespline->Finalized())
     {
         for (int slot : { MOTION_SLOT_ACTIVE, MOTION_SLOT_CONTROLLED })
