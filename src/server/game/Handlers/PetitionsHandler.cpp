@@ -194,7 +194,7 @@ void WorldSession::HandlePetitionBuyOpcode(WorldPacket& recvData)
     // a petition is invalid, if both the owner and the type matches
     // we checked above, if this player is in an arenateam, so this must be
     // datacorruption
-    Petition const* petition = sPetitionMgr->GetPetitionByOwnerWithType(_player->GetGUID(), type);
+    Optional<Petition> petition = sPetitionMgr->GetPetitionByOwnerWithType(_player->GetGUID(), type);
 
     CharacterDatabase.EscapeString(name);
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
@@ -235,7 +235,7 @@ void WorldSession::HandlePetitionShowSignOpcode(WorldPacket& recvData)
     recvData >> petitionguid;                              // petition guid
 
     // solve (possible) some strange compile problems with explicit use petition low guid at some GCC versions (wrong code optimization in compiler?)
-    Petition const* petition = sPetitionMgr->GetPetition(petitionguid);
+    Optional<Petition> petition = sPetitionMgr->GetPetition(petitionguid);
     if (!petition)
         return;
 
@@ -245,7 +245,7 @@ void WorldSession::HandlePetitionShowSignOpcode(WorldPacket& recvData)
     if (type == GUILD_CHARTER_TYPE && _player->GetGuildId())
         return;
 
-    Signatures const* signatures = sPetitionMgr->GetSignature(petitionguid);
+    Optional<Signatures> signatures = sPetitionMgr->GetSignature(petitionguid);
     uint8 signs = signatures ? signatures->signatureMap.size() : 0;
 
     LOG_DEBUG("network", "CMSG_PETITION_SHOW_SIGNATURES petition {}", petitionguid.ToString());
@@ -281,7 +281,7 @@ void WorldSession::HandlePetitionQueryOpcode(WorldPacket& recvData)
 
 void WorldSession::SendPetitionQueryOpcode(ObjectGuid petitionguid)
 {
-    Petition const* petition = sPetitionMgr->GetPetition(petitionguid);
+    Optional<Petition> petition = sPetitionMgr->GetPetition(petitionguid);
     if (!petition)
     {
         LOG_DEBUG("network", "CMSG_PETITION_QUERY failed for petition ({})", petitionguid.ToString());
@@ -340,7 +340,7 @@ void WorldSession::HandlePetitionRenameOpcode(WorldPacket& recvData)
     if (!item)
         return;
 
-    Petition const* petition = sPetitionMgr->GetPetition(petitionGuid);
+    Optional<Petition> petition = sPetitionMgr->GetPetition(petitionGuid);
     if (!petition)
     {
         LOG_DEBUG("network", "CMSG_PETITION_QUERY failed for petition ({})", petitionGuid.ToString());
@@ -400,7 +400,7 @@ void WorldSession::HandlePetitionSignOpcode(WorldPacket& recvData)
     recvData >> petitionGuid;                              // petition guid
     recvData >> unk;
 
-    Petition const* petition = sPetitionMgr->GetPetition(petitionGuid);
+    Optional<Petition> petition = sPetitionMgr->GetPetition(petitionGuid);
     if (!petition)
     {
         LOG_ERROR("network.opcode", "Petition {} is not found for player {} (Name: {})", petitionGuid.ToString(), GetPlayer()->GetGUID().ToString(), GetPlayer()->GetName());
@@ -413,7 +413,7 @@ void WorldSession::HandlePetitionSignOpcode(WorldPacket& recvData)
     if (petition->ownerGuid == playerGuid)
         return;
 
-    Signatures const* signatures = sPetitionMgr->GetSignature(petitionGuid);
+    Optional<Signatures> signatures = sPetitionMgr->GetSignature(petitionGuid);
     if (!signatures)
         return;
 
@@ -541,7 +541,7 @@ void WorldSession::HandlePetitionDeclineOpcode(WorldPacket& recvData)
     recvData >> petitionguid;                              // petition guid
     LOG_DEBUG("network", "Petition {} declined by {}", petitionguid.ToString(), _player->GetGUID().ToString());
 
-    Petition const* petition = sPetitionMgr->GetPetition(petitionguid);
+    Optional<Petition> petition = sPetitionMgr->GetPetition(petitionguid);
     if (!petition)
         return;
 
@@ -568,7 +568,7 @@ void WorldSession::HandleOfferPetitionOpcode(WorldPacket& recvData)
     if (!player)
         return;
 
-    Petition const* petition = sPetitionMgr->GetPetition(petitionguid);
+    Optional<Petition> petition = sPetitionMgr->GetPetition(petitionguid);
     if (!petition)
         return;
 
@@ -625,7 +625,7 @@ void WorldSession::HandleOfferPetitionOpcode(WorldPacket& recvData)
         }
     }
 
-    Signatures const* signatures = sPetitionMgr->GetSignature(petitionguid);
+    Optional<Signatures> signatures = sPetitionMgr->GetSignature(petitionguid);
     uint8 signs = signatures ? signatures->signatureMap.size() : 0;
 
     WorldPacket data(SMSG_PETITION_SHOW_SIGNATURES, (8 + 8 + 4 + signs + signs * 12));
@@ -661,7 +661,7 @@ void WorldSession::HandleTurnInPetitionOpcode(WorldPacket& recvData)
 
     LOG_DEBUG("network", "Petition {} turned in by {}", petitionGuid.ToString(), _player->GetGUID().ToString());
 
-    Petition const* petition = sPetitionMgr->GetPetition(petitionGuid);
+    Optional<Petition> petition = sPetitionMgr->GetPetition(petitionGuid);
     if (!petition)
     {
         LOG_ERROR("network.opcode", "Player {} ({}) tried to turn in petition ({}) that is not present in the database",
@@ -719,7 +719,7 @@ void WorldSession::HandleTurnInPetitionOpcode(WorldPacket& recvData)
     }
 
     // Get petition signatures from db
-    Signatures const* signatures = sPetitionMgr->GetSignature(petitionGuid);
+    Optional<Signatures> signatures = sPetitionMgr->GetSignature(petitionGuid);
     uint8 signs = signatures ? signatures->signatureMap.size() : 0;
     SignatureMap signatureCopy;
     if (signs)

@@ -39,6 +39,7 @@ PetitionMgr* PetitionMgr::instance()
 
 void PetitionMgr::LoadPetitions()
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     uint32 oldMSTime = getMSTime();
     PetitionStore.clear();
     PetitionIdToItemGuid.clear();
@@ -76,6 +77,7 @@ void PetitionMgr::LoadPetitions()
 
 void PetitionMgr::LoadSignatures()
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     uint32 oldMSTime = getMSTime();
     SignatureStore.clear();
 
@@ -105,6 +107,7 @@ void PetitionMgr::LoadSignatures()
 
 void PetitionMgr::AddPetition(ObjectGuid petitionGUID, ObjectGuid ownerGuid, std::string const& name, uint8 type, uint32 petitionId)
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     Petition& p = PetitionStore[petitionGUID];
     p.petitionGuid = petitionGUID;
     p.petitionId = petitionId;
@@ -119,6 +122,7 @@ void PetitionMgr::AddPetition(ObjectGuid petitionGUID, ObjectGuid ownerGuid, std
 
 void PetitionMgr::RemovePetition(ObjectGuid petitionGUID)
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     auto it = PetitionStore.find(petitionGUID);
     if (it != PetitionStore.end())
     {
@@ -132,6 +136,7 @@ void PetitionMgr::RemovePetition(ObjectGuid petitionGUID)
 
 void PetitionMgr::RemovePetitionByOwnerAndType(ObjectGuid ownerGuid, uint8 type)
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     for (PetitionContainer::iterator itr = PetitionStore.begin(); itr != PetitionStore.end();)
     {
         if (itr->second.ownerGuid == ownerGuid && (!type || type == itr->second.petitionType))
@@ -157,48 +162,75 @@ void PetitionMgr::RemovePetitionByOwnerAndType(ObjectGuid ownerGuid, uint8 type)
     }
 }
 
-Petition const* PetitionMgr::GetPetition(ObjectGuid petitionGUID) const
+Optional<Petition> PetitionMgr::GetPetition(ObjectGuid petitionGUID) const
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     PetitionContainer::const_iterator itr = PetitionStore.find(petitionGUID);
     if (itr != PetitionStore.end())
-        return &itr->second;
-    return nullptr;
+        return itr->second;
+    return {};
 }
 
-Petition const* PetitionMgr::GetPetitionById(uint32 petitionId) const
+Optional<Petition> PetitionMgr::GetPetitionById(uint32 petitionId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     auto it = PetitionIdToItemGuid.find(petitionId);
     if (it == PetitionIdToItemGuid.end())
-        return nullptr;
-
-    return GetPetition(it->second);
+        return {};
+    PetitionContainer::const_iterator itr = PetitionStore.find(it->second);
+    if (itr != PetitionStore.end())
+        return itr->second;
+    return {};
 }
 
-Petition const* PetitionMgr::GetPetitionByOwnerWithType(ObjectGuid ownerGuid, uint8 type) const
+Optional<Petition> PetitionMgr::GetPetitionByOwnerWithType(ObjectGuid ownerGuid, uint8 type) const
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     for (PetitionContainer::const_iterator itr = PetitionStore.begin(); itr != PetitionStore.end(); ++itr)
         if (itr->second.ownerGuid == ownerGuid && itr->second.petitionType == type)
-            return &itr->second;
+            return itr->second;
 
-    return nullptr;
+    return {};
+}
+
+std::vector<ObjectGuid> PetitionMgr::GetPetitionGuids() const
+{
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
+    std::vector<ObjectGuid> guids;
+    guids.reserve(PetitionStore.size());
+    for (auto const& pair : PetitionStore)
+        guids.push_back(pair.first);
+    return guids;
 }
 
 void PetitionMgr::AddSignature(ObjectGuid petitionGUID, uint32 accountId, ObjectGuid playerGuid)
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     Signatures& s = SignatureStore[petitionGUID];
     s.signatureMap[playerGuid] = accountId;
 }
 
-Signatures const* PetitionMgr::GetSignature(ObjectGuid petitionGUID) const
+Optional<Signatures> PetitionMgr::GetSignature(ObjectGuid petitionGUID) const
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     SignatureContainer::const_iterator itr = SignatureStore.find(petitionGUID);
     if (itr != SignatureStore.end())
-        return &itr->second;
-    return nullptr;
+        return itr->second;
+    return {};
+}
+
+void PetitionMgr::RemoveSignature(ObjectGuid petitionGUID, ObjectGuid playerGuid)
+{
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
+    auto itr = SignatureStore.find(petitionGUID);
+    if (itr == SignatureStore.end())
+        return;
+    itr->second.signatureMap.erase(playerGuid);
 }
 
 void PetitionMgr::RemoveSignaturesByPlayer(ObjectGuid playerGuid)
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     for (SignatureContainer::iterator itr = SignatureStore.begin(); itr != SignatureStore.end(); ++itr)
     {
         SignatureMap::iterator signItr = itr->second.signatureMap.find(playerGuid);
@@ -209,6 +241,7 @@ void PetitionMgr::RemoveSignaturesByPlayer(ObjectGuid playerGuid)
 
 void PetitionMgr::RemoveSignaturesByPlayerAndType(ObjectGuid playerGuid, uint8 type)
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     for (SignatureContainer::iterator itr = SignatureStore.begin(); itr != SignatureStore.end(); ++itr)
     {
         Petition const* petition = sPetitionMgr->GetPetition(itr->first);
@@ -223,6 +256,7 @@ void PetitionMgr::RemoveSignaturesByPlayerAndType(ObjectGuid playerGuid, uint8 t
 
 uint32 PetitionMgr::GeneratePetitionId()
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     // ensure 31-bit range and avoid collisions with already loaded petitions
     if (_nextPetitionId == 0 || _nextPetitionId >= 0x7FFFFFFF)
         _nextPetitionId = 1;
@@ -243,12 +277,14 @@ uint32 PetitionMgr::GeneratePetitionId()
 
 uint32 PetitionMgr::GetPetitionIdByItemGuid(ObjectGuid petitionItemGuid) const
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     Petition const* p = GetPetition(petitionItemGuid);
     return p ? p->petitionId : 0;
 }
 
 ObjectGuid PetitionMgr::GetItemGuidByPetitionId(uint32 petitionId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     auto it = PetitionIdToItemGuid.find(petitionId);
     if (it == PetitionIdToItemGuid.end())
         return ObjectGuid::Empty;

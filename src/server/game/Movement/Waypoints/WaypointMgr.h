@@ -20,6 +20,7 @@
 
 #include "Define.h"
 #include <optional>
+#include <shared_mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -44,7 +45,7 @@ struct WaypointData
     uint8 event_chance;
 };
 
-typedef std::vector<WaypointData*> WaypointPath;
+typedef std::vector<WaypointData> WaypointPath;
 typedef std::unordered_map<uint32, WaypointPath> WaypointPathContainer;
 
 class WaypointMgr
@@ -58,14 +59,16 @@ public:
     // Loads all paths from database, should only run on startup
     void Load();
 
-    // Returns the path from a given id
-    WaypointPath const* GetPath(uint32 id) const
+    // Copy-out: walkers keep their own path, reloads never pull it away.
+    // Empty means unknown id.
+    WaypointPath GetPath(uint32 id) const
     {
+        std::shared_lock<std::shared_mutex> lock(_waypointLock);
         WaypointPathContainer::const_iterator itr = _waypointStore.find(id);
         if (itr != _waypointStore.end())
-            return &itr->second;
+            return itr->second;
 
-        return nullptr;
+        return {};
     }
 
 private:
@@ -73,6 +76,8 @@ private:
     ~WaypointMgr();
 
     WaypointPathContainer _waypointStore;
+    // Guards _waypointStore. Reads run on map threads, reload on world.
+    mutable std::shared_mutex _waypointLock;
 };
 
 #define sWaypointMgr WaypointMgr::instance()

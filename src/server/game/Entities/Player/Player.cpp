@@ -10174,24 +10174,26 @@ void Player::SendProficiency(ItemClass itemClass, uint32 itemSubclassMask)
 
 void Player::RemovePetitionsAndSigns(ObjectGuid guid, uint32 type)
 {
-    SignatureContainer* signatureStore = sPetitionMgr->GetSignatureStore();
-    for (SignatureContainer::iterator itr = signatureStore->begin(); itr != signatureStore->end(); ++itr)
+    for (ObjectGuid const& petitionGuid : sPetitionMgr->GetPetitionGuids())
     {
-        SignatureMap::iterator signItr = itr->second.signatureMap.find(guid);
-        if (signItr != itr->second.signatureMap.end())
-        {
-            Petition const* petition = sPetitionMgr->GetPetition(itr->first);
-            if (!petition || (type != 10 && type != petition->petitionType))
-                continue;
+        Optional<Signatures> signatures = sPetitionMgr->GetSignature(petitionGuid);
+        if (!signatures)
+            continue;
+        auto signItr = signatures->signatureMap.find(guid);
+        if (signItr == signatures->signatureMap.end())
+            continue;
 
-            // erase this
-            itr->second.signatureMap.erase(signItr);
+        Optional<Petition> petition = sPetitionMgr->GetPetition(petitionGuid);
+        if (!petition || (type != 10 && type != petition->petitionType))
+            continue;
 
-            // send update if charter owner in game
-            Player* owner = ObjectAccessor::FindConnectedPlayer(petition->ownerGuid);
-            if (owner)
-                owner->GetSession()->SendPetitionQueryOpcode(petition->petitionGuid);
-        }
+        // erase this
+        sPetitionMgr->RemoveSignature(petitionGuid, guid);
+
+        // send update if charter owner in game
+        Player* owner = ObjectAccessor::FindConnectedPlayer(petition->ownerGuid);
+        if (owner)
+            owner->GetSession()->SendPetitionQueryOpcode(petition->petitionGuid);
     }
 
     if (type == 10)
