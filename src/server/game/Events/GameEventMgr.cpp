@@ -28,6 +28,8 @@
 #include "Player.h"
 #include "PoolMgr.h"
 #include "ScriptMgr.h"
+
+#include <mutex>
 #include "Transport.h"
 #include "UnitAI.h"
 #include "World.h"
@@ -1321,6 +1323,7 @@ void GameEventMgr::UpdateEventNPCFlags(uint16 eventId)
         {
             for (auto& spawnId : p.second)
             {
+                std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
                 auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(spawnId);
                 for (auto itr = creatureBounds.first; itr != creatureBounds.second; ++itr)
                 {
@@ -1454,6 +1457,7 @@ void GameEventMgr::GameEventUnspawn(int16 eventId)
 
             sMapMgr->DoForAllMapsWithMapId(data->mapid, [&itr](Map* map)
             {
+                std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
                 auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(*itr);
                 for (auto itr2 = creatureBounds.first; itr2 != creatureBounds.second;)
                 {
@@ -1484,6 +1488,7 @@ void GameEventMgr::GameEventUnspawn(int16 eventId)
 
             sMapMgr->DoForAllMapsWithMapId(data->mapid, [&itr](Map* map)
             {
+                std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
                 auto gameobjectBounds = map->GetGameObjectBySpawnIdStore().equal_range(*itr);
                 for (auto itr2 = gameobjectBounds.first; itr2 != gameobjectBounds.second;)
                 {
@@ -1518,6 +1523,7 @@ void GameEventMgr::ChangeEquipOrModel(int16 eventId, bool activate)
         // Update if spawned
         sMapMgr->DoForAllMapsWithMapId(data->mapid, [&itr, activate](Map* map)
         {
+            std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
             auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(itr->first);
             for (auto itr2 = creatureBounds.first; itr2 != creatureBounds.second; ++itr2)
             {
