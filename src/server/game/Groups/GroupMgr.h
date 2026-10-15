@@ -37,10 +37,10 @@ public:
     // InstanceSave): these call into each other, so separate locks could
     // invert. Recursive: same-thread nesting is always safe. Leaf-only vs
     // outside locks (sessions/DB/ObjectAccessor never call back here).
-    static std::recursive_mutex& GetSocialLock()
+    static std::recursive_mutex* GetSocialLock()
     {
         static std::recursive_mutex lock;
-        return lock;
+        return &lock;
     }
 
     typedef std::map<uint32, Group*> GroupContainer;
