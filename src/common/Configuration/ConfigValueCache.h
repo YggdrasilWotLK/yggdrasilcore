@@ -121,7 +121,7 @@ public:
         std::string const* stringValue = std::get_if<std::string>(&_configs[configIndex]);
         ASSERT(stringValue, "Wrong config variant type");
 
-        return std::string_view(*stringValue);
+        return std::string(*stringValue);
     }
 
 protected:
