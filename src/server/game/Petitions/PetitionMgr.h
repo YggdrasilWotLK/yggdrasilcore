@@ -91,7 +91,6 @@ public:
     void RemoveSignaturesByPlayer(ObjectGuid playerGuid);
     void RemoveSignaturesByPlayerAndType(ObjectGuid playerGuid, uint8 type);
     void RemoveSignature(ObjectGuid petitionGUID, ObjectGuid playerGuid);
-    void RemoveSignature(ObjectGuid petitionGUID, ObjectGuid playerGuid);
     Optional<Signatures> GetSignature(ObjectGuid petitionGUID) const;
 
     uint32 GeneratePetitionId();
@@ -106,9 +105,6 @@ protected:
     // Next petition id (kept < 2^31)
     uint32 _nextPetitionId = 1;
     // Guards all three stores. Methods nest (removers call getters),
-    // so recursive; leaf-only versus outside locks.
-    mutable std::recursive_mutex _petitionLock;
-    // Guards all three stores. Methods nest (loaders call adders),
     // so recursive; leaf-only versus outside locks.
     mutable std::recursive_mutex _petitionLock;
 };
