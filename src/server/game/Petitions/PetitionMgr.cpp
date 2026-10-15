@@ -252,8 +252,8 @@ void PetitionMgr::RemoveSignaturesByPlayerAndType(ObjectGuid playerGuid, uint8 t
     std::lock_guard<std::recursive_mutex> lock(_petitionLock);
     for (SignatureContainer::iterator itr = SignatureStore.begin(); itr != SignatureStore.end(); ++itr)
     {
-        Petition const* petition = sPetitionMgr->GetPetition(itr->first);
-        if (!petition || petition->petitionType != type)
+        auto petItr = PetitionStore.find(itr->first);
+        if (petItr == PetitionStore.end() || petItr->second.petitionType != type)
             continue;
 
         SignatureMap::iterator signItr = itr->second.signatureMap.find(playerGuid);
@@ -286,8 +286,8 @@ uint32 PetitionMgr::GeneratePetitionId()
 uint32 PetitionMgr::GetPetitionIdByItemGuid(ObjectGuid petitionItemGuid) const
 {
     std::lock_guard<std::recursive_mutex> lock(_petitionLock);
-    Petition const* p = GetPetition(petitionItemGuid);
-    return p ? p->petitionId : 0;
+    auto it = PetitionStore.find(petitionItemGuid);
+    return it != PetitionStore.end() ? it->second.petitionId : 0;
 }
 
 ObjectGuid PetitionMgr::GetItemGuidByPetitionId(uint32 petitionId) const
