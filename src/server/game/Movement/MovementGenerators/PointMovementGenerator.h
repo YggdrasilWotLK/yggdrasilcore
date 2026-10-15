@@ -47,6 +47,13 @@ public:
     MovementGeneratorType GetMovementGeneratorType() { return POINT_MOTION_TYPE; }
 
     bool GetDestination(float& x, float& y, float& z) const { x = i_x; y = i_y; z = i_z; return true; }
+
+    void Relaunch(T* unit)
+    {
+        if (_generatePath)
+            m_precomputedPath.clear();
+        DoInitialize(unit);
+    }
 private:
     uint32 id;
     float i_x, i_y, i_z;
