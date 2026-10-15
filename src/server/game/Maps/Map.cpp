@@ -374,15 +374,25 @@ bool Map::AddToMap(Transport* obj, bool /*checkTransport*/)
     _transports.insert(obj);
 
     // Broadcast creation to players
-    for (Map::PlayerList::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
+    std::vector<ObjectGuid> guids;
     {
-        if (itr->GetSource()->GetTransport() != obj)
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        for (Map::PlayerList::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+        if (!plr || plr->GetMap() != this)
+            continue;
+        if (plr->GetTransport() != obj)
         {
             UpdateData data;
-            obj->BuildCreateUpdateBlockForPlayer(&data, itr->GetSource());
+            obj->BuildCreateUpdateBlockForPlayer(&data, plr);
             WorldPacket packet;
             data.BuildPacket(packet);
-            itr->GetSource()->SendDirectMessage(&packet);
+            plr->SendDirectMessage(&packet);
         }
     }
 
@@ -437,7 +447,7 @@ void Map::Update(const uint32 t_diff, const uint32 s_diff, bool  /*thread*/)
     {
         std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
         sessionGuids.reserve(m_mapRefMgr.getSize());
-        for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+        for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
             if (Player* listed = itr->GetSource())
                 sessionGuids.push_back(listed->GetGUID());
     }
@@ -477,7 +487,7 @@ void Map::Update(const uint32 t_diff, const uint32 s_diff, bool  /*thread*/)
     {
         std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
         updateGuids.reserve(m_mapRefMgr.getSize());
-        for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+        for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
             if (Player* listed = itr->GetSource())
                 updateGuids.push_back(listed->GetGUID());
     }
@@ -770,16 +780,28 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
 {
     obj->RemoveFromWorld();
 
-    Map::PlayerList const& players = GetPlayers();
-    if (!players.IsEmpty())
+    std::vector<ObjectGuid> transportGuids;
+    {
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        Map::PlayerList const& players = GetPlayers();
+        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                transportGuids.push_back(listed->GetGUID());
+    }
+    if (!transportGuids.empty())
     {
         UpdateData data;
         obj->BuildOutOfRangeUpdateBlock(&data);
         WorldPacket packet;
         data.BuildPacket(packet);
-        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-            if (itr->GetSource()->GetTransport() != obj)
-                itr->GetSource()->SendDirectMessage(&packet);
+        for (ObjectGuid const& playerGuid : transportGuids)
+        {
+            Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+            if (!listed || listed->GetMap() != this)
+                continue;
+            if (listed->GetTransport() != obj)
+                listed->SendDirectMessage(&packet);
+        }
     }
 
     if (_transportsUpdateIter != _transports.end())
@@ -2026,28 +2048,36 @@ Map::EnterState InstanceMap::CannotEnter(Player* player, bool loginCheck)
             }
 
     // cannot enter if instance is in use by another party/soloer that have a permanent save in the same instance id
-    PlayerList const& playerList = GetPlayers();
-    if (!playerList.IsEmpty())
+    std::vector<ObjectGuid> guids;
+    {
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        PlayerList const& playerList = GetPlayers();
         for (PlayerList::const_iterator i = playerList.begin(); i != playerList.end(); ++i)
-            if (Player* iPlayer = i->GetSource())
-            {
-                if (iPlayer == player) // login case, player already added to map
-                    continue;
-                if (iPlayer->IsGameMaster()) // bypass GMs
-                    continue;
-                if (!player->GetGroup()) // player has not group and there is someone inside, deny entry
-                {
-                    player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
-                    return CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
-                }
-                // player inside instance has no group or his groups is different to entering player's one, deny entry
-                if (!iPlayer->GetGroup() || iPlayer->GetGroup() != player->GetGroup())
-                {
-                    player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
-                    return CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
-                }
-                break;
-            }
+            if (Player* listed = i->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* iPlayer = ObjectAccessor::FindPlayer(playerGuid);
+        if (!iPlayer || iPlayer->GetMap() != this)
+            continue;
+        if (iPlayer == player) // login case, player already added to map
+            continue;
+        if (iPlayer->IsGameMaster()) // bypass GMs
+            continue;
+        if (!player->GetGroup()) // player has not group and there is someone inside, deny entry
+        {
+            player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
+            return CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
+        }
+        // player inside instance has no group or his groups is different to entering player's one, deny entry
+        if (!iPlayer->GetGroup() || iPlayer->GetGroup() != player->GetGroup())
+        {
+            player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
+            return CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
+        }
+        break;
+    }
 
     return Map::CannotEnter(player, loginCheck);
 }
