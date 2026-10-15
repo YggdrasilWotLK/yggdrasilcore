@@ -562,6 +562,13 @@ protected:
 
     MapRefMgr m_mapRefMgr;
     MapRefMgr::iterator m_mapRefIter;
+    // Guards m_mapRefMgr. Logins/teleports add from other threads while
+    // ticks iterate; snapshots are taken shared, add/remove unique.
+    // Never hold across player updates, only across guid copies.
+    mutable std::shared_mutex _playerRefLock;
+public:
+    std::shared_mutex* GetPlayerRefLock() const { return &_playerRefLock; }
+protected:
 
     TransportsContainer _transports;
     TransportsContainer::iterator _transportsUpdateIter;

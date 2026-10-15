@@ -14827,14 +14827,27 @@ void Player::ResetMap()
     // nocheck_prev will return the padding element of the RefMgr
     // instead of nullptr in the case of prev
     GetMap()->UpdateIteratorBack(this);
+    Map* map = GetMap();
     Unit::ResetMap();
-    GetMapRef().unlink();
+    if (map)
+    {
+        std::unique_lock<std::shared_mutex> lock(*map->GetPlayerRefLock());
+        GetMapRef().unlink();
+    }
+    else
+        GetMapRef().unlink();
 }
 
 void Player::SetMap(Map* map)
 {
     Unit::SetMap(map);
-    m_mapRef.link(map, this);
+    if (map)
+    {
+        std::unique_lock<std::shared_mutex> lock(*map->GetPlayerRefLock());
+        m_mapRef.link(map, this);
+    }
+    else
+        m_mapRef.link(map, this);
 }
 
 void Player::_SaveCharacter(bool create, CharacterDatabaseTransaction trans)
