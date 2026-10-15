@@ -1,8 +1,8 @@
 {
  "Corpse::AddToWorld@8dedab5e:qwen3-5-4b": {
-  "hash": "7f1ecda445c1",
-  "desc": "Registers the corpse object in the game world's object store to enable GUID-based lookups, but only if it is not already present in the world.",
-  "raw": "{\"what\": \"Registers the corpse object in the game world's object store to enable GUID-based lookups, but only if it is not already present in the world.\", \"effects\": \"None\"}",
+  "hash": "14ead116388d",
+  "desc": "Registers the corpse object in the game world's object store to enable lookup by its GUID, but only if it is not already present in the world.",
+  "raw": "{\"what\": \"Registers the corpse object in the game world's object store to enable lookup by its GUID, but only if it is not already present in the world.\", \"effects\": \"None\"}",
   "entry": {
    "class": "Corpse",
    "name": "AddToWorld",
@@ -10,16 +10,20 @@
    "file": "src/server/game/Entities/Corpse/Corpse.h",
    "line": 54,
    "access": "public",
-   "hash": "7f1ecda445c1",
-   "desc": "Registers the corpse object in the game world's object store to enable GUID-based lookups, but only if it is not already present in the world.",
+   "impl": {
+    "file": "src/server/game/Entities/Corpse/Corpse.cpp",
+    "line": 44
+   },
+   "hash": "14ead116388d",
+   "desc": "Registers the corpse object in the game world's object store to enable lookup by its GUID, but only if it is not already present in the world.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
  },
  "Corpse::RemoveFromWorld@2b9699e1:qwen3-5-4b": {
-  "hash": "683bc4a071f8",
-  "desc": "Removes the corpse instance from the game world's object store by checking if it is currently in the world and then deleting its GUID from the map's objects collection. Side effects: The corpse is no longer accessible via the world's object system; memory for the object may be reclaimed depending on the engine's garbage collection strategy.",
-  "raw": "{\"what\": \"Removes the corpse instance from the game world's object store by checking if it is currently in the world and then deleting its GUID from the map's objects collection.\", \"effects\": \"The corpse is no longer accessible via the world's object system; memory for the object may be reclaimed depending on the engine's garbage collection strategy.\"}",
+  "hash": "10200d1b0dfc",
+  "desc": "Removes the corpse from the world's object store if it is currently in the world, using a recursive mutex lock to ensure thread safety. Side effects: The corpse is removed from the map's object store; no other side effects are mentioned.",
+  "raw": "{\"what\": \"Removes the corpse from the world's object store if it is currently in the world, using a recursive mutex lock to ensure thread safety.\", \"effects\": \"The corpse is removed from the map's object store; no other side effects are mentioned.\"}",
   "entry": {
    "class": "Corpse",
    "name": "RemoveFromWorld",
@@ -27,8 +31,12 @@
    "file": "src/server/game/Entities/Corpse/Corpse.h",
    "line": 55,
    "access": "public",
-   "hash": "683bc4a071f8",
-   "desc": "Removes the corpse instance from the game world's object store by checking if it is currently in the world and then deleting its GUID from the map's objects collection. Side effects: The corpse is no longer accessible via the world's object system; memory for the object may be reclaimed depending on the engine's garbage collection strategy.",
+   "impl": {
+    "file": "src/server/game/Entities/Corpse/Corpse.cpp",
+    "line": 53
+   },
+   "hash": "10200d1b0dfc",
+   "desc": "Removes the corpse from the world's object store if it is currently in the world, using a recursive mutex lock to ensure thread safety. Side effects: The corpse is removed from the map's object store; no other side effects are mentioned.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -188,9 +196,9 @@
   }
  },
  "Creature::AddToWorld@8dedab5e:qwen3-5-4b": {
-  "hash": "3818f0a82674",
-  "desc": "Registers the creature instance into the game world's object store for GUID lookup and spawn ID tracking, initializing motion data if necessary.",
-  "raw": "{\"what\": \"Registers the creature instance into the game world's object store for GUID lookup and spawn ID tracking, initializing motion data if necessary.\", \"effects\": \"none\"}",
+  "hash": "25de4e752ca2",
+  "desc": "Registers the creature instance into the game world's object store for GUID lookup and optionally maps its spawn ID to itself if a spawn ID is configured.",
+  "raw": "{\"what\": \"Registers the creature instance into the game world's object store for GUID lookup and optionally maps its spawn ID to itself if a spawn ID is configured.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Creature",
    "name": "AddToWorld",
@@ -198,8 +206,12 @@
    "file": "src/server/game/Entities/Creature/Creature.h",
    "line": 52,
    "access": "public",
-   "hash": "3818f0a82674",
-   "desc": "Registers the creature instance into the game world's object store for GUID lookup and spawn ID tracking, initializing motion data if necessary.",
+   "impl": {
+    "file": "src/server/game/Entities/Creature/Creature.cpp",
+    "line": 335
+   },
+   "hash": "25de4e752ca2",
+   "desc": "Registers the creature instance into the game world's object store for GUID lookup and optionally maps its spawn ID to itself if a spawn ID is configured.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -1277,18 +1289,22 @@
   }
  },
  "Creature::LoadCreatureFromDB@fdfe9b8a:qwen3-5-4b": {
-  "hash": "75c06eab240c",
-  "desc": "Attempts to load a creature instance from the database based on its spawn ID, handling duplicate instances by despawning dead ones if allowed, and retrieving creature data including equipment IDs. Side effects: May add creatures to the map or remove list; may log debug/error messages; potentially modifies the state of existing dead creature instances.",
-  "raw": "{\"what\": \"Attempts to load a creature instance from the database based on its spawn ID, handling duplicate instances by despawning dead ones if allowed, and retrieving creature data including equipment IDs.\", \"effects\": \"May add creatures to the map or remove list; may log debug/error messages; potentially modifies the state of existing dead creature instances.\"}",
+  "hash": "bf43998fae70",
+  "desc": "Attempts to load a creature from the database by its spawn ID, checking for existing instances and handling duplicates based on the allowDuplicate flag. Side effects: May despawn dead instances of the creature if allowDuplicate is false; may add objects to removal list during despawning.",
+  "raw": "{\"what\": \"Attempts to load a creature from the database by its spawn ID, checking for existing instances and handling duplicates based on the allowDuplicate flag.\", \"effects\": \"May despawn dead instances of the creature if allowDuplicate is false; may add objects to removal list during despawning.\"}",
   "entry": {
    "class": "Creature",
    "name": "LoadCreatureFromDB",
    "sig": "bool LoadCreatureFromDB(ObjectGuid::LowType guid, Map* map, bool addToMap = true, bool allowDuplicate = false)",
    "file": "src/server/game/Entities/Creature/Creature.h",
-   "line": 229,
+   "line": 240,
    "access": "public",
-   "hash": "75c06eab240c",
-   "desc": "Attempts to load a creature instance from the database based on its spawn ID, handling duplicate instances by despawning dead ones if allowed, and retrieving creature data including equipment IDs. Side effects: May add creatures to the map or remove list; may log debug/error messages; potentially modifies the state of existing dead creature instances.",
+   "impl": {
+    "file": "src/server/game/Entities/Creature/Creature.cpp",
+    "line": 1757
+   },
+   "hash": "bf43998fae70",
+   "desc": "Attempts to load a creature from the database by its spawn ID, checking for existing instances and handling duplicates based on the allowDuplicate flag. Side effects: May despawn dead instances of the creature if allowDuplicate is false; may add objects to removal list during despawning.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -4615,9 +4631,9 @@
   }
  },
  "DynamicObject::AddToWorld@8dedab5e:qwen3-5-4b": {
-  "hash": "f52f818a9abd",
-  "desc": "Registers the DynamicObject instance into the game world's object store for GUID lookup and casting purposes, provided it is not already in the world.",
-  "raw": "{\"what\": \"Registers the DynamicObject instance into the game world's object store for GUID lookup and casting purposes, provided it is not already in the world.\", \"effects\": \"None\"}",
+  "hash": "887fa0936fed",
+  "desc": "Registers the dynamic object into the world's objects store for GUID lookup and caster functionality if it is not already in the world.",
+  "raw": "{\"what\": \"Registers the dynamic object into the world's objects store for GUID lookup and caster functionality if it is not already in the world.\", \"effects\": \"None\"}",
   "entry": {
    "class": "DynamicObject",
    "name": "AddToWorld",
@@ -4625,8 +4641,12 @@
    "file": "src/server/game/Entities/DynamicObject/DynamicObject.h",
    "line": 40,
    "access": "public",
-   "hash": "f52f818a9abd",
-   "desc": "Registers the DynamicObject instance into the game world's object store for GUID lookup and casting purposes, provided it is not already in the world.",
+   "impl": {
+    "file": "src/server/game/Entities/DynamicObject/DynamicObject.cpp",
+    "line": 59
+   },
+   "hash": "887fa0936fed",
+   "desc": "Registers the dynamic object into the world's objects store for GUID lookup and caster functionality if it is not already in the world.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -4905,9 +4925,9 @@
   }
  },
  "GameObject::AddToWorld@8dedab5e:qwen3-5-4b": {
-  "hash": "da5b706e1d2d",
-  "desc": "Registers the game object for GUID lookup by inserting it into the map's objects store and spawn ID store if applicable, updates the model position and inserts it into the map if a model exists, and enables collision based on the game object state. Side effects: modifies global map data structures (objects store, spawn ID store), modifies the model's internal state, registers the model with the map, and changes the collision status of the game object.",
-  "raw": "{\"what\": \"Registers the game object for GUID lookup by inserting it into the map's objects store and spawn ID store if applicable, updates the model position and inserts it into the map if a model exists, and enables collision based on the game object state.\", \"effects\": \"modifies global map data structures (objects store, spawn ID store), modifies the model's internal state, registers the model with the map, and changes the collision status of the game object.\"}",
+  "hash": "641f959f0f74",
+  "desc": "Registers the game object into the world's object store for GUID and spawn ID lookup, optionally notifies zone scripts, updates the model position, and enables collision detection based on the game state. Side effects: modifies global map stores (object store and spawn ID store), potentially triggers zone script callbacks, updates model data, and changes collision properties.",
+  "raw": "{\"what\": \"Registers the game object into the world's object store for GUID and spawn ID lookup, optionally notifies zone scripts, updates the model position, and enables collision detection based on the game state.\", \"effects\": \"modifies global map stores (object store and spawn ID store), potentially triggers zone script callbacks, updates model data, and changes collision properties.\"}",
   "entry": {
    "class": "GameObject",
    "name": "AddToWorld",
@@ -4915,8 +4935,12 @@
    "file": "src/server/game/Entities/GameObject/GameObject.h",
    "line": 127,
    "access": "public",
-   "hash": "da5b706e1d2d",
-   "desc": "Registers the game object for GUID lookup by inserting it into the map's objects store and spawn ID store if applicable, updates the model position and inserts it into the map if a model exists, and enables collision based on the game object state. Side effects: modifies global map data structures (objects store, spawn ID store), modifies the model's internal state, registers the model with the map, and changes the collision status of the game object.",
+   "impl": {
+    "file": "src/server/game/Entities/GameObject/GameObject.cpp",
+    "line": 141
+   },
+   "hash": "641f959f0f74",
+   "desc": "Registers the game object into the world's object store for GUID and spawn ID lookup, optionally notifies zone scripts, updates the model position, and enables collision detection based on the game state. Side effects: modifies global map stores (object store and spawn ID store), potentially triggers zone script callbacks, updates model data, and changes collision properties.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -11394,9 +11418,9 @@
   }
  },
  "Pet::AddToWorld@8dedab5e:qwen3-5-4b": {
-  "hash": "8f2b7bc25e2c",
-  "desc": "Registers the pet instance into the game world's object store to enable GUID-based lookups, but only if the pet is not already present in the world. Side effects: The pet is added to the global object store; no other side effects are mentioned.",
-  "raw": "{\"what\": \"Registers the pet instance into the game world's object store to enable GUID-based lookups, but only if the pet is not already present in the world.\", \"effects\": \"The pet is added to the global object store; no other side effects are mentioned.\"}",
+  "hash": "2fa8db7727c7",
+  "desc": "Registers the pet instance into the game world's object store to enable GUID-based lookup, but only if the pet is not already present in the world.",
+  "raw": "{\"what\": \"Registers the pet instance into the game world's object store to enable GUID-based lookup, but only if the pet is not already present in the world.\", \"effects\": \"None\"}",
   "entry": {
    "class": "Pet",
    "name": "AddToWorld",
@@ -11406,10 +11430,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Pet/Pet.cpp",
-    "line": 72
+    "line": 73
    },
-   "hash": "8f2b7bc25e2c",
-   "desc": "Registers the pet instance into the game world's object store to enable GUID-based lookups, but only if the pet is not already present in the world. Side effects: The pet is added to the global object store; no other side effects are mentioned.",
+   "hash": "2fa8db7727c7",
+   "desc": "Registers the pet instance into the game world's object store to enable GUID-based lookup, but only if the pet is not already present in the world.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
