@@ -394,7 +394,7 @@ namespace lfg
     */
     void LFGMgr::InitializeLockedDungeons(Player* player, Group const* group)
     {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::lock_guard<std::recursive_mutex> socialGuard(*sGroupMgr->GetSocialLock());
         ObjectGuid guid = player->GetGUID();
 
         uint8 level = player->GetLevel();
@@ -2575,7 +2575,7 @@ namespace lfg
 
     void LFGMgr::SetLockedDungeons(ObjectGuid guid, LfgLockMap const& lock)
     {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::lock_guard<std::recursive_mutex> socialGuard(*sGroupMgr->GetSocialLock());
         LOG_DEBUG("lfg", "LFGMgr::SetLockedDungeons: [{}]", guid.ToString());
         PlayersStore[guid].SetLockedDungeons(lock);
     }
