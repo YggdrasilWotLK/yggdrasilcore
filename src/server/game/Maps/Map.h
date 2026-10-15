@@ -39,6 +39,7 @@
 #include <bitset>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <shared_mutex>
 
 class Unit;
