@@ -177,6 +177,15 @@ bool PathGenerator::ValidatePlayerMove()
     uint32 const phase = _source->GetPhaseMask();
     auto segmentBlocked = [&](G3D::Vector3 const& a, G3D::Vector3 const& b) -> bool
     {
+        // Grade veto: uphill past player grade is never walkable, clear rays or not.
+        if (!unit->CanFly())
+        {
+            float const gdx = b.x - a.x, gdy = b.y - a.y;
+            float const gflat = std::sqrt(gdx * gdx + gdy * gdy);
+            float const gdz = b.z - a.z;
+            if (gdz > 0.5f && gflat >= 0.01f && (gdz / gflat) > VETO_PLAYER_GRADE)
+                return true;
+        }
         if (!map->isInLineOfSight(a.x, a.y, a.z + high, b.x, b.y, b.z + high, phase,
                 LINEOFSIGHT_ALL_CHECKS, VMAP::ModelIgnoreFlags::Nothing))
             return true;
@@ -186,10 +195,9 @@ bool PathGenerator::ValidatePlayerMove()
         float rx, ry, rz;
         if (map->GetObjectHitPos(phase, a.x, a.y, a.z + 0.6f, b.x, b.y, b.z + 0.6f, rx, ry, rz, -0.5f))
         {
-            // Walkable inclines (stairs) clip riser lips at shin height even
-            // though the leg is a legitimate climb; walls still veto.
+            // Stair inclines clip the shin ray; walls still veto.
             float const dx = b.x - a.x, dy = b.y - a.y;
-            if (!IsVetoForgivenGrade(b.z - a.z, std::sqrt(dx * dx + dy * dy)))
+            if (!IsVetoForgivenGrade(b.z - a.z, std::sqrt(dx * dx + dy * dy), VETO_PLAYER_GRADE))
                 return true;
         }
         return false;
@@ -1178,14 +1186,14 @@ float PathGenerator::GetRequiredHeightToClimb(float x, float y, float z, float d
     return climbableHeight;
 }
 
-bool PathGenerator::IsVetoForgivenGrade(float dz, float flatDist)
+bool PathGenerator::IsVetoForgivenGrade(float dz, float flatDist, float grade)
 {
     float const adz = dz < 0.0f ? -dz : dz;
     if (adz <= VETO_STEP_UP_HEIGHT)
         return true;
     if (adz < 0.5f || flatDist < 0.01f)
         return false;
-    return (adz / flatDist) <= VETO_WALKABLE_GRADE;
+    return (adz / flatDist) <= grade;
 }
 
 bool PathGenerator::InRangeYZX(float const* v1, float const* v2, float r, float h) const
