@@ -573,6 +573,11 @@ protected:
 
     MapRefMgr m_mapRefMgr;
     MapRefMgr::iterator m_mapRefIter;
+    // Guards m_mapRefMgr; never hold across player updates.
+    mutable std::shared_mutex _playerRefLock;
+public:
+    std::shared_mutex* GetPlayerRefLock() const { return &_playerRefLock; }
+protected:
 
     TransportsContainer _transports;
     TransportsContainer::iterator _transportsUpdateIter;

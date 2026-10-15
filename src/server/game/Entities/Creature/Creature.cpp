@@ -1416,10 +1416,19 @@ void Creature::SetLootRecipient(Unit* unit, bool withGroup)
 
             if (map && map->IsDungeon() && (isWorldBoss() || IsDungeonBoss()))
             {
-                Map::PlayerList const& PlayerList = map->GetPlayers();
-                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                std::vector<ObjectGuid> guids;
                 {
-                    if (Player* groupMember = i->GetSource())
+                    std::shared_lock<std::shared_mutex> lock(*map->GetPlayerRefLock());
+                    Map::PlayerList const& PlayerList = map->GetPlayers();
+                    for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                        if (Player* listed = i->GetSource())
+                            guids.push_back(listed->GetGUID());
+                }
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* groupMember = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!groupMember || groupMember->GetMap() != map)
+                        continue;
                     {
                         if (groupMember->IsGameMaster() || groupMember->IsSpectator())
                         {

@@ -133,12 +133,23 @@ void MotionTransport::CleanupsBeforeDelete(bool finalCleanup /*= true*/)
 
 void MotionTransport::BuildUpdate(UpdateDataMapType& data_map)
 {
-    Map::PlayerList const& players = GetMap()->GetPlayers();
-    if (players.IsEmpty())
-        return;
+    std::vector<ObjectGuid> guids;
+    {
+        std::shared_lock<std::shared_mutex> lock(*GetMap()->GetPlayerRefLock());
+        Map::PlayerList const& players = GetMap()->GetPlayers();
+        if (players.IsEmpty())
+            return;
+        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
 
-    for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-        BuildFieldsUpdate(itr->GetSource(), data_map);
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (player && player->GetMap() == GetMap())
+            BuildFieldsUpdate(player, data_map);
+    }
 
     ClearUpdateMask(true);
 }
@@ -866,12 +877,23 @@ void StaticTransport::CleanupsBeforeDelete(bool finalCleanup /*= true*/)
 
 void StaticTransport::BuildUpdate(UpdateDataMapType& data_map)
 {
-    Map::PlayerList const& players = GetMap()->GetPlayers();
-    if (players.IsEmpty())
-        return;
+    std::vector<ObjectGuid> guids;
+    {
+        std::shared_lock<std::shared_mutex> lock(*GetMap()->GetPlayerRefLock());
+        Map::PlayerList const& players = GetMap()->GetPlayers();
+        if (players.IsEmpty())
+            return;
+        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
 
-    for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-        BuildFieldsUpdate(itr->GetSource(), data_map);
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (player && player->GetMap() == GetMap())
+            BuildFieldsUpdate(player, data_map);
+    }
 
     ClearUpdateMask(true);
 }
