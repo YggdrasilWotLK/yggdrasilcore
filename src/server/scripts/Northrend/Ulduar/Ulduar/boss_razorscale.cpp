@@ -354,13 +354,13 @@ public:
             {
                 me->StopMoving();
                 startPath = false;
-                if (WaypointPath i_path = sWaypointMgr->GetPath(me->GetWaypointPath(); !i_path.empty()))
+                if (WaypointPath i_path = sWaypointMgr->GetPath(me->GetWaypointPath()); !i_path.empty())
                 {
                     Movement::PointsArray pathPoints;
                     pathPoints.push_back(G3D::Vector3(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ()));
                     for (uint8 i = 0; i < i_path.size(); ++i)
                     {
-                        WaypointData const* node = i_path->at(i);
+                        WaypointData const& node = i_path.at(i);
                         pathPoints.push_back(G3D::Vector3(node.x, node.y, node.z));
                     }
                     me->GetMotionMaster()->MoveSplinePath(&pathPoints);
