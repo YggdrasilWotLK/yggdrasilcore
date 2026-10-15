@@ -1413,18 +1413,22 @@
   }
  },
  "Creature::SetLootRecipient@08ba0e10:qwen3-5-4b": {
-  "hash": "b8aa03371574",
-  "desc": "Sets the player who is allowed to loot the creature after its death, optionally including their entire group. If no unit is provided, it clears the recipient and removes dynamic flags. Side effects: modifies m_lootRecipient, m_lootRecipientGroup, UNIT_DYNFLAG_LOOTABLE, UNIT_DYNFLAG_TAPPED, and calls ResetAllowedLooters/AddAllowedLooter",
-  "raw": "{\"what\": \"Sets the player who is allowed to loot the creature after its death, optionally including their entire group. If no unit is provided, it clears the recipient and removes dynamic flags.\", \"effects\": \"modifies m_lootRecipient, m_lootRecipientGroup, UNIT_DYNFLAG_LOOTABLE, UNIT_DYNFLAG_TAPPED, and calls ResetAllowedLooters/AddAllowedLooter\"}",
+  "hash": "d9b62864ca40",
+  "desc": "Sets the unit that is allowed to loot the creature after it dies, including handling group permissions and dungeon-specific looter restrictions. Side effects: modifies m_lootRecipient, m_lootRecipientGroup, removes dynamic flags if unit is null, adds allowed looters for dungeons",
+  "raw": "{\"what\": \"Sets the unit that is allowed to loot the creature after it dies, including handling group permissions and dungeon-specific looter restrictions.\", \"effects\": \"modifies m_lootRecipient, m_lootRecipientGroup, removes dynamic flags if unit is null, adds allowed looters for dungeons\"}",
   "entry": {
    "class": "Creature",
    "name": "SetLootRecipient",
    "sig": "void SetLootRecipient(Unit* unit, bool withGroup = true)",
    "file": "src/server/game/Entities/Creature/Creature.h",
-   "line": 246,
+   "line": 257,
    "access": "public",
-   "hash": "b8aa03371574",
-   "desc": "Sets the player who is allowed to loot the creature after its death, optionally including their entire group. If no unit is provided, it clears the recipient and removes dynamic flags. Side effects: modifies m_lootRecipient, m_lootRecipientGroup, UNIT_DYNFLAG_LOOTABLE, UNIT_DYNFLAG_TAPPED, and calls ResetAllowedLooters/AddAllowedLooter",
+   "impl": {
+    "file": "src/server/game/Entities/Creature/Creature.cpp",
+    "line": 1384
+   },
+   "hash": "d9b62864ca40",
+   "desc": "Sets the unit that is allowed to loot the creature after it dies, including handling group permissions and dungeon-specific looter restrictions. Side effects: modifies m_lootRecipient, m_lootRecipientGroup, removes dynamic flags if unit is null, adds allowed looters for dungeons",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -27696,9 +27700,9 @@
   }
  },
  "Player::ResetMap@5de366c6:qwen3-5-4b": {
-  "hash": "0a6614fd7af3",
-  "desc": "Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after list modifications.",
-  "raw": "{\"what\": \"Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after list modifications.\", \"effects\": \"none\"}",
+  "hash": "a9fea4944166",
+  "desc": "Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after element removal.",
+  "raw": "{\n  \"what\": \"Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after element removal.\",\n  \"effects\": \"none\"\n}",
   "entry": {
    "class": "Player",
    "name": "ResetMap",
@@ -27708,10 +27712,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/Player.cpp",
-    "line": 14816
+    "line": 14824
    },
-   "hash": "0a6614fd7af3",
-   "desc": "Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after list modifications.",
+   "hash": "a9fea4944166",
+   "desc": "Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after element removal.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -30366,9 +30370,9 @@
   }
  },
  "MotionTransport::BuildUpdate@0f98f3eb:qwen3-5-4b": {
-  "hash": "9918c7652f53",
-  "desc": "Iterates through all players on the map to build field updates for each player's source, then clears the update mask. Side effects: modifies the input data_map by adding field updates; clears the internal update mask",
-  "raw": "{\n  \"what\": \"Iterates through all players on the map to build field updates for each player's source, then clears the update mask.\",\n  \"effects\": \"modifies the input data_map by adding field updates; clears the internal update mask\"\n}",
+  "hash": "37de54c2a482",
+  "desc": "Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask. Side effects: modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)",
+  "raw": "{\n  \"what\": \"Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask.\",\n  \"effects\": \"modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)\"\n}",
   "entry": {
    "class": "MotionTransport",
    "name": "BuildUpdate",
@@ -30380,8 +30384,8 @@
     "file": "src/server/game/Entities/Transport/Transport.cpp",
     "line": 134
    },
-   "hash": "9918c7652f53",
-   "desc": "Iterates through all players on the map to build field updates for each player's source, then clears the update mask. Side effects: modifies the input data_map by adding field updates; clears the internal update mask",
+   "hash": "37de54c2a482",
+   "desc": "Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask. Side effects: modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -30825,9 +30829,9 @@
   }
  },
  "StaticTransport::BuildUpdate@0f98f3eb:qwen3-5-4b": {
-  "hash": "5c13656757dc",
-  "desc": "Iterates through all players on the map to build field updates for each player's source, then clears the update mask. Side effects: Modifies the provided data_map by adding field updates for each player; clears the internal update mask.",
-  "raw": "{\n  \"what\": \"Iterates through all players on the map to build field updates for each player's source, then clears the update mask.\",\n  \"effects\": \"Modifies the provided data_map by adding field updates for each player; clears the internal update mask.\"\n}",
+  "hash": "365df9fd509d",
+  "desc": "Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask. Side effects: modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)",
+  "raw": "{\n  \"what\": \"Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask.\",\n  \"effects\": \"modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)\"\n}",
   "entry": {
    "class": "StaticTransport",
    "name": "BuildUpdate",
@@ -30837,10 +30841,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Transport/Transport.cpp",
-    "line": 867
+    "line": 878
    },
-   "hash": "5c13656757dc",
-   "desc": "Iterates through all players on the map to build field updates for each player's source, then clears the update mask. Side effects: Modifies the provided data_map by adding field updates for each player; clears the internal update mask.",
+   "hash": "365df9fd509d",
+   "desc": "Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask. Side effects: modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)",
    "ai": true,
    "model": "qwen3.5:4b"
   }
