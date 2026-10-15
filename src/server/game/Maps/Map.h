@@ -355,6 +355,7 @@ public:
 
     [[nodiscard]] std::unordered_set<Corpse*> const* GetCorpsesInGrid(uint32 gridId) const
     {
+        std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
         auto itr = _corpsesByGrid.find(gridId);
         if (itr != _corpsesByGrid.end())
             return &itr->second;
@@ -364,6 +365,7 @@ public:
 
     [[nodiscard]] Corpse* GetCorpseByPlayer(ObjectGuid const& ownerGuid) const
     {
+        std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
         auto itr = _corpsesByPlayer.find(ownerGuid);
         if (itr != _corpsesByPlayer.end())
             return itr->second;
@@ -550,6 +552,14 @@ protected:
 
     std::mutex Lock;
     std::shared_mutex MMapLock;
+    // Guards _objectsStore, spawn-id stores and corpse stores below.
+    // Spawn/despawn writers run on the owning map thread, readers
+    // (GM/chat/pool/event lookups) anywhere; methods nest into each
+    // other, so recursive. Leaf-only versus outside locks.
+    mutable std::recursive_mutex _storeLock;
+public:
+    std::recursive_mutex* GetStoreLock() const { return &_storeLock; }
+protected:
 
     MapGridManager _mapGridManager;
     MapEntry const* i_mapEntry;

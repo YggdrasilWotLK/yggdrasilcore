@@ -16,6 +16,7 @@
  */
 
 #include "Corpse.h"
+#include <mutex>
 #include "CharacterCache.h"
 #include "Common.h"
 #include "DatabaseEnv.h"
@@ -44,7 +45,7 @@ void Corpse::AddToWorld()
 {
     ///- Register the corpse for guid lookup
     if (!IsInWorld())
-        GetMap()->GetObjectsStore().Insert<Corpse>(GetGUID(), this);
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Insert<Corpse>(GetGUID(), this); }
 
     Object::AddToWorld();
 }
@@ -53,7 +54,7 @@ void Corpse::RemoveFromWorld()
 {
     ///- Remove the corpse from the accessor
     if (IsInWorld())
-        GetMap()->GetObjectsStore().Remove<Corpse>(GetGUID());
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<Corpse>(GetGUID()); }
 
     WorldObject::RemoveFromWorld();
 }
