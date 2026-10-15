@@ -28,14 +28,7 @@ WaypointMgr::WaypointMgr()
 
 WaypointMgr::~WaypointMgr()
 {
-    for (WaypointPathContainer::iterator itr = _waypointStore.begin(); itr != _waypointStore.end(); ++itr)
-    {
-        for (WaypointPath::const_iterator it = itr->second.begin(); it != itr->second.end(); ++it)
-            delete *it;
-
-        itr->second.clear();
-    }
-
+    std::unique_lock<std::shared_mutex> lock(_waypointLock);
     _waypointStore.clear();
 }
 
@@ -64,10 +57,9 @@ void WaypointMgr::Load()
     do
     {
         Field* fields = result->Fetch();
-        WaypointData* wp = new WaypointData();
+        WaypointData wp;
 
         uint32 pathId = fields[0].Get<uint32>();
-        WaypointPath& path = _waypointStore[pathId];
 
         float x = fields[2].Get<float>();
         float y = fields[3].Get<float>();
@@ -79,25 +71,25 @@ void WaypointMgr::Load()
         Acore::NormalizeMapCoord(x);
         Acore::NormalizeMapCoord(y);
 
-        wp->id = fields[1].Get<uint32>();
-        wp->x = x;
-        wp->y = y;
-        wp->z = z;
-        wp->orientation = o;
-        wp->move_type = fields[6].Get<uint32>();
+        wp.id = fields[1].Get<uint32>();
+        wp.x = x;
+        wp.y = y;
+        wp.z = z;
+        wp.orientation = o;
+        wp.move_type = fields[6].Get<uint32>();
 
-        if (wp->move_type >= WAYPOINT_MOVE_TYPE_MAX)
+        if (wp.move_type >= WAYPOINT_MOVE_TYPE_MAX)
         {
-            //LOG_ERROR("sql.sql", "Waypoint {} in waypoint_data has invalid move_type, ignoring", wp->id);
-            delete wp;
+            //LOG_ERROR("sql.sql", "Waypoint {} in waypoint_data has invalid move_type, ignoring", wp.id);
             continue;
         }
 
-        wp->delay = fields[7].Get<uint32>();
-        wp->event_id = fields[8].Get<uint32>();
-        wp->event_chance = fields[9].Get<int16>();
+        wp.delay = fields[7].Get<uint32>();
+        wp.event_id = fields[8].Get<uint32>();
+        wp.event_chance = fields[9].Get<int16>();
 
-        path.push_back(wp);
+        std::unique_lock<std::shared_mutex> lock(_waypointLock);
+        _waypointStore[pathId].push_back(wp);
         ++count;
     } while (result->NextRow());
 
@@ -107,15 +99,6 @@ void WaypointMgr::Load()
 
 void WaypointMgr::ReloadPath(uint32 id)
 {
-    WaypointPathContainer::iterator itr = _waypointStore.find(id);
-    if (itr != _waypointStore.end())
-    {
-        for (WaypointPath::const_iterator it = itr->second.begin(); it != itr->second.end(); ++it)
-            delete *it;
-
-        _waypointStore.erase(itr);
-    }
-
     WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_WAYPOINT_DATA_BY_ID);
 
     stmt->SetData(0, id);
@@ -123,14 +106,18 @@ void WaypointMgr::ReloadPath(uint32 id)
     PreparedQueryResult result = WorldDatabase.Query(stmt);
 
     if (!result)
+    {
+        std::unique_lock<std::shared_mutex> lock(_waypointLock);
+        _waypointStore.erase(id);
         return;
+    }
 
-    WaypointPath& path = _waypointStore[id];
+    WaypointPath path;
 
     do
     {
         Field* fields = result->Fetch();
-        WaypointData* wp = new WaypointData();
+        WaypointData wp;
 
         float x = fields[1].Get<float>();
         float y = fields[2].Get<float>();
@@ -142,24 +129,26 @@ void WaypointMgr::ReloadPath(uint32 id)
         Acore::NormalizeMapCoord(x);
         Acore::NormalizeMapCoord(y);
 
-        wp->id = fields[0].Get<uint32>();
-        wp->x = x;
-        wp->y = y;
-        wp->z = z;
-        wp->orientation = o;
-        wp->move_type = fields[5].Get<uint32>();
+        wp.id = fields[0].Get<uint32>();
+        wp.x = x;
+        wp.y = y;
+        wp.z = z;
+        wp.orientation = o;
+        wp.move_type = fields[5].Get<uint32>();
 
-        if (wp->move_type >= WAYPOINT_MOVE_TYPE_MAX)
+        if (wp.move_type >= WAYPOINT_MOVE_TYPE_MAX)
         {
-            //LOG_ERROR("sql.sql", "Waypoint {} in waypoint_data has invalid move_type, ignoring", wp->id);
-            delete wp;
+            //LOG_ERROR("sql.sql", "Waypoint {} in waypoint_data has invalid move_type, ignoring", wp.id);
             continue;
         }
 
-        wp->delay = fields[6].Get<uint32>();
-        wp->event_id = fields[7].Get<uint32>();
-        wp->event_chance = fields[8].Get<uint8>();
+        wp.delay = fields[6].Get<uint32>();
+        wp.event_id = fields[7].Get<uint32>();
+        wp.event_chance = fields[8].Get<uint8>();
 
         path.push_back(wp);
     } while (result->NextRow());
+
+    std::unique_lock<std::shared_mutex> lock(_waypointLock);
+    _waypointStore[id] = std::move(path);
 }

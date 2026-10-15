@@ -766,7 +766,7 @@ void Map::ScriptsProcess()
                 // Source must be Unit.
                 if (Unit* unit = _GetScriptUnit(source, true, step.script))
                 {
-                    if (!sWaypointMgr->GetPath(step.script->LoadPath.PathID))
+                    if (sWaypointMgr->GetPath(step.script->LoadPath.PathID).empty())
                         LOG_ERROR("maps.script", "{} source object has an invalid path ({}), skipping.", step.script->GetDebugInfo(), step.script->LoadPath.PathID);
                     else
                         unit->GetMotionMaster()->MovePath(step.script->LoadPath.PathID, step.script->LoadPath.IsRepeatable);

@@ -39,6 +39,7 @@ uint32 PlayerSocial::GetNumberOfSocialsWithFlag(SocialFlag flag) const
 
 bool PlayerSocial::AddToSocialList(ObjectGuid const& friendGuid, SocialFlag flag)
 {
+    std::unique_lock<std::shared_mutex> lock(*sSocialMgr->GetSocialLock());
     // check client limits
     if (GetNumberOfSocialsWithFlag(flag) >= (((flag & SOCIAL_FLAG_FRIEND) != 0) ? SOCIALMGR_FRIEND_LIMIT : SOCIALMGR_IGNORE_LIMIT))
         return false;
@@ -73,6 +74,7 @@ bool PlayerSocial::AddToSocialList(ObjectGuid const& friendGuid, SocialFlag flag
 
 void PlayerSocial::RemoveFromSocialList(ObjectGuid const& friendGuid, SocialFlag flag)
 {
+    std::unique_lock<std::shared_mutex> lock(*sSocialMgr->GetSocialLock());
     auto itr = m_playerSocialMap.find(friendGuid);
     if (itr == m_playerSocialMap.end())                     // not exist
         return;
@@ -104,6 +106,7 @@ void PlayerSocial::RemoveFromSocialList(ObjectGuid const& friendGuid, SocialFlag
 
 void PlayerSocial::SetFriendNote(ObjectGuid const& friendGuid, std::string note)
 {
+    std::unique_lock<std::shared_mutex> lock(*sSocialMgr->GetSocialLock());
     auto itr = m_playerSocialMap.find(friendGuid);
     if (itr == m_playerSocialMap.end())                     // not exist
         return;
@@ -130,14 +133,23 @@ void PlayerSocial::SendSocialList(Player* player, uint32 flags)
     uint32 ignoredCount = 0;
     uint32 totalCount = 0;
 
-    WorldPacket data(SMSG_CONTACT_LIST, (4 + 4 + m_playerSocialMap.size() * 25)); // just can guess size
+    // Snapshot under lock; GetFriendInfo re-locks per item below.
+    std::vector<std::pair<ObjectGuid, FriendInfo>> contacts;
+    {
+        std::shared_lock<std::shared_mutex> lock(*sSocialMgr->GetSocialLock());
+        contacts.reserve(m_playerSocialMap.size());
+        for (auto const& itr : m_playerSocialMap)
+            contacts.emplace_back(itr.first, itr.second);
+    }
+
+    WorldPacket data(SMSG_CONTACT_LIST, (4 + 4 + contacts.size() * 25)); // just can guess size
     data << uint32(flags);                                                        // 0x1 = Friendlist update. 0x2 = Ignorelist update. 0x4 = Mutelist update.
     std::size_t countPos = data.wpos();
     data << uint32(0);                                                           // contacts count placeholder
 
-    for (auto& itr : m_playerSocialMap)
+    for (auto& contact : contacts)
     {
-        FriendInfo& friendInfo = itr.second;
+        FriendInfo& friendInfo = contact.second;
         uint8 contactFlags = friendInfo.Flags;
         if (!(contactFlags & flags))
             continue;
@@ -154,9 +166,9 @@ void PlayerSocial::SendSocialList(Player* player, uint32 flags)
 
         ++totalCount;
 
-        sSocialMgr->GetFriendInfo(player, itr.first, friendInfo);
+        sSocialMgr->GetFriendInfo(player, contact.first, friendInfo);
 
-        data << itr.first;                                    // player guid
+        data << contact.first;                                    // player guid
         data << uint32(contactFlags);                         // player flag (0x1 = Friend, 0x2 = Ignored, 0x4 = Muted)
         data << friendInfo.Note;                              // string note
         if (contactFlags & SOCIAL_FLAG_FRIEND)                // if IsFriend()
@@ -178,6 +190,7 @@ void PlayerSocial::SendSocialList(Player* player, uint32 flags)
 
 bool PlayerSocial::_checkContact(ObjectGuid const& guid, SocialFlag flags) const
 {
+    std::shared_lock<std::shared_mutex> lock(*sSocialMgr->GetSocialLock());
     auto const& itr = m_playerSocialMap.find(guid);
     if (itr != m_playerSocialMap.end())
         return (itr->second.Flags & flags) != 0;
@@ -228,9 +241,19 @@ void SocialMgr::GetFriendInfo(Player* player, ObjectGuid const& friendGUID, Frie
     bool allowTwoSideWhoList = sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_WHO_LIST);
     AccountTypes gmLevelInWhoList = AccountTypes(sWorld->getIntConfig(CONFIG_GM_LEVEL_IN_WHO_LIST));
 
-    auto const& itr = player->GetSocial()->m_playerSocialMap.find(friendGUID);
-    if (itr != player->GetSocial()->m_playerSocialMap.end())
-        friendInfo.Note = itr->second.Note;
+    FriendInfo noteCopy;
+    bool haveNote = false;
+    {
+        std::shared_lock<std::shared_mutex> lock(*sSocialMgr->GetSocialLock());
+        auto const& itr2 = player->GetSocial()->m_playerSocialMap.find(friendGUID);
+        if (itr2 != player->GetSocial()->m_playerSocialMap.end())
+        {
+            noteCopy = itr2->second;
+            haveNote = true;
+        }
+    }
+    if (haveNote)
+        friendInfo.Note = noteCopy.Note;
 
     // PLAYER see his team only and PLAYER can't see MODERATOR, GAME MASTER, ADMINISTRATOR characters
     // MODERATOR, GAME MASTER, ADMINISTRATOR can see all
@@ -296,6 +319,7 @@ void SocialMgr::BroadcastToFriendListers(Player* player, WorldPacket* packet)
     if (!player)
         return;
 
+    std::shared_lock<std::shared_mutex> lock(_socialLock);
     TeamId teamId = player->GetTeamId();
     AccountTypes security = player->GetSession()->GetSecurity();
     bool allowTwoSideWhoList = sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_WHO_LIST);
@@ -318,6 +342,7 @@ void SocialMgr::BroadcastToFriendListers(Player* player, WorldPacket* packet)
 
 PlayerSocial* SocialMgr::LoadFromDB(PreparedQueryResult result, ObjectGuid const& guid)
 {
+    std::unique_lock<std::shared_mutex> lock(_socialLock);
     PlayerSocial* social = &m_socialMap[guid];
     social->SetPlayerGUID(guid);
 

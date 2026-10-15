@@ -16,6 +16,7 @@
  */
 
 #include "BattlegroundRL.h"
+#include "GroupMgr.h"
 #include "Log.h"
 #include "Player.h"
 #include "WorldPacket.h"
@@ -28,12 +29,14 @@ BattlegroundRL::BattlegroundRL()
 
 void BattlegroundRL::StartingEventCloseDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = BG_RL_OBJECT_DOOR_1; i <= BG_RL_OBJECT_DOOR_2; ++i)
         SpawnBGObject(i, RESPAWN_IMMEDIATELY);
 }
 
 void BattlegroundRL::StartingEventOpenDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = BG_RL_OBJECT_DOOR_1; i <= BG_RL_OBJECT_DOOR_2; ++i)
         DoorOpen(i);
 
@@ -43,12 +46,14 @@ void BattlegroundRL::StartingEventOpenDoors()
 
 bool BattlegroundRL::HandlePlayerUnderMap(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     player->NearTeleportTo(1285.810547f, 1667.896851f, 39.957642f, player->GetOrientation());
     return true;
 }
 
 void BattlegroundRL::HandleAreaTrigger(Player* player, uint32 trigger)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -94,12 +99,14 @@ void BattlegroundRL::HandleAreaTrigger(Player* player, uint32 trigger)
 
 void BattlegroundRL::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_RL_ARENA_SHOW, 1);
     Arena::FillInitialWorldStates(packet);
 }
 
 bool BattlegroundRL::SetupBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // gates
     if (!AddObject(BG_RL_OBJECT_DOOR_1, BG_RL_OBJECT_TYPE_DOOR_1, 1293.561f, 1601.938f, 31.60557f, -1.457349f, 0, 0, -0.6658813f, 0.7460576f, RESPAWN_IMMEDIATELY)
             || !AddObject(BG_RL_OBJECT_DOOR_2, BG_RL_OBJECT_TYPE_DOOR_2, 1278.648f, 1730.557f, 31.60557f, 1.684245f, 0, 0, 0.7460582f, 0.6658807f, RESPAWN_IMMEDIATELY)

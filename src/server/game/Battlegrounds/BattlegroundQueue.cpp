@@ -21,6 +21,7 @@
 #include "BattlegroundMgr.h"
 #include "BattlegroundSpamProtect.h"
 #include "Channel.h"
+#include "GroupMgr.h"
 #include "Chat.h"
 #include "GameTime.h"
 #include "Group.h"
@@ -134,6 +135,7 @@ bool BattlegroundQueue::SelectionPool::AddGroup(GroupQueueInfo* ginfo, uint32 de
 GroupQueueInfo* BattlegroundQueue::AddGroup(Player* leader, Group* group, BattlegroundTypeId bgTypeId, PvPDifficultyEntry const* bracketEntry, uint8 arenaType, bool isRated, bool isPremade,
     uint32 arenaRating, uint32 matchmakerRating, uint32 arenaTeamId /*= 0*/, uint32 opponentsArenaTeamId /*= 0*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     BattlegroundBracketId bracketId = bracketEntry->GetBracketId();
 
     // create new ginfo
@@ -208,6 +210,7 @@ GroupQueueInfo* BattlegroundQueue::AddGroup(Player* leader, Group* group, Battle
 
 void BattlegroundQueue::PlayerInvitedToBGUpdateAverageWaitTime(GroupQueueInfo* ginfo)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 timeInQueue = std::max<uint32>(1, getMSTimeDiff(ginfo->JoinTime, GameTime::GetGameTimeMS().count()));
 
     // team_index: bg alliance - TEAM_ALLIANCE, bg horde - TEAM_HORDE, arena skirmish - TEAM_ALLIANCE, arena rated - TEAM_HORDE
@@ -234,6 +237,7 @@ void BattlegroundQueue::PlayerInvitedToBGUpdateAverageWaitTime(GroupQueueInfo* g
 
 uint32 BattlegroundQueue::GetAverageQueueWaitTime(GroupQueueInfo* ginfo) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // team_index: bg alliance - TEAM_ALLIANCE, bg horde - TEAM_HORDE, arena skirmish - TEAM_ALLIANCE, arena rated - TEAM_HORDE
     uint8 team_index;
     if (!ginfo->ArenaType)
@@ -260,6 +264,7 @@ uint32 BattlegroundQueue::GetAverageQueueWaitTime(GroupQueueInfo* ginfo) const
 //remove player from queue and from group info, if group info is empty then remove it too
 void BattlegroundQueue::RemovePlayer(ObjectGuid guid, bool decreaseInvitedCount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     //remove player from map, if he's there
     auto const& itr = m_QueuedPlayers.find(guid);
     if (itr == m_QueuedPlayers.end())
@@ -366,11 +371,13 @@ void BattlegroundQueue::RemovePlayer(ObjectGuid guid, bool decreaseInvitedCount)
 
 void BattlegroundQueue::AddEvent(BasicEvent* Event, uint64 e_time)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     m_events.AddEventAtOffset(Event, Milliseconds(e_time));
 }
 
 bool BattlegroundQueue::IsPlayerInvitedToRatedArena(ObjectGuid pl_guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     auto qItr = m_QueuedPlayers.find(pl_guid);
     return qItr != m_QueuedPlayers.end() && qItr->second->IsRated && qItr->second->IsInvitedToBGInstanceGUID;
 }
@@ -378,12 +385,14 @@ bool BattlegroundQueue::IsPlayerInvitedToRatedArena(ObjectGuid pl_guid)
 //returns true when player pl_guid is in queue and is invited to bgInstanceGuid
 bool BattlegroundQueue::IsPlayerInvited(ObjectGuid pl_guid, const uint32 bgInstanceGuid, const uint32 removeTime)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     auto qItr = m_QueuedPlayers.find(pl_guid);
     return qItr != m_QueuedPlayers.end() && qItr->second->IsInvitedToBGInstanceGUID == bgInstanceGuid && qItr->second->RemoveInviteTime == removeTime;
 }
 
 bool BattlegroundQueue::GetPlayerGroupInfoData(ObjectGuid guid, GroupQueueInfo* ginfo)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     auto qItr = m_QueuedPlayers.find(guid);
     if (qItr == m_QueuedPlayers.end())
         return false;
@@ -394,6 +403,7 @@ bool BattlegroundQueue::GetPlayerGroupInfoData(ObjectGuid guid, GroupQueueInfo* 
 // this function is filling pools given free slots on both sides, result is ballanced
 void BattlegroundQueue::FillPlayersToBG(Battleground* bg, BattlegroundBracketId bracket_id)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!sScriptMgr->CanFillPlayersToBG(this, bg, bracket_id))
     {
         return;
@@ -509,6 +519,7 @@ void BattlegroundQueue::FillPlayersToBG(Battleground* bg, BattlegroundBracketId 
 // then after 30 mins (default) in queue it moves premade group to normal queue
 bool BattlegroundQueue::CheckPremadeMatch(BattlegroundBracketId bracket_id, uint32 MinPlayersPerTeam, uint32 MaxPlayersPerTeam)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].empty() && !m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].empty())
     {
         //start premade match
@@ -575,6 +586,7 @@ bool BattlegroundQueue::CheckPremadeMatch(BattlegroundBracketId bracket_id, uint
 // this method tries to create battleground or arena with MinPlayersPerTeam against MinPlayersPerTeam
 bool BattlegroundQueue::CheckNormalMatch(Battleground* bgTemplate, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     auto CanStartMatch = [this, bgTemplate, minPlayers]()
     {
         //allow 1v0 if debug bg
@@ -631,6 +643,7 @@ bool BattlegroundQueue::CheckNormalMatch(Battleground* bgTemplate, BattlegroundB
 // this method will check if we can invite players to same faction skirmish match
 bool BattlegroundQueue::CheckSkirmishForSameFaction(BattlegroundBracketId bracket_id, uint32 minPlayersPerTeam)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() < minPlayersPerTeam && m_SelectionPools[TEAM_HORDE].GetPlayerCount() < minPlayersPerTeam)
         return false;
 
@@ -701,11 +714,13 @@ bool BattlegroundQueue::CheckSkirmishForSameFaction(BattlegroundBracketId bracke
 
 void BattlegroundQueue::UpdateEvents(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     m_events.Update(diff);
 }
 
 void BattlegroundQueue::BattlegroundQueueUpdate(uint32 diff, BattlegroundTypeId bgTypeId, BattlegroundBracketId bracket_id, uint8 arenaType, bool isRated, uint32 arenaRating)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // if no players in queue - do nothing
     if (IsAllQueuesEmpty(bracket_id))
         return;
@@ -958,6 +973,7 @@ void BattlegroundQueue::BattlegroundQueueUpdate(uint32 diff, BattlegroundTypeId 
 
 void BattlegroundQueue::BattlegroundQueueAnnouncerUpdate(uint32 diff, BattlegroundQueueTypeId bgQueueTypeId, BattlegroundBracketId bracket_id)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     BattlegroundTypeId bgTypeId = BattlegroundMgr::BGTemplateId(bgQueueTypeId);
     Battleground* bg_template = sBattlegroundMgr->GetBattlegroundTemplate(bgTypeId);
     if (!bg_template)
@@ -1013,6 +1029,7 @@ void BattlegroundQueue::BattlegroundQueueAnnouncerUpdate(uint32 diff, Battlegrou
 
 uint32 BattlegroundQueue::GetPlayersCountInGroupsQueue(BattlegroundBracketId bracketId, BattlegroundQueueGroupTypes bgqueue)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 playersCount = 0;
 
     for (auto const& itr : m_QueuedGroups[bracketId][bgqueue])
@@ -1024,6 +1041,7 @@ uint32 BattlegroundQueue::GetPlayersCountInGroupsQueue(BattlegroundBracketId bra
 
 bool BattlegroundQueue::IsAllQueuesEmpty(BattlegroundBracketId bracket_id)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint8 queueEmptyCount = 0;
 
     for (uint8 i = 0; i < BG_QUEUE_MAX; i++)
@@ -1035,6 +1053,7 @@ bool BattlegroundQueue::IsAllQueuesEmpty(BattlegroundBracketId bracket_id)
 
 void BattlegroundQueue::SendMessageBGQueue(Player* leader, Battleground* bg, PvPDifficultyEntry const* bracketEntry)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!sScriptMgr->CanSendMessageBGQueue(this, leader, bg, bracketEntry))
     {
         return;
@@ -1089,6 +1108,7 @@ void BattlegroundQueue::SendMessageBGQueue(Player* leader, Battleground* bg, PvP
 
 void BattlegroundQueue::SendJoinMessageArenaQueue(Player* leader, GroupQueueInfo* ginfo, PvPDifficultyEntry const* bracketEntry, bool isRated)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!sWorld->getBoolConfig(CONFIG_ARENA_QUEUE_ANNOUNCER_ENABLE))
         return;
 
@@ -1169,6 +1189,7 @@ void BattlegroundQueue::SendJoinMessageArenaQueue(Player* leader, GroupQueueInfo
 
 void BattlegroundQueue::SendExitMessageArenaQueue(GroupQueueInfo* ginfo)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!sWorld->getBoolConfig(CONFIG_ARENA_QUEUE_ANNOUNCER_ENABLE))
         return;
 
@@ -1209,17 +1230,20 @@ void BattlegroundQueue::SendExitMessageArenaQueue(GroupQueueInfo* ginfo)
 
 void BattlegroundQueue::SetQueueAnnouncementTimer(uint32 bracketId, int32 timer, bool isCrossFactionBG /*= true*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     _queueAnnouncementTimer[bracketId] = timer;
     _queueAnnouncementCrossfactioned = isCrossFactionBG;
 }
 
 int32 BattlegroundQueue::GetQueueAnnouncementTimer(uint32 bracketId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     return _queueAnnouncementTimer[bracketId];
 }
 
 void BattlegroundQueue::InviteGroupToBG(GroupQueueInfo* ginfo, Battleground* bg, TeamId teamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // set side if needed
     if (teamId != TEAM_NEUTRAL)
         ginfo->teamId = teamId;

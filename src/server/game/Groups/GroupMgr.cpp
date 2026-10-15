@@ -43,6 +43,7 @@ GroupMgr* GroupMgr::instance()
 
 void GroupMgr::InitGroupIds()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     _nextGroupId = 1;
 
     QueryResult result = CharacterDatabase.Query("SELECT MAX(guid) FROM `groups`");
@@ -55,6 +56,7 @@ void GroupMgr::InitGroupIds()
 
 void GroupMgr::RegisterGroupId(ObjectGuid::LowType groupId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // Allocation was done in InitGroupIds()
     _groupIds[groupId] = true;
 
@@ -66,6 +68,7 @@ void GroupMgr::RegisterGroupId(ObjectGuid::LowType groupId)
 
 ObjectGuid::LowType GroupMgr::GenerateGroupId()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     ObjectGuid::LowType newGroupId = _nextGroupId;
 
     // find the lowest available id starting from the current _nextGroupId
@@ -82,6 +85,7 @@ ObjectGuid::LowType GroupMgr::GenerateGroupId()
 
 Group* GroupMgr::GetGroupByGUID(ObjectGuid::LowType groupId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     GroupContainer::const_iterator itr = GroupStore.find(groupId);
     if (itr != GroupStore.end())
         return itr->second;
@@ -91,6 +95,7 @@ Group* GroupMgr::GetGroupByGUID(ObjectGuid::LowType groupId) const
 
 void GroupMgr::AddGroup(Group* group)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!group || group->IsDisbanded())
         return;
     SweepGroupGraveyard();
@@ -99,6 +104,7 @@ void GroupMgr::AddGroup(Group* group)
 
 void GroupMgr::RemoveGroup(Group* group)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!group)
         return;
     SweepGroupGraveyard();
@@ -108,6 +114,7 @@ void GroupMgr::RemoveGroup(Group* group)
 // Only the manager frees groups: unregister, mark zombie, delete after grace.
 void GroupMgr::DestroyGroup(Group* group)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!group)
         return;
     SweepGroupGraveyard();
@@ -121,6 +128,7 @@ void GroupMgr::DestroyGroup(Group* group)
 
 void GroupMgr::SweepGroupGraveyard()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     static constexpr uint32 GROUP_ZOMBIE_GRACE_MS = 300000; // 5 min
     uint32 now = getMSTime();
     for (auto itr = _groupGraveyard.begin(); itr != _groupGraveyard.end();)
@@ -137,6 +145,7 @@ void GroupMgr::SweepGroupGraveyard()
 
 void GroupMgr::LoadGroups()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     {
         uint32 oldMSTime = getMSTime();
 

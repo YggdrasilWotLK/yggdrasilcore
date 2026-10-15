@@ -2569,24 +2569,34 @@ bool AchievementGlobalMgr::IsAverageCriteria(AchievementCriteriaEntry const* cri
 
 bool AchievementGlobalMgr::IsRealmCompleted(AchievementEntry const* achievement) const
 {
-    auto itr = _allCompletedAchievements.find(achievement->ID);
-    if (itr == _allCompletedAchievements.end())
+    SystemTimePoint completionTime = SystemTimePoint::min();
+    bool found = false;
+    {
+        std::shared_lock<std::shared_mutex> lock(_realmCompletedLock);
+        auto itr = _allCompletedAchievements.find(achievement->ID);
+        if (itr != _allCompletedAchievements.end())
+        {
+            found = true;
+            completionTime = itr->second;
+        }
+    }
+    if (!found)
         return false;
 
-    if (itr->second == SystemTimePoint::min())
+    if (completionTime == SystemTimePoint::min())
         return false;
 
-    if (!sScriptMgr->IsRealmCompleted(this, achievement, itr->second))
+    if (!sScriptMgr->IsRealmCompleted(this, achievement, completionTime))
         return false;
 
-    if (itr->second == SystemTimePoint::max())
+    if (completionTime == SystemTimePoint::max())
         return true;
 
     // Allow completing the realm first kill for entire minute after first person did it
     // it may allow more than one group to achieve it (highly unlikely)
     // but apparently this is how blizz handles it as well
     if (achievement->flags & ACHIEVEMENT_FLAG_REALM_FIRST_KILL)
-        return (GameTime::GetSystemTime() - itr->second) > 1min;
+        return (GameTime::GetSystemTime() - completionTime) > 1min;
 
     sScriptMgr->SetRealmCompleted(achievement);
 
@@ -2598,6 +2608,7 @@ void AchievementGlobalMgr::SetRealmCompleted(AchievementEntry const* achievement
     if (IsRealmCompleted(achievement))
         return;
 
+    std::unique_lock<std::shared_mutex> lock(_realmCompletedLock);
     _allCompletedAchievements[achievement->ID] = GameTime::GetSystemTime();
 }
 

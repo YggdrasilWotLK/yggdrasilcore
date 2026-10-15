@@ -37,6 +37,7 @@ GuildMgr* GuildMgr::instance()
 
 void GuildMgr::AddGuild(Guild* guild)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!guild || guild->IsDisbanded())
         return;
     SweepGuildGraveyard();
@@ -45,6 +46,7 @@ void GuildMgr::AddGuild(Guild* guild)
 
 void GuildMgr::RemoveGuild(uint32 guildId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     SweepGuildGraveyard();
     GuildStore.erase(guildId);
 }
@@ -52,6 +54,7 @@ void GuildMgr::RemoveGuild(uint32 guildId)
 // Only the manager frees guilds: unregister, mark zombie, delete after grace.
 void GuildMgr::DestroyGuild(Guild* guild)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!guild)
         return;
     SweepGuildGraveyard();
@@ -65,6 +68,7 @@ void GuildMgr::DestroyGuild(Guild* guild)
 
 void GuildMgr::SweepGuildGraveyard()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     static constexpr uint32 GUILD_ZOMBIE_GRACE_MS = 300000; // 5 min
     uint32 now = getMSTime();
     for (auto itr = _guildGraveyard.begin(); itr != _guildGraveyard.end();)
@@ -81,6 +85,7 @@ void GuildMgr::SweepGuildGraveyard()
 
 uint32 GuildMgr::GenerateGuildId()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (NextGuildId >= 0xFFFFFFFE)
     {
         LOG_ERROR("server.worldserver", "Guild ids overflow!! Can't continue, shutting down server.");
@@ -92,6 +97,7 @@ uint32 GuildMgr::GenerateGuildId()
 // Guild collection
 Guild* GuildMgr::GetGuildById(uint32 guildId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     GuildContainer::const_iterator itr = GuildStore.find(guildId);
     if (itr != GuildStore.end())
         return itr->second;
@@ -101,6 +107,7 @@ Guild* GuildMgr::GetGuildById(uint32 guildId) const
 
 Guild* GuildMgr::GetGuildByName(std::string_view guildName) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (auto const& [id, guild] : GuildStore)
         if (guild && StringEqualI(guild->GetName(), guildName))
             return guild;
@@ -110,6 +117,7 @@ Guild* GuildMgr::GetGuildByName(std::string_view guildName) const
 
 std::string GuildMgr::GetGuildNameById(uint32 guildId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (Guild* guild = GetGuildById(guildId))
         return guild->GetName();
 
@@ -118,6 +126,7 @@ std::string GuildMgr::GetGuildNameById(uint32 guildId) const
 
 Guild* GuildMgr::GetGuildByLeader(ObjectGuid guid) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (GuildContainer::const_iterator itr = GuildStore.begin(); itr != GuildStore.end(); ++itr)
         if (itr->second && itr->second->GetLeaderGUID() == guid)
             return itr->second;
@@ -127,6 +136,7 @@ Guild* GuildMgr::GetGuildByLeader(ObjectGuid guid) const
 
 void GuildMgr::LoadGuilds()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // 1. Load all guilds
     LOG_INFO("server.loading", "Loading Guilds Definitions...");
     {
@@ -443,6 +453,7 @@ void GuildMgr::LoadGuilds()
 
 void GuildMgr::ResetTimes()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (GuildContainer::const_iterator itr = GuildStore.begin(); itr != GuildStore.end(); ++itr)
         if (Guild* guild = itr->second)
             guild->ResetTimes();

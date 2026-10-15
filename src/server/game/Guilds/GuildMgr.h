@@ -20,6 +20,7 @@
 
 #include "Guild.h"
 
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -31,6 +32,7 @@ private:
 
 public:
     static GuildMgr* instance();
+    std::recursive_mutex* GetGuildLock() { return &_guildLock; }
 
     Guild* GetGuildByLeader(ObjectGuid guid) const;
     Guild* GetGuildById(uint32 guildId) const;
@@ -56,6 +58,9 @@ protected:
     // Zombie graveyard: (guild, timestamp). Swept after a grace period.
     std::vector<std::pair<Guild*, uint32>> _guildGraveyard;
     void SweepGuildGraveyard();
+    // One lock for the whole guild subsystem: Guild methods nest into each
+    // other and into the manager, and AI ticks read alongside session writes.
+    mutable std::recursive_mutex _guildLock;
 };
 
 #define sGuildMgr GuildMgr::instance()

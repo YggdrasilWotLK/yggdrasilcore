@@ -20,6 +20,7 @@
 
 #include "Define.h"
 #include "Map.h"
+#include <shared_mutex>
 
 class Unit;
 
@@ -83,6 +84,10 @@ public:
 
 private:
     static DisableMap m_DisableMap;
+    // Guards m_DisableMap. Reads run on all threads (spell/loot/GO checks),
+    // writes on world-thread load/reload. AddDisable/HandleDisableType
+    // assume the lock held (only called from LoadDisables).
+    static std::shared_mutex m_DisableLock;
 };
 
 #define sDisableMgr DisableMgr::instance()

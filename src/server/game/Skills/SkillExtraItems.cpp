@@ -22,6 +22,11 @@
 #include "Player.h"
 #include "SpellMgr.h"
 #include <map>
+#include <shared_mutex>
+
+// Guards both stores below. Reads run on map threads (spell crafting),
+// writes on world-thread load/reload. Leaf-only, never hold across calls.
+static std::shared_mutex SkillExtraStoreLock;
 
 // some type definitions
 // no use putting them in the header file, they're only used in this .cpp
@@ -51,6 +56,7 @@ SkillPerfectItemMap SkillPerfectItemStore;
 // loads the perfection proc info from DB
 void LoadSkillPerfectItemTable()
 {
+    std::unique_lock<std::shared_mutex> lock(SkillExtraStoreLock);
     uint32 oldMSTime = getMSTime();
 
     SkillPerfectItemStore.clear(); // reload capability
@@ -137,6 +143,7 @@ SkillExtraItemMap SkillExtraItemStore;
 // loads the extra item creation info from DB
 void LoadSkillExtraItemTable()
 {
+    std::unique_lock<std::shared_mutex> lock(SkillExtraStoreLock);
     uint32 oldMSTime = getMSTime();
 
     SkillExtraItemStore.clear();                            // need for reload
@@ -201,23 +208,24 @@ void LoadSkillExtraItemTable()
 
 bool CanCreatePerfectItem(Player* player, uint32 spellId, float& perfectCreateChance, uint32& perfectItemType)
 {
-    SkillPerfectItemMap::const_iterator ret = SkillPerfectItemStore.find(spellId);
-    // no entry in DB means no perfection proc possible
-    if (ret == SkillPerfectItemStore.end())
-        return false;
-
-    SkillPerfectItemEntry const* thisEntry = &ret->second;
-    // lack of entry means no perfection proc possible
-    if (!thisEntry)
-        return false;
+    // Copy out under lock; the store reloads on other threads.
+    SkillPerfectItemEntry entry;
+    {
+        std::shared_lock<std::shared_mutex> lock(SkillExtraStoreLock);
+        SkillPerfectItemMap::const_iterator ret = SkillPerfectItemStore.find(spellId);
+        // no entry in DB means no perfection proc possible
+        if (ret == SkillPerfectItemStore.end())
+            return false;
+        entry = ret->second;
+    }
 
     // if you don't have the spell needed, then no procs for you
-    if (!player->HasSpell(thisEntry->requiredSpecialization))
+    if (!player->HasSpell(entry.requiredSpecialization))
         return false;
 
     // set values as appropriate
-    perfectCreateChance = thisEntry->perfectCreateChance;
-    perfectItemType = thisEntry->perfectItemType;
+    perfectCreateChance = entry.perfectCreateChance;
+    perfectItemType = entry.perfectItemType;
 
     // and tell the caller to start rolling the dice
     return true;
@@ -226,23 +234,24 @@ bool CanCreatePerfectItem(Player* player, uint32 spellId, float& perfectCreateCh
 bool canCreateExtraItems(Player* player, uint32 spellId, float& additionalChance, int32& newMaxOrEntry)
 {
     // get the info for the specified spell
-    SkillExtraItemMap::const_iterator ret = SkillExtraItemStore.find(spellId);
-    if (ret == SkillExtraItemStore.end())
-        return false;
-
-    SkillExtraItemEntry const* specEntry = &ret->second;
+    // Copy out under lock; the store reloads on other threads.
+    SkillExtraItemEntry specEntry;
+    {
+        std::shared_lock<std::shared_mutex> lock(SkillExtraStoreLock);
+        SkillExtraItemMap::const_iterator ret = SkillExtraItemStore.find(spellId);
+        if (ret == SkillExtraItemStore.end())
+            return false;
+        specEntry = ret->second;
+    }
 
     // if no entry, then no extra items can be created
-    if (!specEntry)
-        return false;
-
     // the player doesn't have the required specialization, return false
-    if (!player->HasSpell(specEntry->requiredSpecialization))
+    if (!player->HasSpell(specEntry.requiredSpecialization))
         return false;
 
     // set the arguments to the appropriate values
-    additionalChance = specEntry->additionalCreateChance;
-    newMaxOrEntry = specEntry->newMaxOrEntry;
+    additionalChance = specEntry.additionalCreateChance;
+    newMaxOrEntry = specEntry.newMaxOrEntry;
 
     // enable extra item creation
     return true;

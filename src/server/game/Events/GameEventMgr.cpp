@@ -1124,9 +1124,9 @@ uint32 GameEventMgr::GetNPCFlag(Creature* cr)
     uint32 mask = 0;
     ObjectGuid::LowType spawnId = cr->GetSpawnId();
 
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        for (NPCFlagList::iterator itr = _gameEventNPCFlags[*e_itr].begin(); itr != _gameEventNPCFlags[*e_itr].end(); ++ itr)
+        for (NPCFlagList::iterator itr = _gameEventNPCFlags[activeEvent].begin(); itr != _gameEventNPCFlags[activeEvent].end(); ++ itr)
             if (itr->first == spawnId)
                 mask |= itr->second;
     }
@@ -1344,8 +1344,8 @@ void GameEventMgr::UpdateEventNPCFlags(uint16 eventId)
 void GameEventMgr::UpdateBattlegroundSettings()
 {
     uint32 mask = 0;
-    for (ActiveEvents::const_iterator itr = _activeEvents.begin(); itr != _activeEvents.end(); ++itr)
-        mask |= _gameEventBattlegroundHolidays[*itr];
+    for (uint16 activeEvent : GetActiveEventList())
+        mask |= _gameEventBattlegroundHolidays[activeEvent];
     sBattlegroundMgr->SetHolidayWeekends(mask);
 }
 
@@ -1571,11 +1571,11 @@ void GameEventMgr::ChangeEquipOrModel(int16 eventId, bool activate)
 
 bool GameEventMgr::HasCreatureQuestActiveEventExcept(uint32 quest_id, uint16 eventId)
 {
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        if ((*e_itr) != eventId)
-            for (QuestRelList::iterator itr = _gameEventCreatureQuests[*e_itr].begin();
-                    itr != _gameEventCreatureQuests[*e_itr].end();
+        if (activeEvent != eventId)
+            for (QuestRelList::iterator itr = _gameEventCreatureQuests[activeEvent].begin();
+                    itr != _gameEventCreatureQuests[activeEvent].end();
                     ++ itr)
                 if (itr->second == quest_id)
                     return true;
@@ -1585,11 +1585,11 @@ bool GameEventMgr::HasCreatureQuestActiveEventExcept(uint32 quest_id, uint16 eve
 
 bool GameEventMgr::HasGameObjectQuestActiveEventExcept(uint32 quest_id, uint16 eventId)
 {
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        if ((*e_itr) != eventId)
-            for (QuestRelList::iterator itr = _gameEventGameObjectQuests[*e_itr].begin();
-                    itr != _gameEventGameObjectQuests[*e_itr].end();
+        if (activeEvent != eventId)
+            for (QuestRelList::iterator itr = _gameEventGameObjectQuests[activeEvent].begin();
+                    itr != _gameEventGameObjectQuests[activeEvent].end();
                     ++ itr)
                 if (itr->second == quest_id)
                     return true;
@@ -1598,11 +1598,11 @@ bool GameEventMgr::HasGameObjectQuestActiveEventExcept(uint32 quest_id, uint16 e
 }
 bool GameEventMgr::HasCreatureActiveEventExcept(ObjectGuid::LowType creature_guid, uint16 eventId)
 {
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        if ((*e_itr) != eventId)
+        if (activeEvent != eventId)
         {
-            int32 internal_event_id = _gameEvent.size() + (*e_itr) - 1;
+            int32 internal_event_id = _gameEvent.size() + activeEvent - 1;
             for (GuidLowList::iterator itr = GameEventCreatureGuids[internal_event_id].begin(); itr != GameEventCreatureGuids[internal_event_id].end(); ++ itr)
                 if (*itr == creature_guid)
                     return true;
@@ -1612,11 +1612,11 @@ bool GameEventMgr::HasCreatureActiveEventExcept(ObjectGuid::LowType creature_gui
 }
 bool GameEventMgr::HasGameObjectActiveEventExcept(ObjectGuid::LowType go_guid, uint16 eventId)
 {
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        if ((*e_itr) != eventId)
+        if (activeEvent != eventId)
         {
-            int32 internal_event_id = _gameEvent.size() + (*e_itr) - 1;
+            int32 internal_event_id = _gameEvent.size() + activeEvent - 1;
             for (GuidLowList::iterator itr = GameEventGameobjectGuids[internal_event_id].begin(); itr != GameEventGameobjectGuids[internal_event_id].end(); ++ itr)
                 if (*itr == go_guid)
                     return true;

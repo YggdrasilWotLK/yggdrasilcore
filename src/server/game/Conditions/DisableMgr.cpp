@@ -29,6 +29,7 @@
 #include "World.h"
 
 DisableMgr::DisableMap DisableMgr::m_DisableMap;
+std::shared_mutex DisableMgr::m_DisableLock;
 
 DisableMgr::DisableMgr() {}
 DisableMgr::~DisableMgr() {}
@@ -41,6 +42,7 @@ DisableMgr* DisableMgr::instance()
 
 void DisableMgr::LoadDisables()
 {
+    std::unique_lock<std::shared_mutex> lock(m_DisableLock);
     uint32 oldMSTime = getMSTime();
 
     // reload case
@@ -302,6 +304,7 @@ bool DisableMgr::HandleDisableType(DisableType type, uint32 entry, uint8 flags, 
 
 void DisableMgr::CheckQuestDisables()
 {
+    std::unique_lock<std::shared_mutex> lock(m_DisableLock);
     uint32 oldMSTime = getMSTime();
 
     uint32 count = m_DisableMap[DISABLE_TYPE_QUEST].size();
@@ -339,6 +342,7 @@ bool DisableMgr::IsDisabledFor(DisableType type, uint32 entry, Unit const* unit,
         return false;
     }
 
+    std::shared_lock<std::shared_mutex> lock(m_DisableLock);
     if (m_DisableMap[type].empty())
         return false;
 

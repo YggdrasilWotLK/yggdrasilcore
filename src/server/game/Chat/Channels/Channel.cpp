@@ -26,6 +26,8 @@
 #include "SocialMgr.h"
 #include "World.h"
 
+#include <vector>
+
 Channel::Channel(std::string const& name, uint32 channelId, uint32 channelDBId, TeamId teamId, bool announce, bool ownership):
     _announce(announce),
     _ownership(ownership),
@@ -95,6 +97,7 @@ Channel::Channel(std::string const& name, uint32 channelId, uint32 channelDBId, 
 
 bool Channel::IsBanned(ObjectGuid guid) const
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     BannedContainer::const_iterator itr = bannedStore.find(guid);
     return itr != bannedStore.end() && itr->second > GameTime::GetGameTime().count();
 }
@@ -156,6 +159,7 @@ void Channel::CleanOldChannelsInDB()
 
 void Channel::JoinChannel(Player* player, std::string const& pass)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
     if (IsOn(guid))
     {
@@ -248,6 +252,7 @@ void Channel::JoinChannel(Player* player, std::string const& pass)
 
 void Channel::LeaveChannel(Player* player, bool send)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
     if (!IsOn(guid))
     {
@@ -314,6 +319,7 @@ void Channel::LeaveChannel(Player* player, bool send)
 
 void Channel::KickOrBan(Player const* player, std::string const& badname, bool ban)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid good = player->GetGUID();
 
     if (!IsOn(good))
@@ -466,6 +472,7 @@ void Channel::KickOrBan(Player const* player, std::string const& badname, bool b
 
 void Channel::UnBan(Player const* player, std::string const& badname)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid good = player->GetGUID();
 
     if (!IsOn(good))
@@ -525,6 +532,7 @@ void Channel::UnBan(Player const* player, std::string const& badname)
 
 void Channel::UnBan(ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     if (!IsBanned(guid))
         return;
     bannedStore.erase(guid);
@@ -533,6 +541,7 @@ void Channel::UnBan(ObjectGuid guid)
 
 void Channel::Password(Player const* player, std::string const& pass)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
 
     ChatHandler chat(player->GetSession());
@@ -571,6 +580,7 @@ void Channel::Password(Player const* player, std::string const& pass)
 
 void Channel::SetMode(Player const* player, std::string const& p2n, bool mod, bool set)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
 
     if (!IsOn(guid))
@@ -641,6 +651,7 @@ void Channel::SetMode(Player const* player, std::string const& p2n, bool mod, bo
 
 void Channel::SetOwner(Player const* player, std::string const& newname)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
 
     if (!IsOn(guid))
@@ -677,6 +688,7 @@ void Channel::SetOwner(Player const* player, std::string const& newname)
 
 void Channel::SendWhoOwner(ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     WorldPacket data;
     if (IsOn(guid))
         MakeChannelOwner(&data);
@@ -687,6 +699,7 @@ void Channel::SendWhoOwner(ObjectGuid guid)
 
 void Channel::List(Player const* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
 
     if (!IsOn(guid))
@@ -698,7 +711,16 @@ void Channel::List(Player const* player)
     }
 
     LOG_DEBUG("chat.system", "SMSG_CHANNEL_LIST {} Channel: {}", player->GetSession()->GetPlayerInfo(), GetName());
-    WorldPacket data(SMSG_CHANNEL_LIST, 1 + (GetName().size() + 1) + 1 + 4 + playersStore.size() * (8 + 1));
+
+    // Snapshot guids+flags; plrPtr may dangle after logout, resolve live ones below.
+    std::vector<std::pair<ObjectGuid, uint8>> members;
+    {
+        members.reserve(playersStore.size());
+        for (PlayerContainer::const_iterator i = playersStore.begin(); i != playersStore.end(); ++i)
+            members.emplace_back(i->first, i->second.flags);
+    }
+
+    WorldPacket data(SMSG_CHANNEL_LIST, 1 + (GetName().size() + 1) + 1 + 4 + members.size() * (8 + 1));
     data << uint8(1);                                   // channel type?
     data << GetName();                                  // channel name
     data << uint8(GetFlags());                          // channel flags?
@@ -708,13 +730,18 @@ void Channel::List(Player const* player)
 
     uint32 count  = 0;
     if (!(_channelRights.flags & CHANNEL_RIGHT_CANT_SPEAK))
-        for (PlayerContainer::const_iterator i = playersStore.begin(); i != playersStore.end(); ++i)
-            if (AccountMgr::IsPlayerAccount(i->second.plrPtr->GetSession()->GetSecurity()))
+        for (auto const& [memberGuid, memberFlags] : members)
+        {
+            Player* listed = ObjectAccessor::FindPlayer(memberGuid);
+            if (!listed)
+                continue;
+            if (AccountMgr::IsPlayerAccount(listed->GetSession()->GetSecurity()))
             {
-                data << i->first;
-                data << uint8(i->second.flags); // flags seems to be changed...
+                data << memberGuid;
+                data << uint8(memberFlags); // flags seems to be changed...
                 ++count;
             }
+        }
 
     data.put<uint32>(pos, count);
 
@@ -723,6 +750,7 @@ void Channel::List(Player const* player)
 
 void Channel::Announce(Player const* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
 
     if (!IsOn(guid))
@@ -763,6 +791,7 @@ void Channel::Announce(Player const* player)
 
 void Channel::Say(ObjectGuid guid, std::string const& what, uint32 lang)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     if (what.empty())
         return;
 
@@ -804,6 +833,7 @@ void Channel::Say(ObjectGuid guid, std::string const& what, uint32 lang)
 
 void Channel::Invite(Player const* player, std::string const& newname)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
 
     if (!IsOn(guid))
@@ -862,6 +892,7 @@ void Channel::Invite(Player const* player, std::string const& newname)
 
 void Channel::SetOwner(ObjectGuid guid, bool exclaim)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     if (_ownerGUID)
     {
         // [] will re-add player after it possible removed
@@ -906,6 +937,7 @@ void Channel::SetOwner(ObjectGuid guid, bool exclaim)
 
 void Channel::SendToAll(WorldPacket* data, ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     for (PlayerContainer::const_iterator i = playersStore.begin(); i != playersStore.end(); ++i)
         if (!guid || !i->second.plrPtr->GetSocial()->HasIgnore(guid))
             i->second.plrPtr->GetSession()->SendPacket(data);
@@ -913,6 +945,7 @@ void Channel::SendToAll(WorldPacket* data, ObjectGuid guid)
 
 void Channel::SendToAllButOne(WorldPacket* data, ObjectGuid who)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     for (PlayerContainer::const_iterator i = playersStore.begin(); i != playersStore.end(); ++i)
         if (i->first != who)
             i->second.plrPtr->GetSession()->SendPacket(data);
@@ -920,12 +953,14 @@ void Channel::SendToAllButOne(WorldPacket* data, ObjectGuid who)
 
 void Channel::SendToOne(WorldPacket* data, ObjectGuid who)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     if (Player* player = ObjectAccessor::FindConnectedPlayer(who))
         player->GetSession()->SendPacket(data);
 }
 
 void Channel::SendToAllWatching(WorldPacket* data)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     for (PlayersWatchingContainer::const_iterator i = playersWatchingStore.begin(); i != playersWatchingStore.end(); ++i)
         (*i)->GetSession()->SendPacket(data);
 }
@@ -1156,6 +1191,7 @@ void Channel::MakeVoiceOff(WorldPacket* data, ObjectGuid guid)
 
 void Channel::JoinNotify(Player* p)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     if (_channelRights.flags & CHANNEL_RIGHT_CANT_SPEAK)
         return;
     if (!AccountMgr::IsPlayerAccount(p->GetSession()->GetSecurity()))
@@ -1173,6 +1209,7 @@ void Channel::JoinNotify(Player* p)
 
 void Channel::LeaveNotify(Player* p)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     if (_channelRights.flags & CHANNEL_RIGHT_CANT_SPEAK)
         return;
     if (!AccountMgr::IsPlayerAccount(p->GetSession()->GetSecurity()))
@@ -1189,6 +1226,7 @@ void Channel::LeaveNotify(Player* p)
 
 void Channel::FlagsNotify(Player* p)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     if (_channelRights.flags & CHANNEL_RIGHT_CANT_SPEAK)
         return;
     if (!AccountMgr::IsPlayerAccount(p->GetSession()->GetSecurity()))
@@ -1206,6 +1244,7 @@ void Channel::FlagsNotify(Player* p)
 
 void Channel::AddWatching(Player* p)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     if (!IsOn(p->GetGUID()))
         return;
     playersWatchingStore.insert(p);
@@ -1213,6 +1252,7 @@ void Channel::AddWatching(Player* p)
 
 void Channel::RemoveWatching(Player* p)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     PlayersWatchingContainer::iterator itr = playersWatchingStore.find(p);
     if (itr != playersWatchingStore.end())
         playersWatchingStore.erase(itr);
@@ -1220,6 +1260,7 @@ void Channel::RemoveWatching(Player* p)
 
 void Channel::ToggleModeration(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
     ObjectGuid guid = player->GetGUID();
 
     if (!IsOn(guid))

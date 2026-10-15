@@ -22,6 +22,7 @@
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
 #include <map>
+#include <shared_mutex>
 #include <unordered_map>
 
 #define max_ge_check_delay DAY          // 1 day in seconds
@@ -105,14 +106,23 @@ public:
 
     typedef std::set<uint16> ActiveEvents;
     typedef std::vector<GameEventData> GameEventDataMap;
-    [[nodiscard]] ActiveEvents const& GetActiveEventList() const { return _activeEvents; }
+    // Copy-out: Start/Stop mutate on world thread while AI ticks read.
+    [[nodiscard]] ActiveEvents GetActiveEventList() const
+    {
+        std::shared_lock<std::shared_mutex> lock(_activeEventsLock);
+        return _activeEvents;
+    }
     [[nodiscard]] GameEventDataMap const& GetEventMap() const { return _gameEvent; }
     [[nodiscard]] bool CheckOneGameEvent(uint16 entry) const;
     [[nodiscard]] uint32 NextCheck(uint16 entry) const;
     void LoadFromDB();
     void LoadHolidayDates();
     uint32 Update();
-    bool IsActiveEvent(uint16 eventId) { return (_activeEvents.find(eventId) != _activeEvents.end()); }
+    bool IsActiveEvent(uint16 eventId)
+    {
+        std::shared_lock<std::shared_mutex> lock(_activeEventsLock);
+        return (_activeEvents.find(eventId) != _activeEvents.end());
+    }
     uint32 StartSystem();
     void Initialize();
     void StartInternalEvent(uint16 event_id);
@@ -141,8 +151,16 @@ private:
     void LoadEventPoolData();
 
     void SendWorldStateUpdate(Player* player, uint16 eventId);
-    void AddActiveEvent(uint16 eventId) { _activeEvents.insert(eventId); }
-    void RemoveActiveEvent(uint16 eventId) { _activeEvents.erase(eventId); }
+    void AddActiveEvent(uint16 eventId)
+    {
+        std::unique_lock<std::shared_mutex> lock(_activeEventsLock);
+        _activeEvents.insert(eventId);
+    }
+    void RemoveActiveEvent(uint16 eventId)
+    {
+        std::unique_lock<std::shared_mutex> lock(_activeEventsLock);
+        _activeEvents.erase(eventId);
+    }
     void ApplyNewEvent(uint16 eventId);
     void UnApplyEvent(uint16 eventId);
     void GameEventSpawn(int16 eventId);
@@ -190,6 +208,9 @@ private:
     QuestIdToEventConditionMap _questToEventConditions;
     GameEventNPCFlagMap _gameEventNPCFlags;
     ActiveEvents _activeEvents;
+    // Guards _activeEvents only; sibling event-data maps keep today's
+    // exposure (event transitions are world-thread serial).
+    mutable std::shared_mutex _activeEventsLock;
     bool _isSystemInit;
     GameEventSeasonalQuestsMap _gameEventSeasonalQuestsMap;
 public:
