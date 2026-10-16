@@ -1428,7 +1428,8 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                 p->SetMap(homeMap0);
                 p->Relocate(0.0f, 0.0f, 0.0f, 0.0f);
                 if (!p->TeleportTo(MAP_NORTHREND, 5790.20f, 2071.36f, 636.07f, 3.60f))
-                    p->GetSession()->KickPlayer("HandleSetRaidDifficultyOpcode 1");
+                    if (WorldSession* session = p->GetSession())
+                        session->KickPlayer("HandleSetRaidDifficultyOpcode 1");
             }
 
             bool anyoneInside = false;
@@ -1453,7 +1454,7 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                     groupGuy->SetMap(homeMap571);
                     groupGuy->Relocate(5790.20f, 2071.36f, 636.07f, 3.60f);
                     Position dest = {x, y, z + 0.1f, o};
-                    playerTeleport[groupGuy] = dest;
+                    playerTeleport[groupGuy->GetGUID()] = dest;
                 }
             }
 
@@ -1462,11 +1463,15 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
             group->SetRaidDifficulty(Difficulty(mode));
             group->SetDifficultyChangePrevention(DIFFICULTY_PREVENTION_CHANGE_RECENTLY_CHANGED);
 
-            for (std::map<Player*, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
+            for (std::map<ObjectGuid, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
             {
-                itr->first->SetRaidDifficulty(Difficulty(mode)); // needed for teleport not to fail
-                if (!itr->first->TeleportTo(*(foundMaps.begin()), itr->second.GetPositionX(), itr->second.GetPositionY(), itr->second.GetPositionZ(), itr->second.GetOrientation()))
-                    itr->first->GetSession()->KickPlayer("HandleSetRaidDifficultyOpcode 2");
+                Player* teleported = ObjectAccessor::FindPlayer(itr->first);
+                if (!teleported || !teleported->IsInWorld())
+                    continue;
+                teleported->SetRaidDifficulty(Difficulty(mode)); // needed for teleport not to fail
+                if (!teleported->TeleportTo(*(foundMaps.begin()), itr->second.GetPositionX(), itr->second.GetPositionY(), itr->second.GetPositionZ(), itr->second.GetOrientation()))
+                    if (WorldSession* session = teleported->GetSession())
+                        session->KickPlayer("HandleSetRaidDifficultyOpcode 2");
             }
         }
     }
