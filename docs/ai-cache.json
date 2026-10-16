@@ -36208,9 +36208,9 @@
   }
  },
  "Unit::AddAura@c209106b:qwen3-5-4b": {
-  "hash": "bac059b15005",
-  "desc": "Removes all owned single-target auras that do not belong to the current unit (caster) from both the owned aura list and the single cast auras container, ensuring only self-applied single-target auras remain.",
-  "raw": "{\n  \"what\": \"Removes all owned single-target auras that do not belong to the current unit (caster) from both the owned aura list and the single cast auras container, ensuring only self-applied single-target auras remain.\",\n  \"effects\": \"none\"\n}",
+  "hash": "2812e9000c1d",
+  "desc": "Removes all owned single-target auras that do not belong to the current caster, and cleans up single-cast auras registered on other units or belonging to other casters.",
+  "raw": "{\n  \"what\": \"Removes all owned single-target auras that do not belong to the current caster, and cleans up single-cast auras registered on other units or belonging to other casters.\",\n  \"effects\": \"none\"\n}",
   "entry": {
    "class": "Unit",
    "name": "AddAura",
@@ -36220,18 +36220,18 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Unit/Unit.cpp",
-    "line": 5218
+    "line": 5219
    },
-   "hash": "bac059b15005",
-   "desc": "Removes all owned single-target auras that do not belong to the current unit (caster) from both the owned aura list and the single cast auras container, ensuring only self-applied single-target auras remain.",
+   "hash": "2812e9000c1d",
+   "desc": "Removes all owned single-target auras that do not belong to the current caster, and cleans up single-cast auras registered on other units or belonging to other casters.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
  },
  "Unit::AddAura@67638f0e:qwen3-5-4b": {
-  "hash": "ab69b775fb41",
-  "desc": "Removes all owned single-target auras that do not belong to the current unit (caster) and removes any single-cast auras from the caster's list that are not owned by this unit.",
-  "raw": "{\n  \"what\": \"Removes all owned single-target auras that do not belong to the current unit (caster) and removes any single-cast auras from the caster's list that are not owned by this unit.\",\n  \"effects\": \"none\"\n}",
+  "hash": "4b00bd7ec2ea",
+  "desc": "Removes all owned single-target auras that do not belong to the current unit from both m_ownedAuras and GetSingleCastAuras, ensuring only auras cast by this unit remain registered.",
+  "raw": "{\n  \"what\": \"Removes all owned single-target auras that do not belong to the current unit from both m_ownedAuras and GetSingleCastAuras, ensuring only auras cast by this unit remain registered.\",\n  \"effects\": \"none\"\n}",
   "entry": {
    "class": "Unit",
    "name": "AddAura",
@@ -36241,10 +36241,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Unit/Unit.cpp",
-    "line": 5218
+    "line": 5219
    },
-   "hash": "ab69b775fb41",
-   "desc": "Removes all owned single-target auras that do not belong to the current unit (caster) and removes any single-cast auras from the caster's list that are not owned by this unit.",
+   "hash": "4b00bd7ec2ea",
+   "desc": "Removes all owned single-target auras that do not belong to the current unit from both m_ownedAuras and GetSingleCastAuras, ensuring only auras cast by this unit remain registered.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -36706,9 +36706,9 @@
   }
  },
  "Unit::RemoveNotOwnSingleTargetAuras@2732a96d:qwen3-5-4b": {
-  "hash": "5e4baae5a535",
-  "desc": "Removes single-target auras that do not belong to the unit (either owned by another caster or applied to other targets) to prevent assertion failures caused by premature removal before aura registration.",
-  "raw": "{\n  \"what\": \"Removes single-target auras that do not belong to the unit (either owned by another caster or applied to other targets) to prevent assertion failures caused by premature removal before aura registration.\",\n  \"effects\": \"none\"\n}",
+  "hash": "847e285c51a2",
+  "desc": "Removes single-target auras that do not belong to the unit (either owned by other casters or applied to other targets) to prevent assertion failures caused by premature removal before aura registration.",
+  "raw": "{\"what\": \"Removes single-target auras that do not belong to the unit (either owned by other casters or applied to other targets) to prevent assertion failures caused by premature removal before aura registration.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Unit",
    "name": "RemoveNotOwnSingleTargetAuras",
@@ -36718,10 +36718,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Unit/Unit.cpp",
-    "line": 5215
+    "line": 5216
    },
-   "hash": "5e4baae5a535",
-   "desc": "Removes single-target auras that do not belong to the unit (either owned by another caster or applied to other targets) to prevent assertion failures caused by premature removal before aura registration.",
+   "hash": "847e285c51a2",
+   "desc": "Removes single-target auras that do not belong to the unit (either owned by other casters or applied to other targets) to prevent assertion failures caused by premature removal before aura registration.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
