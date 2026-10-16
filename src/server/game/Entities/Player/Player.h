@@ -2460,9 +2460,10 @@ public:
     /*********************************************************/
 
     Group* GetGroupInvite() { return m_groupInvite; }
-    void SetGroupInvite(Group* group) { m_groupInvite = group; }
+    void SetGroupInvite(Group* group);
     Group* GetGroup() { return m_group.getTarget(); }
     [[nodiscard]] const Group* GetGroup() const { return (const Group*)m_group.getTarget(); }
+    [[nodiscard]] ObjectGuid GetGroupGUID() const;
     GroupReference& GetGroupRef() { return m_group; }
     void SetGroup(Group* group, int8 subgroup = -1);
     [[nodiscard]] uint8 GetSubGroup() const { return m_group.getSubGroup(); }

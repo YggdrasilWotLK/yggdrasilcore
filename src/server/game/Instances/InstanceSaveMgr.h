@@ -152,10 +152,12 @@ public:
     InstancePlayerBind* PlayerBindToInstance(ObjectGuid guid, InstanceSave* save, bool permanent, Player* player = nullptr);
     void PlayerUnbindInstance(ObjectGuid guid, uint32 mapid, Difficulty difficulty, bool deleteFromDB, Player* player = nullptr);
     void PlayerUnbindInstanceNotExtended(ObjectGuid guid, uint32 mapid, Difficulty difficulty, Player* player = nullptr);
+    // Valid only while caller holds GetSocialLock; never store.
     InstancePlayerBind* PlayerGetBoundInstance(ObjectGuid guid, uint32 mapid, Difficulty difficulty);
     bool PlayerIsPermBoundToInstance(ObjectGuid guid, uint32 mapid, Difficulty difficulty);
     BoundInstancesMap PlayerGetBoundInstances(ObjectGuid guid, Difficulty difficulty);
     void PlayerCreateBoundInstancesMaps(ObjectGuid guid);
+    // Valid only while caller holds GetSocialLock; never store.
     InstanceSave* PlayerGetInstanceSave(ObjectGuid guid, uint32 mapid, Difficulty difficulty);
     uint32 PlayerGetDestinationInstanceId(Player* player, uint32 mapid, Difficulty difficulty);
     void CopyBinds(ObjectGuid from, ObjectGuid to, Player* toPlr = nullptr);

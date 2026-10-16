@@ -241,6 +241,9 @@ Unit* Vehicle::GetPassenger(int8 seatId) const
 
 VehicleSeatAddon const* Vehicle::GetSeatAddonForSeatOfPassenger(Unit const* passenger) const
 {
+    if (!passenger)
+        return nullptr;
+
     for (SeatMap::const_iterator itr = Seats.begin(); itr != Seats.end(); itr++)
         if (!itr->second.IsEmpty() && itr->second.Passenger.Guid == passenger->GetGUID())
             return itr->second.SeatAddon;
@@ -388,6 +391,9 @@ void SyncSalvagedSiegeBlockers(Vehicle* kit)
 
 bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
 {
+    if (!unit)
+        return false;
+
     /// @Prevent adding passengers when vehicle is uninstalling. (Bad script in OnUninstall/OnRemovePassenger/PassengerBoarded hook.)
     if (_status == STATUS_UNINSTALLING)
     {
@@ -597,6 +603,9 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
 
 void Vehicle::RemovePassenger(Unit* unit)
 {
+    if (!unit)
+        return;
+
     if (unit->GetVehicle() != this)
         return;
 

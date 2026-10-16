@@ -205,6 +205,10 @@ public:
     void GameObjectRelocation(GameObject* go, float x, float y, float z, float o);
     void DynamicObjectRelocation(DynamicObject* go, float x, float y, float z, float o);
 
+    // Grid-visit contract: the visitor must NOT add/remove/teleport/unload
+    // objects (that invalidates the iterated grid containers). Collect
+    // GUIDs during the visit, resolve them afterwards, and defer
+    // Kill/Delete/Teleport/Unsummon until after iteration completes.
     template<class T, class CONTAINER> void Visit(const Cell& cell, TypeContainerVisitor<T, CONTAINER>& visitor);
 
     bool IsGridLoaded(GridCoord const& gridCoord) const;
@@ -313,6 +317,7 @@ public:
     }
 
     void AddObjectToRemoveList(WorldObject* obj);
+    void RemoveObjectFromRemoveList(WorldObject* obj);
     virtual void DelayedUpdate(const uint32 diff);
 
     void resetMarkedCells() { marked_cells.reset(); }
@@ -368,14 +373,19 @@ public:
     typedef std::unordered_multimap<ObjectGuid::LowType, GameObject*> GameObjectBySpawnIdContainer;
     GameObjectBySpawnIdContainer& GetGameObjectBySpawnIdStore() { return _gameobjectBySpawnIdStore; }
 
-    [[nodiscard]] std::unordered_set<Corpse*> const* GetCorpsesInGrid(uint32 gridId) const
+    // Snapshot copy: corpse grid sets mutate on map threads.
+    [[nodiscard]] std::vector<Corpse*> GetCorpsesInGrid(uint32 gridId) const
     {
         std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
+        std::vector<Corpse*> result;
         auto itr = _corpsesByGrid.find(gridId);
         if (itr != _corpsesByGrid.end())
-            return &itr->second;
-
-        return nullptr;
+        {
+            result.reserve(itr->second.size());
+            for (Corpse* corpse : itr->second)
+                result.push_back(corpse);
+        }
+        return result;
     }
 
     [[nodiscard]] Corpse* GetCorpseByPlayer(ObjectGuid const& ownerGuid) const

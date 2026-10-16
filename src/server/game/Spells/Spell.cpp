@@ -1970,7 +1970,9 @@ void Spell::SelectEffectTypeImplicitTargets(uint8 effIndex)
 
                 CallScriptObjectTargetSelectHandlers(target, SpellEffIndex(effIndex), SpellImplicitTargetInfo());
 
-                if (target && target->ToPlayer())
+                // Validate before use: the target may have logged out,
+                // teleported maps, or been deleted since selection.
+                if (target && target->IsInWorld() && target->FindMap() == m_caster->FindMap() && target->ToPlayer())
                     AddUnitTarget(target->ToUnit(), 1 << effIndex, false);
             }
             return;
@@ -2543,9 +2545,10 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
         if (!farMask)
             return;
         // find unit in world
-        // Xinef: FindUnit Access without Map check!!! Intended
+        // Xinef: FindUnit Access without Map check!!! Intended (far targets
+        // may live on another map); still require a live object.
         effectUnit = ObjectAccessor::FindPlayer(target->targetGUID);
-        if (!effectUnit)
+        if (!effectUnit || !effectUnit->IsInWorld())
             return;
 
         // do far effects on the unit

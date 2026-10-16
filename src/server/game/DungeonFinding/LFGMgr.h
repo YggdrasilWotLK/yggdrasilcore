@@ -598,6 +598,7 @@ namespace lfg
         void MakeNewGroup(LfgProposal const& proposal);
 
         // Generic
+        // Caller must hold GetSocialLock for the entire use; never store the reference.
         LFGQueue& GetQueue(ObjectGuid guid);
         LfgDungeonSet const& GetDungeonsByRandom(uint32 randomdungeon);
         LfgType GetDungeonType(uint32 dungeon);

@@ -555,25 +555,47 @@ void Map::UpdateNonPlayerObjects(uint32 const diff)
 
     if (_updatableObjectListRecheckTimer.Passed())
     {
-        for (uint32 i = 0; i < _updatableObjectList.size();)
+        // Snapshot GUIDs: Update() may despawn/remove (and delete) any
+        // entry, which swap-removes inside _updatableObjectList. Never
+        // touch an object after its Update() without re-resolving it.
+        struct UpdateCheck { ObjectGuid guid; TypeID type; };
+        std::vector<UpdateCheck> checks;
+        checks.reserve(_updatableObjectList.size());
+        for (WorldObject* listed : _updatableObjectList)
+            if (listed && listed->IsInWorld())
+                checks.push_back({ listed->GetGUID(), listed->GetTypeId() });
+
+        auto resolve = [this](ObjectGuid guid, TypeID type) -> WorldObject*
         {
-            WorldObject* obj = _updatableObjectList[i];
-            if (!obj || !obj->IsInWorld())
+            switch (type)
             {
-                ++i;
-                continue;
+                case TYPEID_UNIT:
+                    return GetCreature(guid);
+                case TYPEID_GAMEOBJECT:
+                    return GetGameObject(guid);
+                case TYPEID_DYNAMICOBJECT:
+                    return GetDynamicObject(guid);
+                default:
+                    return nullptr;
             }
+        };
+
+        for (UpdateCheck const& check : checks)
+        {
+            WorldObject* obj = resolve(check.guid, check.type);
+            if (!obj || !obj->IsInWorld())
+                continue;
 
             obj->Update(diff);
+
+            WorldObject* live = resolve(check.guid, check.type);
+            if (live != obj || !obj->IsInWorld())
+                continue; // gone or unlisted by its own removal path
 
             if (!obj->IsUpdateNeeded())
             {
                 _RemoveObjectFromUpdateList(obj);
-                // Intentional no iteration here, obj is swapped with last element in
-                // _updatableObjectList so next loop will update that object at the same index
             }
-            else
-                ++i;
         }
         _updatableObjectListRecheckTimer.Reset();
     }
@@ -770,6 +792,10 @@ void Map::RemoveFromMap(T* obj, bool remove)
     if (remove)
     {
         RemoveObjectFromMapUpdateList(obj);
+        // Alternate delete path: the pointer may still sit in i_objectsToRemove
+        // (added via AddObjectToRemoveList); erase first so the sweep never
+        // touches freed memory. Ownership unchanged (DeleteFromWorld still frees).
+        i_objectsToRemove.erase(obj);
         DeleteFromWorld(obj);
     }
 }
@@ -1864,6 +1890,11 @@ void Map::AddObjectToRemoveList(WorldObject* obj)
     //LOG_DEBUG("maps", "Object ({}) added to removing list.", obj->GetGUID().ToString());
 }
 
+void Map::RemoveObjectFromRemoveList(WorldObject* obj)
+{
+    i_objectsToRemove.erase(obj);
+}
+
 void Map::RemoveAllObjectsInRemoveList()
 {
     while (!i_objectsToRemove.empty())
@@ -2772,8 +2803,13 @@ bool Map::AllTransportsEmpty() const
 void Map::AllTransportsRemovePassengers()
 {
     for (TransportsContainer::const_iterator itr = _transports.begin(); itr != _transports.end(); ++itr)
-        while (!(*itr)->GetPassengers().empty())
-            (*itr)->RemovePassenger(*((*itr)->GetPassengers().begin()), true);
+    {
+        Transport* transport = *itr;
+        if (!transport)
+            continue;
+        while (!transport->GetPassengers().empty())
+            transport->RemovePassenger(*(transport->GetPassengers().begin()), true);
+    }
 }
 
 time_t Map::GetLinkedRespawnTime(ObjectGuid guid) const
@@ -2875,6 +2911,9 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
     }
 
     // all references to the corpse should be removed at this point
+    // The corpse may still sit in i_objectsToRemove (alternate delete path);
+    // erase first so the sweep never touches freed memory.
+    i_objectsToRemove.erase(corpse);
     delete corpse;
 
     return bones;
@@ -2908,6 +2947,9 @@ void Map::RemoveOldCorpses()
     for (Corpse* bones : expiredBones)
     {
         RemoveCorpse(bones);
+        // Alternate delete path: erase from i_objectsToRemove so the sweep
+        // never touches freed memory. Ownership unchanged.
+        i_objectsToRemove.erase(bones);
         delete bones;
     }
 }

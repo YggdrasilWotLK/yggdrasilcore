@@ -10486,6 +10486,8 @@ bool Unit::AttackStop()
         return false;
 
     Unit* victim = m_attacking;
+    if (!victim) // cached holder; re-check under races (dismiss/remove paths clear asynchronously)
+        return false;
 
     m_attacking->_removeAttacker(this);
     m_attacking = nullptr;

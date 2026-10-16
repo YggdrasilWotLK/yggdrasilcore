@@ -21,6 +21,7 @@
 #include "Chat.h"
 #include "DatabaseEnv.h"
 #include "GameTime.h"
+#include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "SocialMgr.h"
@@ -209,7 +210,7 @@ void Channel::JoinChannel(Player* player, std::string const& pass)
     PlayerInfo pinfo;
     pinfo.player = guid;
     pinfo.flags = MEMBER_FLAG_NONE;
-    pinfo.plrPtr = player;
+    pinfo.plrGuid = guid;
 
     playersStore[guid] = pinfo;
 
@@ -301,11 +302,17 @@ void Channel::LeaveChannel(Player* player, bool send)
                 for (Channel::PlayerContainer::const_iterator itr = playersStore.begin(); itr != playersStore.end(); ++itr)
                 {
                     newowner = itr->second.player;
-                    if (itr->second.plrPtr->GetSession()->IsGMAccount())
+                    Player* member = ObjectAccessor::FindPlayer(itr->second.plrGuid);
+                    if (!member || !member->IsInWorld() || !member->GetSession())
+                    {
+                        _isOwnerGM = false;
+                        continue;
+                    }
+                    if (member->GetSession()->IsGMAccount())
                         _isOwnerGM = true;
                     else
                         _isOwnerGM = false;
-                    if (!itr->second.plrPtr->GetSession()->GetSecurity())
+                    if (!member->GetSession()->GetSecurity())
                         break;
                 }
                 SetOwner(newowner);
@@ -460,7 +467,10 @@ void Channel::KickOrBan(Player const* player, std::string const& badname, bool b
             for (Channel::PlayerContainer::const_iterator itr = playersStore.begin(); itr != playersStore.end(); ++itr)
             {
                 newowner = itr->second.player;
-                if (!itr->second.plrPtr->GetSession()->GetSecurity())
+                Player* member = ObjectAccessor::FindPlayer(itr->second.plrGuid);
+                if (!member || !member->IsInWorld() || !member->GetSession())
+                    continue;
+                if (!member->GetSession()->GetSecurity())
                     break;
             }
             SetOwner(newowner);
@@ -712,7 +722,7 @@ void Channel::List(Player const* player)
 
     LOG_DEBUG("chat.system", "SMSG_CHANNEL_LIST {} Channel: {}", player->GetSession()->GetPlayerInfo(), GetName());
 
-    // Snapshot guids+flags; plrPtr may dangle after logout, resolve live ones below.
+    // Snapshot guids+flags; members may log out at any time, resolve live ones below.
     std::vector<std::pair<ObjectGuid, uint8>> members;
     {
         members.reserve(playersStore.size());
@@ -816,7 +826,9 @@ void Channel::Say(ObjectGuid guid, std::string const& what, uint32 lang)
         return;
     }
 
-    Player* player = pinfo.plrPtr;
+    Player* player = ObjectAccessor::FindPlayer(pinfo.plrGuid);
+    if (player && !player->IsInWorld())
+        player = nullptr;
     WorldPacket data;
 
     if (player)
@@ -900,7 +912,9 @@ void Channel::SetOwner(ObjectGuid guid, bool exclaim)
         if (p_itr != playersStore.end())
         {
             p_itr->second.SetOwner(false);
-            FlagsNotify(p_itr->second.plrPtr);
+            if (Player* oldOwner = ObjectAccessor::FindPlayer(p_itr->second.plrGuid))
+                if (oldOwner->IsInWorld())
+                    FlagsNotify(oldOwner);
         }
     }
 
@@ -912,7 +926,9 @@ void Channel::SetOwner(ObjectGuid guid, bool exclaim)
         pinfo.SetModerator(true);
         uint8 oldFlag = pinfo.flags;
         pinfo.SetOwner(true);
-        FlagsNotify(pinfo.plrPtr);
+        if (Player* newOwner = ObjectAccessor::FindPlayer(pinfo.plrGuid))
+            if (newOwner->IsInWorld())
+                FlagsNotify(newOwner);
 
         Player* player = ObjectAccessor::FindPlayer(_ownerGUID);
         if (player)
@@ -935,20 +951,51 @@ void Channel::SetOwner(ObjectGuid guid, bool exclaim)
     }
 }
 
+void Channel::SetModerator(ObjectGuid guid, bool set)
+{
+    std::lock_guard<std::recursive_mutex> lock(_channelLock);
+    PlayerInfo& pinfo = playersStore[guid];
+    if (pinfo.IsModerator() != set)
+    {
+        uint8 oldFlag = pinfo.flags;
+        pinfo.SetModerator(set);
+
+        WorldPacket data;
+        MakeModeChange(&data, guid, oldFlag);
+        SendToAll(&data);
+
+        if (Player* member = ObjectAccessor::FindPlayer(pinfo.plrGuid))
+            if (member->IsInWorld())
+                FlagsNotify(member);
+    }
+}
+
 void Channel::SendToAll(WorldPacket* data, ObjectGuid guid)
 {
     std::lock_guard<std::recursive_mutex> lock(_channelLock);
     for (PlayerContainer::const_iterator i = playersStore.begin(); i != playersStore.end(); ++i)
-        if (!guid || !i->second.plrPtr->GetSocial()->HasIgnore(guid))
-            i->second.plrPtr->GetSession()->SendPacket(data);
+    {
+        Player* member = ObjectAccessor::FindPlayer(i->second.plrGuid);
+        if (!member || !member->IsInWorld())
+            continue;
+        if (!guid || !member->GetSocial()->HasIgnore(guid))
+            member->GetSession()->SendPacket(data);
+    }
 }
 
 void Channel::SendToAllButOne(WorldPacket* data, ObjectGuid who)
 {
     std::lock_guard<std::recursive_mutex> lock(_channelLock);
     for (PlayerContainer::const_iterator i = playersStore.begin(); i != playersStore.end(); ++i)
+    {
         if (i->first != who)
-            i->second.plrPtr->GetSession()->SendPacket(data);
+        {
+            Player* member = ObjectAccessor::FindPlayer(i->second.plrGuid);
+            if (!member || !member->IsInWorld())
+                continue;
+            member->GetSession()->SendPacket(data);
+        }
+    }
 }
 
 void Channel::SendToOne(WorldPacket* data, ObjectGuid who)

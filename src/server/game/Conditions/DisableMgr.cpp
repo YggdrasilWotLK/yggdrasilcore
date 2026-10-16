@@ -166,6 +166,12 @@ bool DisableMgr::HandleDisableType(DisableType type, uint32 entry, uint8 flags, 
         }
 
         // xinef: if spell has disabled los, add flag
+        // Thread-safety note: this mutates live SpellInfo in place. Benign by
+        // construction: single aligned-uint32 OR applied set-once (monotonic,
+        // never cleared), so concurrent readers observe old-or-new, never torn
+        // state. Lock order: must be called with m_DisableLock held (see the
+        // m_DisableLock comment in DisableMgr.h); never take the SpellMgr lock
+        // here.
         if (flags & SPELL_DISABLE_LOS)
         {
             SpellInfo* spellInfo = const_cast<SpellInfo*>(sSpellMgr->GetSpellInfo(entry));

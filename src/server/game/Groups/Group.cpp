@@ -1449,10 +1449,17 @@ bool Group::CountRollVote(ObjectGuid playerGUID, ObjectGuid Guid, uint8 Choice)
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (m_disbanded)
         return false;
-    Rolls::iterator rollI = GetRoll(Guid);
+    Rolls::iterator rollI = RollId.end();
+    Roll* roll = nullptr;
+    for (Rolls::iterator it = RollId.begin(); it != RollId.end(); ++it)
+        if ((*it)->itemGUID == Guid && (*it)->isValid())
+        {
+            rollI = it;
+            roll = *it;
+            break;
+        }
     if (rollI == RollId.end())
         return false;
-    Roll* roll = *rollI;
 
     Roll::PlayerVote::iterator itr = roll->playerVote.find(playerGUID);
     // this condition means that player joins to the party after roll begins
@@ -2715,14 +2722,13 @@ bool Group::isRollLootActive() const
     return !RollId.empty();
 }
 
-Group::Rolls::iterator Group::GetRoll(ObjectGuid Guid)
+Optional<Roll> Group::GetRollCopy(ObjectGuid guid) const
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    Rolls::iterator iter;
-    for (iter = RollId.begin(); iter != RollId.end(); ++iter)
-        if ((*iter)->itemGUID == Guid && (*iter)->isValid())
-            return iter;
-    return RollId.end();
+    for (Roll* roll : RollId)
+        if (roll->itemGUID == guid && roll->isValid())
+            return Optional<Roll>(*roll);
+    return {};
 }
 
 void Group::LinkMember(GroupReference* pRef)

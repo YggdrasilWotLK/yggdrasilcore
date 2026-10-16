@@ -93,23 +93,13 @@ public:
 
     // Snapshot copy-out: m_QueuedPlayers mutates on session threads.
     [[nodiscard]] std::vector<ObjectGuid> GetQueuedPlayerGUIDs() const;
+    // Locked copy-out snapshot of one player's queue info (locks internally).
+    [[nodiscard]] bool GetPlayerGroupInfoSnapshot(ObjectGuid guid, GroupQueueInfo& out) const;
 
     typedef std::map<ObjectGuid, GroupQueueInfo*> QueuedPlayersMap;
-    QueuedPlayersMap m_QueuedPlayers;
 
     //do NOT use deque because deque.erase() invalidates ALL iterators
     typedef std::list<GroupQueueInfo*> GroupsQueueType;
-
-    /*
-    This two dimensional array is used to store All queued groups
-    First dimension specifies the bgTypeId
-    Second dimension specifies the player's group types -
-         BG_QUEUE_PREMADE_ALLIANCE  is used for premade alliance groups and alliance rated arena teams
-         BG_QUEUE_PREMADE_HORDE     is used for premade horde groups and horde rated arena teams
-         BG_QUEUE_NORMAL_ALLIANCE   is used for normal (or small) alliance groups or non-rated arena matches
-         BG_QUEUE_NORMAL_HORDE      is used for normal (or small) horde groups or non-rated arena matches
-    */
-    GroupsQueueType m_QueuedGroups[MAX_BATTLEGROUND_BRACKETS][BG_QUEUE_MAX];
 
     // class to select and invite groups to bg
     class SelectionPool
@@ -126,13 +116,24 @@ public:
         uint32 PlayerCount;
     };
 
-    //one selection pool for horde, other one for alliance
-    SelectionPool m_SelectionPools[PVP_TEAMS_COUNT];
-
+    /*
+    This two dimensional array is used to store All queued groups
+    First dimension specifies the bgTypeId
+    Second dimension specifies the player's group types -
+         BG_QUEUE_PREMADE_ALLIANCE  is used for premade alliance groups and alliance rated arena teams
+         BG_QUEUE_PREMADE_HORDE     is used for premade horde groups and horde rated arena teams
+         BG_QUEUE_NORMAL_ALLIANCE   is used for normal (or small) alliance groups or non-rated arena matches
+         BG_QUEUE_NORMAL_HORDE      is used for normal (or small) horde groups or non-rated arena matches
+    */
     void SetQueueAnnouncementTimer(uint32 bracketId, int32 timer, bool isCrossFactionBG = true);
     [[nodiscard]] int32 GetQueueAnnouncementTimer(uint32 bracketId) const;
 
 private:
+    QueuedPlayersMap m_QueuedPlayers;
+    GroupsQueueType m_QueuedGroups[MAX_BATTLEGROUND_BRACKETS][BG_QUEUE_MAX];
+    //one selection pool for horde, other one for alliance
+    SelectionPool m_SelectionPools[PVP_TEAMS_COUNT];
+
     uint32 m_WaitTimes[PVP_TEAMS_COUNT][MAX_BATTLEGROUND_BRACKETS][COUNT_OF_PLAYERS_TO_AVERAGE_WAIT_TIME];
     uint32 m_WaitTimeLastIndex[PVP_TEAMS_COUNT][MAX_BATTLEGROUND_BRACKETS];
 

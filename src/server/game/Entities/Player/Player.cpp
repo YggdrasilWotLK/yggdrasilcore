@@ -11613,8 +11613,15 @@ void Player::SetSelection(ObjectGuid guid)
         ArenaSpectator::SendCommand_GUID(FindMap(), GetGUID(), "TRG", guid);
 }
 
+void Player::SetGroupInvite(Group* group)
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    m_groupInvite = group;
+}
+
 void Player::SetGroup(Group* group, int8 subgroup)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!group)
         m_group.unlink();
     else
@@ -11626,6 +11633,13 @@ void Player::SetGroup(Group* group, int8 subgroup)
     }
 
     UpdateObjectVisibility(false);
+}
+
+ObjectGuid Player::GetGroupGUID() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    Group const* group = m_group.getTarget();
+    return group ? group->GetGUID() : ObjectGuid::Empty;
 }
 
 void Player::SendInitialPacketsBeforeAddToMap()

@@ -652,7 +652,7 @@ protected:
     ArenaTeamScore _arenaTeamScores[PVP_TEAMS_COUNT];
 
     // pussywizard:
-    uint32 m_UpdateTimer;
+    std::atomic<uint32> m_UpdateTimer;
 
     EventProcessor _reviveEvents;
 

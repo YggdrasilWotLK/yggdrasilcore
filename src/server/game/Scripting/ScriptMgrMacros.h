@@ -70,19 +70,22 @@ inline bool ReturnValidBool(Optional<bool> ret, bool need = false)
 }
 
 #define CALL_ENABLED_HOOKS(scriptType, hookType, action) \
+    { std::shared_lock<std::shared_mutex> hooksReadLock(ScriptRegistry<scriptType>::EnabledHooksLock); \
     if (!ScriptRegistry<scriptType>::EnabledHooks[hookType].empty()) \
-        for (auto const& script : ScriptRegistry<scriptType>::EnabledHooks[hookType]) { action; }
+        for (auto const& script : ScriptRegistry<scriptType>::EnabledHooks[hookType]) { action; } }
 
 #define CALL_ENABLED_BOOLEAN_HOOKS(scriptType, hookType, action) \
+    { std::shared_lock<std::shared_mutex> hooksReadLock(ScriptRegistry<scriptType>::EnabledHooksLock); \
     if (ScriptRegistry<scriptType>::EnabledHooks[hookType].empty()) \
         return true; \
     for (auto const& script : ScriptRegistry<scriptType>::EnabledHooks[hookType]) { if (action) return false; } \
-    return true;
+    return true; }
 
 #define CALL_ENABLED_BOOLEAN_HOOKS_WITH_DEFAULT_FALSE(scriptType, hookType, action) \
+    { std::shared_lock<std::shared_mutex> hooksReadLock(ScriptRegistry<scriptType>::EnabledHooksLock); \
     if (ScriptRegistry<scriptType>::EnabledHooks[hookType].empty()) \
         return false; \
     for (auto const& script : ScriptRegistry<scriptType>::EnabledHooks[hookType]) { if (action) return true; } \
-    return false;
+    return false; }
 
 #endif // _SCRIPT_MGR_MACRO_H_

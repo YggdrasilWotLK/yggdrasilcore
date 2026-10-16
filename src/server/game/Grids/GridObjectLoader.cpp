@@ -95,15 +95,12 @@ void GridObjectLoader::LoadAllCellsInGrid()
     LoadGameObjects(cell_guids.gameobjects, _map);
     LoadCreatures(cell_guids.creatures, _map);
 
-    if (std::unordered_set<Corpse*> const* corpses = _map->GetCorpsesInGrid(_grid.GetId()))
+    for (Corpse* corpse : _map->GetCorpsesInGrid(_grid.GetId()))
     {
-        for (Corpse* corpse : *corpses)
-        {
-            if (corpse->IsInGrid())
-                continue;
+        if (corpse->IsInGrid())
+            continue;
 
-            AddObjectHelper<Corpse>(_map, corpse);
-        }
+        AddObjectHelper<Corpse>(_map, corpse);
     }
 }
 
@@ -123,6 +120,10 @@ void GridObjectUnloader::Visit(GridRefMgr<T>& m)
         obj->CleanupsBeforeDelete();
 
         obj->GetMap()->RemoveObjectFromMapUpdateList(obj);
+        // Alternate delete path: the object may still sit in i_objectsToRemove
+        // (added via AddObjectToRemoveList); erase first so the sweep never
+        // touches freed memory. Ownership unchanged (deleted below).
+        obj->GetMap()->RemoveObjectFromRemoveList(obj);
 
         ///- object will get delinked from the manager when deleted
         delete obj;

@@ -89,9 +89,11 @@ void DynamicObject::RemoveFromWorld()
         if (Transport* transport = GetTransport())
             transport->RemovePassenger(this, true);
 
-        WorldObject::RemoveFromWorld();
-
+        // Unlink from the findable store before clearing world state so
+        // reentrant Find* calls cannot observe a half-removed object.
         { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<DynamicObject>(GetGUID()); }
+
+        WorldObject::RemoveFromWorld();
     }
 }
 

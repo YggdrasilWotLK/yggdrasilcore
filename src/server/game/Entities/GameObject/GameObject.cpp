@@ -171,6 +171,13 @@ void GameObject::RemoveFromWorld()
     ///- Remove the gameobject from the accessor
     if (IsInWorld())
     {
+        // Unlink from findable stores FIRST so concurrent/reentrant
+        // Find* calls during the teardown below cannot observe a
+        // half-removed object.
+        if (m_spawnId)
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this); }
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID()); }
+
         sScriptMgr->OnGameObjectRemoveWorld(this);
 
         if (m_zoneScript)
@@ -192,10 +199,6 @@ void GameObject::RemoveFromWorld()
         }
 
         WorldObject::RemoveFromWorld();
-
-        if (m_spawnId)
-            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this); }
-        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID()); }
     }
 }
 

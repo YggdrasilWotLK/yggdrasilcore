@@ -40,6 +40,8 @@
 #include "GameTime.h"
 #include "Map.h"
 #include "MapMgr.h"
+
+#include <vector>
 #include "MiscPackets.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
@@ -101,30 +103,50 @@ void BattlegroundMgr::DeleteAllBattlegrounds()
 // used to update running battlegrounds, and delete finished ones
 void BattlegroundMgr::Update(uint32 diff)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    // update all battlegrounds and delete if needed
-    for (auto& [_, bgData] : bgDataStore)
+    // Snapshot-then-act: collect live BGs under the lock, tick them
+    // without it (each BG update is self-synchronizing), re-lock only
+    // to erase/delete flagged instances. Deletion happens only here.
+    std::vector<Battleground*> tickList;
     {
-        auto& bgList = bgData._Battlegrounds;
-        auto itrDelete = bgList.begin();
-
-        // first one is template and should not be deleted
-        for (BattlegroundContainer::iterator itr = ++itrDelete; itr != bgList.end();)
+        std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        for (auto& [_, bgData] : bgDataStore)
         {
-            itrDelete = itr++;
-            Battleground* bg = itrDelete->second;
+            auto& bgList = bgData._Battlegrounds;
+            for (auto& pair : bgList)
+                if (pair.second)
+                    tickList.push_back(pair.second);
+        }
+    }
 
+    for (Battleground* bg : tickList)
+        if (!bg->ToBeDeleted())
             bg->Update(diff);
-            if (bg->ToBeDeleted())
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        // delete flagged battlegrounds
+        for (auto& [_, bgData] : bgDataStore)
+        {
+            auto& bgList = bgData._Battlegrounds;
+            auto itrDelete = bgList.begin();
+
+            // first one is template and should not be deleted
+            for (BattlegroundContainer::iterator itr = ++itrDelete; itr != bgList.end();)
             {
-                itrDelete->second = nullptr;
-                bgList.erase(itrDelete);
+                itrDelete = itr++;
+                Battleground* bg = itrDelete->second;
 
-                BattlegroundClientIdsContainer& clients = bgData._ClientBattlegroundIds[bg->GetBracketId()];
-                if (!clients.empty())
-                    clients.erase(bg->GetClientInstanceID());
+                if (bg->ToBeDeleted())
+                {
+                    itrDelete->second = nullptr;
+                    bgList.erase(itrDelete);
 
-                delete bg;
+                    BattlegroundClientIdsContainer& clients = bgData._ClientBattlegroundIds[bg->GetBracketId()];
+                    if (!clients.empty())
+                        clients.erase(bg->GetClientInstanceID());
+
+                    delete bg;
+                }
             }
         }
     }

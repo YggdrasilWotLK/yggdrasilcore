@@ -177,6 +177,13 @@ inline uint32 Guild::LogHolder<Entry>::GetNextGUID()
     return m_nextGUID;
 }
 
+template <typename Entry>
+std::vector<Entry> Guild::LogHolder<Entry>::GetGuildLogSnapshot() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    return std::vector<Entry>(m_log.begin(), m_log.end());
+}
+
 Guild::LogEntry::LogEntry(uint32 guildId, ObjectGuid::LowType guid) :
     m_guildId(guildId), m_guid(guid), m_timestamp(GameTime::GetGameTime().count()) { }
 
@@ -1943,8 +1950,7 @@ void Guild::SendInfo(WorldSession* session) const
 
 void Guild::SendEventLog(WorldSession* session) const
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
-    std::list<EventLogEntry> const& eventLog = m_eventLog.GetGuildLog();
+    std::vector<EventLogEntry> eventLog = m_eventLog.GetGuildLogSnapshot();
 
     WorldPackets::Guild::GuildEventLogQueryResults packet;
     packet.Entry.reserve(eventLog.size());
@@ -1958,22 +1964,24 @@ void Guild::SendEventLog(WorldSession* session) const
 
 void Guild::SendBankLog(WorldSession* session, uint8 tabId) const
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // GUILD_BANK_MAX_TABS send by client for money log
-    if (tabId < _GetPurchasedTabsSize() || tabId == GUILD_BANK_MAX_TABS)
+    std::vector<BankEventLogEntry> bankEventLog;
     {
-        std::list<BankEventLogEntry> const& bankEventLog = m_bankEventLog[tabId].GetGuildLog();
-
-        WorldPackets::Guild::GuildBankLogQueryResults packet;
-        packet.Tab = tabId;
-
-        packet.Entry.reserve(bankEventLog.size());
-        for (BankEventLogEntry const& entry : bankEventLog)
-            entry.WritePacket(packet);
-
-        session->SendPacket(packet.Write());
-        LOG_DEBUG("guild", "MSG_GUILD_BANK_LOG_QUERY [{}]", session->GetPlayerInfo());
+        std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+        if (tabId >= _GetPurchasedTabsSize() && tabId != GUILD_BANK_MAX_TABS)
+            return;
+        bankEventLog = m_bankEventLog[tabId].GetGuildLogSnapshot();
     }
+
+    WorldPackets::Guild::GuildBankLogQueryResults packet;
+    packet.Tab = tabId;
+
+    packet.Entry.reserve(bankEventLog.size());
+    for (BankEventLogEntry const& entry : bankEventLog)
+        entry.WritePacket(packet);
+
+    session->SendPacket(packet.Write());
+    LOG_DEBUG("guild", "MSG_GUILD_BANK_LOG_QUERY [{}]", session->GetPlayerInfo());
 }
 
 void Guild::SendBankTabData(WorldSession* session, uint8 tabId, bool sendAllSlots) const

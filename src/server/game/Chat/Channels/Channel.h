@@ -147,7 +147,7 @@ class Channel
     {
         ObjectGuid player;
         uint8 flags;
-        Player* plrPtr; // pussywizard
+        ObjectGuid plrGuid;
 
         [[nodiscard]] bool HasFlag(uint8 flag) const { return flags & flag; }
         void SetFlag(uint8 flag) { if (!HasFlag(flag)) flags |= flag; }
@@ -285,22 +285,7 @@ private:
         return itr != playersStore.end() ? itr->second.flags : 0;
     }
 
-    void SetModerator(ObjectGuid guid, bool set)
-    {
-        std::lock_guard<std::recursive_mutex> lock(_channelLock);
-        PlayerInfo& pinfo = playersStore[guid];
-        if (pinfo.IsModerator() != set)
-        {
-            uint8 oldFlag = pinfo.flags;
-            pinfo.SetModerator(set);
-
-            WorldPacket data;
-            MakeModeChange(&data, guid, oldFlag);
-            SendToAll(&data);
-
-            FlagsNotify(pinfo.plrPtr);
-        }
-    }
+    void SetModerator(ObjectGuid guid, bool set);
 
     void SetMute(ObjectGuid guid, bool set)
     {

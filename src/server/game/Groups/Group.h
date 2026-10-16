@@ -22,6 +22,7 @@
 #include "DataMap.h"
 #include "GroupRefMgr.h"
 #include "LootMgr.h"
+#include "Optional.h"
 #include "QueryResult.h"
 #include "SharedDefines.h"
 #include <functional>
@@ -310,7 +311,7 @@ public:
     void GroupLoot(Loot* loot, WorldObject* pLootedObject);
     void NeedBeforeGreed(Loot* loot, WorldObject* pLootedObject);
     void MasterLoot(Loot* loot, WorldObject* pLootedObject);
-    Rolls::iterator GetRoll(ObjectGuid Guid);
+    Optional<Roll> GetRollCopy(ObjectGuid guid) const;
     void CountTheRoll(Rolls::iterator roll, Map* allowedMap);
     bool CountRollVote(ObjectGuid playerGUID, ObjectGuid Guid, uint8 Choise);
     void EndRoll(Loot* loot, Map* allowedMap);

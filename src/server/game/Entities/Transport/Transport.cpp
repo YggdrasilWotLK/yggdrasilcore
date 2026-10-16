@@ -608,6 +608,11 @@ void MotionTransport::DelayedTeleportTransport()
                     TransportBase::CalculatePassengerPosition(destX, destY, destZ, &destO, x, y, z, o);
 
                     Player* player = obj->ToPlayer();
+                    if (!player || !player->IsInWorld())
+                    {
+                        _passengers.erase(obj);
+                        continue;
+                    }
                     // Vehicle passengers are dropped in the middle of nowhere, so lets try to eject them, add to the transport and teleport
                     // this needs to be revisited to properly restore vehicles with passengers after transport teleportation
                     if (player->IsVehicle())
@@ -646,6 +651,8 @@ void MotionTransport::UpdatePassengerPositions(PassengerSet& passengers)
     for (PassengerSet::iterator itr = passengers.begin(); itr != passengers.end(); ++itr)
     {
         WorldObject* passenger = *itr;
+        if (!passenger || !passenger->IsInWorld())
+            continue;
         // transport teleported but passenger not yet (can happen for players)
         if (passenger->GetMap() != GetMap())
             continue;
@@ -1016,6 +1023,8 @@ void StaticTransport::UpdatePassengerPositions()
     for (PassengerSet::iterator itr = _passengers.begin(); itr != _passengers.end(); ++itr)
     {
         WorldObject* passenger = *itr;
+        if (!passenger || !passenger->IsInWorld())
+            continue;
 
         // if passenger is on vehicle we have to assume the vehicle is also on transport and its the vehicle that will be updating its passengers
         if (Unit* unit = passenger->ToUnit())

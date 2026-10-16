@@ -4999,6 +4999,12 @@ void SmartScript::OnUpdate(uint32 const diff)
     if ((mScriptType == SMART_SCRIPT_TYPE_CREATURE || mScriptType == SMART_SCRIPT_TYPE_GAMEOBJECT) && !GetBaseObject())
         return;
 
+    // Base object may have despawned/unloaded since the last tick; running
+    // events against a dead object is a UAF. Abort the tick if it's gone.
+    if (WorldObject* base = GetBaseObject())
+        if (!base->IsInWorld())
+            return;
+
     InstallEvents();//before UpdateTimers
 
     if (mEventSortingRequired)
