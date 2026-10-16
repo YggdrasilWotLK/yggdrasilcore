@@ -290,9 +290,9 @@ bool BattlegroundSA::ResetObjs()
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_SA_YELLOW_GATE, 1);
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_SA_ANCIENT_GATE, 1);
 
-    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    std::vector<ObjectGuid> boatGuids = GetPlayerGUIDs();
     for (int i = BG_SA_BOAT_ONE; i <= BG_SA_BOAT_TWO; i++)
-        for (ObjectGuid const& playerGuid : guids)
+        for (ObjectGuid const& playerGuid : boatGuids)
         {
             Player* listed = ObjectAccessor::FindPlayer(playerGuid);
             if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
