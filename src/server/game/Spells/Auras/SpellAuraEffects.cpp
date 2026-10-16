@@ -3283,11 +3283,12 @@ void AuraEffect::HandleAuraMounted(AuraApplication const* aurApp, uint8 mode, bo
             CreatureModel model;
             if (GetMiscValueB() > 0) // Choose proper modelid (e.g. Headless Horseman's Mount, Invincible, Celestial Steed)
             {
-                // MiscValueB 2 = flying display, otherwise ground display; fall back to random pick if missing
-                if (CreatureModel const* properModel = creatureInfo->GetModelByIdx(GetMiscValueB() == 2 ? 1 : 0))
+                // MiscValueB 2 = flying display (model idx 1), otherwise ground display (idx 0)
+                CreatureModel const* properModel = creatureInfo->GetModelByIdx(GetMiscValueB() == 2 ? 1 : 0);
+                if (!properModel || !properModel->CreatureDisplayID)
+                    properModel = creatureInfo->GetModelByIdx(0);
+                if (properModel)
                     model = *properModel;
-                else
-                    model = *ObjectMgr::ChooseDisplayId(creatureInfo);
             }
             else // Should we choose random modelid in this case?
                 model = *ObjectMgr::ChooseDisplayId(creatureInfo);
