@@ -48,7 +48,7 @@ enum blySays
 
 enum blySpells
 {
-    SPELL_BLYS_BAND_ESCAPE     = 11365,
+    SPELL_HEARTHSTONE            = 8690,
     SPELL_SHIELD_BASH          = 11972,
     SPELL_REVENGE              = 12170
 };
@@ -92,20 +92,20 @@ public:
         {
             ShieldBash_Timer = 5000;
             Revenge_Timer = 8000;
-            Porthome_Timer = 156000;
+            Porthome_Timer = 2 * MINUTE * IN_MILLISECONDS;
             ableToPortHome = false;
             startedFight = false;
         }
 
         void EnterEvadeMode(EvadeReason /*reason*/) override
         {
-            if (ableToPortHome)
+            if (ableToPortHome || startedFight)
                 return;
 
-            if (instance->GetData(DATA_PYRAMID) == PYRAMID_KILLED_ALL_TROLLS)
+            if (instance && instance->GetData(DATA_PYRAMID) == PYRAMID_GATES_DESTROYED)
             {
                 ableToPortHome = true;
-                Porthome_Timer = 156000;
+                Porthome_Timer = 2 * MINUTE * IN_MILLISECONDS;
             }
         }
 
@@ -171,35 +171,25 @@ public:
                 }
             }
 
-            if (Porthome_Timer <= diff && ableToPortHome == true)
+            // Start 2 minute hearthstone timer once Weegli opened the door.
+            // If players don't challenge Bly via gossip in time, his crew hearths out.
+            if (!startedFight && !ableToPortHome && instance && instance->GetData(DATA_PYRAMID) == PYRAMID_GATES_DESTROYED)
             {
-                if (Creature* weegli = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_WEEGLI)))
-                {
-                    weegli->CastSpell(weegli, SPELL_BLYS_BAND_ESCAPE);
-                    weegli->DespawnOrUnsummon(10s);
-                }
-                if (Creature* raven = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_RAVEN)))
-                {
-                    raven->CastSpell(raven, SPELL_BLYS_BAND_ESCAPE);
-                    raven->DespawnOrUnsummon(10s);
-                }
-                if (Creature* oro = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_ORO)))
-                {
-                    oro->CastSpell(oro, SPELL_BLYS_BAND_ESCAPE);
-                    oro->DespawnOrUnsummon(10s);
-                }
-                if (Creature* murta = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_MURTA)))
-                {
-                    murta->CastSpell(murta, SPELL_BLYS_BAND_ESCAPE);
-                    murta->DespawnOrUnsummon(10s);
-                }
-                DoCastSelf(SPELL_BLYS_BAND_ESCAPE);
-                me->DespawnOrUnsummon(10s);
-                Porthome_Timer = 156000; //set timer back so that the event doesn't keep triggering
+                ableToPortHome = true;
+                Porthome_Timer = 2 * MINUTE * IN_MILLISECONDS;
             }
-            else
+
+            if (ableToPortHome)
             {
-                Porthome_Timer -= diff;
+                if (Porthome_Timer <= diff)
+                {
+                    SendCrewHome();
+                    ableToPortHome = false;
+                }
+                else
+                {
+                    Porthome_Timer -= diff;
+                }
             }
 
             if (!UpdateVictim())
@@ -235,6 +225,34 @@ public:
             ableToPortHome = false;
             postGossipStep = 1;
             Text_Timer = 0;
+        }
+
+        void MakeNonInteractiveAndHearth(Creature* crew)
+        {
+            if (!crew || !crew->IsAlive())
+                return;
+
+            // Make non interactive so the 10s hearthstone can't be interrupted via gossip/combat
+            crew->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+            crew->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+            crew->SetImmuneToPC(true);
+            crew->GetMotionMaster()->Clear();
+            crew->GetMotionMaster()->MoveIdle();
+            crew->CastSpell(crew, SPELL_HEARTHSTONE);
+            crew->DespawnOrUnsummon(11s);
+        }
+
+        void SendCrewHome()
+        {
+            // NOTE: Weegli is intentionally left out - he despawned after
+            // blowing the gate and is not part of the crew anymore.
+            if (Creature* raven = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_RAVEN)))
+                MakeNonInteractiveAndHearth(raven);
+            if (Creature* oro = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_ORO)))
+                MakeNonInteractiveAndHearth(oro);
+            if (Creature* murta = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_MURTA)))
+                MakeNonInteractiveAndHearth(murta);
+            MakeNonInteractiveAndHearth(me);
         }
 
         void switchFactionIfAlive(uint32 entry, Player* target)
