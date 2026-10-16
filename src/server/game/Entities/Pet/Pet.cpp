@@ -125,11 +125,12 @@ void Pet::RemoveFromWorld()
     ///- Remove the pet from the accessor
     if (IsInWorld())
     {
-        ///- Unlink from the findable store first (see Creature::RemoveFromWorld)
-        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<Creature>(GetGUID()); }
-
         ///- Don't call the function for Creature, normal mobs + totems go in a different storage
         Unit::RemoveFromWorld();
+
+        ///- Unlink after aura cleanup so Aura::GetCaster() still resolves
+        ///- us during RemoveNotOwnSingleTargetAuras (see Creature::RemoveFromWorld)
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<Creature>(GetGUID()); }
     }
 }
 
