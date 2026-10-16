@@ -73,7 +73,7 @@ Map* MapMgr::CreateBaseMap(uint32 id)
 
     if (!map)
     {
-        std::lock_guard<std::mutex> guard(Lock);
+        std::lock_guard<std::recursive_mutex> guard(Lock);
 
         map = FindBaseMap(id);
         if (!map) // pussywizard: check again after acquiring mutex
@@ -356,7 +356,7 @@ void MapMgr::GetNumInstances(uint32& dungeons, uint32& battlegrounds, uint32& ar
 
 void MapMgr::GetNumPlayersInInstances(uint32& dungeons, uint32& battlegrounds, uint32& arenas, uint32& spectators)
 {
-    std::lock_guard<std::mutex> guard(Lock);
+    std::lock_guard<std::recursive_mutex> guard(Lock);
     for (MapMapType::iterator itr = i_maps.begin(); itr != i_maps.end(); ++itr)
     {
         Map* map = itr->second;
