@@ -370,7 +370,6 @@ SpellMgr* SpellMgr::instance()
 /// Some checks for spells, to prevent adding deprecated/broken spells for trainers, spell book, etc
 bool SpellMgr::ComputeIsSpellValid(SpellInfo const* spellInfo, bool msg)
 {
-    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     // not exist
     if (!spellInfo)
         return false;
@@ -442,7 +441,6 @@ bool SpellMgr::ComputeIsSpellValid(SpellInfo const* spellInfo, bool msg)
 
 bool SpellMgr::IsSpellValid(SpellInfo const* spellInfo)
 {
-    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (!spellInfo)
         return false;
     return spellInfo->IsSpellValid();
@@ -461,7 +459,6 @@ void DeleteSpellFromAllPlayers(uint32 spellId)
 
 bool SpellMgr::CheckSpellValid(SpellInfo const* spellInfo, uint32 spellId, bool isTalent)
 {
-    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (!spellInfo)
     {
         DeleteSpellFromAllPlayers(spellId);
