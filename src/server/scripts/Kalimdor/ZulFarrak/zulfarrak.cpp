@@ -948,11 +948,104 @@ public:
     }
 };
 
+/*######
+## npc_zf_sandfury_wave (7787/7788/7789/8876/8877/7796)
+######*/
+
+class npc_zf_sandfury_wave : public CreatureScript
+{
+public:
+    npc_zf_sandfury_wave() : CreatureScript("npc_zf_sandfury_wave") { }
+
+    struct npc_zf_sandfury_waveAI : public ScriptedAI
+    {
+        npc_zf_sandfury_waveAI(Creature* creature) : ScriptedAI(creature) { }
+
+        uint32 _t1 = 0, _t2 = 0, _t3 = 0, _t4 = 0;
+
+        void Reset() override
+        {
+            switch (me->GetEntry())
+            {
+                case 7789:
+                    _t1 = urand(1000, 5000);
+                    _t2 = urand(8000, 12000);
+                    break;
+                case 8876:
+                    _t1 = urand(1000, 3000);
+                    _t2 = urand(11000, 13000);
+                    _t3 = urand(8000, 12000);
+                    _t4 = urand(22000, 32000);
+                    break;
+                case 7796:
+                    _t2 = urand(20000, 30000);
+                    _t3 = urand(12000, 16000);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        void JustEngagedWith(Unit* /*who*/) override
+        {
+            if (me->GetEntry() == 7796)
+                DoCastSelf(19471);
+        }
+
+        void EnterEvadeMode(EvadeReason why) override
+        {
+            me->SetHomePosition(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
+            ScriptedAI::EnterEvadeMode(why);
+            if (Unit* target = me->SelectNearestTarget(40.0f, false))
+                AttackStart(target);
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            if (!UpdateVictim())
+                return;
+
+            switch (me->GetEntry())
+            {
+                case 7789:
+                    if (_t1 <= diff) { DoCastSelf(20798); _t1 = 1200000; } else _t1 -= diff;
+                    if (_t2 <= diff) { DoCastVictim(14032); _t2 = urand(12000, 20000); } else _t2 -= diff;
+                    break;
+                case 8876:
+                    if (HealthBelowPct(15)) { DoFleeToGetAssistance(); break; }
+                    if (_t1 <= diff) { DoCastVictim(9613); _t1 = urand(3000, 4000); } else _t1 -= diff;
+                    if (_t2 <= diff) { DoCastVictim(11981); _t2 = urand(13000, 24000); } else _t2 -= diff;
+                    if (_t3 <= diff) { DoCastVictim(11639); _t3 = urand(12000, 20000); } else _t3 -= diff;
+                    if (_t4 <= diff) { DoCastVictim(11980); _t4 = urand(32000, 50000); } else _t4 -= diff;
+                    break;
+                case 8877:
+                    if (HealthBelowPct(30) && !me->HasAura(8599))
+                        DoCastSelf(8599);
+                    break;
+                case 7796:
+                    if (_t2 <= diff) { DoCastVictim(8600); _t2 = urand(30000, 60000); } else _t2 -= diff;
+                    if (_t3 <= diff) { DoCastVictim(26141); _t3 = urand(12000, 20000); } else _t3 -= diff;
+                    break;
+                default:
+                    break;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetZulFarrakAI<npc_zf_sandfury_waveAI>(creature);
+    }
+};
+
 void AddSC_zulfarrak()
 {
     new npc_sergeant_bly();
     new npc_weegli_blastfuse();
     new npc_shadowpriest_sezziz();
+    new npc_zf_sandfury_wave();
     new go_troll_cage();
     new go_shallow_grave();
 }
