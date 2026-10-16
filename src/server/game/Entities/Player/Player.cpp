@@ -15454,8 +15454,9 @@ void Player::ActivateSpec(uint8 spec)
         Aura* aura = *iter;
         if (!HasActiveSpell(aura->GetId()) && !HasTalent(aura->GetId(), GetActiveSpec()) && !aura->GetCastItemGUID())
         {
+            // Drop our registry entry first (see RemoveNotOwnSingleTargetAuras).
+            iter = scAuras.erase(iter);
             aura->Remove();
-            iter = scAuras.begin();
         }
         else
             ++iter;
