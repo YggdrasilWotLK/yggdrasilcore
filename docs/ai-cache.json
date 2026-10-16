@@ -217,9 +217,9 @@
   }
  },
  "Creature::RemoveFromWorld@2b9699e1:qwen3-5-4b": {
-  "hash": "f9cad23974b5",
-  "desc": "Removes the creature from the game world by unlinking it from spawn stores and object stores, and notifying its transport of removal. Side effects: The creature is removed from global tracking structures; if attached to a transport, the passenger relationship is terminated.",
-  "raw": "{\n  \"what\": \"Removes the creature from the game world by unlinking it from spawn stores and object stores, and notifying its transport of removal.\",\n  \"effects\": \"The creature is removed from global tracking structures; if attached to a transport, the passenger relationship is terminated.\"\n}",
+  "hash": "b15e3918d7be",
+  "desc": "Removes the creature from the world by first checking if it is currently in the world, then removing itself as a passenger from its associated transport. Side effects: The creature is removed from the world and unregistered as a passenger on its transport.",
+  "raw": "{\"what\": \"Removes the creature from the world by first checking if it is currently in the world, then removing itself as a passenger from its associated transport.\", \"effects\": \"The creature is removed from the world and unregistered as a passenger on its transport.\"}",
   "entry": {
    "class": "Creature",
    "name": "RemoveFromWorld",
@@ -231,8 +231,8 @@
     "file": "src/server/game/Entities/Creature/Creature.cpp",
     "line": 391
    },
-   "hash": "f9cad23974b5",
-   "desc": "Removes the creature from the game world by unlinking it from spawn stores and object stores, and notifying its transport of removal. Side effects: The creature is removed from global tracking structures; if attached to a transport, the passenger relationship is terminated.",
+   "hash": "b15e3918d7be",
+   "desc": "Removes the creature from the world by first checking if it is currently in the world, then removing itself as a passenger from its associated transport. Side effects: The creature is removed from the world and unregistered as a passenger on its transport.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -11455,9 +11455,9 @@
   }
  },
  "Pet::RemoveFromWorld@2b9699e1:qwen3-5-4b": {
-  "hash": "47d5e4fefdf7",
-  "desc": "Removes the pet from the world's accessor and its findable store by first checking if it is currently in the world, then acquiring a lock on the map's store mutex before removing the creature object with its GUID. Side effects: The pet is removed from the world and no longer accessible via the findable store; side effects include potential modification of the global object store state under lock protection.",
-  "raw": "{\"what\": \"Removes the pet from the world's accessor and its findable store by first checking if it is currently in the world, then acquiring a lock on the map's store mutex before removing the creature object with its GUID.\", \"effects\": \"The pet is removed from the world and no longer accessible via the findable store; side effects include potential modification of the global object store state under lock protection.\"}",
+  "hash": "e056b47e8b52",
+  "desc": "Removes the pet from its world accessor by checking if it is currently in the world before executing removal logic.",
+  "raw": "{\"what\": \"Removes the pet from its world accessor by checking if it is currently in the world before executing removal logic.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Pet",
    "name": "RemoveFromWorld",
@@ -11469,8 +11469,8 @@
     "file": "src/server/game/Entities/Pet/Pet.cpp",
     "line": 123
    },
-   "hash": "47d5e4fefdf7",
-   "desc": "Removes the pet from the world's accessor and its findable store by first checking if it is currently in the world, then acquiring a lock on the map's store mutex before removing the creature object with its GUID. Side effects: The pet is removed from the world and no longer accessible via the findable store; side effects include potential modification of the global object store state under lock protection.",
+   "hash": "e056b47e8b52",
+   "desc": "Removes the pet from its world accessor by checking if it is currently in the world before executing removal logic.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
