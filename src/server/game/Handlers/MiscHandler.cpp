@@ -1394,7 +1394,7 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
             Map* homeMap0 = sMapMgr->CreateMap(MAP_EASTERN_KINGDOMS, nullptr);
             ASSERT(homeMap0 && homeMap571);
 
-            std::map<Player*, Position> playerTeleport;
+            std::map<ObjectGuid, Position> playerTeleport;
             // handle here all players in the instance that are not in the group
             if (currMap)
             {
@@ -1412,13 +1412,15 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                                 _player->SendRaidDifficulty(group != nullptr);
                                 return;
                             }
-                            playerTeleport[p];
+                            playerTeleport[playerGuid];
                         }
                 }
             }
-            for (std::map<Player*, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
+            for (std::map<ObjectGuid, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
             {
-                Player* p = itr->first;
+                Player* p = ObjectAccessor::FindPlayer(itr->first);
+                if (!p || !p->IsInWorld())
+                    continue;
                 Map* oldMap = p->GetMap();
                 oldMap->RemovePlayerFromMap(p, false);
                 p->ResetMap();

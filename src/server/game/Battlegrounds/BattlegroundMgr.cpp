@@ -111,9 +111,10 @@ void BattlegroundMgr::Update(uint32 diff)
         for (auto& [_, bgData] : bgDataStore)
         {
             auto& bgList = bgData._Battlegrounds;
-            for (auto& pair : bgList)
-                if (pair.second)
-                    tickList.push_back(pair.second);
+            // first one is template and must not be ticked
+            for (auto itr = std::next(bgList.begin()); itr != bgList.end(); ++itr)
+                if (itr->second)
+                    tickList.push_back(itr->second);
         }
     }
 
