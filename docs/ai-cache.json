@@ -217,9 +217,9 @@
   }
  },
  "Creature::RemoveFromWorld@2b9699e1:qwen3-5-4b": {
-  "hash": "a4f67270ca03",
-  "desc": "Removes the creature from the game world by notifying relevant managers and scripts, handling zone removal, formation group removal, and passenger status in a transport.",
-  "raw": "{\"what\": \"Removes the creature from the game world by notifying relevant managers and scripts, handling zone removal, formation group removal, and passenger status in a transport.\", \"effects\": \"none\"}",
+  "hash": "f9cad23974b5",
+  "desc": "Removes the creature from the game world by unlinking it from spawn stores and object stores, and notifying its transport of removal. Side effects: The creature is removed from global tracking structures; if attached to a transport, the passenger relationship is terminated.",
+  "raw": "{\n  \"what\": \"Removes the creature from the game world by unlinking it from spawn stores and object stores, and notifying its transport of removal.\",\n  \"effects\": \"The creature is removed from global tracking structures; if attached to a transport, the passenger relationship is terminated.\"\n}",
   "entry": {
    "class": "Creature",
    "name": "RemoveFromWorld",
@@ -227,8 +227,12 @@
    "file": "src/server/game/Entities/Creature/Creature.h",
    "line": 53,
    "access": "public",
-   "hash": "a4f67270ca03",
-   "desc": "Removes the creature from the game world by notifying relevant managers and scripts, handling zone removal, formation group removal, and passenger status in a transport.",
+   "impl": {
+    "file": "src/server/game/Entities/Creature/Creature.cpp",
+    "line": 391
+   },
+   "hash": "f9cad23974b5",
+   "desc": "Removes the creature from the game world by unlinking it from spawn stores and object stores, and notifying its transport of removal. Side effects: The creature is removed from global tracking structures; if attached to a transport, the passenger relationship is terminated.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -4656,9 +4660,9 @@
   }
  },
  "DynamicObject::RemoveFromWorld@2b9699e1:qwen3-5-4b": {
-  "hash": "8a74bafa81a2",
-  "desc": "Removes the dynamic object from the world by unbinding it from casters, removing associated auras, and notifying any transport system that this object is no longer a passenger. Side effects: The object is removed from all world lists and accessors; if it was a viewpoint or had an aura, those are also removed. If it was a passenger in a transport, the transport is notified of its removal.",
-  "raw": "{\n  \"what\": \"Removes the dynamic object from the world by unbinding it from casters, removing associated auras, and notifying any transport system that this object is no longer a passenger.\",\n  \"effects\": \"The object is removed from all world lists and accessors; if it was a viewpoint or had an aura, those are also removed. If it was a passenger in a transport, the transport is notified of its removal.\"\n}",
+  "hash": "56ec08ab471d",
+  "desc": "Removes the dynamic object from the world by unbinding it from casters, removing associated auras and transport passengers, and deleting it from the global object store. Side effects: modifies world state",
+  "raw": "{\n  \"what\": \"Removes the dynamic object from the world by unbinding it from casters, removing associated auras and transport passengers, and deleting it from the global object store.\",\n  \"effects\": \"modifies world state\"\n}",
   "entry": {
    "class": "DynamicObject",
    "name": "RemoveFromWorld",
@@ -4666,8 +4670,12 @@
    "file": "src/server/game/Entities/DynamicObject/DynamicObject.h",
    "line": 41,
    "access": "public",
-   "hash": "8a74bafa81a2",
-   "desc": "Removes the dynamic object from the world by unbinding it from casters, removing associated auras, and notifying any transport system that this object is no longer a passenger. Side effects: The object is removed from all world lists and accessors; if it was a viewpoint or had an aura, those are also removed. If it was a passenger in a transport, the transport is notified of its removal.",
+   "impl": {
+    "file": "src/server/game/Entities/DynamicObject/DynamicObject.cpp",
+    "line": 72
+   },
+   "hash": "56ec08ab471d",
+   "desc": "Removes the dynamic object from the world by unbinding it from casters, removing associated auras and transport passengers, and deleting it from the global object store. Side effects: modifies world state",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -4950,9 +4958,9 @@
   }
  },
  "GameObject::RemoveFromWorld@2b9699e1:qwen3-5-4b": {
-  "hash": "f136d6db9379",
-  "desc": "Removes the game object from the world by unregistering it from accessors, notifying scripts and owners, removing associated models, detaching from transports, and deleting any linked traps.",
-  "raw": "{\"what\": \"Removes the game object from the world by unregistering it from accessors, notifying scripts and owners, removing associated models, detaching from transports, and deleting any linked traps.\", \"effects\": \"none\"}",
+  "hash": "095883e3e3fa",
+  "desc": "Removes the game object from the world by unlinking it from global stores, notifying scripts and owners, removing associated models, detaching from transport, and deleting any linked trap.",
+  "raw": "{\"what\": \"Removes the game object from the world by unlinking it from global stores, notifying scripts and owners, removing associated models, detaching from transport, and deleting any linked trap.\", \"effects\": \"none\"}",
   "entry": {
    "class": "GameObject",
    "name": "RemoveFromWorld",
@@ -4960,8 +4968,12 @@
    "file": "src/server/game/Entities/GameObject/GameObject.h",
    "line": 128,
    "access": "public",
-   "hash": "f136d6db9379",
-   "desc": "Removes the game object from the world by unregistering it from accessors, notifying scripts and owners, removing associated models, detaching from transports, and deleting any linked traps.",
+   "impl": {
+    "file": "src/server/game/Entities/GameObject/GameObject.cpp",
+    "line": 169
+   },
+   "hash": "095883e3e3fa",
+   "desc": "Removes the game object from the world by unlinking it from global stores, notifying scripts and owners, removing associated models, detaching from transport, and deleting any linked trap.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -11443,9 +11455,9 @@
   }
  },
  "Pet::RemoveFromWorld@2b9699e1:qwen3-5-4b": {
-  "hash": "e056b47e8b52",
-  "desc": "Removes the pet from its world accessor by checking if it is currently in the world before executing removal logic.",
-  "raw": "{\"what\": \"Removes the pet from its world accessor by checking if it is currently in the world before executing removal logic.\", \"effects\": \"none\"}",
+  "hash": "47d5e4fefdf7",
+  "desc": "Removes the pet from the world's accessor and its findable store by first checking if it is currently in the world, then acquiring a lock on the map's store mutex before removing the creature object with its GUID. Side effects: The pet is removed from the world and no longer accessible via the findable store; side effects include potential modification of the global object store state under lock protection.",
+  "raw": "{\"what\": \"Removes the pet from the world's accessor and its findable store by first checking if it is currently in the world, then acquiring a lock on the map's store mutex before removing the creature object with its GUID.\", \"effects\": \"The pet is removed from the world and no longer accessible via the findable store; side effects include potential modification of the global object store state under lock protection.\"}",
   "entry": {
    "class": "Pet",
    "name": "RemoveFromWorld",
@@ -11455,10 +11467,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Pet/Pet.cpp",
-    "line": 122
+    "line": 123
    },
-   "hash": "e056b47e8b52",
-   "desc": "Removes the pet from its world accessor by checking if it is currently in the world before executing removal logic.",
+   "hash": "47d5e4fefdf7",
+   "desc": "Removes the pet from the world's accessor and its findable store by first checking if it is currently in the world, then acquiring a lock on the map's store mutex before removing the creature object with its GUID. Side effects: The pet is removed from the world and no longer accessible via the findable store; side effects include potential modification of the global object store state under lock protection.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -18136,9 +18148,9 @@
   }
  },
  "Player::GroupEventHappens@2a0f6775:qwen3-5-4b": {
-  "hash": "fbc7b53c9f4c",
-  "desc": "Triggers an event for the current group's members or the player individually if no group exists, specifically when a quest is associated with a world object.",
-  "raw": "{\"what\": \"Triggers an event for the current group's members or the player individually if no group exists, specifically when a quest is associated with a world object.\", \"effects\": \"none\"}",
+  "hash": "a17e8a0f62e7",
+  "desc": "Triggers a group event for the specified quest ID by iterating through all members of the player's current group, checking if they are within the reward distance and alive, then calling the area exploration or event handler on each valid member; if no group exists, it triggers the event directly.",
+  "raw": "{\"what\": \"Triggers a group event for the specified quest ID by iterating through all members of the player's current group, checking if they are within the reward distance and alive, then calling the area exploration or event handler on each valid member; if no group exists, it triggers the event directly.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Player",
    "name": "GroupEventHappens",
@@ -18150,8 +18162,8 @@
     "file": "src/server/game/Entities/Player/PlayerQuest.cpp",
     "line": 1818
    },
-   "hash": "fbc7b53c9f4c",
-   "desc": "Triggers an event for the current group's members or the player individually if no group exists, specifically when a quest is associated with a world object.",
+   "hash": "a17e8a0f62e7",
+   "desc": "Triggers a group event for the specified quest ID by iterating through all members of the player's current group, checking if they are within the reward distance and alive, then calling the area exploration or event handler on each valid member; if no group exists, it triggers the event directly.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -24766,9 +24778,9 @@
   }
  },
  "Player::RewardPlayerAndGroupAtEvent@37f02afd:qwen3-5-4b": {
-  "hash": "3647e2c5e267",
-  "desc": "This method awards rewards to the calling player and their group members at an event by iterating through the group's members, checking if they are within the required reward distance, and crediting them for the monster kill based on whether they are alive or have an unreleased corpse. Side effects: Updates quest objectives for group members (alive or with unreleased corpses) and credits the calling player; no side effects beyond these updates.",
-  "raw": "{\"what\": \"This method awards rewards to the calling player and their group members at an event by iterating through the group's members, checking if they are within the required reward distance, and crediting them for the monster kill based on whether they are alive or have an unreleased corpse.\", \"effects\": \"Updates quest objectives for group members (alive or with unreleased corpses) and credits the calling player; no side effects beyond these updates.\"}",
+  "hash": "6ad99e660f94",
+  "desc": "The method rewards the calling player and their group members with a specific item or credit associated with a creature ID, provided they are within the required distance. Side effects: Updates quest objectives for alive group members or dead members with unreleased corpses; applies credit to the caller if no group exists.",
+  "raw": "{\"what\": \"The method rewards the calling player and their group members with a specific item or credit associated with a creature ID, provided they are within the required distance.\", \"effects\": \"Updates quest objectives for alive group members or dead members with unreleased corpses; applies credit to the caller if no group exists.\"}",
   "entry": {
    "class": "Player",
    "name": "RewardPlayerAndGroupAtEvent",
@@ -24778,10 +24790,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/Player.cpp",
-    "line": 12816
+    "line": 12842
    },
-   "hash": "3647e2c5e267",
-   "desc": "This method awards rewards to the calling player and their group members at an event by iterating through the group's members, checking if they are within the required reward distance, and crediting them for the monster kill based on whether they are alive or have an unreleased corpse. Side effects: Updates quest objectives for group members (alive or with unreleased corpses) and credits the calling player; no side effects beyond these updates.",
+   "hash": "6ad99e660f94",
+   "desc": "The method rewards the calling player and their group members with a specific item or credit associated with a creature ID, provided they are within the required distance. Side effects: Updates quest objectives for alive group members or dead members with unreleased corpses; applies credit to the caller if no group exists.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -24808,9 +24820,9 @@
   }
  },
  "Player::GetsRecruitAFriendBonus@59f70127:qwen3-5-4b": {
-  "hash": "26fa3441c8b3",
-  "desc": "Checks if the player has a Recruit A Friend (RAF) bonus available by iterating through their group members to find another player who is in the same map, within the required distance, and meets specific level-based criteria (either both are at or below the max level, or they are mutual recruiters).",
-  "raw": "{\"what\": \"Checks if the player has a Recruit A Friend (RAF) bonus available by iterating through their group members to find another player who is in the same map, within the required distance, and meets specific level-based criteria (either both are at or below the max level, or they are mutual recruiters).\", \"effects\": \"none\"}",
+  "hash": "b1b8098ad2c9",
+  "desc": "Checks if the player has a Recruit A Friend bonus available by iterating through their group members to verify proximity, level constraints, and recruiter relationships.",
+  "raw": "{\"what\": \"Checks if the player has a Recruit A Friend bonus available by iterating through their group members to verify proximity, level constraints, and recruiter relationships.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Player",
    "name": "GetsRecruitAFriendBonus",
@@ -24820,10 +24832,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/Player.cpp",
-    "line": 12770
+    "line": 12792
    },
-   "hash": "26fa3441c8b3",
-   "desc": "Checks if the player has a Recruit A Friend (RAF) bonus available by iterating through their group members to find another player who is in the same map, within the required distance, and meets specific level-based criteria (either both are at or below the max level, or they are mutual recruiters).",
+   "hash": "b1b8098ad2c9",
+   "desc": "Checks if the player has a Recruit A Friend bonus available by iterating through their group members to verify proximity, level constraints, and recruiter relationships.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -27412,9 +27424,9 @@
   }
  },
  "Player::SetGroupInvite@1579b6b1:qwen3-5-4b": {
-  "hash": "4c3a86209cd1",
-  "desc": "Assigns the provided Group pointer to the member variable m_groupInvite",
-  "raw": "{\"what\": \"Assigns the provided Group pointer to the member variable m_groupInvite\", \"effects\": \"none\"}",
+  "hash": "7483e21aafea",
+  "desc": "Sets the group invite for the player to the specified group",
+  "raw": "{\"what\": \"Sets the group invite for the player to the specified group\", \"effects\": \"none\"}",
   "entry": {
    "class": "Player",
    "name": "SetGroupInvite",
@@ -27422,9 +27434,12 @@
    "file": "src/server/game/Entities/Player/Player.h",
    "line": 2463,
    "access": "public",
-   "impl": null,
-   "hash": "4c3a86209cd1",
-   "desc": "Assigns the provided Group pointer to the member variable m_groupInvite",
+   "impl": {
+    "file": "src/server/game/Entities/Player/Player.cpp",
+    "line": 11616
+   },
+   "hash": "7483e21aafea",
+   "desc": "Sets the group invite for the player to the specified group",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -27466,22 +27481,22 @@
   }
  },
  "Player::SetGroup@dd515b7c:qwen3-5-4b": {
-  "hash": "2fb1c050c4f7",
-  "desc": "Sets the group and subgroup for the current object by linking it to a specified group (or unlinking if no group is provided), ensuring the subgroup is non-negative, and then updates object visibility. Side effects: The object's group membership changes; object visibility is updated.",
-  "raw": "{\"what\": \"Sets the group and subgroup for the current object by linking it to a specified group (or unlinking if no group is provided), ensuring the subgroup is non-negative, and then updates object visibility.\", \"effects\": \"The object's group membership changes; object visibility is updated.\"}",
+  "hash": "56940f058d7f",
+  "desc": "Assigns the player to a specific group and optionally sets their subgroup within that group, updating visibility accordingly. Side effects: Updates the player's group membership and subgroup; calls UpdateObjectVisibility with false.",
+  "raw": "{\"what\": \"Assigns the player to a specific group and optionally sets their subgroup within that group, updating visibility accordingly.\", \"effects\": \"Updates the player's group membership and subgroup; calls UpdateObjectVisibility with false.\"}",
   "entry": {
    "class": "Player",
    "name": "SetGroup",
    "sig": "void SetGroup(Group* group, int8 subgroup = -1)",
    "file": "src/server/game/Entities/Player/Player.h",
-   "line": 2467,
+   "line": 2468,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/Player.cpp",
-    "line": 11608
+    "line": 11622
    },
-   "hash": "2fb1c050c4f7",
-   "desc": "Sets the group and subgroup for the current object by linking it to a specified group (or unlinking if no group is provided), ensuring the subgroup is non-negative, and then updates object visibility. Side effects: The object's group membership changes; object visibility is updated.",
+   "hash": "56940f058d7f",
+   "desc": "Assigns the player to a specific group and optionally sets their subgroup within that group, updating visibility accordingly. Side effects: Updates the player's group membership and subgroup; calls UpdateObjectVisibility with false.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -27523,7 +27538,7 @@
   }
  },
  "Player::GetNextRandomRaidMember@5961b9c1:qwen3-5-4b": {
-  "hash": "582b8c0a6d86",
+  "hash": "8acdb0bd3480",
   "desc": "Retrieves a random player from the current group who is within the specified radius, not invisible, and not hostile to the caller.",
   "raw": "{\"what\": \"Retrieves a random player from the current group who is within the specified radius, not invisible, and not hostile to the caller.\", \"effects\": \"none\"}",
   "entry": {
@@ -27531,13 +27546,13 @@
    "name": "GetNextRandomRaidMember",
    "sig": "Player* GetNextRandomRaidMember(float radius)",
    "file": "src/server/game/Entities/Player/Player.h",
-   "line": 2473,
+   "line": 2474,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/Player.cpp",
-    "line": 13066
+    "line": 13093
    },
-   "hash": "582b8c0a6d86",
+   "hash": "8acdb0bd3480",
    "desc": "Retrieves a random player from the current group who is within the specified radius, not invisible, and not hostile to the caller.",
    "ai": true,
    "model": "qwen3.5:4b"
@@ -27700,22 +27715,22 @@
   }
  },
  "Player::ResetMap@5de366c6:qwen3-5-4b": {
-  "hash": "a9fea4944166",
-  "desc": "Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after element removal.",
-  "raw": "{\n  \"what\": \"Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after element removal.\",\n  \"effects\": \"none\"\n}",
+  "hash": "ffdeddf59126",
+  "desc": "Retrieves the current map instance associated with the player.",
+  "raw": "{\"what\": \"Retrieves the current map instance associated with the player.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Player",
    "name": "ResetMap",
    "sig": "void ResetMap()",
    "file": "src/server/game/Entities/Player/Player.h",
-   "line": 2491,
+   "line": 2492,
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Player/Player.cpp",
-    "line": 14824
+    "line": 14850
    },
-   "hash": "a9fea4944166",
-   "desc": "Updates the iterator back reference for the current player object within the map's reference manager to ensure correct iteration behavior after element removal.",
+   "hash": "ffdeddf59126",
+   "desc": "Retrieves the current map instance associated with the player.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -29821,9 +29836,9 @@
   }
  },
  "SocialMgr::BroadcastToFriendListers@6988e54a:qwen3-5-4b": {
-  "hash": "fe09e8e64a85",
-  "desc": "Iterates through the social map to find all players marked as friends with the input player, then sends the provided packet to those friends if they meet visibility and permission criteria (excluding high-security accounts unless the friend is on the same team or two-side who list is enabled).",
-  "raw": "{\"what\": \"Iterates through the social map to find all players marked as friends with the input player, then sends the provided packet to those friends if they meet visibility and permission criteria (excluding high-security accounts unless the friend is on the same team or two-side who list is enabled).\", \"effects\": \"None\"}",
+  "hash": "69c06b4cdd38",
+  "desc": "Retrieves the list of friends for a specific player and broadcasts a packet to them, applying visibility rules based on team affiliation, security levels (GM/Admin vs Player), and world configuration settings.",
+  "raw": "{\"what\": \"Retrieves the list of friends for a specific player and broadcasts a packet to them, applying visibility rules based on team affiliation, security levels (GM/Admin vs Player), and world configuration settings.\", \"effects\": \"None\"}",
   "entry": {
    "class": "SocialMgr",
    "name": "BroadcastToFriendListers",
@@ -29835,8 +29850,8 @@
     "file": "src/server/game/Entities/Player/SocialMgr.cpp",
     "line": 317
    },
-   "hash": "fe09e8e64a85",
-   "desc": "Iterates through the social map to find all players marked as friends with the input player, then sends the provided packet to those friends if they meet visibility and permission criteria (excluding high-security accounts unless the friend is on the same team or two-side who list is enabled).",
+   "hash": "69c06b4cdd38",
+   "desc": "Retrieves the list of friends for a specific player and broadcasts a packet to them, applying visibility rules based on team affiliation, security levels (GM/Admin vs Player), and world configuration settings.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -29926,9 +29941,9 @@
   }
  },
  "Totem::UnSummon@25b58286:qwen3-5-4b": {
-  "hash": "0823880a95e6",
-  "desc": "Schedules a forced unsummon event at the specified time offset, or immediately cancels the totem by stopping combat, removing associated auras, clearing the owner's summon slot, and notifying the player of the cancellation.",
-  "raw": "{\"what\": \"Schedules a forced unsummon event at the specified time offset, or immediately cancels the totem by stopping combat, removing associated auras, clearing the owner's summon slot, and notifying the player of the cancellation.\", \"effects\": \"none\"}",
+  "hash": "c4d25886f417",
+  "desc": "Schedules a forced unsummon event at the specified time offset or immediately terminates the totem's existence by removing associated auras, clearing the owner's summon slot, and notifying related party members. Side effects: Removes auras from the totem and its owner, clears the owner's summon slot, cancels auto-repeat for the owner, resets cooldowns for spells that created the totem, and begins processing notifications for group members.",
+  "raw": "{\"what\": \"Schedules a forced unsummon event at the specified time offset or immediately terminates the totem's existence by removing associated auras, clearing the owner's summon slot, and notifying related party members.\", \"effects\": \"Removes auras from the totem and its owner, clears the owner's summon slot, cancels auto-repeat for the owner, resets cooldowns for spells that created the totem, and begins processing notifications for group members.\"}",
   "entry": {
    "class": "Totem",
    "name": "UnSummon",
@@ -29940,8 +29955,8 @@
     "file": "src/server/game/Entities/Totem/Totem.cpp",
     "line": 122
    },
-   "hash": "0823880a95e6",
-   "desc": "Schedules a forced unsummon event at the specified time offset, or immediately cancels the totem by stopping combat, removing associated auras, clearing the owner's summon slot, and notifying the player of the cancellation.",
+   "hash": "c4d25886f417",
+   "desc": "Schedules a forced unsummon event at the specified time offset or immediately terminates the totem's existence by removing associated auras, clearing the owner's summon slot, and notifying related party members. Side effects: Removes auras from the totem and its owner, clears the owner's summon slot, cancels auto-repeat for the owner, resets cooldowns for spells that created the totem, and begins processing notifications for group members.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -30370,9 +30385,9 @@
   }
  },
  "MotionTransport::BuildUpdate@0f98f3eb:qwen3-5-4b": {
-  "hash": "37de54c2a482",
-  "desc": "Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask. Side effects: modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)",
-  "raw": "{\n  \"what\": \"Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask.\",\n  \"effects\": \"modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)\"\n}",
+  "hash": "359fd67eb62b",
+  "desc": "Gathers the GUIDs of all players currently on the map, filters them to ensure they are in the world and on the same map as the current context, then builds an update for each valid player before clearing the update mask. Side effects: modifies data_map by adding fields updates for qualifying players; clears the internal update mask",
+  "raw": "{\n  \"what\": \"Gathers the GUIDs of all players currently on the map, filters them to ensure they are in the world and on the same map as the current context, then builds an update for each valid player before clearing the update mask.\",\n  \"effects\": \"modifies data_map by adding fields updates for qualifying players; clears the internal update mask\"\n}",
   "entry": {
    "class": "MotionTransport",
    "name": "BuildUpdate",
@@ -30384,8 +30399,8 @@
     "file": "src/server/game/Entities/Transport/Transport.cpp",
     "line": 134
    },
-   "hash": "37de54c2a482",
-   "desc": "Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask. Side effects: modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)",
+   "hash": "359fd67eb62b",
+   "desc": "Gathers the GUIDs of all players currently on the map, filters them to ensure they are in the world and on the same map as the current context, then builds an update for each valid player before clearing the update mask. Side effects: modifies data_map by adding fields updates for qualifying players; clears the internal update mask",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -30829,9 +30844,9 @@
   }
  },
  "StaticTransport::BuildUpdate@0f98f3eb:qwen3-5-4b": {
-  "hash": "365df9fd509d",
-  "desc": "Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask. Side effects: modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)",
-  "raw": "{\n  \"what\": \"Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask.\",\n  \"effects\": \"modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)\"\n}",
+  "hash": "36e994e027de",
+  "desc": "Gathers the GUIDs of all players currently on the map, filters them to ensure they are in the world and on the same map as the class instance, then builds an update for each valid player before clearing the update mask. Side effects: modifies data_map by adding field updates for qualifying players; clears the internal update mask",
+  "raw": "{\n  \"what\": \"Gathers the GUIDs of all players currently on the map, filters them to ensure they are in the world and on the same map as the class instance, then builds an update for each valid player before clearing the update mask.\",\n  \"effects\": \"modifies data_map by adding field updates for qualifying players; clears the internal update mask\"\n}",
   "entry": {
    "class": "StaticTransport",
    "name": "BuildUpdate",
@@ -30841,10 +30856,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Transport/Transport.cpp",
-    "line": 878
+    "line": 886
    },
-   "hash": "365df9fd509d",
-   "desc": "Gathers the GUIDs of all players on the current map, retrieves their full field updates via BuildFieldsUpdate, and clears the update mask. Side effects: modifies data_map by populating it with player field updates; calls ClearUpdateMask(true)",
+   "hash": "36e994e027de",
+   "desc": "Gathers the GUIDs of all players currently on the map, filters them to ensure they are in the world and on the same map as the class instance, then builds an update for each valid player before clearing the update mask. Side effects: modifies data_map by adding field updates for qualifying players; clears the internal update mask",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -30913,9 +30928,9 @@
   }
  },
  "StaticTransport::UpdatePassengerPositions@754d60bc:qwen3-5-4b": {
-  "hash": "42be036d6fa1",
-  "desc": "Updates the in-world positions of all passengers belonging to a static transport vehicle by retrieving their coordinates from the transport's movement info and relocating them on the game map.",
-  "raw": "{\n  \"what\": \"Updates the in-world positions of all passengers belonging to a static transport vehicle by retrieving their coordinates from the transport's movement info and relocating them on the game map.\",\n  \"effects\": \"none\"\n}",
+  "hash": "e2aeee1bbca3",
+  "desc": "Updates the in-world positions of all passengers on a transport vehicle by retrieving their coordinates from the transport's movement info and relocating them to the map.",
+  "raw": "{\"what\": \"Updates the in-world positions of all passengers on a transport vehicle by retrieving their coordinates from the transport's movement info and relocating them to the map.\", \"effects\": \"none\"}",
   "entry": {
    "class": "StaticTransport",
    "name": "UpdatePassengerPositions",
@@ -30925,10 +30940,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Transport/Transport.cpp",
-    "line": 990
+    "line": 1021
    },
-   "hash": "42be036d6fa1",
-   "desc": "Updates the in-world positions of all passengers belonging to a static transport vehicle by retrieving their coordinates from the transport's movement info and relocating them on the game map.",
+   "hash": "e2aeee1bbca3",
+   "desc": "Updates the in-world positions of all passengers on a transport vehicle by retrieving their coordinates from the transport's movement info and relocating them to the map.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -33151,9 +33166,9 @@
   }
  },
  "Unit::AttackStop@c3715288:qwen3-5-4b": {
-  "hash": "dd06fb8c4584",
-  "desc": "Stops the unit's current melee attack by removing itself as the attacker, clearing its target, resetting combat states, interrupting any active spells, and notifying the victim of the stop. Side effects: Removes the unit from the attacker list, clears the target, resets melee attacking state, interrupts current spell, updates assistance flags for creatures, and sends a stop notification to the victim.",
-  "raw": "{\"what\": \"Stops the unit's current melee attack by removing itself as the attacker, clearing its target, resetting combat states, interrupting any active spells, and notifying the victim of the stop.\", \"effects\": \"Removes the unit from the attacker list, clears the target, resets melee attacking state, interrupts current spell, updates assistance flags for creatures, and sends a stop notification to the victim.\"}",
+  "hash": "6041fe1abf5e",
+  "desc": "Stops the unit's melee attack by removing itself as the attacker, clearing its target state, interrupting any active spell, and notifying the victim of the stop.",
+  "raw": "{\"what\": \"Stops the unit's melee attack by removing itself as the attacker, clearing its target state, interrupting any active spell, and notifying the victim of the stop.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Unit",
    "name": "AttackStop",
@@ -33165,8 +33180,8 @@
     "file": "src/server/game/Entities/Unit/Unit.cpp",
     "line": 10483
    },
-   "hash": "dd06fb8c4584",
-   "desc": "Stops the unit's current melee attack by removing itself as the attacker, clearing its target, resetting combat states, interrupting any active spells, and notifying the victim of the stop. Side effects: Removes the unit from the attacker list, clears the target, resets melee attacking state, interrupts current spell, updates assistance flags for creatures, and sends a stop notification to the victim.",
+   "hash": "6041fe1abf5e",
+   "desc": "Stops the unit's melee attack by removing itself as the attacker, clearing its target state, interrupting any active spell, and notifying the victim of the stop.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -39811,9 +39826,9 @@
   }
  },
  "Unit::GetPartyMembers@841e7c46:qwen3-5-4b": {
-  "hash": "c79d4ccd22fc",
-  "desc": "Populates the provided list with all living units belonging to the owner's party, including the owner themselves and their guardian pets, while excluding hostile targets. Side effects: modifies the input list by adding matching Unit pointers",
-  "raw": "{\"what\": \"Populates the provided list with all living units belonging to the owner's party, including the owner themselves and their guardian pets, while excluding hostile targets.\", \"effects\": \"modifies the input list by adding matching Unit pointers\"}",
+  "hash": "c8e0f3734812",
+  "desc": "Retrieves a list of party members by iterating through the group's member GUIDs, filtering for alive players in the same subgroup who are not hostile to the owner, and including their guardian pets. If no group exists or the owner is not in a group, it adds the owner (if alive) and their controlled units to the list. Side effects: Modifies the input parameter 'TagUnitMap' by appending pointers to matching players and their guardian pets.",
+  "raw": "{\"what\": \"Retrieves a list of party members by iterating through the group's member GUIDs, filtering for alive players in the same subgroup who are not hostile to the owner, and including their guardian pets. If no group exists or the owner is not in a group, it adds the owner (if alive) and their controlled units to the list.\", \"effects\": \"Modifies the input parameter 'TagUnitMap' by appending pointers to matching players and their guardian pets.\"}",
   "entry": {
    "class": "Unit",
    "name": "GetPartyMembers",
@@ -39823,18 +39838,18 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Unit/Unit.cpp",
-    "line": 18862
+    "line": 18880
    },
-   "hash": "c79d4ccd22fc",
-   "desc": "Populates the provided list with all living units belonging to the owner's party, including the owner themselves and their guardian pets, while excluding hostile targets. Side effects: modifies the input list by adding matching Unit pointers",
+   "hash": "c8e0f3734812",
+   "desc": "Retrieves a list of party members by iterating through the group's member GUIDs, filtering for alive players in the same subgroup who are not hostile to the owner, and including their guardian pets. If no group exists or the owner is not in a group, it adds the owner (if alive) and their controlled units to the list. Side effects: Modifies the input parameter 'TagUnitMap' by appending pointers to matching players and their guardian pets.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
  },
  "Unit::GetNextRandomRaidMemberOrPet@610251b9:qwen3-5-4b": {
-  "hash": "3c107a3b7267",
-  "desc": "Retrieves the next random raid member or pet within a specified radius, handling cases where the unit is a player, a pet with an owner, or part of a group.",
-  "raw": "{\"what\": \"Retrieves the next random raid member or pet within a specified radius, handling cases where the unit is a player, a pet with an owner, or part of a group.\", \"effects\": \"None\"}",
+  "hash": "216521f9270c",
+  "desc": "Retrieves a random raid member or pet within a specified radius from the calling unit.",
+  "raw": "{\"what\": \"Retrieves a random raid member or pet within a specified radius from the calling unit.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Unit",
    "name": "GetNextRandomRaidMemberOrPet",
@@ -39844,10 +39859,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Unit/Unit.cpp",
-    "line": 11194
+    "line": 11196
    },
-   "hash": "3c107a3b7267",
-   "desc": "Retrieves the next random raid member or pet within a specified radius, handling cases where the unit is a player, a pet with an owner, or part of a group.",
+   "hash": "216521f9270c",
+   "desc": "Retrieves a random raid member or pet within a specified radius from the calling unit.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -42658,9 +42673,9 @@
   }
  },
  "Vehicle::GetSeatAddonForSeatOfPassenger@5b41b880:qwen3-5-4b": {
-  "hash": "95d40acf68a9",
-  "desc": "Iterates through the vehicle's seat map to find and return the seat addon associated with the specified passenger.",
-  "raw": "{\n  \"what\": \"Iterates through the vehicle's seat map to find and return the seat addon associated with the specified passenger.\",\n  \"effects\": \"none\"\n}",
+  "hash": "d7a9c87e13bf",
+  "desc": "Retrieves the seat addon associated with the seat currently occupied by a specific passenger in the vehicle.",
+  "raw": "{\n  \"what\": \"Retrieves the seat addon associated with the seat currently occupied by a specific passenger in the vehicle.\",\n  \"effects\": \"none\"\n}",
   "entry": {
    "class": "Vehicle",
    "name": "GetSeatAddonForSeatOfPassenger",
@@ -42672,8 +42687,8 @@
     "file": "src/server/game/Entities/Vehicle/Vehicle.cpp",
     "line": 242
    },
-   "hash": "95d40acf68a9",
-   "desc": "Iterates through the vehicle's seat map to find and return the seat addon associated with the specified passenger.",
+   "hash": "d7a9c87e13bf",
+   "desc": "Retrieves the seat addon associated with the seat currently occupied by a specific passenger in the vehicle.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -42700,9 +42715,9 @@
   }
  },
  "Vehicle::AddPassenger@7c42aaac:qwen3-5-4b": {
-  "hash": "13da9a22bcc2",
-  "desc": "Attempts to add a passenger unit to the vehicle, checking for uninstalling status and seat availability or specific seat requirements.",
-  "raw": "{\"what\": \"Attempts to add a passenger unit to the vehicle, checking for uninstalling status and seat availability or specific seat requirements.\", \"effects\": \"none\"}",
+  "hash": "d600976da7c9",
+  "desc": "Attempts to add a passenger unit to the vehicle, validating the unit's existence and the vehicle's status before searching for an available seat based on the provided seat ID or defaulting to finding any empty usable seat.",
+  "raw": "{\"what\": \"Attempts to add a passenger unit to the vehicle, validating the unit's existence and the vehicle's status before searching for an available seat based on the provided seat ID or defaulting to finding any empty usable seat.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Vehicle",
    "name": "AddPassenger",
@@ -42712,10 +42727,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Vehicle/Vehicle.cpp",
-    "line": 389
+    "line": 392
    },
-   "hash": "13da9a22bcc2",
-   "desc": "Attempts to add a passenger unit to the vehicle, checking for uninstalling status and seat availability or specific seat requirements.",
+   "hash": "d600976da7c9",
+   "desc": "Attempts to add a passenger unit to the vehicle, validating the unit's existence and the vehicle's status before searching for an available seat based on the provided seat ID or defaulting to finding any empty usable seat.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
@@ -42739,9 +42754,9 @@
   }
  },
  "Vehicle::RemovePassenger@99e6235d:qwen3-5-4b": {
-  "hash": "a817986da104",
-  "desc": "Removes a passenger from the vehicle by resetting their seat data, updating NPC flags if applicable, and handling specific movement or charm removal conditions.",
-  "raw": "{\"what\": \"Removes a passenger from the vehicle by resetting their seat data, updating NPC flags if applicable, and handling specific movement or charm removal conditions.\", \"effects\": \"none\"}",
+  "hash": "4fba15310df6",
+  "desc": "Removes a passenger from the vehicle by resetting their seat data, updating NPC flags, removing specific unit flags, and handling charm status if applicable.",
+  "raw": "{\"what\": \"Removes a passenger from the vehicle by resetting their seat data, updating NPC flags, removing specific unit flags, and handling charm status if applicable.\", \"effects\": \"none\"}",
   "entry": {
    "class": "Vehicle",
    "name": "RemovePassenger",
@@ -42751,10 +42766,10 @@
    "access": "public",
    "impl": {
     "file": "src/server/game/Entities/Vehicle/Vehicle.cpp",
-    "line": 598
+    "line": 604
    },
-   "hash": "a817986da104",
-   "desc": "Removes a passenger from the vehicle by resetting their seat data, updating NPC flags if applicable, and handling specific movement or charm removal conditions.",
+   "hash": "4fba15310df6",
+   "desc": "Removes a passenger from the vehicle by resetting their seat data, updating NPC flags, removing specific unit flags, and handling charm status if applicable.",
    "ai": true,
    "model": "qwen3.5:4b"
   }
