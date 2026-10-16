@@ -1944,6 +1944,23 @@ uint32 Map::GetPlayersCountExceptGMs() const
     return count;
 }
 
+uint32 Map::GetPlayerCountLocked() const
+{
+    std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+    return m_mapRefMgr.getSize();
+}
+
+std::vector<ObjectGuid> Map::CopyPlayerGuids() const
+{
+    std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_mapRefMgr.getSize());
+    for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+        if (Player* listed = itr->GetSource())
+            guids.push_back(listed->GetGUID());
+    return guids;
+}
+
 void Map::SendToPlayers(WorldPacket const* data) const
 {
     std::vector<ObjectGuid> guids;
