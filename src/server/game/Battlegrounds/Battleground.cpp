@@ -374,7 +374,7 @@ void Battleground::Update(uint32 diff)
     // and self-locking; tick-level fields are atomic.
     // pussywizard:
     m_UpdateTimer += diff;
-    if (m_UpdateTimer < BATTLEGROUND_UPDATE_INTERVAL)
+    if (m_UpdateTimer.load() < BATTLEGROUND_UPDATE_INTERVAL)
         return;
 
     diff = BATTLEGROUND_UPDATE_INTERVAL; // just change diff value, no need to replace variable name in many places
@@ -456,7 +456,7 @@ inline void Battleground::_CheckSafePositions(uint32 diff)
         std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         m_ValidStartPositionTimer += diff;
 
-        if (m_ValidStartPositionTimer < CHECK_PLAYER_POSITION_INVERVAL)
+        if (m_ValidStartPositionTimer.load() < CHECK_PLAYER_POSITION_INVERVAL)
             return;
 
         m_ValidStartPositionTimer = 0;
@@ -495,7 +495,7 @@ inline void Battleground::_ProcessResurrect(uint32 diff)
         _reviveEvents.Update(diff);
 
         m_LastResurrectTime += diff;
-        if (m_LastResurrectTime >= RESURRECTION_INTERVAL)
+        if (m_LastResurrectTime.load() >= RESURRECTION_INTERVAL)
         {
             if (GetReviveQueueSize())
             {
@@ -507,7 +507,7 @@ inline void Battleground::_ProcessResurrect(uint32 diff)
                 // queue is clear and time passed, just update last resurrection time
                 m_LastResurrectTime = 0;
         }
-        else if (m_LastResurrectTime > 500)    // Resurrect players only half a second later, to see spirit heal effect on NPC
+        else if (m_LastResurrectTime.load() > 500)    // Resurrect players only half a second later, to see spirit heal effect on NPC
         {
             resurrectSnapshot = m_ResurrectQueue;
             m_ResurrectQueue.clear();
@@ -576,7 +576,7 @@ inline void Battleground::_ProcessProgress(uint32 diff)
         m_PrematureCountDown = true;
         m_PrematureCountDownTimer = sBattlegroundMgr->GetPrematureFinishTime();
     }
-    else if (m_PrematureCountDownTimer < diff)
+    else if (m_PrematureCountDownTimer.load() < diff)
     {
         // time's up!
         EndBattleground(GetPrematureWinner());
@@ -584,14 +584,14 @@ inline void Battleground::_ProcessProgress(uint32 diff)
     }
     else if (!sBattlegroundMgr->isTesting())
     {
-        uint32 newtime = m_PrematureCountDownTimer - diff;
+        uint32 newtime = m_PrematureCountDownTimer.load() - diff;
         // announce every minute
         if (newtime > (MINUTE * IN_MILLISECONDS))
         {
             if (newtime / (MINUTE * IN_MILLISECONDS) != m_PrematureCountDownTimer / (MINUTE * IN_MILLISECONDS))
                 GetBgMap()->DoForAllPlayers([&](Player* player)
                     {
-                        ChatHandler(player->GetSession()).PSendSysMessage(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING, (uint32)(m_PrematureCountDownTimer / (MINUTE * IN_MILLISECONDS)));
+                        ChatHandler(player->GetSession()).PSendSysMessage(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING, (uint32)(m_PrematureCountDownTimer.load() / (MINUTE * IN_MILLISECONDS)));
                     });
         }
         else
@@ -600,7 +600,7 @@ inline void Battleground::_ProcessProgress(uint32 diff)
             if (newtime / (15 * IN_MILLISECONDS) != m_PrematureCountDownTimer / (15 * IN_MILLISECONDS))
                 GetBgMap()->DoForAllPlayers([&](Player* player)
                     {
-                        ChatHandler(player->GetSession()).PSendSysMessage(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING_SECS, (uint32)(m_PrematureCountDownTimer / IN_MILLISECONDS));
+                        ChatHandler(player->GetSession()).PSendSysMessage(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING_SECS, (uint32)(m_PrematureCountDownTimer.load() / IN_MILLISECONDS));
                     });
         }
         m_PrematureCountDownTimer = newtime;
@@ -615,7 +615,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
     // *********************************************************
     ModifyStartDelayTime(diff);
 
-    if (m_ResetStatTimer > 5000)
+    if (m_ResetStatTimer.load() > 5000)
     {
         m_ResetStatTimer = 0;
         std::vector<ObjectGuid> guids = GetPlayerGUIDs();
@@ -683,7 +683,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
     }
 
     // First announcement at 120s or 60s (Depending on BG or Arena and configured time)
-    if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_FIRST] && !(m_Events & BG_STARTING_EVENT_1))
+    if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_FIRST] && !(m_Events.load() & BG_STARTING_EVENT_1))
     {
         m_Events |= BG_STARTING_EVENT_1;
 
@@ -691,7 +691,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             SendBroadcastText(StartMessageIds[BG_STARTING_EVENT_FIRST], CHAT_MSG_BG_SYSTEM_NEUTRAL);
     }
     // Second announcement at 60s or 30s
-    else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_SECOND] && !(m_Events & BG_STARTING_EVENT_2))
+    else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_SECOND] && !(m_Events.load() & BG_STARTING_EVENT_2))
     {
         m_Events |= BG_STARTING_EVENT_2;
 
@@ -699,7 +699,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             SendBroadcastText(StartMessageIds[BG_STARTING_EVENT_SECOND], CHAT_MSG_BG_SYSTEM_NEUTRAL);
     }
     // Third announcement at 30s or 15s
-    else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_THIRD] && !(m_Events & BG_STARTING_EVENT_3))
+    else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_THIRD] && !(m_Events.load() & BG_STARTING_EVENT_3))
     {
         m_Events |= BG_STARTING_EVENT_3;
 
@@ -734,7 +734,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             }
     }
     // Delay expired (after configured prep time)
-    else if (GetStartDelayTime() <= 0 && !(m_Events & BG_STARTING_EVENT_4))
+    else if (GetStartDelayTime() <= 0 && !(m_Events.load() & BG_STARTING_EVENT_4))
     {
         m_Events |= BG_STARTING_EVENT_4;
 
@@ -847,7 +847,7 @@ inline void Battleground::_ProcessLeave(uint32 diff)
     // *********************************************************
     // remove all players from battleground after 2 minutes
     m_EndTime -= diff;
-    if (m_EndTime <= 0)
+    if (m_EndTime.load() <= 0)
     {
         m_EndTime = TIME_TO_AUTOREMOVE; // pussywizard: 0 -> TIME_TO_AUTOREMOVE
         BattlegroundPlayerMap::iterator itr, next;
@@ -1343,7 +1343,7 @@ void Battleground::Init()
 
     if (m_BgInvitedPlayers[TEAM_ALLIANCE] > 0 || m_BgInvitedPlayers[TEAM_HORDE] > 0)
     {
-        LOG_ERROR("bg.battleground", "Battleground::Reset: one of the counters is not 0 (alliance: {}, horde: {}) for BG (map: {}, instance id: {})!", m_BgInvitedPlayers[TEAM_ALLIANCE], m_BgInvitedPlayers[TEAM_HORDE], m_MapId, m_InstanceID);
+        LOG_ERROR("bg.battleground", "Battleground::Reset: one of the counters is not 0 (alliance: {}, horde: {}) for BG (map: {}, instance id: {})!", m_BgInvitedPlayers[TEAM_ALLIANCE].load(), m_BgInvitedPlayers[TEAM_HORDE].load(), m_MapId, m_InstanceID);
         ABORT();
     }
 
