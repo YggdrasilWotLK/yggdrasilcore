@@ -58,6 +58,12 @@ public:
         ASSERT(configIndex < _configs.size(), "Config index out of bounds");
         T const& configValue = sConfigMgr->GetOption<T>(configName, defaultValue);
 
+        // Validate outside the lock: checkers read other keys via
+        // GetConfigValue (shared lock); holding unique here self-deadlocks.
+        bool valid = !checker || checker(configValue);
+        if (!valid)
+            LOG_ERROR("server.loading", "Server Config (Name: {}) failed validation check '{}'. Default value '{}' will be used instead.", configName, validationErrorText, defaultValue);
+
         std::unique_lock<std::shared_mutex> lock(_cacheLock);
         bool configValueChanged = false;
         if (_reloading)
@@ -75,13 +81,7 @@ public:
         else
             ASSERT(_configs[configIndex].index() == 0, "Config overwriting an existing value");
 
-        if (checker && !checker(configValue))
-        {
-            LOG_ERROR("server.loading", "Server Config (Name: {}) failed validation check '{}'. Default value '{}' will be used instead.", configName, validationErrorText, defaultValue);
-            _configs[configIndex] = defaultValue;
-        }
-        else
-            _configs[configIndex] = configValue;
+        _configs[configIndex] = valid ? configValue : defaultValue;
     }
 
     template<class T>
