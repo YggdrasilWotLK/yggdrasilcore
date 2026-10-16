@@ -380,9 +380,6 @@ void MapMgr::GetNumPlayersInInstances(uint32& dungeons, uint32& battlegrounds, u
         }
     }
 }
-        }
-    }
-}
 
 void MapMgr::InitInstanceIds()
 {
