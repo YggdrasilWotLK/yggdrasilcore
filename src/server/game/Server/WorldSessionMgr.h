@@ -24,8 +24,10 @@
 #include "ObjectGuid.h"
 #include <list>
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 class Player;
 class WorldPacket;
@@ -57,6 +59,17 @@ public:
 
     typedef std::unordered_map<uint32, WorldSession*> SessionMap;
     SessionMap const& GetAllSessions() const { return _sessions; }
+    // Snapshot copy: login/logout mutate _sessions on the world thread
+    // while map threads iterate (e.g. world-range broadcasts).
+    std::vector<WorldSession*> SnapshotSessions() const
+    {
+        std::shared_lock<std::shared_mutex> lock(_sessionsLock);
+        std::vector<WorldSession*> result;
+        result.reserve(_sessions.size());
+        for (auto const& pair : _sessions)
+            result.push_back(pair.second);
+        return result;
+    }
 
     /// Get the number of current active sessions
     void UpdateMaxSessionCounters();
@@ -110,6 +123,9 @@ private:
 
     SessionMap _sessions;
     SessionMap _offlineSessions;
+    // Guards _sessions/_offlineSessions: writers run on the world thread,
+    // readers run anywhere. Leaf lock, never hold across session callbacks.
+    mutable std::shared_mutex _sessionsLock;
 
     typedef std::unordered_map<uint32, time_t> DisconnectMap;
     DisconnectMap _disconnects;

@@ -229,12 +229,13 @@ public:
                         Talk(WHISPER_CUSTODIAN_14, player);
                         if (Group* group = player->GetGroup())
                         {
-                            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+                            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                            for (ObjectGuid const& guid : guids)
                             {
-                                Player* player = itr->GetSource();
+                                Player* player = ObjectAccessor::FindPlayer(guid);
 
                                 // for any leave or dead (with not released body) group member at appropriate distance
-                                if (player && player->IsAtGroupRewardDistance(me) && !player->GetCorpse())
+                                if (player && player->IsInWorld() && player->IsAtGroupRewardDistance(me) && !player->GetCorpse())
                                     DoCast(player, 34883); // QID 10277
 
                             }

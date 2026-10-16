@@ -688,11 +688,16 @@ public:
                 {
                     std::list<Unit*> targetList;
 
-                    Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                    for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                        if (Player* p = itr->GetSource())
-                            if (!p->IsGameMaster())
-                                targetList.push_back(p);
+                    Map* snapMap = me->GetMap();
+                    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                    for (ObjectGuid const& playerGuid : guids)
+                    {
+                        Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                        if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                            continue;
+                        if (!p->IsGameMaster())
+                            targetList.push_back(p);
+                    }
 
                     std::size_t half = targetList.size() / 2;
                     // half gets ooze variable

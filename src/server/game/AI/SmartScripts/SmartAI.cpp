@@ -310,10 +310,13 @@ void SmartAI::EndPath(bool fail)
             Player* player = targets->front()->ToPlayer();
             if (Group* group = player->GetGroup())
             {
-                for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
+                std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                for (ObjectGuid const& guid : guids)
                 {
-                    Player* groupGuy = groupRef->GetSource();
-                    if (!groupGuy || !player->IsInMap(groupGuy))
+                    Player* groupGuy = ObjectAccessor::FindPlayer(guid);
+                    if (!groupGuy || !groupGuy->IsInWorld())
+                        continue;
+                    if (!player->IsInMap(groupGuy))
                         continue;
 
                     if (!fail && groupGuy->IsAtGroupRewardDistance(me) && !groupGuy->HasCorpse())
@@ -558,9 +561,12 @@ bool SmartAI::IsEscortInvokerInRange()
 
             if (Group* group = player->GetGroup())
             {
-                for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
+                std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                for (ObjectGuid const& guid : guids)
                 {
-                    Player* groupGuy = groupRef->GetSource();
+                    Player* groupGuy = ObjectAccessor::FindPlayer(guid);
+                    if (!groupGuy || !groupGuy->IsInWorld())
+                        continue;
 
                     if (groupGuy && me->IsInMap(groupGuy) && me->GetDistance(groupGuy) <= checkDist)
                         return true;

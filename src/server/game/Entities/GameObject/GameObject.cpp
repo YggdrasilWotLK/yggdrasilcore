@@ -16,6 +16,7 @@
  */
 
 #include "AccountMgr.h"
+#include <mutex>
 #include "BattlegroundAV.h"
 #include "CellImpl.h"
 #include "CreatureAISelector.h"
@@ -145,9 +146,9 @@ void GameObject::AddToWorld()
         if (m_zoneScript)
             m_zoneScript->OnGameObjectCreate(this);
 
-        GetMap()->GetObjectsStore().Insert<GameObject>(GetGUID(), this);
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Insert<GameObject>(GetGUID(), this); }
         if (m_spawnId)
-            GetMap()->GetGameObjectBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetGameObjectBySpawnIdStore().insert(std::make_pair(m_spawnId, this)); }
 
         if (m_model)
         {
@@ -170,6 +171,12 @@ void GameObject::RemoveFromWorld()
     ///- Remove the gameobject from the accessor
     if (IsInWorld())
     {
+        // Unlink from findable stores first: reentrant Find* calls in the
+        // teardown below must not observe a half-removed object.
+        if (m_spawnId)
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this); }
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID()); }
+
         sScriptMgr->OnGameObjectRemoveWorld(this);
 
         if (m_zoneScript)
@@ -191,10 +198,6 @@ void GameObject::RemoveFromWorld()
         }
 
         WorldObject::RemoveFromWorld();
-
-        if (m_spawnId)
-            Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this);
-        GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID());
     }
 }
 
@@ -1652,14 +1655,16 @@ void GameObject::Use(Unit* user)
 
                     if (Group* group = player->GetGroup())
                     {
-                        for (GroupReference const* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+                        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                        for (ObjectGuid const& guid : guids)
                         {
-                            if (Player* member = itr->GetSource())
+                            Player* member = ObjectAccessor::FindPlayer(guid);
+                            if (!member || !member->IsInWorld())
+                                continue;
+
+                            if (member->IsAtGroupRewardDistance(this))
                             {
-                                if (member->IsAtGroupRewardDistance(this))
-                                {
-                                    member->KillCreditGO(info->entry, GetGUID());
-                                }
+                                member->KillCreditGO(info->entry, GetGUID());
                             }
                         }
                     }
@@ -2650,10 +2655,19 @@ void GameObject::SetLootRecipient(Creature* creature)
 void GameObject::SetLootRecipient(Map* map)
 {
     Group* group = nullptr;
-    Map::PlayerList const& PlayerList = map->GetPlayers();
-    for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+    std::vector<ObjectGuid> guids;
     {
-        if (Player* groupMember = i->GetSource())
+        std::shared_lock<std::shared_mutex> lock(*map->GetPlayerRefLock());
+        Map::PlayerList const& PlayerList = map->GetPlayers();
+        for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+            if (Player* listed = i->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* groupMember = ObjectAccessor::FindPlayer(playerGuid);
+        if (!groupMember || !groupMember->IsInWorld() || groupMember->GetMap() != map)
+            continue;
         {
             if (groupMember->IsGameMaster() || groupMember->IsSpectator())
             {

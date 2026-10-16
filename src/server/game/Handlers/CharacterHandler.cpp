@@ -831,7 +831,7 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
     if (uint32 guildId = sCharacterCache->GetCharacterGuildIdByGuid(pCurrChar->GetGUID()))
     {
         Guild* guild = sGuildMgr->GetGuildById(guildId);
-        Guild::Member const* member = guild ? guild->GetMember(pCurrChar->GetGUID()) : nullptr;
+        Optional<Guild::Member> member = guild ? guild->GetMember(pCurrChar->GetGUID()) : Optional<Guild::Member>{};
         if (member)
         {
             pCurrChar->SetInGuild(guildId);
@@ -872,7 +872,7 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
                 pCurrChar->SendCinematicStart(rEntry->CinematicSequence);
 
             // send new char string if not empty
-            std::string_view newCharString = sWorld->getStringConfig(CONFIG_NEW_CHAR_STRING);
+            std::string newCharString = sWorld->getStringConfig(CONFIG_NEW_CHAR_STRING);
             if (!newCharString.empty())
                 chH.PSendSysMessage("{}", newCharString);
         }
@@ -1092,8 +1092,11 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
     {
         bool isReferrer = pCurrChar->GetSession()->IsARecruiter();
 
-        for (auto const& [accID, session] : sWorldSessionMgr->GetAllSessions())
+        std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+        for (WorldSession* session : sessions)
         {
+            if (!session)
+                continue;
             if (!session->GetRecruiterId() && !session->IsARecruiter())
                 continue;
 
@@ -2414,7 +2417,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
             trans->Append(stmt);
 
             // Disable all old-faction specific quests
-            for (auto const& [questID, quest] : sObjectMgr->GetQuestTemplates())
+            sObjectMgr->ForEachQuestTemplate([&](uint32 questID, Quest const* quest)
             {
                 uint32 newRaceMask = (newTeam == TEAM_ALLIANCE) ? RACEMASK_ALLIANCE : RACEMASK_HORDE;
 
@@ -2425,7 +2428,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
                     stmt->SetData(1, lowGuid);
                     trans->Append(stmt);
                 }
-            }
+            });
 
             // Spell conversion
             for (auto const& [spell_alliance, spell_horde] : sObjectMgr->FactionChangeSpells)

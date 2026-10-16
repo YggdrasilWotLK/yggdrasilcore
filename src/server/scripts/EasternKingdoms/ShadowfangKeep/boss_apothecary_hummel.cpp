@@ -229,14 +229,19 @@ public:
             _JustDied();
             me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
 
-            Map::PlayerList const& players = me->GetMap()->GetPlayers();
-            if (!players.IsEmpty())
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            if (!guids.empty())
             {
-                if (Group* group = players.begin()->GetSource()->GetGroup())
+                Player* front = ObjectAccessor::FindPlayer(guids.front());
+                if (front && front->IsInWorld() && front->GetMap() == snapMap)
                 {
-                    if (group->isLFGGroup())
+                    if (Group* group = front->GetGroup())
                     {
-                        sLFGMgr->FinishDungeon(group->GetGUID(), 288, me->GetMap());
+                        if (group->isLFGGroup())
+                        {
+                            sLFGMgr->FinishDungeon(group->GetGUID(), 288, me->GetMap());
+                        }
                     }
                 }
             }

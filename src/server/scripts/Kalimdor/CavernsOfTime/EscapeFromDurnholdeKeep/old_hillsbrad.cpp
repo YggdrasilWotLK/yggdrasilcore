@@ -815,11 +815,10 @@ public:
                     break;
                 case EVENT_THRALL_FACE_TARETHA:
                     {
-                        Map::PlayerList const& players = me->GetMap()->GetPlayers();
-                        if (!players.IsEmpty())
-                            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                                if (Player* player = itr->GetSource())
-                                    player->KilledMonsterCredit(20156);
+                        me->GetMap()->DoForAllPlayers([&](Player* player)
+                        {
+                            player->KilledMonsterCredit(20156);
+                        });
 
                         if (Creature* Taretha = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_TARETHA_GUID)))
                         {

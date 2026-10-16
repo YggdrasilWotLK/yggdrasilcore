@@ -142,10 +142,10 @@ public:
                     _crateCount++;
                     if (_crateCount == 5)
                     {
-                        Map::PlayerList const& PlayerList = instance->GetPlayers();
-                        if (!PlayerList.IsEmpty())
-                            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                i->GetSource()->KilledMonsterCredit(NPC_GRAIN_CREATE_TRIGGER);
+                        instance->DoForAllPlayers([&](Player* player)
+                        {
+                            player->KilledMonsterCredit(NPC_GRAIN_CREATE_TRIGGER);
+                        });
 
                         _showCrateTimer++;
                         if (GetData(DATA_ARTHAS_EVENT) < COS_PROGRESS_CRATES_FOUND)
@@ -300,17 +300,21 @@ public:
 
         void ChromieWhisper(uint8 textId)
         {
-            if (!instance->GetPlayers().IsEmpty())
-                if (Player* player = instance->GetPlayers().getFirst()->GetSource())
+            std::vector<ObjectGuid> guids = instance->CopyPlayerGuids();
+            if (guids.empty())
+                return;
+            Player* player = ObjectAccessor::FindPlayer(guids.front());
+            if (!player || !player->IsInWorld() || player->GetMap() != instance)
+                return;
+            {
+                Position pos = player->GetPosition();
+                if (Creature* cr = instance->SummonCreature(NPC_CHROMIE_MIDDLE, pos))
                 {
-                    Position pos = player->GetPosition();
-                    if (Creature* cr = instance->SummonCreature(NPC_CHROMIE_MIDDLE, pos))
-                    {
-                        cr->SetVisible(false);
-                        cr->DespawnOrUnsummon(1s);
-                        sCreatureTextMgr->SendChat(cr, textId, player, CHAT_MSG_ADDON, LANG_ADDON, TEXT_RANGE_MAP);
-                    }
+                    cr->SetVisible(false);
+                    cr->DespawnOrUnsummon(1s);
+                    sCreatureTextMgr->SendChat(cr, textId, player, CHAT_MSG_ADDON, LANG_ADDON, TEXT_RANGE_MAP);
                 }
+            }
         }
 
         void Reposition(Creature* arthas)

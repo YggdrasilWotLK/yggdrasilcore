@@ -16,6 +16,7 @@
  */
 
 #include "BattlegroundRV.h"
+#include "GroupMgr.h"
 #include "Battleground.h"
 #include "GameObject.h"
 #include "Log.h"
@@ -40,6 +41,7 @@ BattlegroundRV::BattlegroundRV()
 
 void BattlegroundRV::TeleportUnitToNewZ(Unit* unit, float newZ, bool casting)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!unit->IsAlive())
         return;
 
@@ -49,6 +51,7 @@ void BattlegroundRV::TeleportUnitToNewZ(Unit* unit, float newZ, bool casting)
 
 void BattlegroundRV::CheckPositionForUnit(Unit* unit)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // get height at current pos, if something is wrong (below or high above) - teleport
     if (!unit->IsFalling() && unit->IsAlive())
     {
@@ -66,6 +69,7 @@ void BattlegroundRV::CheckPositionForUnit(Unit* unit)
 
 void BattlegroundRV::PostUpdateImpl(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -160,6 +164,7 @@ void BattlegroundRV::PostUpdateImpl(uint32 diff)
 
 void BattlegroundRV::StartingEventOpenDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (auto const& itr : m_Players)
         itr.second->SetPhaseMask(1, true);
 
@@ -177,12 +182,14 @@ void BattlegroundRV::StartingEventOpenDoors()
 
 bool BattlegroundRV::HandlePlayerUnderMap(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     player->NearTeleportTo(763.5f, -284, 28.276f, 2.422f);
     return true;
 }
 
 void BattlegroundRV::HandleAreaTrigger(Player* player, uint32 trigger)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS || _state == BG_RV_STATE_OPEN_FENCES /*during elevator rising it's possible to jump and cause areatrigger*/)
         return;
 
@@ -207,18 +214,21 @@ void BattlegroundRV::HandleAreaTrigger(Player* player, uint32 trigger)
 
 void BattlegroundRV::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_RV_ARENA_SHOW, 1);
     Arena::FillInitialWorldStates(packet);
 }
 
 void BattlegroundRV::Init()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     //call parent's class reset
     Battleground::Init();
 }
 
 bool BattlegroundRV::SetupBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // elevators
     if (!AddObject(BG_RV_OBJECT_ELEVATOR_1, BG_RV_OBJECT_TYPE_ELEVATOR_1, 763.536377f, -294.535767f, 0.505383f, 3.141593f, 0, 0, 0, RESPAWN_IMMEDIATELY)
             || !AddObject(BG_RV_OBJECT_ELEVATOR_2, BG_RV_OBJECT_TYPE_ELEVATOR_2, 763.506348f, -273.873352f, 0.505383f, 0.000000f, 0, 0, 0, RESPAWN_IMMEDIATELY)
@@ -260,6 +270,7 @@ bool BattlegroundRV::SetupBattleground()
 
 void BattlegroundRV::UpdatePillars()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     GameObject* test = GetBgMap()->GetGameObject(BgObjects[BG_RV_OBJECT_PILAR_1]);
     if (!test)
         return;
@@ -286,6 +297,7 @@ void BattlegroundRV::UpdatePillars()
 
 uint32 BattlegroundRV::GetPillarIdForPos(Position* p)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     float range = 1.75f;
     if (p->GetExactDist2d(763.632385f, -306.162384f) < range)
         return BG_RV_OBJECT_PILAR_1;
@@ -300,6 +312,7 @@ uint32 BattlegroundRV::GetPillarIdForPos(Position* p)
 
 GameObject* BattlegroundRV::GetPillarAtPosition(Position* p)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 pillar = GetPillarIdForPos(p);
     if (!pillar)
         return nullptr;

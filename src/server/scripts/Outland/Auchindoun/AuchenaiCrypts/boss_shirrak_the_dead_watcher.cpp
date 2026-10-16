@@ -73,10 +73,8 @@ struct boss_shirrak_the_dead_watcher : public BossAI
         _JustEngagedWith();
         scheduler.Schedule(1ms, [this] (TaskContext context)
         {
-            Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+            me->GetMap()->DoForAllPlayers([&](Player* player)
             {
-                if (Player* player = i->GetSource())
                 {
                     float dist = me->GetDistance(player);
                     if (player->IsAlive() && dist < 45.0f)
@@ -101,7 +99,7 @@ struct boss_shirrak_the_dead_watcher : public BossAI
                         player->RemoveAurasDueToSpell(SPELL_INHIBIT_MAGIC);
                     }
                 }
-            }
+            });
             context.Repeat(3s);
         }).Schedule(28s, [this](TaskContext context)
         {

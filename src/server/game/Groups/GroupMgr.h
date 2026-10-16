@@ -20,6 +20,7 @@
 
 #include "Group.h"
 
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -31,6 +32,14 @@ private:
 
 public:
     static GroupMgr* instance();
+
+    // Lock order, outer -> inner: world/session > social (this) > guild/channel/socialmgr > map > leaf stores.
+    // Snapshot-then-act; never hold across I/O.
+    static std::recursive_mutex* GetSocialLock()
+    {
+        static std::recursive_mutex lock;
+        return &lock;
+    }
 
     typedef std::map<uint32, Group*> GroupContainer;
 

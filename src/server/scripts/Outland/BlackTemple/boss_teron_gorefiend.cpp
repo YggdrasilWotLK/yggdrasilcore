@@ -277,13 +277,11 @@ class spell_teron_gorefiend_shadowy_construct : public AuraScript
         GetUnitOwner()->ApplySpellImmune(0, IMMUNITY_ALLOW_ID, SPELL_SPIRIT_VOLLEY, true);
 
         GetUnitOwner()->ToCreature()->SetInCombatWithZone();
-        Map::PlayerList const& playerList = GetUnitOwner()->GetMap()->GetPlayers();
-        for (Map::PlayerList::const_iterator i = playerList.begin(); i != playerList.end(); ++i)
-            if (Player* player = i->GetSource())
-            {
-                if (GetUnitOwner()->IsValidAttackTarget(player))
-                    GetUnitOwner()->AddThreat(player, 1000000.0f);
-            }
+        GetUnitOwner()->GetMap()->DoForAllPlayers([&](Player* player)
+        {
+            if (GetUnitOwner()->IsValidAttackTarget(player))
+                GetUnitOwner()->AddThreat(player, 1000000.0f);
+        });
 
         GetUnitOwner()->CastSpell(GetUnitOwner(), SPELL_BRIEF_STUN, true);
     }

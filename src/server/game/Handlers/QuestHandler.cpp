@@ -162,10 +162,11 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode(WorldPacket& recvData)
             {
                 if (Group* group = _player->GetGroup())
                 {
-                    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+                    std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                    for (ObjectGuid const& memberGuid : guids)
                     {
-                        Player* itrPlayer = itr->GetSource();
-                        if (!itrPlayer || itrPlayer == _player || !itrPlayer->IsAtGroupRewardDistance(_player) || itrPlayer->HasPendingBind()) // xinef: check range
+                        Player* itrPlayer = ObjectAccessor::FindPlayer(memberGuid);
+                        if (!itrPlayer || !itrPlayer->IsInWorld() || itrPlayer == _player || !itrPlayer->IsAtGroupRewardDistance(_player) || itrPlayer->HasPendingBind()) // xinef: check range
                             continue;
 
                         if (itrPlayer->CanTakeQuest(quest, false))
@@ -542,11 +543,14 @@ void WorldSession::HandlePushQuestToParty(WorldPacket& recvPacket)
     {
         if (Group* group = _player->GetGroup())
         {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                Player* player = itr->GetSource();
+                Player* player = ObjectAccessor::FindPlayer(guid);
+                if (!player || !player->IsInWorld())
+                    continue;
 
-                if (!player || player == _player || !player->IsInMap(_player))         // skip self
+                if (player == _player || !player->IsInMap(_player))         // skip self
                     continue;
 
                 if (!player->SatisfyQuestStatus(quest, false))

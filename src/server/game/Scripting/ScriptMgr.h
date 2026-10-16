@@ -37,6 +37,7 @@
 #include "Weather.h"
 #include "World.h"
 #include <atomic>
+#include <shared_mutex>
 
 // Add support old api modules
 #include "AllScriptsObjects.h"
@@ -791,6 +792,9 @@ public:
     // The list of hook types with the list of enabled scripts for this specific hook.
     // With this approach, we wouldn't call all available hooks in case if we override just one hook.
     static EnabledHooksVector EnabledHooks;
+    // Guards EnabledHooks: shared in dispatch, unique in AddScript.
+    // Hook implementations must not register scripts (would self-deadlock).
+    static std::shared_mutex EnabledHooksLock;
 
     static void InitEnabledHooksIfNeeded(uint16 totalAvailableHooks)
     {
@@ -800,6 +804,8 @@ public:
     static void AddScript(TScript* const script, std::vector<uint16> enabledHooks = {})
     {
         ASSERT(script);
+
+        std::unique_lock<std::shared_mutex> lock(EnabledHooksLock);
 
         if (!_checkMemory(script))
             return;
@@ -826,6 +832,8 @@ public:
 
     static void AddALScripts()
     {
+        std::unique_lock<std::shared_mutex> lock(EnabledHooksLock);
+
         for (ScriptVectorIterator it = ALScripts.begin(); it != ALScripts.end(); ++it)
         {
             TScript* const script = (*it).first;
@@ -939,6 +947,7 @@ private:
 template<class TScript> std::map<uint32, TScript*> ScriptRegistry<TScript>::ScriptPointerList;
 template<class TScript> std::vector<std::pair<TScript*,std::vector<uint16>>> ScriptRegistry<TScript>::ALScripts;
 template<class TScript> std::vector<std::vector<TScript*>> ScriptRegistry<TScript>::EnabledHooks;
+template<class TScript> std::shared_mutex ScriptRegistry<TScript>::EnabledHooksLock;
 template<class TScript> uint32 ScriptRegistry<TScript>::_scriptIdCounter = 0;
 
 #endif

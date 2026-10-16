@@ -16,6 +16,7 @@
  */
 
 #include "BattlegroundIC.h"
+#include "GroupMgr.h"
 #include "Battleground.h"
 #include "GameGraveyard.h"
 #include "GameObject.h"
@@ -63,6 +64,7 @@ BattlegroundIC::BattlegroundIC()
 
 void BattlegroundIC::DoAction(uint32 action, ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (action != ACTION_TELEPORT_PLAYER_TO_TRANSPORT)
         return;
 
@@ -84,6 +86,7 @@ void BattlegroundIC::DoAction(uint32 action, ObjectGuid guid)
 
 void BattlegroundIC::HandlePlayerResurrect(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (nodePoint[NODE_TYPE_QUARRY].nodeState == (player->GetTeamId() == TEAM_ALLIANCE ? NODE_STATE_CONTROLLED_A : NODE_STATE_CONTROLLED_H))
         player->CastSpell(player, SPELL_QUARRY, true);
 
@@ -93,6 +96,7 @@ void BattlegroundIC::HandlePlayerResurrect(Player* player)
 
 void BattlegroundIC::PostUpdateImpl(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -278,6 +282,7 @@ void BattlegroundIC::PostUpdateImpl(uint32 diff)
 
 void BattlegroundIC::StartingEventOpenDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     //after 20 seconds they should be despawned
     DoorOpen(BG_IC_GO_DOODAD_ND_HUMAN_GATE_CLOSEDFX_DOOR01);
     DoorOpen(BG_IC_GO_DOODAD_ND_WINTERORC_WALL_GATEFX_DOOR01);
@@ -300,6 +305,7 @@ void BattlegroundIC::StartingEventOpenDoors()
 
 bool BattlegroundIC::AllNodesConrolledByTeam(TeamId teamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 count = 0;
     ICNodeState controlledState = teamId == TEAM_ALLIANCE ? NODE_STATE_CONTROLLED_A : NODE_STATE_CONTROLLED_H;
     for (int i = 0; i < NODE_TYPE_WORKSHOP; ++i)
@@ -313,12 +319,14 @@ bool BattlegroundIC::AllNodesConrolledByTeam(TeamId teamId) const
 
 bool BattlegroundIC::IsResourceGlutAllowed(TeamId teamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     ICNodeState controlledState = teamId == TEAM_ALLIANCE ? NODE_STATE_CONTROLLED_A : NODE_STATE_CONTROLLED_H;
     return nodePoint[NODE_TYPE_QUARRY].nodeState == controlledState && nodePoint[NODE_TYPE_REFINERY].nodeState == controlledState;
 }
 
 void BattlegroundIC::AddPlayer(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Battleground::AddPlayer(player);
     PlayerScores.emplace(player->GetGUID().GetCounter(), new BattlegroundICScore(player->GetGUID()));
 
@@ -331,12 +339,14 @@ void BattlegroundIC::AddPlayer(Player* player)
 
 void BattlegroundIC::RemovePlayer(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     player->RemoveAura(SPELL_QUARRY);
     player->RemoveAura(SPELL_OIL_REFINERY);
 }
 
 void BattlegroundIC::HandleAreaTrigger(Player* player, uint32 trigger)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // this is wrong way to implement these things. On official it done by gameobject spell cast.
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
@@ -366,6 +376,7 @@ void BattlegroundIC::HandleAreaTrigger(Player* player, uint32 trigger)
 
 bool BattlegroundIC::UpdatePlayerScore(Player* player, uint32 type, uint32 value, bool doAddHonor)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!Battleground::UpdatePlayerScore(player, type, value, doAddHonor))
         return false;
 
@@ -384,6 +395,7 @@ bool BattlegroundIC::UpdatePlayerScore(Player* player, uint32 type, uint32 value
 
 void BattlegroundIC::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     packet.Worldstates.reserve(4+MAX_FORTRESS_GATES_SPAWNS+MAX_NODE_TYPES+1);
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_IC_ALLIANCE_REINFORCEMENT_SET, 1);
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_IC_HORDE_REINFORCEMENT_SET, 1);
@@ -404,6 +416,7 @@ void BattlegroundIC::FillInitialWorldStates(WorldPackets::WorldState::InitWorldS
 
 bool BattlegroundIC::SetupBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint8 i = 0; i < MAX_NORMAL_GAMEOBJECTS_SPAWNS; ++i)
     {
         if (!AddObject(BG_IC_ObjSpawnlocs[i].type, BG_IC_ObjSpawnlocs[i].entry, BG_IC_ObjSpawnlocs[i].x, BG_IC_ObjSpawnlocs[i].y, BG_IC_ObjSpawnlocs[i].z, BG_IC_ObjSpawnlocs[i].o, 0, 0, 0, 0, RESPAWN_ONE_DAY))
@@ -492,6 +505,7 @@ bool BattlegroundIC::SetupBattleground()
 
 void BattlegroundIC::TurnBosses(bool on)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // Make Bosses invisible and passive
     // or visible and active
     if (Creature* boss = GetBGCreature(BG_IC_NPC_OVERLORD_AGMAR))
@@ -508,6 +522,7 @@ void BattlegroundIC::TurnBosses(bool on)
 
 void BattlegroundIC::HandleKillUnit(Creature* unit, Player* killer)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -538,6 +553,7 @@ void BattlegroundIC::HandleKillUnit(Creature* unit, Player* killer)
 
 void BattlegroundIC::HandleKillPlayer(Player* player, Player* killer)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -554,6 +570,7 @@ void BattlegroundIC::HandleKillPlayer(Player* player, Player* killer)
 
 void BattlegroundIC::EventPlayerClickedOnFlag(Player* player, GameObject* gameObject)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -668,6 +685,7 @@ void BattlegroundIC::EventPlayerClickedOnFlag(Player* player, GameObject* gameOb
 
 void BattlegroundIC::UpdateNodeWorldState(ICNodePoint* nodePoint)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     //updating worldstate
     if (nodePoint->gameobject_entry == nodePoint->banners[BANNER_A_CONTROLLED])
         nodePoint->nodeState = NODE_STATE_CONTROLLED_A;
@@ -689,6 +707,7 @@ void BattlegroundIC::UpdateNodeWorldState(ICNodePoint* nodePoint)
 
 uint32 BattlegroundIC::GetNextBanner(ICNodePoint* nodePoint, uint32 team, bool returnDefinitve)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // this is only used in the update map function
     if (returnDefinitve)
         // here is a special case, here we must return the definitve faction banner after the grey banner was spawned 1 minute
@@ -714,6 +733,7 @@ uint32 BattlegroundIC::GetNextBanner(ICNodePoint* nodePoint, uint32 team, bool r
 
 void BattlegroundIC::HandleContestedNodes(ICNodePoint* nodePoint)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (nodePoint->nodeType == NODE_TYPE_HANGAR)
     {
         if (gunshipAlliance && gunshipHorde)
@@ -754,6 +774,7 @@ void BattlegroundIC::HandleContestedNodes(ICNodePoint* nodePoint)
 
 void BattlegroundIC::HandleCapturedNodes(ICNodePoint* nodePoint, bool recapture)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (nodePoint->nodeType != NODE_TYPE_REFINERY && nodePoint->nodeType != NODE_TYPE_QUARRY)
     {
         if (!AddSpiritGuide(static_cast<uint16>(BG_IC_NPC_SPIRIT_GUIDE_1) + nodePoint->nodeType - 2,
@@ -926,6 +947,7 @@ void BattlegroundIC::HandleCapturedNodes(ICNodePoint* nodePoint, bool recapture)
 
 void BattlegroundIC::DestroyGate(Player*  /*player*/, GameObject* go)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     GateStatus[GetGateIDFromEntry(go->GetEntry())] = BG_IC_GATE_DESTROYED;
     uint32 uws_open = GetWorldStateFromGateEntry(go->GetEntry(), true);
     uint32 uws_close = GetWorldStateFromGateEntry(go->GetEntry(), false);
@@ -989,6 +1011,7 @@ void BattlegroundIC::DestroyGate(Player*  /*player*/, GameObject* go)
 
 GraveyardStruct const* BattlegroundIC::GetClosestGraveyard(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // Is there any occupied node for this team?
     std::vector<uint8> nodes;
     for (uint8 i = 0; i < MAX_NODE_TYPES; ++i)

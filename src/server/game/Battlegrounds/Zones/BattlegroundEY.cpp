@@ -16,6 +16,7 @@
  */
 
 #include "BattlegroundEY.h"
+#include "GroupMgr.h"
 #include "BattlegroundMgr.h"
 #include "Creature.h"
 #include "GameGraveyard.h"
@@ -57,6 +58,7 @@ BattlegroundEY::~BattlegroundEY()
 
 void BattlegroundEY::PostUpdateImpl(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() == STATUS_IN_PROGRESS)
     {
         _bgEvents.Update(diff);
@@ -86,6 +88,7 @@ void BattlegroundEY::PostUpdateImpl(uint32 diff)
 
 void BattlegroundEY::StartingEventCloseDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     SpawnBGObject(BG_EY_OBJECT_DOOR_A, RESPAWN_IMMEDIATELY);
     SpawnBGObject(BG_EY_OBJECT_DOOR_H, RESPAWN_IMMEDIATELY);
 
@@ -95,6 +98,7 @@ void BattlegroundEY::StartingEventCloseDoors()
 
 void BattlegroundEY::StartingEventOpenDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     SpawnBGObject(BG_EY_OBJECT_DOOR_A, RESPAWN_ONE_DAY);
     SpawnBGObject(BG_EY_OBJECT_DOOR_H, RESPAWN_ONE_DAY);
 
@@ -112,6 +116,7 @@ void BattlegroundEY::StartingEventOpenDoors()
 
 void BattlegroundEY::AddPoints(TeamId teamId, uint32 points)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint8 honorRewards = uint8(m_TeamScores[teamId] / _honorTics);
     m_TeamScores[teamId] += points;
     if (m_TeamScores[teamId] > static_cast<int32>(_configurableMaxTeamScore))
@@ -127,6 +132,7 @@ void BattlegroundEY::AddPoints(TeamId teamId, uint32 points)
 
 void BattlegroundEY::UpdatePointsState()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     std::vector<GameObject*> pointsVec;
     for (uint8 point = 0; point < EY_POINTS_MAX; ++point)
     {
@@ -135,23 +141,26 @@ void BattlegroundEY::UpdatePointsState()
         _capturePointInfo[point]._playersCount[TEAM_HORDE] = 0;
     }
 
-    const BattlegroundPlayerMap& bgPlayerMap = GetPlayers();
-    for (BattlegroundPlayerMap::const_iterator itr = bgPlayerMap.begin(); itr != bgPlayerMap.end(); ++itr)
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
     {
-        itr->second->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_SHOW, BG_EY_PROGRESS_BAR_DONT_SHOW);
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld())
+            continue;
+        listed->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_SHOW, BG_EY_PROGRESS_BAR_DONT_SHOW);
         for (uint8 point = 0; point < EY_POINTS_MAX; ++point)
             if (GameObject* pointObject = pointsVec[point])
-                if (itr->second->CanCaptureTowerPoint() && itr->second->IsWithinDistInMap(pointObject, BG_EY_POINT_RADIUS))
+                if (listed->CanCaptureTowerPoint() && listed->IsWithinDistInMap(pointObject, BG_EY_POINT_RADIUS))
                 {
-                    itr->second->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_SHOW, BG_EY_PROGRESS_BAR_SHOW);
-                    itr->second->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_PERCENT_GREY, BG_EY_PROGRESS_BAR_PERCENT_GREY);
-                    itr->second->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_STATUS, _capturePointInfo[point]._barStatus);
-                    ++_capturePointInfo[point]._playersCount[itr->second->GetTeamId()];
-                    _capturePointInfo[point].player = itr->second;
+                    listed->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_SHOW, BG_EY_PROGRESS_BAR_SHOW);
+                    listed->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_PERCENT_GREY, BG_EY_PROGRESS_BAR_PERCENT_GREY);
+                    listed->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_STATUS, _capturePointInfo[point]._barStatus);
+                    ++_capturePointInfo[point]._playersCount[listed->GetTeamId()];
+                    _capturePointInfo[point].player = listed;
 
                     // Xinef: ugly hax... area trigger is no longer called by client...
-                    if (pointObject->GetEntry() == BG_OBJECT_FR_TOWER_CAP_EY_ENTRY && itr->second->GetDistance2d(2043.96f, 1729.68f) < 3.0f)
-                        HandleAreaTrigger(itr->second, AT_FEL_REAVER_POINT);
+                    if (pointObject->GetEntry() == BG_OBJECT_FR_TOWER_CAP_EY_ENTRY && listed->GetDistance2d(2043.96f, 1729.68f) < 3.0f)
+                        HandleAreaTrigger(listed, AT_FEL_REAVER_POINT);
                 }
     }
 
@@ -179,6 +188,7 @@ void BattlegroundEY::UpdatePointsState()
 
 void BattlegroundEY::EndBattleground(TeamId winnerTeamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     RewardHonorToTeam(GetBonusHonorFromKill(1), winnerTeamId);
     RewardHonorToTeam(GetBonusHonorFromKill(1), TEAM_ALLIANCE);
     RewardHonorToTeam(GetBonusHonorFromKill(1), TEAM_HORDE);
@@ -187,12 +197,14 @@ void BattlegroundEY::EndBattleground(TeamId winnerTeamId)
 
 void BattlegroundEY::UpdatePointsCount()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_ALLIANCE_BASE, _ownedPointsCount[TEAM_ALLIANCE]);
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_HORDE_BASE, _ownedPointsCount[TEAM_HORDE]);
 }
 
 void BattlegroundEY::UpdatePointsIcons(uint32 point)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (_capturePointInfo[point].IsUnderControl())
     {
         UpdateWorldState(m_PointsIconStruct[point].WorldStateControlIndex, 0);
@@ -209,18 +221,21 @@ void BattlegroundEY::UpdatePointsIcons(uint32 point)
 
 void BattlegroundEY::AddPlayer(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Battleground::AddPlayer(player);
     PlayerScores.emplace(player->GetGUID().GetCounter(), new BattlegroundEYScore(player->GetGUID()));
 }
 
 void BattlegroundEY::RemovePlayer(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetFlagPickerGUID() == player->GetGUID())
         EventPlayerDroppedFlag(player);
 }
 
 void BattlegroundEY::HandleAreaTrigger(Player* player, uint32 trigger)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS || !player->IsAlive())
         return;
 
@@ -263,6 +278,7 @@ void BattlegroundEY::HandleAreaTrigger(Player* player, uint32 trigger)
 
 bool BattlegroundEY::SetupBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     _honorTics = BattlegroundMgr::IsBGWeekend(GetBgTypeID(true)) ? BG_EY_HONOR_TICK_WEEKEND : BG_EY_HONOR_TICK_NORMAL;
 
     // doors
@@ -353,6 +369,7 @@ bool BattlegroundEY::SetupBattleground()
 
 void BattlegroundEY::Init()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     //call parent's class reset
     Battleground::Init();
 
@@ -372,6 +389,7 @@ void BattlegroundEY::Init()
 
 void BattlegroundEY::RespawnFlag()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (_flagState != BG_EY_FLAG_STATE_ON_BASE)
         return;
 
@@ -388,6 +406,7 @@ void BattlegroundEY::RespawnFlag()
 
 void BattlegroundEY::RespawnFlagAfterDrop()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (_flagState != BG_EY_FLAG_STATE_ON_GROUND)
         return;
 
@@ -400,6 +419,7 @@ void BattlegroundEY::RespawnFlagAfterDrop()
 
 void BattlegroundEY::HandleKillPlayer(Player* player, Player* killer)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -409,6 +429,7 @@ void BattlegroundEY::HandleKillPlayer(Player* player, Player* killer)
 
 void BattlegroundEY::EventPlayerDroppedFlag(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetFlagPickerGUID() != player->GetGUID())
         return;
 
@@ -431,6 +452,7 @@ void BattlegroundEY::EventPlayerDroppedFlag(Player* player)
 
 void BattlegroundEY::EventPlayerClickedOnFlag(Player* player, GameObject* gameObject)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS || GetFlagPickerGUID() || !player->IsWithinDistInMap(gameObject, 10.0f))
         return;
 
@@ -453,6 +475,7 @@ void BattlegroundEY::EventPlayerClickedOnFlag(Player* player, GameObject* gameOb
 
 void BattlegroundEY::EventTeamLostPoint(Player* player, uint32 point)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     TeamId oldTeamId = _capturePointInfo[point]._ownerTeamId;
     if (oldTeamId == TEAM_ALLIANCE)
     {
@@ -490,6 +513,7 @@ void BattlegroundEY::EventTeamLostPoint(Player* player, uint32 point)
 
 void BattlegroundEY::EventTeamCapturedPoint(Player* player, TeamId teamId, uint32 point)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     SpawnBGObject(m_CapturingPointTypes[point].DespawnNeutralObjectType, RESPAWN_ONE_DAY);
     SpawnBGObject(m_CapturingPointTypes[point].DespawnNeutralObjectType + 1, RESPAWN_ONE_DAY);
     SpawnBGObject(m_CapturingPointTypes[point].DespawnNeutralObjectType + 2, RESPAWN_ONE_DAY);
@@ -533,6 +557,7 @@ void BattlegroundEY::EventTeamCapturedPoint(Player* player, TeamId teamId, uint3
 
 void BattlegroundEY::EventPlayerCapturedFlag(Player* player, uint32 BgObjectType)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     SetFlagPicker(ObjectGuid::Empty);
     _flagState = BG_EY_FLAG_STATE_ON_BASE;
     player->RemoveAurasDueToSpell(BG_EY_NETHERSTORM_FLAG_SPELL);
@@ -560,6 +585,7 @@ void BattlegroundEY::EventPlayerCapturedFlag(Player* player, uint32 BgObjectType
 
 bool BattlegroundEY::UpdatePlayerScore(Player* player, uint32 type, uint32 value, bool doAddHonor)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!Battleground::UpdatePlayerScore(player, type, value, doAddHonor))
         return false;
 
@@ -577,6 +603,7 @@ bool BattlegroundEY::UpdatePlayerScore(Player* player, uint32 type, uint32 value
 
 void BattlegroundEY::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     packet.Worldstates.reserve(22);
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_EY_HORDE_BASE, _ownedPointsCount[TEAM_HORDE]);
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_EY_ALLIANCE_BASE, _ownedPointsCount[TEAM_ALLIANCE]);
@@ -604,6 +631,7 @@ void BattlegroundEY::FillInitialWorldStates(WorldPackets::WorldState::InitWorldS
 
 GraveyardStruct const* BattlegroundEY::GetClosestGraveyard(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     GraveyardStruct const* entry = sGraveyard->GetGraveyard(static_cast<uint16>(BG_EY_GRAVEYARD_MAIN_ALLIANCE) + player->GetTeamId());
     GraveyardStruct const* nearestEntry = entry;
 
@@ -630,6 +658,7 @@ GraveyardStruct const* BattlegroundEY::GetClosestGraveyard(Player* player)
 
 bool BattlegroundEY::AllNodesConrolledByTeam(TeamId teamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 count = 0;
     for (uint8 i = 0; i < EY_POINTS_MAX; ++i)
         if (_capturePointInfo[i].IsUnderControl(teamId))
@@ -640,6 +669,7 @@ bool BattlegroundEY::AllNodesConrolledByTeam(TeamId teamId) const
 
 TeamId BattlegroundEY::GetPrematureWinner()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetTeamScore(TEAM_ALLIANCE) > GetTeamScore(TEAM_HORDE))
         return TEAM_ALLIANCE;
 

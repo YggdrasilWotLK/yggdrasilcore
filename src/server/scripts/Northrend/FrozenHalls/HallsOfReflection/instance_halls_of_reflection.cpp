@@ -19,6 +19,7 @@
 #include "InstanceMapScript.h"
 #include "InstanceScript.h"
 #include "MapMgr.h"
+#include "ObjectAccessor.h"
 #include "Transport.h"
 #include "WorldStateDefines.h"
 #include "halls_of_reflection.h"
@@ -439,10 +440,10 @@ public:
                             DoUpdateWorldState(WORLD_STATE_HALLS_OF_REFLECTION_WAVES_ENABLED, 0);
 
                             // give quest
-                            Map::PlayerList const& pl = instance->GetPlayers();
-                            for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                                if (Player* p = itr->GetSource())
-                                    p->CastSpell(p, p->GetTeamId() == TEAM_ALLIANCE ? SPELL_HOR_START_QUEST_ALLY : SPELL_HOR_START_QUEST_HORDE, true);
+                            instance->DoForAllPlayers([&](Player* p)
+                            {
+                                p->CastSpell(p, p->GetTeamId() == TEAM_ALLIANCE ? SPELL_HOR_START_QUEST_ALLY : SPELL_HOR_START_QUEST_HORDE, true);
+                            });
                         }
                     }
                     break;
@@ -459,11 +460,11 @@ public:
                 case ACTION_SPIRITUAL_REFLECTIONS_COPY:
                     {
                         uint8 i = 0;
-                        Map::PlayerList const& pl = instance->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (p->IsAlive() && !p->IsGameMaster())
-                                    if (Creature* c = instance->GetCreature(NPC_SpiritualReflectionGUID[i++]))
+                        instance->DoForAllPlayers([&](Player* p)
+                        {
+                            if (!p->IsAlive() || p->IsGameMaster())
+                                return;
+                            if (Creature* c = instance->GetCreature(NPC_SpiritualReflectionGUID[i++]))
                                     {
                                         if (!c->IsAlive())
                                             c->Respawn();
@@ -481,6 +482,7 @@ public:
                                         p->CastSpell(c, SPELL_HOR_CLONE, true);
                                         p->CastSpell(c, SPELL_HOR_CLONE_NAME, true);
                                     }
+                        });
                     }
                     break;
                 case ACTION_SPIRITUAL_REFLECTIONS_ACTIVATE:
@@ -913,13 +915,17 @@ public:
                 CheckPlayersTimer = 5000;
                 if ((EncounterMask & (1 << DATA_INTRO)) && !(EncounterMask & (1 << DATA_MARWYN))) // first event
                 {
-                    Map::PlayerList const& pl = instance->GetPlayers();
+                    Map* snapMap = instance;
+                    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
                     if (WaveNumber || NextWaveTimer)
                     {
                         bool allDead = true;
                         bool outOfRange = false;
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
                             {
                                 if (p->IsGameMaster())
                                     continue;
@@ -931,19 +937,24 @@ public:
                                     break;
                                 }
                             }
+                        }
                         if (allDead || outOfRange)
                             DoWipe1();
                     }
                     else if (!ResumeFirstEventTimer)
                     {
                         bool allInRangeAndAlive = (instance->GetPlayersCountExceptGMs() > 0);
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (!p->IsGameMaster() && (p->GetExactDist2d(&CenterPos) > MAX_DIST_FROM_CENTER_TO_START || !p->IsAlive()))
-                                {
-                                    allInRangeAndAlive = false;
-                                    break;
-                                }
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (!p->IsGameMaster() && (p->GetExactDist2d(&CenterPos) > MAX_DIST_FROM_CENTER_TO_START || !p->IsAlive()))
+                            {
+                                allInRangeAndAlive = false;
+                                break;
+                            }
+                        }
                         if (allInRangeAndAlive)
                         {
                             ResumeFirstEventTimer = 1;
@@ -1162,9 +1173,10 @@ public:
                         case 10:
                             ++outroStep;
                             outroTimer = 0;
-                            for (Map::PlayerList::const_iterator itr = instance->GetPlayers().begin(); itr != instance->GetPlayers().end(); ++itr)
-                                if (Player* p = itr->GetSource())
-                                    p->KilledMonsterCredit(NPC_WRATH_OF_THE_LICH_KING_CREDIT);
+                            instance->DoForAllPlayers([&](Player* p)
+                            {
+                                p->KilledMonsterCredit(NPC_WRATH_OF_THE_LICH_KING_CREDIT);
+                            });
                             if (GetTeamIdInInstance() == TEAM_ALLIANCE)
                                 if (Creature* c = instance->GetCreature(NPC_LeaderGUID))
                                 {

@@ -35,6 +35,7 @@
 #include "Opcodes.h"
 #include "Pet.h"
 #include "Player.h"
+#include "PointMovementGenerator.h"
 #include "PoolMgr.h"
 #include "ScriptMgr.h"
 #include "ScriptedGossip.h"
@@ -340,10 +341,10 @@ void Creature::AddToWorld()
         // it's also initialized in AIM_Initialize(), few lines below, but it's not a problem
         Motion_Initialize();
 
-        GetMap()->GetObjectsStore().Insert<Creature>(GetGUID(), this);
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Insert<Creature>(GetGUID(), this); }
         if (m_spawnId)
         {
-            GetMap()->GetCreatureBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetCreatureBySpawnIdStore().insert(std::make_pair(m_spawnId, this)); }
         }
         Unit::AddToWorld();
 
@@ -391,6 +392,18 @@ void Creature::RemoveFromWorld()
 {
     if (IsInWorld())
     {
+        // Unlink from findable stores first: reentrant Find* calls in the
+        // callbacks below must not observe a half-removed object.
+        if (m_spawnId)
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this); }
+
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<Creature>(GetGUID()); }
+
+        if (Transport* transport = GetTransport())
+            transport->RemovePassenger(this, true);
+
+        Unit::RemoveFromWorld();
+
         sScriptMgr->OnCreatureRemoveWorld(this);
 
         if (GetZoneScript())
@@ -398,16 +411,6 @@ void Creature::RemoveFromWorld()
 
         if (m_formation)
             sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
-
-        if (Transport* transport = GetTransport())
-            transport->RemovePassenger(this, true);
-
-        Unit::RemoveFromWorld();
-
-        if (m_spawnId)
-            Acore::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
-
-        GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
     }
 }
 
@@ -1415,10 +1418,19 @@ void Creature::SetLootRecipient(Unit* unit, bool withGroup)
 
             if (map && map->IsDungeon() && (isWorldBoss() || IsDungeonBoss()))
             {
-                Map::PlayerList const& PlayerList = map->GetPlayers();
-                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                std::vector<ObjectGuid> guids;
                 {
-                    if (Player* groupMember = i->GetSource())
+                    std::shared_lock<std::shared_mutex> lock(*map->GetPlayerRefLock());
+                    Map::PlayerList const& PlayerList = map->GetPlayers();
+                    for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                        if (Player* listed = i->GetSource())
+                            guids.push_back(listed->GetGUID());
+                }
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* groupMember = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!groupMember || !groupMember->IsInWorld() || groupMember->GetMap() != map)
+                        continue;
                     {
                         if (groupMember->IsGameMaster() || groupMember->IsSpectator())
                         {
@@ -1759,6 +1771,7 @@ bool Creature::LoadCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool ad
     {
         // If an alive instance of this spawnId is already found, skip creation
         // If only dead instance(s) exist, despawn them and spawn a new (maybe also dead) version
+        std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
         const auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(spawnId);
         std::vector <Creature*> despawnList;
 
@@ -2075,6 +2088,7 @@ void Creature::setDeathState(DeathState state, bool despawn)
 
         ReplaceAllNpcFlags(NPCFlags(cinfo->npcflag));
         ClearUnitState(uint32(UNIT_STATE_ALL_STATE & ~(UNIT_STATE_IGNORE_PATHFINDING | UNIT_STATE_NO_ENVIRONMENT_UPD)));
+        _interactionStopResume.valid = false;
         SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
 
         Unit::setDeathState(DeathState::Alive, despawn);
@@ -3085,6 +3099,25 @@ void Creature::PauseMovementForInteraction(Player* caster)
     if (!pause)
         return;
 
+    if (!_interactionStopResume.valid)
+    {
+        _interactionStopResume.valid = true;
+        _interactionStopResume.movegen = GetMotionMaster()->GetCurrentMovementGeneratorType();
+        _interactionStopResume.wasMoving = !movespline->Finalized() || HasUnitState(UNIT_STATE_ROAMING_MOVE);
+        float dx = 0.0f, dy = 0.0f, dz = 0.0f;
+        _interactionStopResume.hasDest = GetMotionMaster()->GetDestination(dx, dy, dz);
+        if (_interactionStopResume.hasDest)
+            _interactionStopResume.dest.Relocate(dx, dy, dz, 0.0f);
+        _interactionStopResume.home = GetHomePosition();
+
+        LOG_DEBUG("entities.unit", "Creature {} (entry {}, {}) frozen for interaction with player {}: wasMoving={}, movegen={}, at ({}, {}, {}), dest=({}, {}, {}, valid={})",
+            GetGUID().ToString(), GetEntry(), GetName(),
+            caster ? caster->GetGUID().ToString() : std::string("none"),
+            _interactionStopResume.wasMoving, uint32(_interactionStopResume.movegen),
+            GetPositionX(), GetPositionY(), GetPositionZ(),
+            dx, dy, dz, _interactionStopResume.hasDest);
+    }
+
     PauseMovement(pause);
 
     if (!caster)
@@ -3107,13 +3140,19 @@ void Creature::ClearInteractionStop(Player* player)
 
     // Only release if the stop aura was placed by this player
     if (!GetAura(INTERACTION_STOP_AURA, player->GetGUID()))
+    {
+        if (!HasAura(INTERACTION_STOP_AURA))
+            _interactionStopResume.valid = false;
         return;
+    }
 
     RemoveAurasDueToSpell(INTERACTION_STOP_AURA, player->GetGUID());
 
     // Expire any remaining generator pause immediately
     ResumeMovement();
     PauseMovement(1);
+
+    ResumeInteractionMovement();
 
     {
         std::lock_guard<std::mutex> lock(*GetInteractionStopLock());
@@ -3122,6 +3161,45 @@ void Creature::ClearInteractionStop(Player* player)
             itr->second.erase(GetGUID().GetRawValue());
             if (itr->second.empty())
                 GetInteractionStopMap()->erase(itr);
+        }
+    }
+}
+
+void Creature::ResumeInteractionMovement()
+{
+    if (!_interactionStopResume.valid)
+        return;
+
+    if (HasAura(INTERACTION_STOP_AURA))
+    {
+        LOG_DEBUG("entities.unit", "Creature {} (entry {}) interaction stop released by one player but still held by another, keeping freeze",
+            GetGUID().ToString(), GetEntry());
+        return;
+    }
+
+    InteractionStopResume snapshot = _interactionStopResume;
+    _interactionStopResume.valid = false;
+
+    SetHomePosition(snapshot.home);
+
+    LOG_DEBUG("entities.unit", "Creature {} (entry {}) unfrozen after interaction: wasMoving={}, movegen={}",
+        GetGUID().ToString(), GetEntry(), snapshot.wasMoving, uint32(snapshot.movegen));
+
+    if (!snapshot.wasMoving || !IsAlive() || IsInCombat())
+        return;
+    if (AI() && AI()->IsEscorted())
+        return;
+
+    if (snapshot.movegen == POINT_MOTION_TYPE && movespline->Finalized())
+    {
+        for (int slot : { MOTION_SLOT_ACTIVE, MOTION_SLOT_CONTROLLED })
+        {
+            if (GetMotionMaster()->GetMotionSlotType(slot) == POINT_MOTION_TYPE)
+            {
+                if (MovementGenerator* gen = GetMotionMaster()->GetMotionSlot(slot))
+                    static_cast<PointMovementGenerator<Creature>*>(gen)->Relaunch(this);
+                break;
+            }
         }
     }
 }

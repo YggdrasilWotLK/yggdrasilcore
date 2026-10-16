@@ -303,10 +303,14 @@ public:
             if (!_heraldOfTheTitans)
                 return true;
 
-            Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                if (Player* plr = itr->GetSource())
-                    if (!plr->IsGameMaster() && plr->IsInCombat() /*performance*/)
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                    continue;
+                if (!plr->IsGameMaster() && plr->IsInCombat() /*performance*/)
                     {
                         for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i) // loop through equipped items
                             if (Item* item = plr->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
@@ -316,6 +320,7 @@ public:
                                     return true;
                                 }
                     }
+            }
 
             return false;
         }

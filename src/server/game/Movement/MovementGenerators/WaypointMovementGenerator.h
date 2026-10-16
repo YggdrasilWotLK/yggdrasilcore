@@ -51,12 +51,12 @@ class WaypointMovementGenerator;
 
 template<>
 class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium< Creature, WaypointMovementGenerator<Creature> >,
-    public PathMovementBase<Creature, WaypointPath const*>
+    public PathMovementBase<Creature, WaypointPath>
 {
 public:
     WaypointMovementGenerator(uint32 _path_id = 0, bool _repeating = true, bool _stalled = false)
-        : PathMovementBase((WaypointPath const*)nullptr), i_nextMoveTime(0), m_isArrivalDone(false), path_id(_path_id), repeating(_repeating), stalled(_stalled)  {}
-    ~WaypointMovementGenerator() { i_path = nullptr; }
+        : PathMovementBase(), i_nextMoveTime(0), m_isArrivalDone(false), path_id(_path_id), repeating(_repeating), stalled(_stalled)  {}
+    ~WaypointMovementGenerator() { i_path.clear(); }
     void DoInitialize(Creature*);
     void DoFinalize(Creature*);
     void DoReset(Creature*);

@@ -564,10 +564,20 @@ struct npc_pet_gen_imp_in_a_bottle : public NullCreatureAI
             {
                 uint8 limit = 0;
                 if (player->GetGroup())
-                    for (GroupReference* itr = player->GetGroup()->GetFirstMember(); itr != nullptr && limit < 4; itr = itr->next(), ++limit)
-                        if (Player* groupPlayer = itr->GetSource())
-                            if (groupPlayer != player)
-                                groupPlayer->GetSession()->SendPacket(&_data);
+                {
+                    std::vector<ObjectGuid> guids = player->GetGroup()->GetMemberGUIDs();
+                    for (ObjectGuid const& guid : guids)
+                    {
+                        if (limit >= 4)
+                            break;
+                        ++limit;
+                        Player* groupPlayer = ObjectAccessor::FindPlayer(guid);
+                        if (!groupPlayer || !groupPlayer->IsInWorld())
+                            continue;
+                        if (groupPlayer != player)
+                            groupPlayer->GetSession()->SendPacket(&_data);
+                    }
+                }
 
                 player->GetSession()->SendPacket(&_data);
             }

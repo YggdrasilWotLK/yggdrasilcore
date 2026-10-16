@@ -19,6 +19,7 @@
 #include "Chat.h"
 #include "DatabaseEnv.h"
 #include "Define.h"
+#include "GroupMgr.h"
 #include "Language.h"
 #include "Log.h"
 #include "ObjectAccessor.h"
@@ -48,6 +49,12 @@ ArenaTeamMgr* ArenaTeamMgr::instance()
 // Arena teams collection
 ArenaTeam* ArenaTeamMgr::GetArenaTeamById(uint32 arenaTeamId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return GetArenaTeamByIdLocked(arenaTeamId);
+}
+
+ArenaTeam* ArenaTeamMgr::GetArenaTeamByIdLocked(uint32 arenaTeamId) const
+{
     ArenaTeamContainer::const_iterator itr = ArenaTeamStore.find(arenaTeamId);
     if (itr != ArenaTeamStore.end())
         return itr->second;
@@ -55,8 +62,19 @@ ArenaTeam* ArenaTeamMgr::GetArenaTeamById(uint32 arenaTeamId) const
     return nullptr;
 }
 
+std::vector<uint32> ArenaTeamMgr::GetArenaTeamIdsSnapshot() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<uint32> ids;
+    ids.reserve(ArenaTeamStore.size());
+    for (auto const& pair : ArenaTeamStore)
+        ids.push_back(pair.first);
+    return ids;
+}
+
 ArenaTeam* ArenaTeamMgr::GetArenaTeamByName(const std::string& arenaTeamName) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     std::string search = arenaTeamName;
     std::transform(search.begin(), search.end(), search.begin(), ::toupper);
     for (ArenaTeamContainer::const_iterator itr = ArenaTeamStore.begin(); itr != ArenaTeamStore.end(); ++itr)
@@ -73,6 +91,7 @@ ArenaTeam* ArenaTeamMgr::GetArenaTeamByName(const std::string& arenaTeamName) co
 
 ArenaTeam* ArenaTeamMgr::GetArenaTeamByName(std::string const& arenaTeamName, const uint32 type) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     std::string search = arenaTeamName;
     std::transform(search.begin(), search.end(), search.begin(), ::toupper);
     for (auto itr = ArenaTeamStore.begin(); itr != ArenaTeamStore.end(); ++itr)
@@ -93,6 +112,7 @@ ArenaTeam* ArenaTeamMgr::GetArenaTeamByName(std::string const& arenaTeamName, co
 
 ArenaTeam* ArenaTeamMgr::GetArenaTeamByCaptain(ObjectGuid guid) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (ArenaTeamContainer::const_iterator itr = ArenaTeamStore.begin(); itr != ArenaTeamStore.end(); ++itr)
     {
         if (itr->second->GetCaptain() == guid)
@@ -105,6 +125,7 @@ ArenaTeam* ArenaTeamMgr::GetArenaTeamByCaptain(ObjectGuid guid) const
 
 ArenaTeam* ArenaTeamMgr::GetArenaTeamByCaptain(ObjectGuid guid, const uint32 type) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (ArenaTeamContainer::const_iterator itr = ArenaTeamStore.begin(); itr != ArenaTeamStore.end(); ++itr)
     {
         if (itr->second->GetCaptain() == guid && itr->second->GetType() == type)
@@ -117,16 +138,19 @@ ArenaTeam* ArenaTeamMgr::GetArenaTeamByCaptain(ObjectGuid guid, const uint32 typ
 
 void ArenaTeamMgr::AddArenaTeam(ArenaTeam* arenaTeam)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     ArenaTeamStore[arenaTeam->GetId()] = arenaTeam;
 }
 
 void ArenaTeamMgr::RemoveArenaTeam(uint32 arenaTeamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     ArenaTeamStore.erase(arenaTeamId);
 }
 
 void ArenaTeamMgr::DeleteAllArenaTeams()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (auto const& [id, team] : ArenaTeamStore)
     {
         while (team->GetMembersSize() > 0)
@@ -148,6 +172,7 @@ void ArenaTeamMgr::DeleteAllArenaTeams()
 
 uint32 ArenaTeamMgr::GenerateArenaTeamId()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (NextArenaTeamId >= MAX_ARENA_TEAM_ID)
     {
         LOG_ERROR("bg.arena", "Arena team ids overflow!! Can't continue, shutting down server. ");
@@ -159,6 +184,7 @@ uint32 ArenaTeamMgr::GenerateArenaTeamId()
 
 uint32 ArenaTeamMgr::GenerateTempArenaTeamId()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (NextTempArenaTeamId >= MAX_TEMP_ARENA_TEAM_ID)
         NextTempArenaTeamId = MAX_ARENA_TEAM_ID;
 
@@ -167,6 +193,7 @@ uint32 ArenaTeamMgr::GenerateTempArenaTeamId()
 
 void ArenaTeamMgr::LoadArenaTeams()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     uint32 oldMSTime = getMSTime();
 
     // Clean out the trash before loading anything
@@ -215,6 +242,7 @@ void ArenaTeamMgr::LoadArenaTeams()
 
 void ArenaTeamMgr::DistributeArenaPoints()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // Used to distribute arena points based on last week's stats
     ChatHandler(nullptr).SendWorldText(LANG_DIST_ARENA_POINTS_START);
 

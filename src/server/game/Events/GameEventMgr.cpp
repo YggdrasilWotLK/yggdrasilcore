@@ -28,6 +28,8 @@
 #include "Player.h"
 #include "PoolMgr.h"
 #include "ScriptMgr.h"
+
+#include <mutex>
 #include "Transport.h"
 #include "UnitAI.h"
 #include "World.h"
@@ -44,6 +46,7 @@ GameEventMgr* GameEventMgr::instance()
 
 bool GameEventMgr::CheckOneGameEvent(uint16 entry) const
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     switch (_gameEvent[entry].State)
     {
         default:
@@ -82,6 +85,7 @@ bool GameEventMgr::CheckOneGameEvent(uint16 entry) const
 
 uint32 GameEventMgr::NextCheck(uint16 entry) const
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     time_t currenttime = GameTime::GetGameTime().count();
 
     // for NEXTPHASE state world events, return the delay to start the next event, so the followup event will be checked correctly
@@ -121,6 +125,7 @@ uint32 GameEventMgr::NextCheck(uint16 entry) const
 
 void GameEventMgr::StartInternalEvent(uint16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     if (eventId < 1 || eventId >= _gameEvent.size())
         return;
 
@@ -135,6 +140,7 @@ void GameEventMgr::StartInternalEvent(uint16 eventId)
 
 bool GameEventMgr::StartEvent(uint16 eventId, bool overwrite)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     if (sDisableMgr->IsDisabledFor(DISABLE_TYPE_GAME_EVENT, eventId, nullptr) && !overwrite)
         return false;
 
@@ -192,6 +198,7 @@ bool GameEventMgr::StartEvent(uint16 eventId, bool overwrite)
 
 void GameEventMgr::StopEvent(uint16 eventId, bool overwrite)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     GameEventData& data = _gameEvent[eventId];
     bool serverwide_evt = data.State != GAMEEVENT_NORMAL && data.State != GAMEEVENT_INTERNAL;
 
@@ -238,6 +245,7 @@ void GameEventMgr::StopEvent(uint16 eventId, bool overwrite)
 
 void GameEventMgr::LoadEventVendors()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Vendor Additions Data...");
     uint32 oldMSTime = getMSTime();
     WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_GAME_EVENT_NPC_VENDOR);
@@ -325,6 +333,7 @@ void GameEventMgr::LoadEventVendors()
 
 void GameEventMgr::LoadEvents()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Events...");
     uint32 oldMSTime = getMSTime();
     WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_GAME_EVENTS);
@@ -393,6 +402,7 @@ void GameEventMgr::LoadEvents()
 
 void GameEventMgr::LoadEventSaveData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     uint32 oldMSTime = getMSTime();
     LOG_INFO("server.loading", "Loading Game Event Saves Data...");
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_GAME_EVENT_SAVE_DATA);
@@ -439,6 +449,7 @@ void GameEventMgr::LoadEventSaveData()
 
 void GameEventMgr::LoadEventPrerequisiteData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Prerequisite Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -492,6 +503,7 @@ void GameEventMgr::LoadEventPrerequisiteData()
 
 void GameEventMgr::LoadEventCreatureData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Creature Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -542,6 +554,7 @@ void GameEventMgr::LoadEventCreatureData()
 
 void GameEventMgr::LoadEventGameObjectData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event GO Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -592,6 +605,7 @@ void GameEventMgr::LoadEventGameObjectData()
 
 void GameEventMgr::LoadEventModelEquipmentChangeData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Model/Equipment Change Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -653,6 +667,7 @@ void GameEventMgr::LoadEventModelEquipmentChangeData()
 
 void GameEventMgr::LoadEventQuestData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Quest Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -695,6 +710,7 @@ void GameEventMgr::LoadEventQuestData()
 
 void GameEventMgr::LoadEventGameObjectQuestData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event GO Quest Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -737,6 +753,7 @@ void GameEventMgr::LoadEventGameObjectQuestData()
 
 void GameEventMgr::LoadEventQuestConditionData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Quest Condition Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -781,6 +798,7 @@ void GameEventMgr::LoadEventQuestConditionData()
 
 void GameEventMgr::LoadEventConditionData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Condition Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -824,6 +842,7 @@ void GameEventMgr::LoadEventConditionData()
 
 void GameEventMgr::LoadEventConditionSaveData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Condition Save Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -873,6 +892,7 @@ void GameEventMgr::LoadEventConditionSaveData()
 
 void GameEventMgr::LoadEventNPCFlags()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event NPCflag Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -914,6 +934,7 @@ void GameEventMgr::LoadEventNPCFlags()
 
 void GameEventMgr::LoadEventSeasonalQuestRelations()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Seasonal Quest Relations...");
     uint32 oldMSTime = getMSTime();
 
@@ -961,6 +982,7 @@ void GameEventMgr::LoadEventSeasonalQuestRelations()
 
 void GameEventMgr::LoadEventBattlegroundData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Battleground Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -1000,6 +1022,7 @@ void GameEventMgr::LoadEventBattlegroundData()
 
 void GameEventMgr::LoadEventPoolData()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_INFO("server.loading", "Loading Game Event Pool Data...");
 
     uint32 oldMSTime = getMSTime();
@@ -1049,6 +1072,7 @@ void GameEventMgr::LoadEventPoolData()
 
 void GameEventMgr::LoadFromDB()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     // The order of these functions matter. Do not change
     LoadEvents();
     LoadEventSaveData();
@@ -1070,6 +1094,7 @@ void GameEventMgr::LoadFromDB()
 
 void GameEventMgr::LoadHolidayDates()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     uint32 oldMSTime = getMSTime();
 
     WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_GAME_EVENT_HOLIDAY_DATES);
@@ -1119,12 +1144,13 @@ void GameEventMgr::LoadHolidayDates()
 
 uint32 GameEventMgr::GetNPCFlag(Creature* cr)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     uint32 mask = 0;
     ObjectGuid::LowType spawnId = cr->GetSpawnId();
 
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        for (NPCFlagList::iterator itr = _gameEventNPCFlags[*e_itr].begin(); itr != _gameEventNPCFlags[*e_itr].end(); ++ itr)
+        for (NPCFlagList::iterator itr = _gameEventNPCFlags[activeEvent].begin(); itr != _gameEventNPCFlags[activeEvent].end(); ++ itr)
             if (itr->first == spawnId)
                 mask |= itr->second;
     }
@@ -1134,6 +1160,7 @@ uint32 GameEventMgr::GetNPCFlag(Creature* cr)
 
 void GameEventMgr::Initialize()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     QueryResult result = WorldDatabase.Query("SELECT MAX(eventEntry) FROM game_event");
     if (result)
     {
@@ -1159,7 +1186,11 @@ void GameEventMgr::Initialize()
 
 uint32 GameEventMgr::StartSystem()                           // return the next event delay in ms
 {
-    _activeEvents.clear();
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
+    {
+        std::unique_lock<std::shared_mutex> activeLock(_activeEventsLock);
+        _activeEvents.clear();
+    }
     uint32 delay = Update();
     _isSystemInit = true;
     return delay;
@@ -1167,6 +1198,7 @@ uint32 GameEventMgr::StartSystem()                           // return the next 
 
 uint32 GameEventMgr::Update()                               // return the next event delay in ms
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     time_t currenttime = GameTime::GetGameTime().count();
     uint32 nextEventDelay = max_ge_check_delay;             // 1 day
     uint32 calcDelay;
@@ -1246,6 +1278,7 @@ uint32 GameEventMgr::Update()                               // return the next e
 
 void GameEventMgr::UnApplyEvent(uint16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     LOG_DEBUG("gameevent", "GameEvent {} \"{}\" removed.", eventId, _gameEvent[eventId].Description);
     //! Run SAI scripts with SMART_EVENT_GAME_EVENT_END
     RunSmartAIScripts(eventId, false);
@@ -1269,6 +1302,7 @@ void GameEventMgr::UnApplyEvent(uint16 eventId)
 
 void GameEventMgr::ApplyNewEvent(uint16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     uint8 announce = _gameEvent[eventId].Announce;
     if (announce == 1 || (announce == 2 && sWorld->getIntConfig(CONFIG_EVENT_ANNOUNCE)))
         ChatHandler(nullptr).SendWorldText(LANG_EVENTMESSAGE, _gameEvent[eventId].Description);
@@ -1305,6 +1339,7 @@ void GameEventMgr::ApplyNewEvent(uint16 eventId)
 
 void GameEventMgr::UpdateEventNPCFlags(uint16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     std::unordered_map<uint32, std::unordered_set<ObjectGuid::LowType>> creaturesByMap;
 
     // go through the creatures whose npcflags are changed in the event
@@ -1321,6 +1356,7 @@ void GameEventMgr::UpdateEventNPCFlags(uint16 eventId)
         {
             for (auto& spawnId : p.second)
             {
+                std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
                 auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(spawnId);
                 for (auto itr = creatureBounds.first; itr != creatureBounds.second; ++itr)
                 {
@@ -1340,14 +1376,16 @@ void GameEventMgr::UpdateEventNPCFlags(uint16 eventId)
 
 void GameEventMgr::UpdateBattlegroundSettings()
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     uint32 mask = 0;
-    for (ActiveEvents::const_iterator itr = _activeEvents.begin(); itr != _activeEvents.end(); ++itr)
-        mask |= _gameEventBattlegroundHolidays[*itr];
+    for (uint16 activeEvent : GetActiveEventList())
+        mask |= _gameEventBattlegroundHolidays[activeEvent];
     sBattlegroundMgr->SetHolidayWeekends(mask);
 }
 
 void GameEventMgr::UpdateEventNPCVendor(uint16 eventId, bool activate)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     for (NPCVendorList::iterator itr = _gameEventVendors[eventId].begin(); itr != _gameEventVendors[eventId].end(); ++itr)
     {
         if (activate)
@@ -1359,6 +1397,7 @@ void GameEventMgr::UpdateEventNPCVendor(uint16 eventId, bool activate)
 
 void GameEventMgr::GameEventSpawn(int16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     int32 internal_event_id = _gameEvent.size() + eventId - 1;
 
     if (internal_event_id < 0 || internal_event_id >= int32(GameEventCreatureGuids.size()))
@@ -1432,6 +1471,7 @@ void GameEventMgr::GameEventSpawn(int16 eventId)
 
 void GameEventMgr::GameEventUnspawn(int16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     int32 internal_event_id = _gameEvent.size() + eventId - 1;
 
     if (internal_event_id < 0 || internal_event_id >= int32(GameEventCreatureGuids.size()))
@@ -1454,6 +1494,7 @@ void GameEventMgr::GameEventUnspawn(int16 eventId)
 
             sMapMgr->DoForAllMapsWithMapId(data->mapid, [&itr](Map* map)
             {
+                std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
                 auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(*itr);
                 for (auto itr2 = creatureBounds.first; itr2 != creatureBounds.second;)
                 {
@@ -1484,6 +1525,7 @@ void GameEventMgr::GameEventUnspawn(int16 eventId)
 
             sMapMgr->DoForAllMapsWithMapId(data->mapid, [&itr](Map* map)
             {
+                std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
                 auto gameobjectBounds = map->GetGameObjectBySpawnIdStore().equal_range(*itr);
                 for (auto itr2 = gameobjectBounds.first; itr2 != gameobjectBounds.second;)
                 {
@@ -1508,6 +1550,7 @@ void GameEventMgr::GameEventUnspawn(int16 eventId)
 
 void GameEventMgr::ChangeEquipOrModel(int16 eventId, bool activate)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     for (ModelEquipList::iterator itr = _gameEventModelEquip[eventId].begin(); itr != _gameEventModelEquip[eventId].end(); ++itr)
     {
         // Remove the creature from grid
@@ -1518,6 +1561,7 @@ void GameEventMgr::ChangeEquipOrModel(int16 eventId, bool activate)
         // Update if spawned
         sMapMgr->DoForAllMapsWithMapId(data->mapid, [&itr, activate](Map* map)
         {
+            std::lock_guard<std::recursive_mutex> lock(*map->GetStoreLock());
             auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(itr->first);
             for (auto itr2 = creatureBounds.first; itr2 != creatureBounds.second; ++itr2)
             {
@@ -1565,11 +1609,12 @@ void GameEventMgr::ChangeEquipOrModel(int16 eventId, bool activate)
 
 bool GameEventMgr::HasCreatureQuestActiveEventExcept(uint32 quest_id, uint16 eventId)
 {
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        if ((*e_itr) != eventId)
-            for (QuestRelList::iterator itr = _gameEventCreatureQuests[*e_itr].begin();
-                    itr != _gameEventCreatureQuests[*e_itr].end();
+        if (activeEvent != eventId)
+            for (QuestRelList::iterator itr = _gameEventCreatureQuests[activeEvent].begin();
+                    itr != _gameEventCreatureQuests[activeEvent].end();
                     ++ itr)
                 if (itr->second == quest_id)
                     return true;
@@ -1579,11 +1624,12 @@ bool GameEventMgr::HasCreatureQuestActiveEventExcept(uint32 quest_id, uint16 eve
 
 bool GameEventMgr::HasGameObjectQuestActiveEventExcept(uint32 quest_id, uint16 eventId)
 {
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        if ((*e_itr) != eventId)
-            for (QuestRelList::iterator itr = _gameEventGameObjectQuests[*e_itr].begin();
-                    itr != _gameEventGameObjectQuests[*e_itr].end();
+        if (activeEvent != eventId)
+            for (QuestRelList::iterator itr = _gameEventGameObjectQuests[activeEvent].begin();
+                    itr != _gameEventGameObjectQuests[activeEvent].end();
                     ++ itr)
                 if (itr->second == quest_id)
                     return true;
@@ -1592,11 +1638,12 @@ bool GameEventMgr::HasGameObjectQuestActiveEventExcept(uint32 quest_id, uint16 e
 }
 bool GameEventMgr::HasCreatureActiveEventExcept(ObjectGuid::LowType creature_guid, uint16 eventId)
 {
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        if ((*e_itr) != eventId)
+        if (activeEvent != eventId)
         {
-            int32 internal_event_id = _gameEvent.size() + (*e_itr) - 1;
+            int32 internal_event_id = _gameEvent.size() + activeEvent - 1;
             for (GuidLowList::iterator itr = GameEventCreatureGuids[internal_event_id].begin(); itr != GameEventCreatureGuids[internal_event_id].end(); ++ itr)
                 if (*itr == creature_guid)
                     return true;
@@ -1606,11 +1653,12 @@ bool GameEventMgr::HasCreatureActiveEventExcept(ObjectGuid::LowType creature_gui
 }
 bool GameEventMgr::HasGameObjectActiveEventExcept(ObjectGuid::LowType go_guid, uint16 eventId)
 {
-    for (ActiveEvents::iterator e_itr = _activeEvents.begin(); e_itr != _activeEvents.end(); ++e_itr)
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
+    for (uint16 activeEvent : GetActiveEventList())
     {
-        if ((*e_itr) != eventId)
+        if (activeEvent != eventId)
         {
-            int32 internal_event_id = _gameEvent.size() + (*e_itr) - 1;
+            int32 internal_event_id = _gameEvent.size() + activeEvent - 1;
             for (GuidLowList::iterator itr = GameEventGameobjectGuids[internal_event_id].begin(); itr != GameEventGameobjectGuids[internal_event_id].end(); ++ itr)
                 if (*itr == go_guid)
                     return true;
@@ -1621,6 +1669,7 @@ bool GameEventMgr::HasGameObjectActiveEventExcept(ObjectGuid::LowType go_guid, u
 
 void GameEventMgr::UpdateEventQuests(uint16 eventId, bool activate)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     QuestRelList::iterator itr;
     for (itr = _gameEventCreatureQuests[eventId].begin(); itr != _gameEventCreatureQuests[eventId].end(); ++itr)
     {
@@ -1676,6 +1725,7 @@ void GameEventMgr::UpdateEventQuests(uint16 eventId, bool activate)
 
 void GameEventMgr::UpdateWorldStates(uint16 eventId, bool Activate)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     GameEventData const& event = _gameEvent[eventId];
     if (event.HolidayId != HOLIDAY_NONE)
     {
@@ -1700,6 +1750,7 @@ GameEventMgr::GameEventMgr() : _isSystemInit(false)
 
 void GameEventMgr::HandleQuestComplete(uint32 quest_id)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     // translate the quest to event and condition
     QuestIdToEventConditionMap::iterator itr = _questToEventConditions.find(quest_id);
     // quest is registered
@@ -1755,6 +1806,7 @@ void GameEventMgr::HandleQuestComplete(uint32 quest_id)
 
 bool GameEventMgr::CheckOneGameEventConditions(uint16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     for (GameEventConditionMap::const_iterator itr = _gameEvent[eventId].Conditions.begin(); itr != _gameEvent[eventId].Conditions.end(); ++itr)
         if (itr->second.Done < itr->second.ReqNum)
             // return false if a condition doesn't match
@@ -1772,6 +1824,7 @@ bool GameEventMgr::CheckOneGameEventConditions(uint16 eventId)
 
 void GameEventMgr::SaveWorldEventStateToDB(uint16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GAME_EVENT_SAVE);
@@ -1788,6 +1841,7 @@ void GameEventMgr::SaveWorldEventStateToDB(uint16 eventId)
 
 void GameEventMgr::SendWorldStateUpdate(Player* player, uint16 eventId)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     GameEventConditionMap::const_iterator itr;
     for (itr = _gameEvent[eventId].Conditions.begin(); itr != _gameEvent[eventId].Conditions.end(); ++itr)
     {
@@ -1827,6 +1881,7 @@ private:
 
 void GameEventMgr::RunSmartAIScripts(uint16 eventId, bool activate)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     //! Iterate over every supported source type (creature and gameobject)
     //! Not entirely sure how this will affect units in non-loaded grids.
     sMapMgr->DoForAllMaps([eventId, activate](Map* map)
@@ -1839,6 +1894,7 @@ void GameEventMgr::RunSmartAIScripts(uint16 eventId, bool activate)
 
 void GameEventMgr::SetHolidayEventTime(GameEventData& event)
 {
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
     if (!event.HolidayStage) // Ignore holiday
         return;
 
@@ -1934,9 +1990,9 @@ void GameEventMgr::SetHolidayEventTime(GameEventData& event)
 
 uint32 GameEventMgr::GetHolidayEventId(uint32 holidayId) const
 {
-    auto const& events = GetEventMap();
-
-    for (auto const& eventEntry : events)
+    std::lock_guard<std::recursive_mutex> eventLock(_eventDataLock);
+    // Scan under the held lock: avoids copying the whole event vector.
+    for (auto const& eventEntry : _gameEvent)
     {
         if (eventEntry.HolidayId == holidayId)
         {

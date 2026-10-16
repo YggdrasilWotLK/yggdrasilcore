@@ -26,6 +26,7 @@ template <class TO, class FROM> class RefMgr : public LinkedListHead
 {
 public:
     typedef LinkedListHead::Iterator< Reference<TO, FROM>> iterator;
+    typedef LinkedListHead::Iterator< Reference<TO, FROM> const> const_iterator;
     RefMgr() = default;
     virtual ~RefMgr() { clearReferences(); }
 
@@ -36,6 +37,8 @@ public:
 
     iterator begin() { return iterator(getFirst()); }
     iterator end() { return iterator(nullptr); }
+    [[nodiscard]] const_iterator begin() const { return const_iterator(getFirst()); }
+    [[nodiscard]] const_iterator end() const { return const_iterator(nullptr); }
     iterator rbegin() { return iterator(getLast()); }
     iterator rend() { return iterator(nullptr); }
 

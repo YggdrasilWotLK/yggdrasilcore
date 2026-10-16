@@ -513,12 +513,16 @@ public:
                 case 14:
                     if (me->GetMap()->IsDungeon())
                     {
-                        InstanceMap::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                        for (InstanceMap::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
                         {
-                            if (i->GetSource()->GetQuestStatus(9645) == QUEST_STATUS_INCOMPLETE)
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (p->GetQuestStatus(9645) == QUEST_STATUS_INCOMPLETE)
                             {
-                                i->GetSource()->GroupEventHappens(9645, me);
+                                p->GroupEventHappens(9645, me);
                                 break;
                             }
                         }

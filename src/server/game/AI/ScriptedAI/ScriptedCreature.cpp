@@ -280,25 +280,27 @@ void ScriptedAI::DoPlayMusic(uint32 soundId, bool zone)
 
     if (me && me->FindMap())
     {
-        Map::PlayerList const& players = me->GetMap()->GetPlayers();
+        Map* musicMap = me->GetMap();
+        uint32 zoneId = me->GetZoneId();
+        uint32 areaId = me->GetAreaId();
         targets = new ObjectList();
 
-        if (!players.IsEmpty())
+        std::vector<ObjectGuid> guids = musicMap->CopyPlayerGuids();
+        for (ObjectGuid const& playerGuid : guids)
         {
-            for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
-                if (Player* player = i->GetSource())
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || !player->IsInWorld() || player->GetMap() != musicMap)
+                continue;
+            if (player->GetZoneId() == zoneId)
+            {
+                if (!zone)
                 {
-                    if (player->GetZoneId() == me->GetZoneId())
-                    {
-                        if (!zone)
-                        {
-                            if (player->GetAreaId() == me->GetAreaId())
-                                targets->push_back(player);
-                        }
-                        else
-                            targets->push_back(player);
-                    }
+                    if (player->GetAreaId() == areaId)
+                        targets->push_back(player);
                 }
+                else
+                    targets->push_back(player);
+            }
         }
     }
 
@@ -479,11 +481,15 @@ void ScriptedAI::DoTeleportAll(float x, float y, float z, float o)
     if (!map->IsDungeon())
         return;
 
-    Map::PlayerList const& PlayerList = map->GetPlayers();
-    for (Map::PlayerList::const_iterator itr = PlayerList.begin(); itr != PlayerList.end(); ++itr)
-        if (Player* player = itr->GetSource())
-            if (player->IsAlive())
-                player->TeleportTo(me->GetMapId(), x, y, z, o, TELE_TO_NOT_LEAVE_COMBAT);
+    std::vector<ObjectGuid> guids = map->CopyPlayerGuids();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetMap() != map)
+            continue;
+        if (player->IsAlive())
+            player->TeleportTo(me->GetMapId(), x, y, z, o, TELE_TO_NOT_LEAVE_COMBAT);
+    }
 }
 
 Unit* ScriptedAI::DoSelectLowestHpFriendly(float range, uint32 minHPDiff)
@@ -562,17 +568,21 @@ enum eNPCs
 
 Player* ScriptedAI::SelectTargetFromPlayerList(float maxdist, uint32 excludeAura, bool mustBeInLOS) const
 {
-    Map::PlayerList const& pList = me->GetMap()->GetPlayers();
+    Map* targetMap = me->GetMap();
+    std::vector<ObjectGuid> guids = targetMap->CopyPlayerGuids();
     std::vector<Player*> tList;
-    for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+    for (ObjectGuid const& playerGuid : guids)
     {
-        if (!me->IsWithinDistInMap(itr->GetSource(), maxdist, true, false) || !itr->GetSource()->IsAlive() || itr->GetSource()->IsGameMaster())
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld() || listed->GetMap() != targetMap)
             continue;
-        if (excludeAura && itr->GetSource()->HasAura(excludeAura))
+        if (!me->IsWithinDistInMap(listed, maxdist, true, false) || !listed->IsAlive() || listed->IsGameMaster())
             continue;
-        if (mustBeInLOS && !me->IsWithinLOSInMap(itr->GetSource()))
+        if (excludeAura && listed->HasAura(excludeAura))
             continue;
-        tList.push_back(itr->GetSource());
+        if (mustBeInLOS && !me->IsWithinLOSInMap(listed))
+            continue;
+        tList.push_back(listed);
     }
     if (!tList.empty())
         return tList[urand(0, tList.size() - 1)];

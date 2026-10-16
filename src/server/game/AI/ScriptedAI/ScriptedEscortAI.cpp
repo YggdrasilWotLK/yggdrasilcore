@@ -153,10 +153,15 @@ void npc_escortAI::JustDied(Unit* /*killer*/)
     {
         if (Group* group = player->GetGroup())
         {
-            for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
-                if (Player* member = groupRef->GetSource())
-                    if (member->IsInMap(player) && member->GetQuestStatus(m_pQuestForEscort->GetQuestId()) == QUEST_STATUS_INCOMPLETE)
-                        member->FailQuest(m_pQuestForEscort->GetQuestId());
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
+            {
+                Player* member = ObjectAccessor::FindPlayer(guid);
+                if (!member || !member->IsInWorld())
+                    continue;
+                if (member->IsInMap(player) && member->GetQuestStatus(m_pQuestForEscort->GetQuestId()) == QUEST_STATUS_INCOMPLETE)
+                    member->FailQuest(m_pQuestForEscort->GetQuestId());
+            }
         }
         else
         {
@@ -216,10 +221,15 @@ bool npc_escortAI::IsPlayerOrGroupInRange()
     {
         if (Group* group = player->GetGroup())
         {
-            for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
-                if (Player* member = groupRef->GetSource())
-                    if (me->IsWithinDistInMap(member, GetMaxPlayerDistance(), true, false))
-                        return true;
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
+            {
+                Player* member = ObjectAccessor::FindPlayer(guid);
+                if (!member || !member->IsInWorld())
+                    continue;
+                if (me->IsWithinDistInMap(member, GetMaxPlayerDistance(), true, false))
+                    return true;
+            }
         }
         else if (me->IsWithinDistInMap(player, GetMaxPlayerDistance(), true, false))
             return true;

@@ -1090,11 +1090,12 @@ public:
             return false;
         }
 
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            Player* player = itr->GetSource();
+            Player* player = ObjectAccessor::FindPlayer(guid);
 
-            if (!player || player == handler->GetSession()->GetPlayer() || !player->GetSession())
+            if (!player || !player->IsInWorld() || player == handler->GetSession()->GetPlayer() || !player->GetSession())
             {
                 continue;
             }
@@ -1839,7 +1840,7 @@ public:
 
         bool found = false;
 
-        for (auto const& [itemid, itemTemplate] : *sObjectMgr->GetItemTemplateStore())
+        sObjectMgr->ForEachItemTemplate([&](uint32 itemid, ItemTemplate const& itemTemplate)
         {
             if (itemTemplate.ItemSet == uint32(itemSetId))
             {
@@ -1870,7 +1871,7 @@ public:
                     handler->PSendSysMessage(LANG_ITEM_CANNOT_CREATE, itemTemplate.ItemId, 1);
                 }
             }
-        }
+        });
 
         if (!found)
         {
@@ -2561,12 +2562,23 @@ public:
         else
         {
             // pussywizard: notify all online GMs
-            std::shared_lock<std::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
-            HashMapHolder<Player>::MapType const& m = ObjectAccessor::GetPlayers();
-            for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
-                if (itr->second->GetSession()->GetSecurity())
-                    ChatHandler(itr->second->GetSession()).PSendSysMessage(target ? LANG_YOU_DISABLE_CHAT : LANG_COMMAND_DISABLE_CHAT_DELAYED,
+            std::vector<ObjectGuid> gmGuids;
+            {
+                std::shared_lock<std::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
+                HashMapHolder<Player>::MapType const& m = ObjectAccessor::GetPlayers();
+                gmGuids.reserve(m.size());
+                for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
+                    gmGuids.push_back(itr->second->GetGUID());
+            }
+            for (ObjectGuid const& gmGuid : gmGuids)
+            {
+                Player* gm = ObjectAccessor::FindPlayer(gmGuid);
+                if (!gm || !gm->IsInWorld())
+                    continue;
+                if (gm->GetSession() && gm->GetSession()->GetSecurity())
+                    ChatHandler(gm->GetSession()).PSendSysMessage(target ? LANG_YOU_DISABLE_CHAT : LANG_COMMAND_DISABLE_CHAT_DELAYED,
                             (handler->GetSession() ? handler->GetSession()->GetPlayerName() : handler->GetAcoreString(LANG_CONSOLE)), nameLink, secsToTimeString(muteDuration, true), muteReasonStr);
+            }
         }
 
         return true;

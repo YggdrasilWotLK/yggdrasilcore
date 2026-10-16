@@ -614,7 +614,7 @@ void WorldSession::HandleBattlefieldStatusOpcode(WorldPacket& /*recvData*/)
 
     // for current bg send STATUS_IN_PROGRESS
     if (Battleground* bg = _player->GetBattleground())
-        if (bg->GetPlayers().count(_player->GetGUID()))
+        if (bg->HasPlayer(_player->GetGUID()))
         {
             sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, _player->GetCurrentBattlegroundQueueSlot(), STATUS_IN_PROGRESS, bg->GetEndTime(), bg->GetStartTime(), bg->GetArenaType(), _player->GetBgTeamId());
             SendPacket(&data);
@@ -869,10 +869,11 @@ void WorldSession::HandleBattlemasterJoinArena(WorldPacket& recvData)
         }
 
         WorldPacket data;
-        for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = grp->GetMemberGUIDs();
+        for (ObjectGuid const& memberGuid : guids)
         {
-            Player* member = itr->GetSource();
-            if (!member)
+            Player* member = ObjectAccessor::FindPlayer(memberGuid);
+            if (!member || !member->IsInWorld())
                 continue;
 
             if (err <= 0)

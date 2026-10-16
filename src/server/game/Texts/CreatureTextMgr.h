@@ -224,11 +224,15 @@ void CreatureTextMgr::SendChatPacket(WorldObject* source, Builder const& builder
             }
         case TEXT_RANGE_WORLD:
             {
-                WorldSessionMgr::SessionMap const& smap = sWorldSessionMgr->GetAllSessions();
-                for (WorldSessionMgr::SessionMap::const_iterator itr = smap.begin(); itr != smap.end(); ++itr)
-                    if (Player* player = itr->second->GetPlayer())
+                std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+                for (WorldSession* session : sessions)
+                {
+                    if (!session)
+                        continue;
+                    if (Player* player = session->GetPlayer())
                         if ((teamId == TEAM_NEUTRAL || player->GetTeamId() == teamId) && (!gmOnly || player->IsGameMaster()))
                             localizer(player);
+                }
                 return;
             }
         case TEXT_RANGE_NORMAL:

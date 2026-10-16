@@ -1031,9 +1031,14 @@ struct boss_headless_horseman : public ScriptedAI
         for (std::list<Creature*>::iterator itr = unitList.begin(); itr != unitList.end(); ++itr)
             (*itr)->ToCreature()->DespawnOrUnsummon(500ms);
 
-        Map::PlayerList const& players = me->GetMap()->GetPlayers();
-        if (!players.IsEmpty() && players.begin()->GetSource() && players.begin()->GetSource()->GetGroup())
-            sLFGMgr->FinishDungeon(players.begin()->GetSource()->GetGroup()->GetGUID(), lfg::LFG_DUNGEON_HEADLESS_HORSEMAN, me->FindMap());
+        Map* snapMap = me->GetMap();
+        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+        if (!guids.empty())
+        {
+            Player* firstPlayer = ObjectAccessor::FindPlayer(guids.front());
+            if (firstPlayer && firstPlayer->IsInWorld() && firstPlayer->GetMap() == snapMap && firstPlayer->GetGroup())
+                sLFGMgr->FinishDungeon(firstPlayer->GetGroup()->GetGUID(), lfg::LFG_DUNGEON_HEADLESS_HORSEMAN, me->FindMap());
+        }
 
         if (InstanceScript* instance = me->GetInstanceScript())
             instance->SetData(DATA_HORSEMAN_EVENT, DONE);

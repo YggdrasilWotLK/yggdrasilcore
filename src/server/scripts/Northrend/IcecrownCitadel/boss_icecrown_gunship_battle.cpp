@@ -1008,15 +1008,15 @@ public:
                 if (checkTimer <= diff)
                 {
                     checkTimer = 1000;
-                    Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                    for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                        if (Player* p = itr->GetSource())
-                            if (CanAIAttack(p) && me->IsValidAttackTarget(p))
-                            {
-                                me->SetInCombatWith(p);
-                                p->SetInCombatWith(me);
-                                me->AddThreat(p, 0.0f);
-                            }
+                    me->GetMap()->DoForAllPlayers([&](Player* p)
+                    {
+                        if (CanAIAttack(p) && me->IsValidAttackTarget(p))
+                        {
+                            me->SetInCombatWith(p);
+                            p->SetInCombatWith(me);
+                            me->AddThreat(p, 0.0f);
+                        }
+                    });
                 }
                 else
                     checkTimer -= diff;
@@ -1055,11 +1055,11 @@ public:
                     if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
                     {
                         //_instance->DoCastSpellOnPlayers(SPELL_LOCK_PLAYERS_AND_TAP_CHEST);
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (!p->IsGameMaster())
-                                    p->SetInCombatState(true);
+                        me->GetMap()->DoForAllPlayers([&](Player* p)
+                        {
+                            if (!p->IsGameMaster())
+                                p->SetInCombatState(true);
+                        });
                         _events.ScheduleEvent(EVENT_KEEP_PLAYER_IN_COMBAT, 4s);
                     }
                     break;
@@ -1363,15 +1363,15 @@ public:
                 if (checkTimer <= diff)
                 {
                     checkTimer = 1000;
-                    Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                    for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                        if (Player* p = itr->GetSource())
-                            if (CanAIAttack(p) && me->IsValidAttackTarget(p))
-                            {
-                                me->SetInCombatWith(p);
-                                p->SetInCombatWith(me);
-                                me->AddThreat(p, 0.0f);
-                            }
+                    me->GetMap()->DoForAllPlayers([&](Player* p)
+                    {
+                        if (CanAIAttack(p) && me->IsValidAttackTarget(p))
+                        {
+                            me->SetInCombatWith(p);
+                            p->SetInCombatWith(me);
+                            me->AddThreat(p, 0.0f);
+                        }
+                    });
                 }
                 else
                     checkTimer -= diff;
@@ -1413,11 +1413,11 @@ public:
                     if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
                     {
                         //_instance->DoCastSpellOnPlayers(SPELL_LOCK_PLAYERS_AND_TAP_CHEST);
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (!p->IsGameMaster())
-                                    p->SetInCombatState(true);
+                        me->GetMap()->DoForAllPlayers([&](Player* p)
+                        {
+                            if (!p->IsGameMaster())
+                                p->SetInCombatState(true);
+                        });
                         _events.ScheduleEvent(EVENT_KEEP_PLAYER_IN_COMBAT, 4s);
                     }
                     break;
@@ -1741,16 +1741,21 @@ struct npc_gunship_boarding_addAI : public ScriptedAI
         {
             checkTimer = 1000;
             anyValid = false;
-            Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                if (Player* p = itr->GetSource())
-                    if (CanAIAttack(p) && me->IsValidAttackTarget(p))
-                    {
-                        anyValid = true;
-                        me->SetInCombatWith(p);
-                        p->SetInCombatWith(me);
-                        me->AddThreat(p, 0.0f);
-                    }
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                    continue;
+                if (CanAIAttack(p) && me->IsValidAttackTarget(p))
+                {
+                    anyValid = true;
+                    me->SetInCombatWith(p);
+                    p->SetInCombatWith(me);
+                    me->AddThreat(p, 0.0f);
+                }
+            }
         }
         else
             checkTimer -= diff;
@@ -1983,16 +1988,21 @@ public:
             {
                 checkTimer = 1000;
                 anyValid = false;
-                Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                    if (Player* p = itr->GetSource())
-                        if (CanAIAttack(p) && me->IsValidAttackTarget(p))
-                        {
-                            anyValid = true;
-                            me->SetInCombatWith(p);
-                            p->SetInCombatWith(me);
-                            me->AddThreat(p, 0.0f);
-                        }
+                Map* snapMap = me->GetMap();
+                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                        continue;
+                    if (CanAIAttack(p) && me->IsValidAttackTarget(p))
+                    {
+                        anyValid = true;
+                        me->SetInCombatWith(p);
+                        p->SetInCombatWith(me);
+                        me->AddThreat(p, 0.0f);
+                    }
+                }
             }
             else
                 checkTimer -= diff;

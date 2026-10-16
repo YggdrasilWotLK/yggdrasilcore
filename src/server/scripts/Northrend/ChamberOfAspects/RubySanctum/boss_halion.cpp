@@ -267,11 +267,16 @@ public:
 
         bool IsAnyPlayerValid()
         {
-            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-            for(Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
-                if (Player* player = itr->GetSource())
-                    if (!player->IsGameMaster() && player->IsAlive() && me->GetHomePosition().GetExactDist2d(player) < 52.0f && me->IsWithinLOSInMap(player) && !player->HasInvisibilityAura() && !player->HasStealthAura() && !player->HasUnattackableAura() && !player->HasAura(5384))
-                        return true;
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                    continue;
+                if (!player->IsGameMaster() && player->IsAlive() && me->GetHomePosition().GetExactDist2d(player) < 52.0f && me->IsWithinLOSInMap(player) && !player->HasInvisibilityAura() && !player->HasStealthAura() && !player->HasUnattackableAura() && !player->HasAura(5384))
+                    return true;
+            }
             return false;
         }
 

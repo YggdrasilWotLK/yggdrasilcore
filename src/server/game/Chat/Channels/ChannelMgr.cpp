@@ -124,6 +124,7 @@ Channel* ChannelMgr::GetJoinChannel(std::string const& name, uint32 channelId)
     Utf8toWStr(name, wname);
     wstrToLower(wname);
 
+    std::lock_guard<std::mutex> lock(_channelsLock);
     ChannelMap::const_iterator i = channels.find(wname);
 
     if (i == channels.end())
@@ -142,6 +143,7 @@ Channel* ChannelMgr::GetChannel(std::string const& name, Player* player, bool pk
     Utf8toWStr(name, wname);
     wstrToLower(wname);
 
+    std::lock_guard<std::mutex> lock(_channelsLock);
     ChannelMap::const_iterator i = channels.find(wname);
 
     if (i == channels.end())
@@ -159,14 +161,28 @@ Channel* ChannelMgr::GetChannel(std::string const& name, Player* player, bool pk
     return i->second;
 }
 
+std::vector<Channel*> ChannelMgr::GetChannelsSnapshot() const
+{
+    std::lock_guard<std::mutex> lock(_channelsLock);
+    std::vector<Channel*> snapshot;
+    snapshot.reserve(channels.size());
+    for (auto const& pair : channels)
+        snapshot.push_back(pair.second);
+    return snapshot;
+}
+
 uint32 ChannelMgr::_channelIdMax = 0;
 ChannelMgr::ChannelRightsMap ChannelMgr::channels_rights;
+std::mutex ChannelMgr::_channelRightsLock;
 ChannelRights ChannelMgr::channelRightsEmpty;
 
 void ChannelMgr::LoadChannelRights()
 {
     uint32 oldMSTime = getMSTime();
-    channels_rights.clear();
+    {
+        std::lock_guard<std::mutex> lock(_channelRightsLock);
+        channels_rights.clear();
+    }
 
     QueryResult result = CharacterDatabase.Query("SELECT name, flags, speakdelay, joinmessage, delaymessage, moderators FROM channels_rights");
     if (!result)
@@ -205,10 +221,11 @@ void ChannelMgr::LoadChannelRights()
     LOG_INFO("server.loading", " ");
 }
 
-const ChannelRights& ChannelMgr::GetChannelRightsFor(const std::string& name)
+ChannelRights ChannelMgr::GetChannelRightsFor(const std::string& name)
 {
     std::string nameStr = name;
     std::transform(nameStr.begin(), nameStr.end(), nameStr.begin(), ::tolower);
+    std::lock_guard<std::mutex> lock(_channelRightsLock);
     ChannelRightsMap::const_iterator itr = channels_rights.find(nameStr);
     if (itr != channels_rights.end())
         return itr->second;
@@ -219,6 +236,7 @@ void ChannelMgr::SetChannelRightsFor(const std::string& name, const uint32& flag
 {
     std::string nameStr = name;
     std::transform(nameStr.begin(), nameStr.end(), nameStr.begin(), ::tolower);
+    std::lock_guard<std::mutex> lock(_channelRightsLock);
     channels_rights[nameStr] = ChannelRights(flags, speakDelay, joinmessage, speakmessage, moderators);
 }
 

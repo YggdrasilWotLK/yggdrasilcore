@@ -370,12 +370,11 @@ bool IsValidPlatformTarget(Unit const* target)
 void SendPacketToPlayers(WorldPacket const* data, Unit* source)
 {
     // Send packet to all players in The Frozen Throne
-    Map::PlayerList const& players = source->GetMap()->GetPlayers();
-    if (!players.IsEmpty())
-        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-            if (Player* player = itr->GetSource())
-                if (player->GetAreaId() == AREA_THE_FROZEN_THRONE)
-                    player->GetSession()->SendPacket(data);
+    source->GetMap()->DoForAllPlayers([&](Player* player)
+    {
+        if (player->GetAreaId() == AREA_THE_FROZEN_THRONE)
+            player->GetSession()->SendPacket(data);
+    });
 }
 
 struct ShadowTrapLKTargetSelector
@@ -1008,12 +1007,11 @@ public:
             if (_positionCheckTimer <= diff)
             {
                 _positionCheckTimer = 5000;
-                Map::PlayerList const& players = me->GetMap()->GetPlayers();
-                if (!players.IsEmpty())
-                    for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                        if (Player* player = itr->GetSource())
-                            if (player->GetPositionZ() < 700.0f)
-                                Unit::Kill(me, player);
+                me->GetMap()->DoForAllPlayers([&](Player* player)
+                {
+                    if (player->GetPositionZ() < 700.0f)
+                        Unit::Kill(me, player);
+                });
             }
             else
                 _positionCheckTimer -= diff;
@@ -1501,11 +1499,11 @@ public:
                     {
                         theLichKing->AI()->Talk(SAY_LK_OUTRO_1);
                         theLichKing->CastSpell((Unit*)nullptr, SPELL_FURY_OF_FROSTMOURNE_NO_REZ, true);
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (p->IsAlive())
-                                    Unit::Kill(me, p);
+                        me->GetMap()->DoForAllPlayers([&](Player* p)
+                        {
+                            if (p->IsAlive())
+                                Unit::Kill(me, p);
+                        });
                     }
                     break;
                 case EVENT_OUTRO_LK_TALK_2:

@@ -25,6 +25,11 @@
 #include "WorldSession.h"
 #include "WorldSessionMgr.h"
 
+#include "ObjectAccessor.h"
+
+#include <shared_mutex>
+#include <vector>
+
 WorldSessionMgr* WorldSessionMgr::Instance()
 {
     static WorldSessionMgr instance;
@@ -126,17 +131,21 @@ void WorldSessionMgr::UpdateSessions(uint32 const diff)
         {
             if (!RemoveQueuedPlayer(pSession) && sWorld->getIntConfig(CONFIG_INTERVAL_DISCONNECT_TOLERANCE))
                 _disconnects[pSession->GetAccountId()] = GameTime::GetGameTime().count();
-            _sessions.erase(itr);
-            // there should be no offline session if current one is logged onto a character
-            SessionMap::iterator iter;
-            if ((iter = _offlineSessions.find(pSession->GetAccountId())) != _offlineSessions.end())
+            WorldSession* staleOffline = nullptr;
             {
-                WorldSession* tmp = iter->second;
-                _offlineSessions.erase(iter);
-                delete tmp;
+                std::unique_lock<std::shared_mutex> lock(_sessionsLock);
+                _sessions.erase(itr);
+                // there should be no offline session if current one is logged onto a character
+                SessionMap::iterator iter;
+                if ((iter = _offlineSessions.find(pSession->GetAccountId())) != _offlineSessions.end())
+                {
+                    staleOffline = iter->second;
+                    _offlineSessions.erase(iter);
+                }
+                pSession->SetOfflineTime(GameTime::GetGameTime().count());
+                _offlineSessions[pSession->GetAccountId()] = pSession;
             }
-            pSession->SetOfflineTime(GameTime::GetGameTime().count());
-            _offlineSessions[pSession->GetAccountId()] = pSession;
+            delete staleOffline;
             continue;
         }
 
@@ -147,7 +156,10 @@ void WorldSessionMgr::UpdateSessions(uint32 const diff)
         {
             if (!RemoveQueuedPlayer(pSession) && sWorld->getIntConfig(CONFIG_INTERVAL_DISCONNECT_TOLERANCE))
                 _disconnects[pSession->GetAccountId()] = GameTime::GetGameTime().count();
-            _sessions.erase(itr);
+            {
+                std::unique_lock<std::shared_mutex> lock(_sessionsLock);
+                _sessions.erase(itr);
+            }
             delete pSession;
         }
     }
@@ -163,7 +175,10 @@ void WorldSessionMgr::UpdateSessions(uint32 const diff)
         WorldSession* pSession = itr->second;
         if (!pSession->GetPlayer() || pSession->GetOfflineTime() + 60 < currTime || pSession->IsKicked())
         {
-            _offlineSessions.erase(itr);
+            {
+                std::unique_lock<std::shared_mutex> lock(_sessionsLock);
+                _offlineSessions.erase(itr);
+            }
             delete pSession;
         }
     }
@@ -173,6 +188,7 @@ void WorldSessionMgr::UpdateSessions(uint32 const diff)
 bool WorldSessionMgr::KickSession(uint32 id)
 {
     ///- Find the session, kick the user, but we can't delete session at this moment to prevent iterator invalidation
+    std::shared_lock<std::shared_mutex> lock(_sessionsLock);
     SessionMap::const_iterator itr = _sessions.find(id);
 
     if (itr != _sessions.end() && itr->second)
@@ -190,6 +206,7 @@ bool WorldSessionMgr::KickSession(uint32 id)
 void WorldSessionMgr::KickAll()
 {
     _queuedPlayer.clear();                                 // prevent send queue update packet and login queued sessions
+    std::shared_lock<std::shared_mutex> lock(_sessionsLock);
 
     // session not removed at kick and will removed in next update tick
     for (SessionMap::const_iterator itr = _sessions.begin(); itr != _sessions.end(); ++itr)
@@ -207,6 +224,7 @@ void WorldSessionMgr::KickAll()
 /// Kick (and save) all players with security level less `sec`
 void WorldSessionMgr::KickAllLess(AccountTypes sec)
 {
+    std::shared_lock<std::shared_mutex> lock(_sessionsLock);
     // session not removed at kick and will removed in next update tick
     for (SessionMap::const_iterator itr = _sessions.begin(); itr != _sessions.end(); ++itr)
         if (itr->second->GetSecurity() < sec)
@@ -330,7 +348,11 @@ void WorldSessionMgr::AddSession_(WorldSession* session)
         return;
     }
 
-    SessionMap::const_iterator old = _sessions.find(session->GetAccountId());
+    SessionMap::const_iterator old;
+    {
+        std::shared_lock<std::shared_mutex> lock(_sessionsLock);
+        old = _sessions.find(session->GetAccountId());
+    }
     if (old != _sessions.end())
     {
         WorldSession* oldSession = old->second;
@@ -341,16 +363,20 @@ void WorldSessionMgr::AddSession_(WorldSession* session)
         // pussywizard:
         if (oldSession->HandleSocketClosed())
         {
-            // there should be no offline session if current one is logged onto a character
-            SessionMap::iterator iter;
-            if ((iter = _offlineSessions.find(oldSession->GetAccountId())) != _offlineSessions.end())
+            WorldSession* staleOffline = nullptr;
             {
-                WorldSession* tmp = iter->second;
-                _offlineSessions.erase(iter);
-                delete tmp;
+                std::unique_lock<std::shared_mutex> lock(_sessionsLock);
+                // there should be no offline session if current one is logged onto a character
+                SessionMap::iterator iter;
+                if ((iter = _offlineSessions.find(oldSession->GetAccountId())) != _offlineSessions.end())
+                {
+                    staleOffline = iter->second;
+                    _offlineSessions.erase(iter);
+                }
+                oldSession->SetOfflineTime(GameTime::GetGameTime().count());
+                _offlineSessions[oldSession->GetAccountId()] = oldSession;
             }
-            oldSession->SetOfflineTime(GameTime::GetGameTime().count());
-            _offlineSessions[oldSession->GetAccountId()] = oldSession;
+            delete staleOffline;
         }
         else
         {
@@ -358,7 +384,10 @@ void WorldSessionMgr::AddSession_(WorldSession* session)
         }
     }
 
-    _sessions[session->GetAccountId()] = session;
+    {
+        std::unique_lock<std::shared_mutex> lock(_sessionsLock);
+        _sessions[session->GetAccountId()] = session;
+    }
 
     uint32 Sessions = GetActiveAndQueuedSessionCount();
     uint32 pLimit = GetPlayerAmountLimit();
@@ -457,17 +486,21 @@ void WorldSessionMgr::SendServerMessage(ServerMessageType messageID, std::string
 
 void WorldSessionMgr::DoForAllOnlinePlayers(std::function<void(Player*)> exec)
 {
-    std::shared_lock lock(*HashMapHolder<Player>::GetLock());
-    for (auto const& it : ObjectAccessor::GetPlayers())
+    // Snapshot-then-act: logins/logouts take the holder lock; never hold it
+    // across session callbacks.
+    std::vector<ObjectGuid> guids;
     {
-        if (Player* player = it.second)
-        {
-            if (!player->IsInWorld())
-            {
-                continue;
-            }
+        std::shared_lock lock(*HashMapHolder<Player>::GetLock());
+        for (auto const& it : ObjectAccessor::GetPlayers())
+            if (Player* listed = it.second)
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld())
+            continue;
 
-            exec(player);
-        }
+        exec(player);
     }
 }

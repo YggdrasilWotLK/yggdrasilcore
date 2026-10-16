@@ -16,6 +16,7 @@
  */
 
 #include "Map.h"
+#include <mutex>
 #include "Battleground.h"
 #include "CellImpl.h"
 #include "Chat.h"
@@ -374,15 +375,25 @@ bool Map::AddToMap(Transport* obj, bool /*checkTransport*/)
     _transports.insert(obj);
 
     // Broadcast creation to players
-    for (Map::PlayerList::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
+    std::vector<ObjectGuid> guids;
     {
-        if (itr->GetSource()->GetTransport() != obj)
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        for (Map::PlayerList::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+        if (!plr || !plr->IsInWorld() || plr->GetMap() != this)
+            continue;
+        if (plr->GetTransport() != obj)
         {
             UpdateData data;
-            obj->BuildCreateUpdateBlockForPlayer(&data, itr->GetSource());
+            obj->BuildCreateUpdateBlockForPlayer(&data, plr);
             WorldPacket packet;
             data.BuildPacket(packet);
-            itr->GetSource()->SendDirectMessage(&packet);
+            plr->SendDirectMessage(&packet);
         }
     }
 
@@ -431,10 +442,21 @@ void Map::Update(const uint32 t_diff, const uint32 s_diff, bool  /*thread*/)
         _dynamicTree.update(t_diff);
 
     // Update world sessions and players
-    for (m_mapRefIter = m_mapRefMgr.begin(); m_mapRefIter != m_mapRefMgr.end(); ++m_mapRefIter)
+    // Snapshot guids; the list mutates on other threads.
+    std::vector<ObjectGuid> sessionGuids;
     {
-        Player* player = m_mapRefIter->GetSource();
-        if (player && player->IsInWorld())
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        sessionGuids.reserve(m_mapRefMgr.getSize());
+        for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                sessionGuids.push_back(listed->GetGUID());
+    }
+
+    for (ObjectGuid const& playerGuid : sessionGuids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetMap() != this)
+            continue;
         {
             // Update session
             WorldSession* session = player->GetSession();
@@ -459,11 +481,21 @@ void Map::Update(const uint32 t_diff, const uint32 s_diff, bool  /*thread*/)
     resetMarkedCells();
 
     // Update players
-    for (m_mapRefIter = m_mapRefMgr.begin(); m_mapRefIter != m_mapRefMgr.end(); ++m_mapRefIter)
+    // Snapshot guids; the list mutates on other threads.
+    std::vector<ObjectGuid> updateGuids;
     {
-        Player* player = m_mapRefIter->GetSource();
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        updateGuids.reserve(m_mapRefMgr.getSize());
+        for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                updateGuids.push_back(listed->GetGUID());
+    }
 
-        if (!player || !player->IsInWorld())
+    for (ObjectGuid const& playerGuid : updateGuids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+
+        if (!player || !player->IsInWorld() || player->GetMap() != this)
             continue;
 
         player->Update(s_diff);
@@ -523,25 +555,46 @@ void Map::UpdateNonPlayerObjects(uint32 const diff)
 
     if (_updatableObjectListRecheckTimer.Passed())
     {
-        for (uint32 i = 0; i < _updatableObjectList.size();)
+        // Snapshot GUIDs: Update() may delete entries (swap-remove).
+        // Never touch an object after its Update() without re-resolving it.
+        struct UpdateCheck { ObjectGuid guid; TypeID type; };
+        std::vector<UpdateCheck> checks;
+        checks.reserve(_updatableObjectList.size());
+        for (WorldObject* listed : _updatableObjectList)
+            if (listed && listed->IsInWorld())
+                checks.push_back({ listed->GetGUID(), listed->GetTypeId() });
+
+        auto resolve = [this](ObjectGuid guid, TypeID type) -> WorldObject*
         {
-            WorldObject* obj = _updatableObjectList[i];
-            if (!obj || !obj->IsInWorld())
+            switch (type)
             {
-                ++i;
-                continue;
+                case TYPEID_UNIT:
+                    return GetCreature(guid);
+                case TYPEID_GAMEOBJECT:
+                    return GetGameObject(guid);
+                case TYPEID_DYNAMICOBJECT:
+                    return GetDynamicObject(guid);
+                default:
+                    return nullptr;
             }
+        };
+
+        for (UpdateCheck const& check : checks)
+        {
+            WorldObject* obj = resolve(check.guid, check.type);
+            if (!obj || !obj->IsInWorld())
+                continue;
 
             obj->Update(diff);
+
+            WorldObject* live = resolve(check.guid, check.type);
+            if (live != obj || !obj->IsInWorld())
+                continue; // gone or unlisted by its own removal path
 
             if (!obj->IsUpdateNeeded())
             {
                 _RemoveObjectFromUpdateList(obj);
-                // Intentional no iteration here, obj is swapped with last element in
-                // _updatableObjectList so next loop will update that object at the same index
             }
-            else
-                ++i;
         }
         _updatableObjectListRecheckTimer.Reset();
     }
@@ -738,6 +791,9 @@ void Map::RemoveFromMap(T* obj, bool remove)
     if (remove)
     {
         RemoveObjectFromMapUpdateList(obj);
+        // May still sit in i_objectsToRemove: erase first so the sweep
+        // never touches freed memory.
+        i_objectsToRemove.erase(obj);
         DeleteFromWorld(obj);
     }
 }
@@ -747,16 +803,28 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
 {
     obj->RemoveFromWorld();
 
-    Map::PlayerList const& players = GetPlayers();
-    if (!players.IsEmpty())
+    std::vector<ObjectGuid> transportGuids;
+    {
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        Map::PlayerList const& players = GetPlayers();
+        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                transportGuids.push_back(listed->GetGUID());
+    }
+    if (!transportGuids.empty())
     {
         UpdateData data;
         obj->BuildOutOfRangeUpdateBlock(&data);
         WorldPacket packet;
         data.BuildPacket(packet);
-        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-            if (itr->GetSource()->GetTransport() != obj)
-                itr->GetSource()->SendDirectMessage(&packet);
+        for (ObjectGuid const& playerGuid : transportGuids)
+        {
+            Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+            if (!listed || !listed->IsInWorld() || listed->GetMap() != this)
+                continue;
+            if (listed->GetTransport() != obj)
+                listed->SendDirectMessage(&packet);
+        }
     }
 
     if (_transportsUpdateIter != _transports.end())
@@ -1020,9 +1088,18 @@ void Map::RemoveAllPlayers()
 {
     if (HavePlayers())
     {
-        for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+        std::vector<ObjectGuid> guids;
         {
-            Player* player = itr->GetSource();
+            std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+            for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+                if (Player* listed = itr->GetSource())
+                    guids.push_back(listed->GetGUID());
+        }
+        for (ObjectGuid const& playerGuid : guids)
+        {
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || player->GetMap() != this)
+                continue;
             if (!player->IsBeingTeleportedFar())
             {
                 // this is happening for bg
@@ -1811,6 +1888,11 @@ void Map::AddObjectToRemoveList(WorldObject* obj)
     //LOG_DEBUG("maps", "Object ({}) added to removing list.", obj->GetGUID().ToString());
 }
 
+void Map::RemoveObjectFromRemoveList(WorldObject* obj)
+{
+    i_objectsToRemove.erase(obj);
+}
+
 void Map::RemoveAllObjectsInRemoveList()
 {
     while (!i_objectsToRemove.empty())
@@ -1855,16 +1937,47 @@ void Map::RemoveAllObjectsInRemoveList()
 uint32 Map::GetPlayersCountExceptGMs() const
 {
     uint32 count = 0;
+    std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
     for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
         if (!itr->GetSource()->IsGameMaster())
             ++count;
     return count;
 }
 
+uint32 Map::GetPlayerCountLocked() const
+{
+    std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+    return m_mapRefMgr.getSize();
+}
+
+std::vector<ObjectGuid> Map::CopyPlayerGuids() const
+{
+    std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_mapRefMgr.getSize());
+    for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+        if (Player* listed = itr->GetSource())
+            guids.push_back(listed->GetGUID());
+    return guids;
+}
+
 void Map::SendToPlayers(WorldPacket const* data) const
 {
-    for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
-        itr->GetSource()->GetSession()->SendPacket(data);
+    std::vector<ObjectGuid> guids;
+    {
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetMap() != this)
+            continue;
+        if (WorldSession* session = player->GetSession())
+            session->SendPacket(data);
+    }
 }
 
 template bool Map::AddToMap(Corpse*, bool);
@@ -1982,28 +2095,36 @@ Map::EnterState InstanceMap::CannotEnter(Player* player, bool loginCheck)
             }
 
     // cannot enter if instance is in use by another party/soloer that have a permanent save in the same instance id
-    PlayerList const& playerList = GetPlayers();
-    if (!playerList.IsEmpty())
+    std::vector<ObjectGuid> guids;
+    {
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        PlayerList const& playerList = GetPlayers();
         for (PlayerList::const_iterator i = playerList.begin(); i != playerList.end(); ++i)
-            if (Player* iPlayer = i->GetSource())
-            {
-                if (iPlayer == player) // login case, player already added to map
-                    continue;
-                if (iPlayer->IsGameMaster()) // bypass GMs
-                    continue;
-                if (!player->GetGroup()) // player has not group and there is someone inside, deny entry
-                {
-                    player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
-                    return CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
-                }
-                // player inside instance has no group or his groups is different to entering player's one, deny entry
-                if (!iPlayer->GetGroup() || iPlayer->GetGroup() != player->GetGroup())
-                {
-                    player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
-                    return CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
-                }
-                break;
-            }
+            if (Player* listed = i->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* iPlayer = ObjectAccessor::FindPlayer(playerGuid);
+        if (!iPlayer || !iPlayer->IsInWorld() || iPlayer->GetMap() != this)
+            continue;
+        if (iPlayer == player) // login case, player already added to map
+            continue;
+        if (iPlayer->IsGameMaster()) // bypass GMs
+            continue;
+        if (!player->GetGroup()) // player has not group and there is someone inside, deny entry
+        {
+            player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
+            return CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
+        }
+        // player inside instance has no group or his groups is different to entering player's one, deny entry
+        if (!iPlayer->GetGroup() || iPlayer->GetGroup() != player->GetGroup())
+        {
+            player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
+            return CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
+        }
+        break;
+    }
 
     return Map::CannotEnter(player, loginCheck);
 }
@@ -2171,11 +2292,21 @@ bool InstanceMap::Reset(uint8 method, GuidList* globalResetSkipList)
     if (method == INSTANCE_RESET_GLOBAL)
     {
         // pussywizard: teleport out immediately
-        for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+        std::vector<ObjectGuid> guids;
         {
+            std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+            for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+                if (Player* listed = itr->GetSource())
+                    guids.push_back(listed->GetGUID());
+        }
+        for (ObjectGuid const& playerGuid : guids)
+        {
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || player->GetMap() != this)
+                continue;
             // teleport players that are no longer bound (can be still bound if extended id)
-            if (!globalResetSkipList || std::find(globalResetSkipList->begin(), globalResetSkipList->end(), itr->GetSource()->GetGUID()) == globalResetSkipList->end())
-                itr->GetSource()->RepopAtGraveyard();
+            if (!globalResetSkipList || std::find(globalResetSkipList->begin(), globalResetSkipList->end(), playerGuid) == globalResetSkipList->end())
+                player->RepopAtGraveyard();
         }
 
         // reset map only if noone is bound
@@ -2195,8 +2326,19 @@ bool InstanceMap::Reset(uint8 method, GuidList* globalResetSkipList)
     {
         if (method == INSTANCE_RESET_ALL || method == INSTANCE_RESET_CHANGE_DIFFICULTY)
         {
-            for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
-                itr->GetSource()->SendResetFailedNotify(GetId());
+            std::vector<ObjectGuid> guids;
+            {
+                std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+                for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+                    if (Player* listed = itr->GetSource())
+                        guids.push_back(listed->GetGUID());
+            }
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (player && player->GetMap() == this)
+                    player->SendResetFailedNotify(GetId());
+            }
         }
     }
     else
@@ -2228,9 +2370,18 @@ void InstanceMap::PermBindAllPlayers()
     Player* player;
     Group* group;
     // group members outside the instance group don't get bound
-    for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+    std::vector<ObjectGuid> guids;
     {
-        player = itr->GetSource();
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || player->GetMap() != this)
+            continue;
         group = player->GetGroup();
 
         // players inside an instance cannot be bound to other instances
@@ -2266,8 +2417,19 @@ void InstanceMap::UnloadAll()
 
 void InstanceMap::SendResetWarnings(uint32 timeLeft) const
 {
-    for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
-        itr->GetSource()->SendInstanceResetWarning(GetId(), itr->GetSource()->GetDifficulty(IsRaid()), timeLeft, false);
+    std::vector<ObjectGuid> guids;
+    {
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (player && player->GetMap() == this)
+            player->SendInstanceResetWarning(GetId(), player->GetDifficulty(IsRaid()), timeLeft, false);
+    }
 }
 
 MapDifficulty const* Map::GetMapDifficulty() const
@@ -2364,29 +2526,46 @@ void BattlegroundMap::SetUnload()
 void BattlegroundMap::RemoveAllPlayers()
 {
     if (HavePlayers())
-        for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
-            if (Player* player = itr->GetSource())
-                if (!player->IsBeingTeleportedFar())
-                    player->TeleportTo(player->GetEntryPoint());
+    {
+        std::vector<ObjectGuid> guids;
+        {
+            std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+            for (MapRefMgr::iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+                if (Player* listed = itr->GetSource())
+                    guids.push_back(listed->GetGUID());
+        }
+        for (ObjectGuid const& playerGuid : guids)
+        {
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || player->GetMap() != this)
+                continue;
+            if (!player->IsBeingTeleportedFar())
+                player->TeleportTo(player->GetEntryPoint());
+        }
+    }
 }
 
 Corpse* Map::GetCorpse(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return _objectsStore.Find<Corpse>(guid);
 }
 
 Creature* Map::GetCreature(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return _objectsStore.Find<Creature>(guid);
 }
 
 GameObject* Map::GetGameObject(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return _objectsStore.Find<GameObject>(guid);
 }
 
 Pet* Map::GetPet(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return dynamic_cast<Pet*>(_objectsStore.Find<Creature>(guid));
 }
 
@@ -2401,13 +2580,8 @@ Transport* Map::GetTransport(ObjectGuid const& guid)
 
 DynamicObject* Map::GetDynamicObject(ObjectGuid const& guid)
 {
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     return _objectsStore.Find<DynamicObject>(guid);
-}
-
-void Map::UpdateIteratorBack(Player* player)
-{
-    if (m_mapRefIter == player->GetMapRef())
-        m_mapRefIter = m_mapRefIter->nocheck_prev();
 }
 
 void Map::SaveCreatureRespawnTime(ObjectGuid::LowType spawnId, time_t& respawnTime)
@@ -2583,16 +2757,18 @@ void Map::UpdateEncounterState(EncounterCreditType type, uint32 creditEntry, Uni
 
     if (dungeonId)
     {
-        Map::PlayerList const& players = GetPlayers();
-        for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
+        std::vector<ObjectGuid> guids = CopyPlayerGuids();
+        for (ObjectGuid const& playerGuid : guids)
         {
-            if (Player* player = i->GetSource())
-                if (Group* grp = player->GetGroup())
-                    if (grp->isLFGGroup())
-                    {
-                        sLFGMgr->FinishDungeon(grp->GetGUID(), dungeonId, this);
-                        return;
-                    }
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || !player->IsInWorld() || player->GetMap() != this)
+                continue;
+            if (Group* grp = player->GetGroup())
+                if (grp->isLFGGroup())
+                {
+                    sLFGMgr->FinishDungeon(grp->GetGUID(), dungeonId, this);
+                    return;
+                }
         }
     }
 }
@@ -2606,9 +2782,12 @@ void Map::LogEncounterFinished(EncounterCreditType type, uint32 creditEntry)
         return;
     std::string playersInfo;
     char buffer[16384], buffer2[255];
-    Map::PlayerList const& pl = map->GetPlayers();
-    for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-        if (Player* p = itr->GetSource())
+    std::vector<ObjectGuid> guids = map->CopyPlayerGuids();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* p = ObjectAccessor::FindPlayer(playerGuid);
+        if (!p || !p->IsInWorld() || p->GetMap() != map)
+            continue;
         {
             std::string auraStr;
             const Unit::AuraApplicationMap& a = p->GetAppliedAuras();
@@ -2622,6 +2801,7 @@ void Map::LogEncounterFinished(EncounterCreditType type, uint32 creditEntry)
                 p->GetName().c_str(), p->GetGUID().ToString().c_str(), p->GetSession()->GetAccountId(), p->GetSession()->GetRemoteAddress().c_str(), p->GetGuildId(), p->GetPositionX(), p->GetPositionY(), p->GetPositionZ(), auraStr.c_str());
             playersInfo += buffer;
         }
+    }
     CleanStringForMysqlQuery(playersInfo);
     CharacterDatabase.Execute("INSERT INTO log_encounter VALUES(NOW(), {}, {}, {}, {}, '{}')", GetId(), (uint32)GetDifficulty(), type, creditEntry, playersInfo);
 }
@@ -2638,8 +2818,13 @@ bool Map::AllTransportsEmpty() const
 void Map::AllTransportsRemovePassengers()
 {
     for (TransportsContainer::const_iterator itr = _transports.begin(); itr != _transports.end(); ++itr)
-        while (!(*itr)->GetPassengers().empty())
-            (*itr)->RemovePassenger(*((*itr)->GetPassengers().begin()), true);
+    {
+        Transport* transport = *itr;
+        if (!transport)
+            continue;
+        while (!transport->GetPassengers().empty())
+            transport->RemovePassenger(*(transport->GetPassengers().begin()), true);
+    }
 }
 
 time_t Map::GetLinkedRespawnTime(ObjectGuid guid) const
@@ -2663,6 +2848,7 @@ void Map::AddCorpse(Corpse* corpse)
     corpse->SetMap(this);
 
     GridCoord const gridCoord = Acore::ComputeGridCoord(corpse->GetPositionX(), corpse->GetPositionY());
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     _corpsesByGrid[gridCoord.GetId()].insert(corpse);
     if (corpse->GetType() != CORPSE_BONES)
         _corpsesByPlayer[corpse->GetOwnerGUID()] = corpse;
@@ -2684,6 +2870,7 @@ void Map::RemoveCorpse(Corpse* corpse)
         corpse->ResetMap();
     }
 
+    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     _corpsesByGrid[gridCoord.GetId()].erase(corpse);
     if (corpse->GetType() != CORPSE_BONES)
         _corpsesByPlayer.erase(corpse->GetOwnerGUID());
@@ -2739,6 +2926,9 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
     }
 
     // all references to the corpse should be removed at this point
+    // The corpse may still sit in i_objectsToRemove (alternate delete path);
+    // erase first so the sweep never touches freed memory.
+    i_objectsToRemove.erase(corpse);
     delete corpse;
 
     return bones;
@@ -2749,23 +2939,31 @@ void Map::RemoveOldCorpses()
     time_t now = GameTime::GetGameTime().count();
 
     std::vector<ObjectGuid> corpses;
-    corpses.reserve(_corpsesByPlayer.size());
+    {
+        std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
+        corpses.reserve(_corpsesByPlayer.size());
 
-    for (auto const& p : _corpsesByPlayer)
-        if (p.second->IsExpired(now))
-            corpses.push_back(p.first);
+        for (auto const& p : _corpsesByPlayer)
+            if (p.second->IsExpired(now))
+                corpses.push_back(p.first);
+    }
 
     for (ObjectGuid const& ownerGuid : corpses)
         ConvertCorpseToBones(ownerGuid);
 
     std::vector<Corpse*> expiredBones;
-    for (Corpse* bones : _corpseBones)
-        if (bones->IsExpired(now))
-            expiredBones.push_back(bones);
+    {
+        std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
+        for (Corpse* bones : _corpseBones)
+            if (bones->IsExpired(now))
+                expiredBones.push_back(bones);
+    }
 
     for (Corpse* bones : expiredBones)
     {
         RemoveCorpse(bones);
+        // Erase from i_objectsToRemove so the sweep never touches freed memory.
+        i_objectsToRemove.erase(bones);
         delete bones;
     }
 }
@@ -2786,9 +2984,18 @@ bool Map::SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession c
 {
     bool foundPlayerToSend = false;
 
-    for (MapReference const& ref : GetPlayers())
+    std::vector<ObjectGuid> guids;
     {
-        Player* player = ref.GetSource();
+        std::shared_lock<std::shared_mutex> lock(*GetPlayerRefLock());
+        for (MapReference const& ref : GetPlayers())
+            if (Player* listed = ref.GetSource())
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || player->GetMap() != this)
+            continue;
         if (player->IsInWorld() &&
             player->GetZoneId() == zone &&
             player->GetSession() != self &&
@@ -2868,16 +3075,20 @@ void Map::UpdateWeather(uint32 const diff)
 
 void Map::PlayDirectSoundToMap(uint32 soundId, uint32 zoneId)
 {
-    Map::PlayerList const& players = GetPlayers();
-    if (!players.IsEmpty())
-    {
-        WorldPacket data(SMSG_PLAY_SOUND, 4);
-        data << uint32(soundId);
+    std::vector<ObjectGuid> guids = CopyPlayerGuids();
+    if (guids.empty())
+        return;
 
-        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-            if (Player* player = itr->GetSource())
-                if (!zoneId || player->GetZoneId() == zoneId)
-                    player->SendDirectMessage(&data);
+    WorldPacket data(SMSG_PLAY_SOUND, 4);
+    data << uint32(soundId);
+
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetMap() != this)
+            continue;
+        if (!zoneId || player->GetZoneId() == zoneId)
+            player->SendDirectMessage(&data);
     }
 }
 
@@ -2931,12 +3142,13 @@ void Map::SetZoneOverrideLight(uint32 zoneId, uint32 lightId, Milliseconds fadeI
 
 void Map::DoForAllPlayers(std::function<void(Player*)> exec)
 {
-    for (auto const& it : GetPlayers())
+    std::vector<ObjectGuid> guids = CopyPlayerGuids();
+    for (ObjectGuid const& playerGuid : guids)
     {
-        if (Player* player = it.GetSource())
-        {
-            exec(player);
-        }
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetMap() != this)
+            continue;
+        exec(player);
     }
 }
 

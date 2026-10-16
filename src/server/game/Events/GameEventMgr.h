@@ -22,7 +22,10 @@
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
 #include <map>
+#include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
+#include <vector>
 
 #define max_ge_check_delay DAY          // 1 day in seconds
 
@@ -105,14 +108,33 @@ public:
 
     typedef std::set<uint16> ActiveEvents;
     typedef std::vector<GameEventData> GameEventDataMap;
-    [[nodiscard]] ActiveEvents const& GetActiveEventList() const { return _activeEvents; }
-    [[nodiscard]] GameEventDataMap const& GetEventMap() const { return _gameEvent; }
+    // Copy-out: Start/Stop mutate on world thread while AI ticks read.
+    [[nodiscard]] ActiveEvents GetActiveEventList() const
+    {
+        std::shared_lock<std::shared_mutex> lock(_activeEventsLock);
+        return _activeEvents;
+    }
+    [[nodiscard]] GameEventDataMap GetEventMap() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
+        return _gameEvent;
+    }
+    // Snapshot copy for external readers (calendar invites).
+    std::vector<uint32> GetModifiedHolidays() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
+        return ModifiedHolidays;
+    }
     [[nodiscard]] bool CheckOneGameEvent(uint16 entry) const;
     [[nodiscard]] uint32 NextCheck(uint16 entry) const;
     void LoadFromDB();
     void LoadHolidayDates();
     uint32 Update();
-    bool IsActiveEvent(uint16 eventId) { return (_activeEvents.find(eventId) != _activeEvents.end()); }
+    bool IsActiveEvent(uint16 eventId)
+    {
+        std::shared_lock<std::shared_mutex> lock(_activeEventsLock);
+        return (_activeEvents.find(eventId) != _activeEvents.end());
+    }
     uint32 StartSystem();
     void Initialize();
     void StartInternalEvent(uint16 event_id);
@@ -141,8 +163,16 @@ private:
     void LoadEventPoolData();
 
     void SendWorldStateUpdate(Player* player, uint16 eventId);
-    void AddActiveEvent(uint16 eventId) { _activeEvents.insert(eventId); }
-    void RemoveActiveEvent(uint16 eventId) { _activeEvents.erase(eventId); }
+    void AddActiveEvent(uint16 eventId)
+    {
+        std::unique_lock<std::shared_mutex> lock(_activeEventsLock);
+        _activeEvents.insert(eventId);
+    }
+    void RemoveActiveEvent(uint16 eventId)
+    {
+        std::unique_lock<std::shared_mutex> lock(_activeEventsLock);
+        _activeEvents.erase(eventId);
+    }
     void ApplyNewEvent(uint16 eventId);
     void UnApplyEvent(uint16 eventId);
     void GameEventSpawn(int16 eventId);
@@ -190,9 +220,15 @@ private:
     QuestIdToEventConditionMap _questToEventConditions;
     GameEventNPCFlagMap _gameEventNPCFlags;
     ActiveEvents _activeEvents;
+    // Guards _activeEvents only; sibling event-data maps keep today's
+    // exposure (event transitions are world-thread serial).
+    mutable std::shared_mutex _activeEventsLock;
+    // Guards all event-data maps below. Recursive (Update/Start/Stop nest).
+    // Order vs _activeEventsLock: eventData -> activeEvents, never inverse.
+    mutable std::recursive_mutex _eventDataLock;
     bool _isSystemInit;
     GameEventSeasonalQuestsMap _gameEventSeasonalQuestsMap;
-public:
+    // Same lock as above: mutated on world thread, iterated on map threads.
     GameEventGuidMap  GameEventCreatureGuids;
     GameEventGuidMap  GameEventGameobjectGuids;
     std::vector<uint32> ModifiedHolidays;

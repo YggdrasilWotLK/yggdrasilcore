@@ -494,13 +494,10 @@ public:
                         {
                             vp->SetDisableGravity(true);
 
-                            Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                            if (!PlayerList.IsEmpty())
-                                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                    if (Player* pPlayer = i->GetSource())
-                                    {
+                            me->GetMap()->DoForAllPlayers([&](Player* pPlayer)
+                            {
                                         if (!pPlayer->IsAlive() || pPlayer->IsGameMaster())
-                                            continue;
+                                            return;
 
                                         Position plrpos;
                                         float playerAngle = CenterPos.GetAngle(pPlayer);
@@ -517,7 +514,7 @@ public:
                                             {
                                                 pPlayer->EnterVehicle(c, 0);
                                                 if (!pPlayer->GetVehicle())
-                                                    continue;
+                                                    return;
                                             }
                                             //pPlayer->ClearUnitState(UNIT_STATE_ONVEHICLE);
 
@@ -539,7 +536,7 @@ public:
                                             pPlayer->SetGuidValue(PLAYER_FARSIGHT, vp->GetGUID());
                                             c->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                                         }
-                                    }
+                            });
                         }
 
                         events.RescheduleEvent(EVENT_VORTEX_LAND_0, 11s, 1);
@@ -711,15 +708,12 @@ public:
                         me->GetThreatMgr().ClearAllThreat(); // players on vehicle are unattackable -> leads to EnterEvadeMode() because target is not acceptable!
 
                         // mount players:
-                        Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                        if (!PlayerList.IsEmpty())
-                            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                if (Player* pPlayer = i->GetSource())
-                                {
+                        me->GetMap()->DoForAllPlayers([&](Player* pPlayer)
+                        {
                                     sScriptMgr->AnticheatSetUnderACKmount(pPlayer);
 
                                     if (!pPlayer->IsAlive() || pPlayer->IsGameMaster())
-                                        continue;
+                                        return;
 
                                     if (Creature* c = me->SummonCreature(NPC_WYRMREST_SKYTALON, pPlayer->GetPositionX(), pPlayer->GetPositionY(), pPlayer->GetPositionZ() - 20.0f, 0.0f, TEMPSUMMON_MANUAL_DESPAWN, 0))
                                     {
@@ -728,7 +722,7 @@ public:
                                         c->m_Events.AddEventAtOffset(new EoEDrakeEnterVehicleEvent(*c, pPlayer->GetGUID()), 500ms);
                                         AttackStart(c);
                                     }
-                                }
+                        });
 
                         events.RescheduleEvent(EVENT_SAY_PHASE_3_INTRO, 3s, 1);
                     }
@@ -1187,11 +1181,14 @@ public:
                 case EVENT_SCION_OF_ETERNITY_ARCANE_BARRAGE:
                     {
                         GuidVector guids;
-                        Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                        if (!PlayerList.IsEmpty())
-                            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                if (Player* pPlayer = i->GetSource())
+                        Map* snapMap3 = me->GetMap();
+                        std::vector<ObjectGuid> snapGuids = snapMap3->CopyPlayerGuids();
+                        if (!snapGuids.empty())
+                            for (ObjectGuid const& playerGuid : snapGuids)
+                                if (Player* pPlayer = ObjectAccessor::FindPlayer(playerGuid))
                                 {
+                                    if (!pPlayer->IsInWorld() || pPlayer->GetMap() != snapMap3)
+                                        continue;
                                     if (pPlayer->IsAlive())
                                     {
                                         if (!pPlayer->GetVehicle())

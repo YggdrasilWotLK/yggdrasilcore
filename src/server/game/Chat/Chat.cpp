@@ -16,6 +16,7 @@
  */
 
 #include "Chat.h"
+#include <mutex>
 #include "AccountMgr.h"
 #include "CellImpl.h"
 #include "Common.h"
@@ -515,11 +516,15 @@ bool ChatHandler::HasSession() const
 
 void ChatHandler::DoForAllValidSessions(std::function<void(Player*)> exec)
 {
-    WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-    for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        if (Player* player = itr->second->GetPlayer())
+    std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+    for (WorldSession* session : sessions)
+    {
+        if (!session)
+            continue;
+        if (Player* player = session->GetPlayer())
             if (player->IsInWorld())
                 exec(player);
+    }
 }
 
 char* ChatHandler::extractKeyFromLink(char* text, char const* linkType, char** something1)
@@ -655,7 +660,9 @@ Creature* ChatHandler::GetCreatureFromPlayerMapByDbGuid(ObjectGuid::LowType lowg
     // Select the first alive creature or a dead one if not found
     Creature* creature = nullptr;
 
-    auto bounds = m_session->GetPlayer()->GetMap()->GetCreatureBySpawnIdStore().equal_range(lowguid);
+    Map* lookupMap = m_session->GetPlayer()->GetMap();
+    std::lock_guard<std::recursive_mutex> lock(*lookupMap->GetStoreLock());
+    auto bounds = lookupMap->GetCreatureBySpawnIdStore().equal_range(lowguid);
     for (auto it = bounds.first; it != bounds.second; ++it)
     {
         creature = it->second;
@@ -671,7 +678,9 @@ GameObject* ChatHandler::GetObjectFromPlayerMapByDbGuid(ObjectGuid::LowType lowg
     if (!m_session)
         return nullptr;
 
-    auto bounds = m_session->GetPlayer()->GetMap()->GetGameObjectBySpawnIdStore().equal_range(lowguid);
+    auto lookupMap = m_session->GetPlayer()->GetMap();
+    std::lock_guard<std::recursive_mutex> lock(*lookupMap->GetStoreLock());
+    auto bounds = lookupMap->GetGameObjectBySpawnIdStore().equal_range(lowguid);
     if (bounds.first != bounds.second)
         return bounds.first->second;
 

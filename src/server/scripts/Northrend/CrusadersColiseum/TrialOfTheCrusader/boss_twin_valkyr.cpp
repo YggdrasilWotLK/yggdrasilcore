@@ -388,14 +388,19 @@ struct boss_twin_valkyrAI : public ScriptedAI
                     */
 
                     GuidVector tList;
-                    Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-                    if (pList.getSize())
+                    Map* snapMap = me->GetMap();
+                    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                    if (!guids.empty())
                     {
-                        for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
-                            if (Player* plr = itr->GetSource())
-                                if (Creature* sister = GetSister())
-                                    if ((!me->GetVictim() || me->GetVictim()->GetGUID() != plr->GetGUID()) && (!sister->GetVictim() || sister->GetVictim()->GetGUID() != plr->GetGUID()) && plr->HasAura(essenceId))
-                                        tList.push_back(plr->GetGUID());
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                                continue;
+                            if (Creature* sister = GetSister())
+                                if ((!me->GetVictim() || me->GetVictim()->GetGUID() != plr->GetGUID()) && (!sister->GetVictim() || sister->GetVictim()->GetGUID() != plr->GetGUID()) && plr->HasAura(essenceId))
+                                    tList.push_back(plr->GetGUID());
+                        }
 
                         if (!tList.empty())
                             if (Player* target = ObjectAccessor::GetPlayer(*me, tList[urand(0, tList.size() - 1)]))
@@ -828,11 +833,11 @@ class spell_valkyr_touch_aura : public AuraScript
         if (caster->GetMap()->GetId() == 649 )
         {
             uint32 excludedID = GetSpellInfo()->ExcludeTargetAuraSpell;
-            Map::PlayerList const& pl = caster->GetMap()->GetPlayers();
-            for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                if (Player* plr = itr->GetSource())
-                    if (plr->IsAlive() && !plr->HasAura(excludedID) && !plr->HasSpiritOfRedemptionAura())
-                    {
+            caster->GetMap()->DoForAllPlayers([&](Player* plr)
+            {
+                if (!plr->IsAlive() || plr->HasAura(excludedID) || plr->HasSpiritOfRedemptionAura())
+                    return;
+                {
                         uint32 absorb = 0;
                         uint32 resist = 0;
                         CleanDamage(0, 0, BASE_ATTACK, MELEE_HIT_NORMAL);
@@ -854,6 +859,7 @@ class spell_valkyr_touch_aura : public AuraScript
                         plr->SendPeriodicAuraLog(&pInfo);
                         Unit::DealDamage(caster, plr, damage, 0, DOT, GetSpellInfo()->GetSchoolMask(), GetSpellInfo(), true);
                     }
+            });
         }
     }
 

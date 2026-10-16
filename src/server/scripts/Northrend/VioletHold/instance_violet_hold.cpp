@@ -546,11 +546,15 @@ public:
         bool DoNeedCleanup(bool enter)
         {
             uint8 aliveCount = 0;
-            Map::PlayerList const& pl = instance->GetPlayers();
-            for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                if (Player* plr = itr->GetSource())
-                    if (plr->IsAlive() && !plr->IsGameMaster() && !plr->HasAura(27827)/*spirit of redemption aura*/ )
-                        ++aliveCount;
+            std::vector<ObjectGuid> guids = instance->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                if (!plr || !plr->IsInWorld() || plr->GetMap() != instance)
+                    continue;
+                if (plr->IsAlive() && !plr->IsGameMaster() && !plr->HasAura(27827)/*spirit of redemption aura*/ )
+                    ++aliveCount;
+            }
 
             bool need = enter ? aliveCount <= 1 : aliveCount == 0;
             if (!need && CLEANED)

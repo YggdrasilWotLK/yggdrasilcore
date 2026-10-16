@@ -152,11 +152,12 @@ struct boss_keristrasza : public BossAI
             break;
         case EVENT_ACHIEVEMENT_CHECK:
         {
-            Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
-                if (Aura* aur = itr->GetSource()->GetAura(SPELL_INTENSE_COLD_TRIGGER))
+            me->GetMap()->DoForAllPlayers([&](Player* p)
+            {
+                if (Aura* aur = p->GetAura(SPELL_INTENSE_COLD_TRIGGER))
                     if (aur->GetStackAmount() > 2)
-                        aGuids.insert(itr->GetSource()->GetGUID().GetCounter());
+                        aGuids.insert(p->GetGUID().GetCounter());
+            });
             events.ScheduleEvent(EVENT_ACHIEVEMENT_CHECK, 500ms);
             break;
         }

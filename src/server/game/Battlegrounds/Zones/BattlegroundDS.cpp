@@ -16,6 +16,7 @@
  */
 
 #include "BattlegroundDS.h"
+#include "GroupMgr.h"
 #include "Creature.h"
 #include "GameObject.h"
 #include "Log.h"
@@ -36,6 +37,7 @@ BattlegroundDS::BattlegroundDS()
 
 void BattlegroundDS::PostUpdateImpl(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -95,12 +97,14 @@ void BattlegroundDS::PostUpdateImpl(uint32 diff)
 
 void BattlegroundDS::StartingEventCloseDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = BG_DS_OBJECT_DOOR_1; i <= BG_DS_OBJECT_DOOR_2; ++i)
         SpawnBGObject(i, RESPAWN_IMMEDIATELY);
 }
 
 void BattlegroundDS::StartingEventOpenDoors()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     for (uint32 i = BG_DS_OBJECT_DOOR_1; i <= BG_DS_OBJECT_DOOR_2; ++i)
         DoorOpen(i);
 
@@ -122,13 +126,20 @@ void BattlegroundDS::StartingEventOpenDoors()
         gob->SetGoState(GO_STATE_ACTIVE);
 
     // Remove effects of Demonic Circle Summon
-    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-        if (itr->second->HasAura(48018))
-            itr->second->RemoveAurasDueToSpell(48018);
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+            continue;
+        if (listed->HasAura(48018))
+            listed->RemoveAurasDueToSpell(48018);
+    }
 }
 
 void BattlegroundDS::HandleAreaTrigger(Player* player, uint32 trigger)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -171,18 +182,21 @@ void BattlegroundDS::HandleAreaTrigger(Player* player, uint32 trigger)
 
 bool BattlegroundDS::HandlePlayerUnderMap(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     player->NearTeleportTo(1299.046f, 784.825f, 9.338f, 2.422f);
     return true;
 }
 
 void BattlegroundDS::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     packet.Worldstates.emplace_back(WORLD_STATE_BATTLEGROUND_RV_ARENA_SHOW, 1); // Wrong worldstate used
     Arena::FillInitialWorldStates(packet);
 }
 
 bool BattlegroundDS::SetupBattleground()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // gates
     if (!AddObject(BG_DS_OBJECT_DOOR_1, BG_DS_OBJECT_TYPE_DOOR_1, 1350.95f, 817.2f, 20.8096f, 3.15f, 0, 0, 0.99627f, 0.0862864f, RESPAWN_IMMEDIATELY)
             || !AddObject(BG_DS_OBJECT_DOOR_2, BG_DS_OBJECT_TYPE_DOOR_2, 1232.65f, 764.913f, 20.0729f, 6.3f, 0, 0, 0.0310211f, -0.999519f, RESPAWN_IMMEDIATELY)

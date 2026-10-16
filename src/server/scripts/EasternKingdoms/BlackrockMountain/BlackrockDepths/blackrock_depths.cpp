@@ -410,9 +410,10 @@ public:
                                     go->SetOwnerGUID(ObjectGuid::Empty);
                                 }
 
-                                Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                                for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                                    itr->GetSource()->KilledMonsterCredit(16166);
+                                me->GetMap()->DoForAllPlayers([&](Player* p)
+                                {
+                                    p->KilledMonsterCredit(16166);
+                                });
                             }
 
                             HandleGameObject(DATA_ARENA2, false);

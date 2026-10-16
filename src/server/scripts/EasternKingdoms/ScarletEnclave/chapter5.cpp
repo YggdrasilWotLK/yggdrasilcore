@@ -427,12 +427,11 @@ public:
 
         void SendUpdateWorldState(uint32 id, uint32 state)
         {
-            Map::PlayerList const& players = me->GetMap()->GetPlayers();
-            if (!players.IsEmpty())
-                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                    if (Player* player = itr->GetSource())
-                        if (player->GetPhaseMask() & 128) // Xinef: client skips players without chapter 5 aura anyway, speedup
-                            player->SendUpdateWorldState(id, state);
+            me->GetMap()->DoForAllPlayers([&](Player* player)
+            {
+                if (player->GetPhaseMask() & 128) // Xinef: client skips players without chapter 5 aura anyway, speedup
+                    player->SendUpdateWorldState(id, state);
+            });
         }
 
         void SendInitialWorldStates()
@@ -1133,13 +1132,11 @@ public:
                     break;
                 case EVENT_OUTRO_SCENE_60:
                     {
-                        Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                        if (!PlayerList.IsEmpty())
+                        me->GetMap()->DoForAllPlayers([&](Player* p)
                         {
-                            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                if (i->GetSource()->IsAlive() && me->IsWithinDistInMap(i->GetSource(), 100))
-                                    i->GetSource()->CastSpell(i->GetSource(), SPELL_THE_LIGHT_OF_DAWN_Q, false);
-                        }
+                            if (p->IsAlive() && me->IsWithinDistInMap(p, 100))
+                                p->CastSpell(p, SPELL_THE_LIGHT_OF_DAWN_Q, false);
+                        });
                         me->ReplaceAllNpcFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                         break;
                     }

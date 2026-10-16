@@ -16,6 +16,7 @@
  */
 
 #include "CellImpl.h"
+#include <mutex>
 #include "GameTime.h"
 #include "GridNotifiers.h"
 #include "Map.h"
@@ -266,6 +267,7 @@ inline void Map::_ScriptProcessDoor(Object* source, Object* target, const Script
 
 inline GameObject* Map::_FindGameObject(WorldObject* searchObject, ObjectGuid::LowType guid) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*searchObject->GetMap()->GetStoreLock());
     auto bounds = searchObject->GetMap()->GetGameObjectBySpawnIdStore().equal_range(guid);
     if (bounds.first == bounds.second)
         return nullptr;
@@ -764,7 +766,7 @@ void Map::ScriptsProcess()
                 // Source must be Unit.
                 if (Unit* unit = _GetScriptUnit(source, true, step.script))
                 {
-                    if (!sWaypointMgr->GetPath(step.script->LoadPath.PathID))
+                    if (sWaypointMgr->GetPath(step.script->LoadPath.PathID).empty())
                         LOG_ERROR("maps.script", "{} source object has an invalid path ({}), skipping.", step.script->GetDebugInfo(), step.script->LoadPath.PathID);
                     else
                         unit->GetMotionMaster()->MovePath(step.script->LoadPath.PathID, step.script->LoadPath.IsRepeatable);
@@ -785,6 +787,7 @@ void Map::ScriptsProcess()
                     }
 
                     Creature* cTarget = nullptr;
+                    std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
                     auto creatureBounds = _creatureBySpawnIdStore.equal_range(step.script->CallScript.CreatureEntry);
                     if (creatureBounds.first != creatureBounds.second)
                     {

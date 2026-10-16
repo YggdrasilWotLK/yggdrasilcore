@@ -17,6 +17,7 @@
 
 #include "Group.h"
 #include "InstanceMapScript.h"
+#include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
 #include "Vehicle.h"
@@ -273,9 +274,13 @@ public:
         bool DoNeedCleanup(Player* ignoredPlayer = nullptr)
         {
             uint8 aliveCount = 0;
-            for (const auto &itr: instance->GetPlayers())
+            Map* snapMap = instance;
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                if (Player* plr = itr.GetSource())
+                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                    continue;
                 {
                     if (plr != ignoredPlayer && plr->IsAlive() && !plr->IsGameMaster())
                     {

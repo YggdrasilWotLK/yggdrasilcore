@@ -235,10 +235,13 @@ public:
                         events.Repeat(10s);
 
                         std::vector<Player*> players;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
                         {
-                            Player* temp = itr->GetSource();
+                            Player* temp = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!temp || !temp->IsInWorld() || temp->GetMap() != snapMap)
+                                continue;
                             if (temp->IsAlive() && temp->GetDistance(me) > 15.0f )
                                 players.push_back(temp);
                         }
@@ -272,16 +275,21 @@ public:
                     {
                         std::vector<Player*> outside;
                         std::vector<Player*> inside;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                            if (Player* tmp = itr->GetSource())
-                                if (tmp->IsAlive())
+                        Map* snapMap2 = me->GetMap();
+                        std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids2)
+                        {
+                            Player* tmp = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!tmp || !tmp->IsInWorld() || tmp->GetMap() != snapMap2)
+                                continue;
+                            if (tmp->IsAlive())
                                 {
                                     if (tmp->GetDistance(me) > 15.0f )
                                         outside.push_back(tmp);
                                     else
                                         inside.push_back(tmp);
                                 }
+                        }
 
                         Player* t = nullptr;
                         if (outside.size() >= uint8(me->GetMap()->Is25ManRaid() ? 9 : 4))

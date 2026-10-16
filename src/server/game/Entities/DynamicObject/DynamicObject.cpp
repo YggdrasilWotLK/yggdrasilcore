@@ -16,6 +16,7 @@
  */
 
 #include "GameTime.h"
+#include <mutex>
 #include "GridNotifiers.h"
 #include "ObjectAccessor.h"
 #include "ScriptMgr.h"
@@ -60,7 +61,7 @@ void DynamicObject::AddToWorld()
     ///- Register the dynamicObject for guid lookup and for caster
     if (!IsInWorld())
     {
-        GetMap()->GetObjectsStore().Insert<DynamicObject>(GetGUID(), this);
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Insert<DynamicObject>(GetGUID(), this); }
 
         WorldObject::AddToWorld();
 
@@ -88,9 +89,11 @@ void DynamicObject::RemoveFromWorld()
         if (Transport* transport = GetTransport())
             transport->RemovePassenger(this, true);
 
-        WorldObject::RemoveFromWorld();
+        // Unlink from the findable store before clearing world state so
+        // reentrant Find* calls cannot observe a half-removed object.
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<DynamicObject>(GetGUID()); }
 
-        GetMap()->GetObjectsStore().Remove<DynamicObject>(GetGUID());
+        WorldObject::RemoveFromWorld();
     }
 }
 

@@ -52,10 +52,15 @@ class spell_razelikh_teleport_group : public SpellScript
         {
             if (Group* group = player->GetGroup())
             {
-                for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-                    if (Player* member = itr->GetSource())
-                        if (member->IsWithinDistInMap(player, 20.0f) && !member->isDead())
-                            member->CastSpell(member, SPELL_TELEPORT_SINGLE_IN_GROUP, true);
+                std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                for (ObjectGuid const& guid : guids)
+                {
+                    Player* member = ObjectAccessor::FindPlayer(guid);
+                    if (!member || !member->IsInWorld())
+                        continue;
+                    if (member->IsWithinDistInMap(player, 20.0f) && !member->isDead())
+                        member->CastSpell(member, SPELL_TELEPORT_SINGLE_IN_GROUP, true);
+                }
             }
             else
                 player->CastSpell(player, SPELL_TELEPORT_SINGLE, true);

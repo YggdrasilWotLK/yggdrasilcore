@@ -37,6 +37,7 @@
 #include <functional>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <string>
 
 class Item;
@@ -759,6 +760,11 @@ public:
     GameObjectTemplate const* GetGameObjectTemplate(uint32 entry);
     bool IsGameObjectStaticTransport(uint32 entry);
     [[nodiscard]] GameObjectTemplateContainer const* GetGameObjectTemplates() const { return &_gameObjectTemplateStore; }
+    // Locked iteration: template stores rebuild on world-thread reload
+    // while map threads iterate. Prefer these over the raw accessors above.
+    template<class F> void ForEachCreatureTemplate(F&& f) const { std::lock_guard<std::recursive_mutex> lock(_templateLock); for (auto const& p : _creatureTemplateStore) f(p.first, p.second); }
+    template<class F> void ForEachGameObjectTemplate(F&& f) const { std::lock_guard<std::recursive_mutex> lock(_templateLock); for (auto const& p : _gameObjectTemplateStore) f(p.first, p.second); }
+    template<class F> void ForEachItemTemplate(F&& f) const { std::lock_guard<std::recursive_mutex> lock(_templateLock); for (auto const& p : _itemTemplateStore) f(p.first, p.second); }
     int LoadReferenceVendor(int32 vendor, int32 item_id, std::set<uint32>* skip_vendors);
 
     void LoadGameObjectTemplate();
@@ -833,10 +839,12 @@ public:
 
     [[nodiscard]] Quest const* GetQuestTemplate(uint32 quest_id) const
     {
+        std::lock_guard<std::recursive_mutex> lock(_templateLock);
         return quest_id < _questTemplatesFast.size() ? _questTemplatesFast[quest_id] : nullptr;
     }
 
     [[nodiscard]] QuestMap const& GetQuestTemplates() const { return _questTemplates; }
+    template<class F> void ForEachQuestTemplate(F&& f) const { std::lock_guard<std::recursive_mutex> lock(_templateLock); for (auto const& p : _questTemplates) f(p.first, p.second); }
 
     [[nodiscard]] uint32 GetQuestForAreaTrigger(uint32 Trigger_ID) const
     {
@@ -1585,6 +1593,9 @@ private:
     CreatureTemplateContainer _creatureTemplateStore;
     CreatureCustomIDsContainer _creatureCustomIDsStore;
     std::vector<CreatureTemplate*> _creatureTemplateStoreFast; // pussywizard
+    // Guards all template stores. Recursive (loads nest, getters call
+    // each other). Leaf lock, same rank as the SpellMgr lock.
+    mutable std::recursive_mutex _templateLock;
     CreatureModelContainer _creatureModelStore;
     CreatureAddonContainer _creatureAddonStore;
     CreatureAddonContainer _creatureTemplateAddonStore;

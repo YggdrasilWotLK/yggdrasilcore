@@ -373,12 +373,15 @@ public:
                         me->GetCreaturesWithEntryInRange(icl, 300.0f, NPC_IRON_CONSTRUCT);
 
                         GuidVector playerGUIDs;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
                         Player* temp = nullptr;
 
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
+                        for (ObjectGuid const& playerGuid : guids)
                         {
-                            temp = itr->GetSource();
+                            temp = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!temp || !temp->IsInWorld() || temp->GetMap() != snapMap)
+                                continue;
                             if (!temp->IsAlive() || temp->GetExactDist2d(me) > 90.0f )
                                 continue;
                             if (me->GetVictim() && temp->GetGUID() == me->GetVictim()->GetGUID())

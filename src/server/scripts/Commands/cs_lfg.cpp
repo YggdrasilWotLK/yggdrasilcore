@@ -98,8 +98,14 @@ public:
         handler->PSendSysMessage(LANG_LFG_GROUP_INFO, groupTarget->isLFGGroup(),
                                  state, sLFGMgr->GetDungeon(guid));
 
-        for (GroupReference* itr = groupTarget->GetFirstMember(); itr != nullptr; itr = itr->next())
-            GetPlayerInfo(handler, itr->GetSource());
+        std::vector<ObjectGuid> guids = groupTarget->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
+        {
+            Player* member = ObjectAccessor::FindPlayer(guid);
+            if (!member || !member->IsInWorld())
+                continue;
+            GetPlayerInfo(handler, member);
+        }
 
         return true;
     }

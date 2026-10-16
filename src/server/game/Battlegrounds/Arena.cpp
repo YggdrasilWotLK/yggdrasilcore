@@ -77,6 +77,7 @@ Arena::Arena()
 
 void Arena::AddPlayer(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     Battleground::AddPlayer(player);
     PlayerScores.emplace(player->GetGUID().GetCounter(), new ArenaScore(player->GetGUID(), player->GetBgTeamId()));
 
@@ -105,7 +106,8 @@ void Arena::AddPlayer(Player* player)
 
         std::vector<Player*> members;
         bool isCrossfaction = false;
-        for (Group::member_citerator mitr = group->GetMemberSlots().begin(); mitr != group->GetMemberSlots().end(); ++mitr)
+        Group::MemberSlotList slots = group->GetMemberSlots();
+        for (Group::member_citerator mitr = slots.begin(); mitr != slots.end(); ++mitr)
         {
             Player* member = ObjectAccessor::FindPlayer(mitr->guid);
             if (!member || member->GetGUID() == player->GetGUID())
@@ -141,6 +143,7 @@ void Arena::AddPlayer(Player* player)
 
 void Arena::RemovePlayer(Player* /*player*/)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() == STATUS_WAIT_LEAVE)
         return;
 
@@ -150,6 +153,7 @@ void Arena::RemovePlayer(Player* /*player*/)
 
 void Arena::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     packet.Worldstates.reserve(2);
     packet.Worldstates.emplace_back(WORLD_STATE_ARENA_ALIVE_PLAYERS_GREEN, GetAlivePlayersCountByTeam(TEAM_HORDE));
     packet.Worldstates.emplace_back(WORLD_STATE_ARENA_ALIVE_PLAYERS_GOLD, GetAlivePlayersCountByTeam(TEAM_ALLIANCE));
@@ -157,12 +161,14 @@ void Arena::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& pa
 
 void Arena::UpdateArenaWorldState()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     UpdateWorldState(WORLD_STATE_ARENA_ALIVE_PLAYERS_GREEN, GetAlivePlayersCountByTeam(TEAM_HORDE));
     UpdateWorldState(WORLD_STATE_ARENA_ALIVE_PLAYERS_GOLD, GetAlivePlayersCountByTeam(TEAM_ALLIANCE));
 }
 
 void Arena::HandleKillPlayer(Player* player, Player* killer)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -174,6 +180,7 @@ void Arena::HandleKillPlayer(Player* player, Player* killer)
 
 void Arena::RemovePlayerAtLeave(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (isRated() && GetStatus() == STATUS_IN_PROGRESS)
     {
         if (auto const& member = Acore::Containers::MapGetValuePtr(m_Players, player->GetGUID()))
@@ -195,6 +202,7 @@ void Arena::RemovePlayerAtLeave(Player* player)
 
 void Arena::CheckWinConditions()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!sScriptMgr->OnBeforeArenaCheckWinConditions(this))
         return;
 
@@ -206,6 +214,7 @@ void Arena::CheckWinConditions()
 
 void Arena::EndBattleground(TeamId winnerTeamId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (isRated())
     {
         uint32 startDelay = GetStartDelayTime();
@@ -333,9 +342,13 @@ void Arena::EndBattleground(TeamId winnerTeamId)
 
         uint8 aliveWinners = GetAlivePlayersCountByTeam(winnerTeamId);
 
-        for (auto const& [playerGuid, player] : GetPlayers())
+        std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+        for (ObjectGuid const& playerGuid : guids)
         {
-            auto const& bgTeamId = player->GetBgTeamId();
+            Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+            if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                continue;
+            auto const& bgTeamId = listed->GetBgTeamId();
 
             // per player calculation
             if (winnerArenaTeam && loserArenaTeam && winnerArenaTeam != loserArenaTeam)
@@ -345,28 +358,28 @@ void Arena::EndBattleground(TeamId winnerTeamId)
                     if (bValidArena)
                     {
                         // update achievement BEFORE personal rating update
-                        uint32 rating = player->GetArenaPersonalRating(winnerArenaTeam->GetSlot());
-                        player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_RATED_ARENA, rating ? rating : 1);
-                        player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_ARENA, GetMapId());
+                        uint32 rating = listed->GetArenaPersonalRating(winnerArenaTeam->GetSlot());
+                        listed->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_RATED_ARENA, rating ? rating : 1);
+                        listed->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_ARENA, GetMapId());
 
                         // Last standing - Rated 5v5 arena & be solely alive player
-                        if (GetArenaType() == ARENA_TYPE_5v5 && aliveWinners == 1 && player->IsAlive())
+                        if (GetArenaType() == ARENA_TYPE_5v5 && aliveWinners == 1 && listed->IsAlive())
                         {
-                            player->CastSpell(player, SPELL_LAST_MAN_STANDING, true);
+                            listed->CastSpell(listed, SPELL_LAST_MAN_STANDING, true);
                         }
 
-                        winnerArenaTeam->MemberWon(player, loserMatchmakerRating, winnerMatchmakerChange);
+                        winnerArenaTeam->MemberWon(listed, loserMatchmakerRating, winnerMatchmakerChange);
                     }
                 }
                 else
                 {
-                    loserArenaTeam->MemberLost(player, winnerMatchmakerRating, loserMatchmakerChange);
+                    loserArenaTeam->MemberLost(listed, winnerMatchmakerRating, loserMatchmakerChange);
 
                     // Arena lost => reset the win_rated_arena having the "no_lose" condition
-                    player->ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_NO_LOSE, 0);
+                    listed->ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_NO_LOSE, 0);
                 }
 
-                player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_PLAY_ARENA, GetMapId());
+                listed->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_PLAY_ARENA, GetMapId());
             }
         }
 

@@ -234,14 +234,14 @@ void WorldSession::HandleLfgPartyLockInfoRequestOpcode(WorldPacket&  /*recvData*
 
     // Get the locked dungeons of the other party members
     lfg::LfgLockPartyMap lockMap;
-    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+    std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+    for (ObjectGuid const& pguid : guids)
     {
-        Player* plrg = itr->GetSource();
-        if (!plrg)
+        if (pguid == guid)
             continue;
 
-        ObjectGuid pguid = plrg->GetGUID();
-        if (pguid == guid)
+        Player* plrg = ObjectAccessor::FindPlayer(pguid);
+        if (!plrg || !plrg->IsInWorld())
             continue;
 
         sLFGMgr->InitializeLockedDungeons(plrg, group); // pussywizard

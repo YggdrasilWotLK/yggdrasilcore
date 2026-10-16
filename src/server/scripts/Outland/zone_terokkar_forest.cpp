@@ -284,10 +284,11 @@ public:
             {
                 if (Group* group = player->GetGroup())
                 {
-                    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+                    std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                    for (ObjectGuid const& guid : guids)
                     {
-                        Player* groupie = itr->GetSource();
-                        if (groupie && groupie->IsInMap(player) &&
+                        Player* groupie = ObjectAccessor::FindPlayer(guid);
+                        if (groupie && groupie->IsInWorld() && groupie->IsInMap(player) &&
                                 groupie->GetQuestStatus(QUEST_DONTKILLTHEFATONE) == QUEST_STATUS_INCOMPLETE &&
                                 groupie->GetReqKillOrCastCurrentCount(QUEST_DONTKILLTHEFATONE, 18260) == 10)
                         {

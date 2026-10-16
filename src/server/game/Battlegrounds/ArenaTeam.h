@@ -21,6 +21,7 @@
 #include "Map.h"
 #include "QueryResult.h"
 #include <list>
+#include <vector>
 
 class WorldSession;
 class WorldPacket;
@@ -171,6 +172,8 @@ public:
     MemberList::iterator m_membersBegin() { return Members.begin(); }
     MemberList::iterator m_membersEnd()   { return Members.end(); }
     MemberList& GetMembers() { return Members; }
+    // Snapshot copy-out: Members mutates on session threads, never hold the live list.
+    [[nodiscard]] MemberList GetMembersSnapshot() const;
     [[nodiscard]] bool IsMember(ObjectGuid guid) const;
 
     ArenaTeamMember* GetMember(ObjectGuid guid);

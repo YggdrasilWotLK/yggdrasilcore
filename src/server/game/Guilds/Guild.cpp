@@ -113,6 +113,7 @@ inline uint32 _GetGuildBankTabPrice(uint8 tabId)
 
 void Guild::SendCommandResult(WorldSession* session, GuildCommandType type, GuildCommandError errCode, std::string_view param)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     WorldPackets::Guild::GuildCommandResult resultPacket;
     resultPacket.Command = type;
     resultPacket.Result = errCode;
@@ -124,6 +125,7 @@ void Guild::SendCommandResult(WorldSession* session, GuildCommandType type, Guil
 
 void Guild::SendSaveEmblemResult(WorldSession* session, GuildEmblemError errCode)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     WorldPackets::Guild::PlayerSaveGuildEmblem saveResponse;
     saveResponse.Error = int32(errCode);
     session->SendPacket(saveResponse.Write());
@@ -140,6 +142,7 @@ Guild::LogHolder<Entry>::LogHolder()
 template <typename Entry> template <typename... Ts>
 void Guild::LogHolder<Entry>::LoadEvent(Ts&&... args)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Entry const& newEntry = m_log.emplace_front(std::forward<Ts>(args)...);
     if (m_nextGUID == uint32(GUILD_EVENT_LOG_GUID_UNDEFINED))
         m_nextGUID = newEntry.GetGUID();
@@ -148,6 +151,7 @@ void Guild::LogHolder<Entry>::LoadEvent(Ts&&... args)
 template <typename Entry> template <typename... Ts>
 void Guild::LogHolder<Entry>::AddEvent(CharacterDatabaseTransaction trans, Ts&&... args)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // Check max records limit
     if (!CanInsert())
     {
@@ -162,6 +166,7 @@ void Guild::LogHolder<Entry>::AddEvent(CharacterDatabaseTransaction trans, Ts&&.
 template <typename Entry>
 inline uint32 Guild::LogHolder<Entry>::GetNextGUID()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // Next guid was not initialized. It means there are no records for this holder in DB yet.
     // Start from the beginning.
     if (m_nextGUID == uint32(GUILD_EVENT_LOG_GUID_UNDEFINED))
@@ -172,12 +177,20 @@ inline uint32 Guild::LogHolder<Entry>::GetNextGUID()
     return m_nextGUID;
 }
 
+template <typename Entry>
+std::vector<Entry> Guild::LogHolder<Entry>::GetGuildLogSnapshot() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    return std::vector<Entry>(m_log.begin(), m_log.end());
+}
+
 Guild::LogEntry::LogEntry(uint32 guildId, ObjectGuid::LowType guid) :
     m_guildId(guildId), m_guid(guid), m_timestamp(GameTime::GetGameTime().count()) { }
 
 // EventLogEntry
 void Guild::EventLogEntry::SaveToDB(CharacterDatabaseTransaction trans) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GUILD_EVENTLOG);
     stmt->SetData(0, m_guildId);
     stmt->SetData(1, m_guid);
@@ -197,6 +210,7 @@ void Guild::EventLogEntry::SaveToDB(CharacterDatabaseTransaction trans) const
 
 void Guild::EventLogEntry::WritePacket(WorldPackets::Guild::GuildEventLogQueryResults& packet) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ObjectGuid playerGUID = ObjectGuid::Create<HighGuid::Player>(m_playerGuid1.GetCounter());
     ObjectGuid otherGUID = ObjectGuid::Create<HighGuid::Player>(m_playerGuid2.GetCounter());
 
@@ -212,6 +226,7 @@ void Guild::EventLogEntry::WritePacket(WorldPackets::Guild::GuildEventLogQueryRe
 // BankEventLogEntry
 void Guild::BankEventLogEntry::SaveToDB(CharacterDatabaseTransaction trans) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 index = 0;
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GUILD_BANK_EVENTLOG);
@@ -236,6 +251,7 @@ void Guild::BankEventLogEntry::SaveToDB(CharacterDatabaseTransaction trans) cons
 
 void Guild::BankEventLogEntry::WritePacket(WorldPackets::Guild::GuildBankLogQueryResults& packet) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     WorldPackets::Guild::GuildBankLogEntry bankLogEntry;
     bankLogEntry.PlayerGUID = ObjectGuid::Create<HighGuid::Player>(m_playerGuid.GetCounter());
     bankLogEntry.TimeOffset = int32(GameTime::GetGameTime().count() - m_timestamp);
@@ -264,6 +280,7 @@ void Guild::BankEventLogEntry::WritePacket(WorldPackets::Guild::GuildBankLogQuer
 // RankInfo
 void Guild::RankInfo::LoadFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_rankId            = fields[1].Get<uint8>();
     m_name              = fields[2].Get<std::string>();
     m_rights            = fields[3].Get<uint32>();
@@ -274,6 +291,7 @@ void Guild::RankInfo::LoadFromDB(Field* fields)
 
 void Guild::RankInfo::SaveToDB(CharacterDatabaseTransaction trans) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_GUILD_RANK);
     stmt->SetData(0, m_guildId);
     stmt->SetData (1, m_rankId);
@@ -285,6 +303,7 @@ void Guild::RankInfo::SaveToDB(CharacterDatabaseTransaction trans) const
 
 void Guild::RankInfo::CreateMissingTabsIfNeeded(uint8 tabs, CharacterDatabaseTransaction trans, bool logOnCreate /* = false */)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (uint8 i = 0; i < tabs; ++i)
     {
         GuildBankRightsAndSlots& rightsAndSlots = m_bankTabRightsAndSlots[i];
@@ -310,6 +329,7 @@ void Guild::RankInfo::CreateMissingTabsIfNeeded(uint8 tabs, CharacterDatabaseTra
 
 void Guild::RankInfo::SetName(std::string_view name)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_name == name)
         return;
 
@@ -324,6 +344,7 @@ void Guild::RankInfo::SetName(std::string_view name)
 
 void Guild::RankInfo::SetRights(uint32 rights)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_rankId == GR_GUILDMASTER)                     // Prevent loss of leader rights
         rights = GR_RIGHT_ALL;
 
@@ -341,6 +362,7 @@ void Guild::RankInfo::SetRights(uint32 rights)
 
 void Guild::RankInfo::SetBankMoneyPerDay(uint32 money)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_rankId == GR_GUILDMASTER)                     // Prevent loss of leader rights
         money = uint32(GUILD_WITHDRAW_MONEY_UNLIMITED);
 
@@ -358,6 +380,7 @@ void Guild::RankInfo::SetBankMoneyPerDay(uint32 money)
 
 void Guild::RankInfo::SetBankTabSlotsAndRights(GuildBankRightsAndSlots rightsAndSlots, bool saveToDB)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_rankId == GR_GUILDMASTER)                     // Prevent loss of leader rights
         rightsAndSlots.SetGuildMasterValues();
 
@@ -379,6 +402,7 @@ void Guild::RankInfo::SetBankTabSlotsAndRights(GuildBankRightsAndSlots rightsAnd
 // BankTab
 void Guild::BankTab::LoadFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_name = fields[2].Get<std::string>();
     m_icon = fields[3].Get<std::string>();
     m_text = fields[4].Get<std::string>();
@@ -386,6 +410,7 @@ void Guild::BankTab::LoadFromDB(Field* fields)
 
 bool Guild::BankTab::LoadItemFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 slotId = fields[13].Get<uint8>();
     ObjectGuid::LowType itemGuid = fields[14].Get<uint32>();
     uint32 itemEntry = fields[15].Get<uint32>();
@@ -425,6 +450,7 @@ bool Guild::BankTab::LoadItemFromDB(Field* fields)
 // Deletes contents of the tab from the world (and from DB if necessary)
 void Guild::BankTab::Delete(CharacterDatabaseTransaction trans, bool removeItemsFromDB)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (uint8 slotId = 0; slotId < GUILD_BANK_MAX_SLOTS; ++slotId)
         if (Item* pItem = m_items[slotId])
         {
@@ -438,6 +464,7 @@ void Guild::BankTab::Delete(CharacterDatabaseTransaction trans, bool removeItems
 
 void Guild::BankTab::SetInfo(std::string_view name, std::string_view icon)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if ((m_name == name) && (m_icon == icon))
         return;
 
@@ -454,6 +481,7 @@ void Guild::BankTab::SetInfo(std::string_view name, std::string_view icon)
 
 void Guild::BankTab::SetText(std::string_view text)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_text == text)
         return;
 
@@ -471,6 +499,7 @@ void Guild::BankTab::SetText(std::string_view text)
 // If pItem == nullptr contents are removed.
 bool Guild::BankTab::SetItem(CharacterDatabaseTransaction trans, uint8 slotId, Item* item)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (slotId >= GUILD_BANK_MAX_SLOTS)
         return false;
 
@@ -501,6 +530,7 @@ bool Guild::BankTab::SetItem(CharacterDatabaseTransaction trans, uint8 slotId, I
 
 void Guild::BankTab::SendText(Guild const* guild, WorldSession* session) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     WorldPackets::Guild::GuildBankTextQueryResult textQuery;
     textQuery.Tab = m_tabId;
     textQuery.Text = m_text;
@@ -521,6 +551,7 @@ void Guild::BankTab::SendText(Guild const* guild, WorldSession* session) const
 // Member
 void Guild::Member::SetStats(Player* player)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_name      = player->GetName();
     m_level     = player->GetLevel();
     m_class     = player->getClass();
@@ -531,6 +562,7 @@ void Guild::Member::SetStats(Player* player)
 
 void Guild::Member::SetStats(std::string_view name, uint8 level, uint8 _class, uint8 gender, uint32 zoneId, uint32 accountId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_name      = name;
     m_level     = level;
     m_class     = _class;
@@ -541,6 +573,7 @@ void Guild::Member::SetStats(std::string_view name, uint8 level, uint8 _class, u
 
 void Guild::Member::SetPublicNote(std::string_view publicNote)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_publicNote == publicNote)
         return;
 
@@ -554,6 +587,7 @@ void Guild::Member::SetPublicNote(std::string_view publicNote)
 
 void Guild::Member::SetOfficerNote(std::string_view officerNote)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_officerNote == officerNote)
         return;
 
@@ -567,6 +601,7 @@ void Guild::Member::SetOfficerNote(std::string_view officerNote)
 
 void Guild::Member::ChangeRank(uint8 newRank)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_rankId = newRank;
 
     // Update rank information in player's field, if he is online.
@@ -581,11 +616,13 @@ void Guild::Member::ChangeRank(uint8 newRank)
 
 void Guild::Member::UpdateLogoutTime()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_logoutTime = GameTime::GetGameTime().count();
 }
 
 void Guild::Member::SaveToDB(CharacterDatabaseTransaction trans) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_GUILD_MEMBER);
     stmt->SetData(0, m_guildId);
     stmt->SetData(1, m_guid.GetCounter());
@@ -600,6 +637,7 @@ void Guild::Member::SaveToDB(CharacterDatabaseTransaction trans) const
 // In this case member has to be removed from guild.
 bool Guild::Member::LoadFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_publicNote  = fields[3].Get<std::string>();
     m_officerNote = fields[4].Get<std::string>();
 
@@ -629,6 +667,7 @@ bool Guild::Member::LoadFromDB(Field* fields)
 // Validate player fields. Returns false if corrupted fields are found.
 bool Guild::Member::CheckStats() const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_level < 1)
     {
         LOG_ERROR("guild", "Player ({}) has a broken data in field `characters`.`level`, deleting him from guild!", m_guid.ToString());
@@ -648,6 +687,7 @@ bool Guild::Member::CheckStats() const
 // Otherwise decrease remaining items amount for specified tab.
 void Guild::Member::UpdateBankWithdrawValue(CharacterDatabaseTransaction trans, uint8 tabId, uint32 amount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_bankWithdraw[tabId] += amount;
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_GUILD_MEMBER_WITHDRAW);
@@ -663,6 +703,7 @@ void Guild::Member::UpdateBankWithdrawValue(CharacterDatabaseTransaction trans, 
 
 void Guild::Member::ResetValues()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (uint8 tabId = 0; tabId <= GUILD_BANK_MAX_TABS; ++tabId)
         m_bankWithdraw[tabId] = 0;
 }
@@ -672,6 +713,7 @@ void Guild::Member::ResetValues()
 // Otherwise return remaining items amount for specified tab.
 int32 Guild::Member::GetBankWithdrawValue(uint8 tabId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // Guild master has unlimited amount.
     if (IsRank(GR_GUILDMASTER))
         return tabId == GUILD_BANK_MAX_TABS ? GUILD_WITHDRAW_MONEY_UNLIMITED : GUILD_WITHDRAW_SLOT_UNLIMITED;
@@ -713,6 +755,7 @@ void EmblemInfo::SaveToDB(uint32 guildId) const
 // MoveItemData
 bool Guild::MoveItemData::CheckItem(uint32& splitedAmount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(m_pItem);
     if (splitedAmount > m_pItem->GetCount())
         return false;
@@ -723,6 +766,7 @@ bool Guild::MoveItemData::CheckItem(uint32& splitedAmount)
 
 bool Guild::MoveItemData::CanStore(Item* pItem, bool swap, bool sendError)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_vec.clear();
     InventoryResult msg = CanStore(pItem, swap);
     if (sendError && msg != EQUIP_ERR_OK)
@@ -732,6 +776,7 @@ bool Guild::MoveItemData::CanStore(Item* pItem, bool swap, bool sendError)
 
 bool Guild::MoveItemData::CloneItem(uint32 count)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(m_pItem);
     m_pClonedItem = m_pItem->CloneItem(count);
     if (!m_pClonedItem)
@@ -744,6 +789,7 @@ bool Guild::MoveItemData::CloneItem(uint32 count)
 
 void Guild::MoveItemData::LogAction(MoveItemData* pFrom) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(pFrom->GetItem());
 
     sScriptMgr->OnGuildItemMove(m_pGuild, m_pPlayer, pFrom->GetItem(),
@@ -753,6 +799,7 @@ void Guild::MoveItemData::LogAction(MoveItemData* pFrom) const
 
 inline void Guild::MoveItemData::CopySlots(SlotIds& ids) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (ItemPosCountVec::const_iterator itr = m_vec.begin(); itr != m_vec.end(); ++itr)
         ids.insert(uint8(itr->pos));
 }
@@ -760,6 +807,7 @@ inline void Guild::MoveItemData::CopySlots(SlotIds& ids) const
 // PlayerMoveItemData
 bool Guild::PlayerMoveItemData::InitItem()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_pItem = m_pPlayer->GetItemByPos(m_container, m_slotId);
     if (m_pItem)
     {
@@ -781,6 +829,7 @@ bool Guild::PlayerMoveItemData::InitItem()
 
 void Guild::PlayerMoveItemData::RemoveItem(CharacterDatabaseTransaction trans, MoveItemData* /*pOther*/, uint32 splitedAmount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (splitedAmount)
     {
         m_pItem->SetCount(m_pItem->GetCount() - splitedAmount);
@@ -797,6 +846,7 @@ void Guild::PlayerMoveItemData::RemoveItem(CharacterDatabaseTransaction trans, M
 
 Item* Guild::PlayerMoveItemData::StoreItem(CharacterDatabaseTransaction trans, Item* pItem)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(pItem);
     m_pPlayer->MoveItemToInventory(m_vec, pItem, true);
     m_pPlayer->SaveInventoryAndGoldToDB(trans);
@@ -805,6 +855,7 @@ Item* Guild::PlayerMoveItemData::StoreItem(CharacterDatabaseTransaction trans, I
 
 void Guild::PlayerMoveItemData::LogBankEvent(CharacterDatabaseTransaction trans, MoveItemData* pFrom, uint32 count) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(pFrom);
     // Bank -> Char
     m_pGuild->_LogBankEvent(trans, GUILD_BANK_LOG_WITHDRAW_ITEM, pFrom->GetContainer(), m_pPlayer->GetGUID(),
@@ -813,18 +864,21 @@ void Guild::PlayerMoveItemData::LogBankEvent(CharacterDatabaseTransaction trans,
 
 inline InventoryResult Guild::PlayerMoveItemData::CanStore(Item* pItem, bool swap)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     return m_pPlayer->CanStoreItem(m_container, m_slotId, m_vec, pItem, swap);
 }
 
 // BankMoveItemData
 bool Guild::BankMoveItemData::InitItem()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_pItem = m_pGuild->_GetItem(m_container, m_slotId);
     return (m_pItem != nullptr);
 }
 
 bool Guild::BankMoveItemData::HasStoreRights(MoveItemData* pOther) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(pOther);
     // Do not check rights if item is being swapped within the same bank tab
     if (pOther->IsBank() && pOther->GetContainer() == m_container)
@@ -834,13 +888,14 @@ bool Guild::BankMoveItemData::HasStoreRights(MoveItemData* pOther) const
 
 bool Guild::BankMoveItemData::HasWithdrawRights(MoveItemData* pOther) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(pOther);
     // Do not check rights if item is being swapped within the same bank tab
     if (pOther->IsBank() && pOther->GetContainer() == m_container)
         return true;
 
     int32 slots = 0;
-    if (Member const* member = m_pGuild->GetMember(m_pPlayer->GetGUID()))
+    if (Optional<Member> const member = m_pGuild->GetMember(m_pPlayer->GetGUID()))
         slots = m_pGuild->_GetMemberRemainingSlots(*member, m_container);
 
     return slots != 0;
@@ -848,6 +903,7 @@ bool Guild::BankMoveItemData::HasWithdrawRights(MoveItemData* pOther) const
 
 void Guild::BankMoveItemData::RemoveItem(CharacterDatabaseTransaction trans, MoveItemData* pOther, uint32 splitedAmount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(m_pItem);
     if (splitedAmount)
     {
@@ -867,6 +923,7 @@ void Guild::BankMoveItemData::RemoveItem(CharacterDatabaseTransaction trans, Mov
 
 Item* Guild::BankMoveItemData::StoreItem(CharacterDatabaseTransaction trans, Item* pItem)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!pItem)
         return nullptr;
 
@@ -889,6 +946,7 @@ Item* Guild::BankMoveItemData::StoreItem(CharacterDatabaseTransaction trans, Ite
 
 void Guild::BankMoveItemData::LogBankEvent(CharacterDatabaseTransaction trans, MoveItemData* pFrom, uint32 count) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(pFrom->GetItem());
     if (pFrom->IsBank())
         // Bank -> Bank
@@ -902,11 +960,13 @@ void Guild::BankMoveItemData::LogBankEvent(CharacterDatabaseTransaction trans, M
 
 void Guild::BankMoveItemData::LogAction(MoveItemData* pFrom) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     MoveItemData::LogAction(pFrom);
 }
 
 Item* Guild::BankMoveItemData::_StoreItem(CharacterDatabaseTransaction trans, BankTab* pTab, Item* pItem, ItemPosCount& pos, bool clone) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 slotId = uint8(pos.pos);
     uint32 count = pos.count;
     if (Item* pItemDest = pTab->GetItem(slotId))
@@ -940,6 +1000,7 @@ Item* Guild::BankMoveItemData::_StoreItem(CharacterDatabaseTransaction trans, Ba
 // Returns false if destination item specified and it cannot be used to reserve space.
 bool Guild::BankMoveItemData::_ReserveSpace(uint8 slotId, Item* pItem, Item* pItemDest, uint32& count)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint32 requiredSpace = pItem->GetMaxStackCount();
     if (pItemDest)
     {
@@ -963,6 +1024,7 @@ bool Guild::BankMoveItemData::_ReserveSpace(uint8 slotId, Item* pItem, Item* pIt
 
 void Guild::BankMoveItemData::CanStoreItemInTab(Item* pItem, uint8 skipSlotId, bool merge, uint32& count)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (uint8 slotId = 0; (slotId < GUILD_BANK_MAX_SLOTS) && (count > 0); ++slotId)
     {
         // Skip slot already processed in CanStore (when destination slot was specified)
@@ -983,6 +1045,7 @@ void Guild::BankMoveItemData::CanStoreItemInTab(Item* pItem, uint8 skipSlotId, b
 
 InventoryResult Guild::BankMoveItemData::CanStore(Item* pItem, bool swap)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     LOG_DEBUG("guild", "GUILD STORAGE: CanStore() tab = {}, slot = {}, item = {}, count = {}",
                    m_container, m_slotId, pItem->GetEntry(), pItem->GetCount());
     uint32 count = pItem->GetCount();
@@ -1048,6 +1111,7 @@ Guild::~Guild()
 // Creates new guild with default data and saves it to database.
 bool Guild::Create(Player* pLeader, std::string_view name)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // Check if guild with such name already exists
     if (sGuildMgr->GetGuildByName(name))
         return false;
@@ -1107,6 +1171,7 @@ bool Guild::Create(Player* pLeader, std::string_view name)
 // Disbands guild and deletes all related data from database
 void Guild::Disband()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint32 selfId = m_id;
     // Crash-proof: zombie or foreign registration => no-op. Only the manager frees.
     // Fresh never-registered guilds still disband normally.
@@ -1175,15 +1240,18 @@ void Guild::Disband()
 
 void Guild::UpdateMemberData(Player* player, uint8 dataid, uint32 value)
 {
-    if (Member* member = GetMember(player->GetGUID()))
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    auto itr = m_members.find(player->GetGUID().GetCounter());
+    if (itr != m_members.end())
     {
+        Member& member = itr->second;
         switch (dataid)
         {
             case GUILD_MEMBER_DATA_ZONEID:
-                member->SetZoneID(value);
+                member.SetZoneID(value);
                 break;
             case GUILD_MEMBER_DATA_LEVEL:
-                member->SetLevel(value);
+                member.SetLevel(value);
                 break;
             default:
                 LOG_ERROR("guild", "Guild::UpdateMemberData: Called with incorrect DATAID {} (value {})", dataid, value);
@@ -1195,16 +1263,20 @@ void Guild::UpdateMemberData(Player* player, uint8 dataid, uint32 value)
 
 void Guild::OnPlayerStatusChange(Player* player, uint32 flag, bool state)
 {
-    if (Member* member = GetMember(player->GetGUID()))
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    auto itr = m_members.find(player->GetGUID().GetCounter());
+    if (itr != m_members.end())
     {
+        Member& member = itr->second;
         if (state)
-            member->AddFlag(flag);
-        else member->RemFlag(flag);
+            member.AddFlag(flag);
+        else member.RemFlag(flag);
     }
 }
 
 bool Guild::SetName(std::string_view const& name)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_name == name || name.empty() || name.length() > 24 || !ObjectMgr::IsValidCharterName(name))
     {
         return false;
@@ -1220,6 +1292,7 @@ bool Guild::SetName(std::string_view const& name)
 
 void Guild::HandleRoster(WorldSession* session)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!session || !session->GetPlayer())
         return;
 
@@ -1270,6 +1343,7 @@ void Guild::HandleRoster(WorldSession* session)
 
 void Guild::HandleQuery(WorldSession* session)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!session)
         return;
 
@@ -1295,6 +1369,7 @@ void Guild::HandleQuery(WorldSession* session)
 
 void Guild::HandleSetMOTD(WorldSession* session, std::string_view motd)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_motd == motd)
         return;
 
@@ -1318,6 +1393,7 @@ void Guild::HandleSetMOTD(WorldSession* session, std::string_view motd)
 
 void Guild::HandleSetInfo(WorldSession* session, std::string_view info)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_info == info)
         return;
 
@@ -1337,6 +1413,7 @@ void Guild::HandleSetInfo(WorldSession* session, std::string_view info)
 
 void Guild::HandleSetEmblem(WorldSession* session, const EmblemInfo& emblemInfo)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* player = session->GetPlayer();
     if (!_IsLeader(player))
         SendSaveEmblemResult(session, ERR_GUILDEMBLEM_NOTGUILDMASTER); // "Only guild leaders can create emblems."
@@ -1357,24 +1434,27 @@ void Guild::HandleSetEmblem(WorldSession* session, const EmblemInfo& emblemInfo)
 
 void Guild::HandleSetEmblem(EmblemInfo const& emblemInfo)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_emblemInfo = emblemInfo;
     m_emblemInfo.SaveToDB(m_id);
 }
 
 void Guild::HandleSetLeader(WorldSession* session, std::string_view name)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* player = session->GetPlayer();
     // Only leader can assign new leader
     if (!_IsLeader(player))
         SendCommandResult(session, GUILD_COMMAND_CHANGE_LEADER, ERR_GUILD_PERMISSIONS);
     // Old leader must be a member of guild
-    else if (Member* pOldLeader = GetMember(player->GetGUID()))
+    else if (Optional<Member> pOldLeader = GetMember(player->GetGUID()))
     {
         // New leader must be a member of guild
-        if (Member* pNewLeader = GetMember(name))
+        if (Optional<Member> pNewLeader = GetMember(name))
         {
             _SetLeaderGUID(*pNewLeader);
-            pOldLeader->ChangeRank(GR_OFFICER);
+            if (auto itr = m_members.find(player->GetGUID().GetCounter()); itr != m_members.end())
+                itr->second.ChangeRank(GR_OFFICER);
             _BroadcastEvent(GE_LEADER_CHANGED, ObjectGuid::Empty, player->GetName(), pNewLeader->GetName());
         }
     }
@@ -1382,6 +1462,7 @@ void Guild::HandleSetLeader(WorldSession* session, std::string_view name)
 
 void Guild::HandleSetBankTabInfo(WorldSession* session, uint8 tabId, std::string_view name, std::string_view icon)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     BankTab* tab = GetBankTab(tabId);
     if (!tab)
     {
@@ -1396,22 +1477,30 @@ void Guild::HandleSetBankTabInfo(WorldSession* session, uint8 tabId, std::string
 
 void Guild::HandleSetMemberNote(WorldSession* session, std::string_view name, std::string_view note, bool isPublic)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // Player must have rights to set public/officer note
     if (!HasRankRight(session->GetPlayer(), isPublic ? GR_RIGHT_EPNOTE : GR_RIGHT_EOFFNOTE))
         SendCommandResult(session, GUILD_COMMAND_PUBLIC_NOTE, ERR_GUILD_PERMISSIONS);
-    else if (Member* member = GetMember(name))
+    else
     {
-        if (isPublic)
-            member->SetPublicNote(note);
-        else
-            member->SetOfficerNote(note);
-
-        HandleRoster(session);
+        for (auto itr = m_members.begin(); itr != m_members.end(); ++itr)
+        {
+            Member& member = itr->second;
+            if (member.GetName() != name)
+                continue;
+            if (isPublic)
+                member.SetPublicNote(note);
+            else
+                member.SetOfficerNote(note);
+            HandleRoster(session);
+            break;
+        }
     }
 }
 
 void Guild::HandleSetRankInfo(WorldSession* session, uint8 rankId, std::string_view name, uint32 rights, uint32 moneyPerDay, std::array<GuildBankRightsAndSlots, GUILD_BANK_MAX_TABS> const& rightsAndSlots)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // Only leader can modify ranks
     if (!_IsLeader(session->GetPlayer()))
         SendCommandResult(session, GUILD_COMMAND_CHANGE_RANK, ERR_GUILD_PERMISSIONS);
@@ -1432,6 +1521,7 @@ void Guild::HandleSetRankInfo(WorldSession* session, uint8 rankId, std::string_v
 
 void Guild::HandleSetRankInfo(uint8 rankId, uint32 rights, std::string_view name, uint32 moneyPerDay)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (RankInfo* rankInfo = GetRankInfo(rankId))
     {
         if (!name.empty())
@@ -1455,11 +1545,12 @@ void Guild::HandleSetRankInfo(uint8 rankId, uint32 rights, std::string_view name
 
 void Guild::HandleBuyBankTab(WorldSession* session, uint8 tabId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* player = session->GetPlayer();
     if (!player)
         return;
 
-    Member const* member = GetMember(player->GetGUID());
+    Optional<Member> const member = GetMember(player->GetGUID());
     if (!member)
         return;
 
@@ -1485,6 +1576,7 @@ void Guild::HandleBuyBankTab(WorldSession* session, uint8 tabId)
 
 void Guild::HandleInviteMember(WorldSession* session, std::string const& name)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* pInvitee = ObjectAccessor::FindPlayerByName(name, false);
     if (!pInvitee)
     {
@@ -1547,6 +1639,7 @@ void Guild::HandleInviteMember(WorldSession* session, std::string const& name)
 
 void Guild::HandleAcceptMember(WorldSession* session)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* player = session->GetPlayer();
     if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD) && player->GetTeamId() != sCharacterCache->GetCharacterTeamByGuid(GetLeaderGUID()))
     {
@@ -1558,6 +1651,7 @@ void Guild::HandleAcceptMember(WorldSession* session)
 
 void Guild::HandleLeaveMember(WorldSession* session)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!session || !session->GetPlayer())
         return;
     Player* player = session->GetPlayer();
@@ -1592,11 +1686,12 @@ void Guild::HandleLeaveMember(WorldSession* session)
 
 void Guild::HandleRemoveMember(WorldSession* session, std::string_view name)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* player = session->GetPlayer();
     // Player must have rights to remove members
     if (!HasRankRight(player, GR_RIGHT_REMOVE))
         SendCommandResult(session, GUILD_COMMAND_REMOVE, ERR_GUILD_PERMISSIONS);
-    else if (Member* member = GetMember(name))
+    else if (Optional<Member> member = GetMember(name))
     {
         // Guild masters cannot be removed
         if (member->IsRank(GR_GUILDMASTER))
@@ -1604,7 +1699,7 @@ void Guild::HandleRemoveMember(WorldSession* session, std::string_view name)
         // Do not allow to remove player with the same rank or higher
         else
         {
-            Member const* memberMe = GetMember(player->GetGUID());
+            Optional<Member> const memberMe = GetMember(player->GetGUID());
             if (!memberMe || member->IsRankNotLower(memberMe->GetRankId()))
                 SendCommandResult(session, GUILD_COMMAND_REMOVE, ERR_GUILD_RANK_TOO_HIGH_S, name);
             else
@@ -1624,22 +1719,23 @@ void Guild::HandleRemoveMember(WorldSession* session, std::string_view name)
 
 void Guild::HandleUpdateMemberRank(WorldSession* session, std::string_view name, bool demote)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* player = session->GetPlayer();
     GuildCommandType type = demote ? GUILD_COMMAND_DEMOTE : GUILD_COMMAND_PROMOTE;
     // Player must have rights to promote
     if (!HasRankRight(player, demote ? GR_RIGHT_DEMOTE : GR_RIGHT_PROMOTE))
         SendCommandResult(session, type, ERR_GUILD_PERMISSIONS);
     // Promoted player must be a member of guild
-    else if (Member* member = GetMember(name))
+    else if (Optional<Member> target = GetMember(name))
     {
         // Player cannot promote himself
-        if (member->IsSamePlayer(player->GetGUID()))
+        if (target->IsSamePlayer(player->GetGUID()))
         {
             SendCommandResult(session, type, ERR_GUILD_NAME_INVALID);
             return;
         }
 
-        Member const* memberMe = GetMember(player->GetGUID());
+        Optional<Member> memberMe = GetMember(player->GetGUID());
         if (!memberMe)
         {
             SendCommandResult(session, type, ERR_GUILD_PERMISSIONS);
@@ -1649,13 +1745,13 @@ void Guild::HandleUpdateMemberRank(WorldSession* session, std::string_view name,
         if (demote)
         {
             // Player can demote only lower rank members
-            if (member->IsRankNotLower(rankId))
+            if (target->IsRankNotLower(rankId))
             {
                 SendCommandResult(session, type, ERR_GUILD_RANK_TOO_HIGH_S, name);
                 return;
             }
             // Lowest rank cannot be demoted
-            if (member->GetRankId() >= _GetLowestRankId())
+            if (target->GetRankId() >= _GetLowestRankId())
             {
                 SendCommandResult(session, type, ERR_GUILD_RANK_TOO_LOW_S, name);
                 return;
@@ -1665,22 +1761,24 @@ void Guild::HandleUpdateMemberRank(WorldSession* session, std::string_view name,
         {
             // Allow to promote only to lower rank than member's rank
             // member->GetRankId() + 1 is the highest rank that current player can promote to
-            if (member->IsRankNotLower(rankId + 1))
+            if (target->IsRankNotLower(rankId + 1))
             {
                 SendCommandResult(session, type, ERR_GUILD_RANK_TOO_HIGH_S, name);
                 return;
             }
         }
 
-        uint32 newRankId = member->GetRankId() + (demote ? 1 : -1);
-        member->ChangeRank(newRankId);
-        _LogEvent(demote ? GUILD_EVENT_LOG_DEMOTE_PLAYER : GUILD_EVENT_LOG_PROMOTE_PLAYER, player->GetGUID(), member->GetGUID(), newRankId);
-        _BroadcastEvent(demote ? GE_DEMOTION : GE_PROMOTION, ObjectGuid::Empty, player->GetName(), member->GetName(), _GetRankName(newRankId));
+        uint32 newRankId = target->GetRankId() + (demote ? 1 : -1);
+        if (auto itr = m_members.find(target->GetGUID().GetCounter()); itr != m_members.end())
+            itr->second.ChangeRank(newRankId);
+        _LogEvent(demote ? GUILD_EVENT_LOG_DEMOTE_PLAYER : GUILD_EVENT_LOG_PROMOTE_PLAYER, player->GetGUID(), target->GetGUID(), newRankId);
+        _BroadcastEvent(demote ? GE_DEMOTION : GE_PROMOTION, ObjectGuid::Empty, player->GetName(), target->GetName(), _GetRankName(newRankId));
     }
 }
 
 void Guild::HandleAddNewRank(WorldSession* session, std::string_view name)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 size = _GetRanksSize();
     if (size >= GUILD_RANKS_MAX_COUNT)
         return;
@@ -1693,11 +1791,13 @@ void Guild::HandleAddNewRank(WorldSession* session, std::string_view name)
 
 void Guild::HandleRemoveLowestRank(WorldSession* session)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     HandleRemoveRank(session, _GetLowestRankId());
 }
 
 void Guild::HandleRemoveRank(WorldSession* session, uint8 rankId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // Cannot remove rank if total count is minimum allowed by the client or is not leader
     if (_GetRanksSize() <= GUILD_RANKS_MIN_COUNT || rankId >= _GetRanksSize() || !_IsLeader(session->GetPlayer()))
         return;
@@ -1721,6 +1821,7 @@ void Guild::HandleRemoveRank(WorldSession* session, uint8 rankId)
 
 void Guild::HandleMemberDepositMoney(WorldSession* session, uint32 amount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* player = session->GetPlayer();
 
     // Call script after validation and before money transfer.
@@ -1751,6 +1852,7 @@ void Guild::HandleMemberDepositMoney(WorldSession* session, uint32 amount)
 
 bool Guild::HandleMemberWithdrawMoney(WorldSession* session, uint32 amount, bool repair)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     //clamp amount to MAX_MONEY_AMOUNT, Players can't hold more than that anyway
     amount = std::min(amount, uint32(MAX_MONEY_AMOUNT));
 
@@ -1759,7 +1861,7 @@ bool Guild::HandleMemberWithdrawMoney(WorldSession* session, uint32 amount, bool
 
     Player* player = session->GetPlayer();
 
-    Member* member = GetMember(player->GetGUID());
+    Optional<Member> member = GetMember(player->GetGUID());
     if (!member)
         return false;
 
@@ -1802,18 +1904,21 @@ bool Guild::HandleMemberWithdrawMoney(WorldSession* session, uint32 amount, bool
 
 void Guild::HandleMemberLogout(WorldSession* session)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Player* player = session->GetPlayer();
-    if (Member* member = GetMember(player->GetGUID()))
+    if (auto itr = m_members.find(player->GetGUID().GetCounter()); itr != m_members.end())
     {
-        member->SetStats(player);
-        member->UpdateLogoutTime();
-        member->ResetFlags();
+        Member& member = itr->second;
+        member.SetStats(player);
+        member.UpdateLogoutTime();
+        member.ResetFlags();
     }
     _BroadcastEvent(GE_SIGNED_OFF, player->GetGUID(), player->GetName());
 }
 
 void Guild::HandleDisband(WorldSession* session)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!session || !session->GetPlayer())
         return;
     // Only leader can disband guild
@@ -1829,6 +1934,7 @@ void Guild::HandleDisband(WorldSession* session)
 // Send data to client
 void Guild::SendInfo(WorldSession* session) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!session)
         return;
 
@@ -1844,7 +1950,7 @@ void Guild::SendInfo(WorldSession* session) const
 
 void Guild::SendEventLog(WorldSession* session) const
 {
-    std::list<EventLogEntry> const& eventLog = m_eventLog.GetGuildLog();
+    std::vector<EventLogEntry> eventLog = m_eventLog.GetGuildLogSnapshot();
 
     WorldPackets::Guild::GuildEventLogQueryResults packet;
     packet.Entry.reserve(eventLog.size());
@@ -1859,31 +1965,38 @@ void Guild::SendEventLog(WorldSession* session) const
 void Guild::SendBankLog(WorldSession* session, uint8 tabId) const
 {
     // GUILD_BANK_MAX_TABS send by client for money log
-    if (tabId < _GetPurchasedTabsSize() || tabId == GUILD_BANK_MAX_TABS)
+    std::vector<BankEventLogEntry> bankEventLog;
     {
-        std::list<BankEventLogEntry> const& bankEventLog = m_bankEventLog[tabId].GetGuildLog();
-
-        WorldPackets::Guild::GuildBankLogQueryResults packet;
-        packet.Tab = tabId;
-
-        packet.Entry.reserve(bankEventLog.size());
-        for (BankEventLogEntry const& entry : bankEventLog)
-            entry.WritePacket(packet);
-
-        session->SendPacket(packet.Write());
-        LOG_DEBUG("guild", "MSG_GUILD_BANK_LOG_QUERY [{}]", session->GetPlayerInfo());
+        std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+        if (tabId >= _GetPurchasedTabsSize() && tabId != GUILD_BANK_MAX_TABS)
+            return;
+        bankEventLog = m_bankEventLog[tabId].GetGuildLogSnapshot();
     }
+
+    WorldPackets::Guild::GuildBankLogQueryResults packet;
+    packet.Tab = tabId;
+
+    packet.Entry.reserve(bankEventLog.size());
+    for (BankEventLogEntry const& entry : bankEventLog)
+        entry.WritePacket(packet);
+
+    session->SendPacket(packet.Write());
+    LOG_DEBUG("guild", "MSG_GUILD_BANK_LOG_QUERY [{}]", session->GetPlayerInfo());
 }
 
 void Guild::SendBankTabData(WorldSession* session, uint8 tabId, bool sendAllSlots) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (tabId < _GetPurchasedTabsSize())
         _SendBankContent(session, tabId, sendAllSlots);
 }
 
 void Guild::SendBankTabsInfo(WorldSession* session, bool sendAllSlots /*= false*/)
 {
-    Member* member = GetMember(session->GetPlayer()->GetGUID());
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    Member* member = nullptr;
+    if (auto itr = m_members.find(session->GetPlayer()->GetGUID().GetCounter()); itr != m_members.end())
+        member = &itr->second;
     if (!member)
         return;
 
@@ -1894,13 +2007,17 @@ void Guild::SendBankTabsInfo(WorldSession* session, bool sendAllSlots /*= false*
 
 void Guild::SendBankTabText(WorldSession* session, uint8 tabId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (BankTab const* tab = GetBankTab(tabId))
         tab->SendText(this, session);
 }
 
 void Guild::SendPermissions(WorldSession* session)
 {
-    Member* member = GetMember(session->GetPlayer()->GetGUID());
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    Member* member = nullptr;
+    if (auto itr = m_members.find(session->GetPlayer()->GetGUID().GetCounter()); itr != m_members.end())
+        member = &itr->second;
     if (!member)
         return;
 
@@ -1929,7 +2046,8 @@ void Guild::SendPermissions(WorldSession* session)
 
 void Guild::SendMoneyInfo(WorldSession* session) const
 {
-    Member const* member = GetMember(session->GetPlayer()->GetGUID());
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    Optional<Member> const member = GetMember(session->GetPlayer()->GetGUID());
     if (!member)
         return;
 
@@ -1944,6 +2062,7 @@ void Guild::SendMoneyInfo(WorldSession* session) const
 
 void Guild::SendLoginInfo(WorldSession* session)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     WorldPackets::Guild::GuildEvent motd;
     motd.Type = GE_MOTD;
     motd.Params.emplace_back(m_motd);
@@ -1956,16 +2075,18 @@ void Guild::SendLoginInfo(WorldSession* session)
     HandleRoster(session);
     _BroadcastEvent(GE_SIGNED_ON, player->GetGUID(), player->GetName());
 
-    if (Member* member = GetMember(player->GetGUID()))
+    if (auto itr = m_members.find(player->GetGUID().GetCounter()); itr != m_members.end())
     {
-        member->SetStats(player);
-        member->AddFlag(GUILDMEMBER_STATUS_ONLINE);
+        Member& member = itr->second;
+        member.SetStats(player);
+        member.AddFlag(GUILDMEMBER_STATUS_ONLINE);
     }
 }
 
 // Loading methods
 bool Guild::LoadFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_id            = fields[0].Get<uint32>();
     m_name          = fields[1].Get<std::string>();
     m_leaderGuid    = ObjectGuid::Create<HighGuid::Player>(fields[2].Get<uint32>());
@@ -1988,6 +2109,7 @@ bool Guild::LoadFromDB(Field* fields)
 
 void Guild::LoadRankFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     RankInfo rankInfo(m_id);
 
     rankInfo.LoadFromDB(fields);
@@ -1997,6 +2119,7 @@ void Guild::LoadRankFromDB(Field* fields)
 
 bool Guild::LoadMemberFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ObjectGuid::LowType lowguid = fields[1].Get<uint32>();
     ObjectGuid playerGuid(HighGuid::Player, lowguid);
 
@@ -2021,6 +2144,7 @@ bool Guild::LoadMemberFromDB(Field* fields)
 
 void Guild::LoadBankRightFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // tabId              rights                slots
     GuildBankRightsAndSlots rightsAndSlots(fields[1].Get<uint8>(), fields[3].Get<uint8>(), fields[4].Get<uint32>());
     // rankId
@@ -2029,6 +2153,7 @@ void Guild::LoadBankRightFromDB(Field* fields)
 
 bool Guild::LoadEventLogFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_eventLog.CanInsert())
     {
         m_eventLog.LoadEvent(
@@ -2046,6 +2171,7 @@ bool Guild::LoadEventLogFromDB(Field* fields)
 
 bool Guild::LoadBankEventLogFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 dbTabId = fields[1].Get<uint8>();
     bool isMoneyTab = (dbTabId == GUILD_BANK_MONEY_LOGS_TAB);
     if (dbTabId < _GetPurchasedTabsSize() || isMoneyTab)
@@ -2086,6 +2212,7 @@ bool Guild::LoadBankEventLogFromDB(Field* fields)
 
 void Guild::LoadBankTabFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 tabId = fields[1].Get<uint8>();
     if (tabId >= _GetPurchasedTabsSize())
         LOG_ERROR("guild", "Invalid tab (tabId: {}) in guild bank, skipped.", tabId);
@@ -2095,6 +2222,7 @@ void Guild::LoadBankTabFromDB(Field* fields)
 
 bool Guild::LoadBankItemFromDB(Field* fields)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 tabId = fields[12].Get<uint8>();
     if (tabId >= _GetPurchasedTabsSize())
     {
@@ -2108,6 +2236,7 @@ bool Guild::LoadBankItemFromDB(Field* fields)
 // Validates guild data loaded from database. Returns false if guild should be deleted.
 bool Guild::Validate()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // Validate ranks data
     // GUILD RANKS represent a sequence starting from 0 = GUILD_MASTER (ALL PRIVILEGES) to max 9 (lowest privileges).
     // The lower rank id is considered higher rank - so promotion does rank-- and demotion does rank++
@@ -2153,7 +2282,9 @@ bool Guild::Validate()
     // Repair the structure of the guild.
     // If the guildmaster doesn't exist or isn't member of the guild
     // attempt to promote another member.
-    Member* pLeader = GetMember(m_leaderGuid);
+    Member* pLeader = nullptr;
+    if (auto itr = m_members.find(m_leaderGuid.GetCounter()); itr != m_members.end())
+        pLeader = &itr->second;
     if (!pLeader)
     {
         DeleteMember(m_leaderGuid);
@@ -2180,6 +2311,7 @@ bool Guild::Validate()
 // Broadcasts
 void Guild::BroadcastToGuild(WorldSession* session, bool officerOnly, std::string_view msg, uint32 language) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (session && session->GetPlayer() && HasRankRight(session->GetPlayer(), officerOnly ? GR_RIGHT_OFFCHATSPEAK : GR_RIGHT_GCHATSPEAK))
     {
         WorldPacket data;
@@ -2193,6 +2325,7 @@ void Guild::BroadcastToGuild(WorldSession* session, bool officerOnly, std::strin
 
 void Guild::BroadcastPacketToRank(WorldPacket const* packet, uint8 rankId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_disbanded || !packet)
         return;
 
@@ -2211,6 +2344,7 @@ void Guild::BroadcastPacketToRank(WorldPacket const* packet, uint8 rankId) const
 
 void Guild::BroadcastPacket(WorldPacket const* packet) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_disbanded || !packet)
         return;
 
@@ -2228,6 +2362,7 @@ void Guild::BroadcastPacket(WorldPacket const* packet) const
 
 void Guild::MassInviteToEvent(WorldSession* session, uint32 minLevel, uint32 maxLevel, uint32 minRank)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint32 count = 0;
 
     WorldPacket data(SMSG_CALENDAR_FILTER_GUILD);
@@ -2259,8 +2394,58 @@ void Guild::MassInviteToEvent(WorldSession* session, uint32 minLevel, uint32 max
 }
 
 // Members handling
+uint32 Guild::GetMemberCount() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    return m_members.size();
+}
+
+uint32 Guild::GetMemberSize() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    return m_members.size();
+}
+
+std::vector<ObjectGuid> Guild::GetMemberGUIDs() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_members.size());
+    for (auto const& pair : m_members)
+        guids.push_back(pair.second.GetGUID());
+    return guids;
+}
+
+Optional<Guild::Member> Guild::GetMember(ObjectGuid guid) const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    auto itr = m_members.find(guid.GetCounter());
+    if (itr != m_members.end())
+        return itr->second;
+    return {};
+}
+
+Optional<Guild::Member> Guild::GetMember(ObjectGuid guid)
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    auto itr = m_members.find(guid.GetCounter());
+    if (itr != m_members.end())
+        return itr->second;
+    return {};
+}
+
+Optional<Guild::Member> Guild::GetMember(std::string_view name)
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    for (auto& m_member : m_members)
+        if (m_member.second.GetName() == name)
+            return m_member.second;
+    return {};
+}
+
 bool Guild::AddMember(ObjectGuid guid, uint8 rankId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (m_disbanded)
         return false;
     Player* player = ObjectAccessor::FindConnectedPlayer(guid);
@@ -2356,6 +2541,7 @@ bool Guild::AddMember(ObjectGuid guid, uint8 rankId)
 
 void Guild::DeleteMember(ObjectGuid guid, bool isDisbanding, bool isKicked, bool canDeleteGuild)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     (void)canDeleteGuild; // lifetime is manager-owned; disband path destroys via DestroyGuild
     // Crash-proof: zombie no-op, except the disband drain which must proceed.
     if (m_disbanded && !isDisbanding)
@@ -2442,10 +2628,11 @@ void Guild::DeleteMember(ObjectGuid guid, bool isDisbanding, bool isKicked, bool
 
 bool Guild::ChangeMemberRank(ObjectGuid guid, uint8 newRank)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (newRank <= _GetLowestRankId())                    // Validate rank (allow only existing ranks)
-        if (Member* member = GetMember(guid))
+        if (auto itr = m_members.find(guid.GetCounter()); itr != m_members.end())
         {
-            member->ChangeRank(newRank);
+            itr->second.ChangeRank(newRank);
 
             if (newRank == GR_GUILDMASTER)
             {
@@ -2465,6 +2652,7 @@ bool Guild::ChangeMemberRank(ObjectGuid guid, uint8 newRank)
 // Bank (items move)
 void Guild::SwapItems(Player* player, uint8 tabId, uint8 slotId, uint8 destTabId, uint8 destSlotId, uint32 splitedAmount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (tabId >= _GetPurchasedTabsSize() || slotId >= GUILD_BANK_MAX_SLOTS ||
             destTabId >= _GetPurchasedTabsSize() || destSlotId >= GUILD_BANK_MAX_SLOTS)
         return;
@@ -2479,6 +2667,7 @@ void Guild::SwapItems(Player* player, uint8 tabId, uint8 slotId, uint8 destTabId
 
 void Guild::SwapItemsWithInventory(Player* player, bool toChar, uint8 tabId, uint8 slotId, uint8 playerBag, uint8 playerSlotId, uint32 splitedAmount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if ((slotId >= GUILD_BANK_MAX_SLOTS && slotId != NULL_SLOT) || tabId >= _GetPurchasedTabsSize())
         return;
 
@@ -2493,6 +2682,7 @@ void Guild::SwapItemsWithInventory(Player* player, bool toChar, uint8 tabId, uin
 // Bank tabs
 void Guild::SetBankTabText(uint8 tabId, std::string_view text)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (BankTab* pTab = GetBankTab(tabId))
     {
         pTab->SetText(text);
@@ -2503,6 +2693,7 @@ void Guild::SetBankTabText(uint8 tabId, std::string_view text)
 // Private methods
 void Guild::_CreateNewBankTab()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 tabId = _GetPurchasedTabsSize();                      // Next free id
     m_bankTabs.emplace_back(m_id, tabId);
 
@@ -2527,6 +2718,7 @@ void Guild::_CreateNewBankTab()
 
 void Guild::_CreateDefaultGuildRanks(LocaleConstant loc)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GUILD_RANKS);
     stmt->SetData(0, m_id);
     CharacterDatabase.Execute(stmt);
@@ -2544,6 +2736,7 @@ void Guild::_CreateDefaultGuildRanks(LocaleConstant loc)
 
 bool Guild::_CreateRank(std::string_view name, uint32 rights)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 newRankId = _GetRanksSize();
     if (newRankId >= GUILD_RANKS_MAX_COUNT)
         return false;
@@ -2564,6 +2757,7 @@ bool Guild::_CreateRank(std::string_view name, uint32 rights)
 // Player may have many characters in the guild, but with the same account
 void Guild::_UpdateAccountsNumber()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // We use a set to be sure each element will be unique
     std::unordered_set<uint32> accountsIdSet;
     for (auto const& [guid, member] : m_members)
@@ -2577,15 +2771,17 @@ void Guild::_UpdateAccountsNumber()
 // multiple guild masters won't work)
 bool Guild::_IsLeader(Player* player) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (player->GetGUID() == m_leaderGuid)
         return true;
-    if (const Member* member = GetMember(player->GetGUID()))
+    if (const Optional<Member> member = GetMember(player->GetGUID()))
         return member->IsRank(GR_GUILDMASTER);
     return false;
 }
 
 void Guild::_DeleteBankItems(CharacterDatabaseTransaction trans, bool removeItemsFromDB)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (uint8 tabId = 0; tabId < _GetPurchasedTabsSize(); ++tabId)
     {
         m_bankTabs[tabId].Delete(trans, removeItemsFromDB);
@@ -2595,6 +2791,7 @@ void Guild::_DeleteBankItems(CharacterDatabaseTransaction trans, bool removeItem
 
 bool Guild::_ModifyBankMoney(CharacterDatabaseTransaction trans, uint64 amount, bool add)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (add)
         m_bankMoney += amount;
     else
@@ -2614,8 +2811,10 @@ bool Guild::_ModifyBankMoney(CharacterDatabaseTransaction trans, uint64 amount, 
 
 void Guild::_SetLeaderGUID(Member& pLeader)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     m_leaderGuid = pLeader.GetGUID();
-    pLeader.ChangeRank(GR_GUILDMASTER);
+    if (auto itr = m_members.find(m_leaderGuid.GetCounter()); itr != m_members.end())
+        itr->second.ChangeRank(GR_GUILDMASTER);
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_GUILD_LEADER);
     stmt->SetData(0, m_leaderGuid.GetCounter());
@@ -2625,12 +2824,14 @@ void Guild::_SetLeaderGUID(Member& pLeader)
 
 void Guild::_SetRankBankMoneyPerDay(uint8 rankId, uint32 moneyPerDay)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (RankInfo* rankInfo = GetRankInfo(rankId))
         rankInfo->SetBankMoneyPerDay(moneyPerDay);
 }
 
 void Guild::_SetRankBankTabRightsAndSlots(uint8 rankId, GuildBankRightsAndSlots rightsAndSlots, bool saveToDB)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (rightsAndSlots.GetTabId() >= _GetPurchasedTabsSize())
         return;
 
@@ -2640,6 +2841,7 @@ void Guild::_SetRankBankTabRightsAndSlots(uint8 rankId, GuildBankRightsAndSlots 
 
 inline std::string Guild::_GetRankName(uint8 rankId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (const RankInfo* rankInfo = GetRankInfo(rankId))
         return rankInfo->GetName();
     return "<unknown>";
@@ -2647,6 +2849,7 @@ inline std::string Guild::_GetRankName(uint8 rankId) const
 
 uint32 Guild::GetRankRights(uint8 rankId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (const RankInfo* rankInfo = GetRankInfo(rankId))
         return rankInfo->GetRights();
     return 0;
@@ -2654,6 +2857,7 @@ uint32 Guild::GetRankRights(uint8 rankId) const
 
 inline int32 Guild::_GetRankBankMoneyPerDay(uint8 rankId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (const RankInfo* rankInfo = GetRankInfo(rankId))
         return rankInfo->GetBankMoneyPerDay();
     return 0;
@@ -2661,6 +2865,7 @@ inline int32 Guild::_GetRankBankMoneyPerDay(uint8 rankId) const
 
 inline int32 Guild::_GetRankBankTabSlotsPerDay(uint8 rankId, uint8 tabId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (tabId < _GetPurchasedTabsSize())
         if (const RankInfo* rankInfo = GetRankInfo(rankId))
             return rankInfo->GetBankTabSlotsPerDay(tabId);
@@ -2669,6 +2874,7 @@ inline int32 Guild::_GetRankBankTabSlotsPerDay(uint8 rankId, uint8 tabId) const
 
 inline int8 Guild::_GetRankBankTabRights(uint8 rankId, uint8 tabId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (const RankInfo* rankInfo = GetRankInfo(rankId))
         return rankInfo->GetBankTabRights(tabId);
     return 0;
@@ -2676,6 +2882,7 @@ inline int8 Guild::_GetRankBankTabRights(uint8 rankId, uint8 tabId) const
 
 inline int32 Guild::_GetMemberRemainingSlots(Member const& member, uint8 tabId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 rankId = member.GetRankId();
     if (rankId == GR_GUILDMASTER)
         return static_cast<int32>(GUILD_WITHDRAW_SLOT_UNLIMITED);
@@ -2690,6 +2897,7 @@ inline int32 Guild::_GetMemberRemainingSlots(Member const& member, uint8 tabId) 
 
 inline int32 Guild::_GetMemberRemainingMoney(Member const& member) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     uint8 rankId = member.GetRankId();
     if (rankId == GR_GUILDMASTER)
         return static_cast<int32>(GUILD_WITHDRAW_MONEY_UNLIMITED);
@@ -2705,18 +2913,21 @@ inline int32 Guild::_GetMemberRemainingMoney(Member const& member) const
 
 inline void Guild::_UpdateMemberWithdrawSlots(CharacterDatabaseTransaction trans, ObjectGuid guid, uint8 tabId)
 {
-    if (Member* member = GetMember(guid))
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    if (auto itr = m_members.find(guid.GetCounter()); itr != m_members.end())
     {
-        uint8 rankId = member->GetRankId();
+        Member& member = itr->second;
+        uint8 rankId = member.GetRankId();
         if (rankId != GR_GUILDMASTER
-                && member->GetBankWithdrawValue(tabId) < _GetRankBankTabSlotsPerDay(rankId, tabId))
-            member->UpdateBankWithdrawValue(trans, tabId, 1);
+                && member.GetBankWithdrawValue(tabId) < _GetRankBankTabSlotsPerDay(rankId, tabId))
+            member.UpdateBankWithdrawValue(trans, tabId, 1);
     }
 }
 
 bool Guild::MemberHasTabRights(ObjectGuid guid, uint8 tabId, uint32 rights) const
 {
-    if (const Member* member = GetMember(guid))
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    if (const Optional<Member> member = GetMember(guid))
     {
         // Leader always has full rights
         if (member->IsRank(GR_GUILDMASTER) || m_leaderGuid == guid)
@@ -2728,9 +2939,10 @@ bool Guild::MemberHasTabRights(ObjectGuid guid, uint8 tabId, uint32 rights) cons
 
 bool Guild::HasRankRight(Player* player, uint32 right) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (player)
     {
-        if (Member const* member = GetMember(player->GetGUID()))
+        if (Optional<Member> const member = GetMember(player->GetGUID()))
         {
             return (GetRankRights(member->GetRankId()) & right) != GR_RIGHT_EMPTY;
         }
@@ -2742,6 +2954,7 @@ bool Guild::HasRankRight(Player* player, uint32 right) const
 // Add new event log record
 inline void Guild::_LogEvent(GuildEventLogTypes eventType, ObjectGuid playerGuid1, ObjectGuid playerGuid2, uint8 newRank)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     m_eventLog.AddEvent(trans, m_id, m_eventLog.GetNextGUID(), eventType, playerGuid1, playerGuid2, newRank);
     CharacterDatabase.CommitTransaction(trans);
@@ -2752,6 +2965,7 @@ inline void Guild::_LogEvent(GuildEventLogTypes eventType, ObjectGuid playerGuid
 // Add new bank event log record
 void Guild::_LogBankEvent(CharacterDatabaseTransaction trans, GuildBankEventLogTypes eventType, uint8 tabId, ObjectGuid guid, uint32 itemOrMoney, uint16 itemStackCount, uint8 destTabId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (tabId > GUILD_BANK_MAX_TABS)
         return;
 
@@ -2773,6 +2987,7 @@ void Guild::_LogBankEvent(CharacterDatabaseTransaction trans, GuildBankEventLogT
 
 inline Item* Guild::_GetItem(uint8 tabId, uint8 slotId) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (const BankTab* tab = GetBankTab(tabId))
         return tab->GetItem(slotId);
     return nullptr;
@@ -2780,12 +2995,14 @@ inline Item* Guild::_GetItem(uint8 tabId, uint8 slotId) const
 
 inline void Guild::_RemoveItem(CharacterDatabaseTransaction trans, uint8 tabId, uint8 slotId)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (BankTab* pTab = GetBankTab(tabId))
         pTab->SetItem(trans, slotId, nullptr);
 }
 
 void Guild::_MoveItems(MoveItemData* pSrc, MoveItemData* pDest, uint32 splitedAmount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     // 1. Initialize source item
     if (!pSrc->InitItem())
         return; // No source item
@@ -2839,6 +3056,7 @@ void Guild::_MoveItems(MoveItemData* pSrc, MoveItemData* pDest, uint32 splitedAm
 
 bool Guild::_DoItemsMove(MoveItemData* pSrc, MoveItemData* pDest, bool sendError, uint32 splitedAmount)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     Item* pDestItem = pDest->GetItem();
     bool swap = (pDestItem != nullptr);
 
@@ -2883,6 +3101,7 @@ bool Guild::_DoItemsMove(MoveItemData* pSrc, MoveItemData* pDest, bool sendError
 
 void Guild::_SendBankContent(WorldSession* session, uint8 tabId, bool sendAllSlots) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ObjectGuid guid = session->GetPlayer()->GetGUID();
     if (!MemberHasTabRights(guid, tabId, GUILD_BANK_RIGHT_VIEW_TAB))
         return;
@@ -2892,11 +3111,13 @@ void Guild::_SendBankContent(WorldSession* session, uint8 tabId, bool sendAllSlo
 
 void Guild::_SendBankMoneyUpdate(WorldSession* session) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     _SendBankList(session);
 }
 
 void Guild::_SendBankContentUpdate(MoveItemData* pSrc, MoveItemData* pDest) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     ASSERT(pSrc->IsBank() || pDest->IsBank());
 
     uint8 tabId = 0;
@@ -2929,12 +3150,14 @@ void Guild::_SendBankContentUpdate(MoveItemData* pSrc, MoveItemData* pDest) cons
 
 void Guild::_SendBankContentUpdate(uint8 tabId, SlotIds slots) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     _SendBankList(nullptr, tabId, false, &slots);
 }
 
 void Guild::_BroadcastEvent(GuildEvents guildEvent, ObjectGuid guid,
                             Optional<std::string_view> param1 /*= {}*/, Optional<std::string_view> param2 /*= {}*/, Optional<std::string_view> param3 /*= {}*/) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     WorldPackets::Guild::GuildEvent event;
     event.Type = guildEvent;
     if (param1)
@@ -2958,6 +3181,7 @@ void Guild::_BroadcastEvent(GuildEvents guildEvent, ObjectGuid guid,
 
 void Guild::_SendBankList(WorldSession* session /* = nullptr*/, uint8 tabId /*= 0*/, bool sendAllSlots /*= false*/, SlotIds *slots /*= nullptr*/) const
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     if (!sScriptMgr->CanGuildSendBankList(this, session, tabId, sendAllSlots))
         return;
 
@@ -3032,7 +3256,7 @@ void Guild::_SendBankList(WorldSession* session /* = nullptr*/, uint8 tabId /*= 
 
     if (session)
     {
-        if (Member const* member = GetMember(session->GetPlayer()->GetGUID()))
+        if (Optional<Member> const member = GetMember(session->GetPlayer()->GetGUID()))
             packet.WithdrawalsRemaining = _GetMemberRemainingSlots(*member, tabId);
 
         session->SendPacket(packet.Write());
@@ -3064,6 +3288,7 @@ void Guild::_SendBankList(WorldSession* session /* = nullptr*/, uint8 tabId /*= 
 
 void Guild::ResetTimes()
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
     for (auto& [guid, member] : m_members)
         member.ResetValues();
 

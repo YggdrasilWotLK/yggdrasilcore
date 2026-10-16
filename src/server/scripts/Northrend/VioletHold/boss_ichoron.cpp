@@ -137,13 +137,10 @@ public:
 
         void IchoronDoCastToAllHostilePlayers(uint32 spellId, bool triggered)
         {
-            Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-            if (PlayerList.IsEmpty())
-                return;
-
-            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                if (Player* plr = i->GetSource())
-                    me->CastSpell(plr, spellId, triggered);
+            me->GetMap()->DoForAllPlayers([&](Player* plr)
+            {
+                me->CastSpell(plr, spellId, triggered);
+            });
         }
 
         void JustEngagedWith(Unit* /*who*/) override

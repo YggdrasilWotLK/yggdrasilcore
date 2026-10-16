@@ -184,12 +184,15 @@ public:
             bool        MoiraSaved    = true;
 
             // check if all players saved her.
-            Map::PlayerList const& lPlayers = instance->GetPlayers();
-            if (!lPlayers.IsEmpty())
+            Map* snapMap = instance;
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            if (!guids.empty())
             {
-                for (Map::PlayerList::const_iterator itr = lPlayers.begin(); itr != lPlayers.end(); ++itr)
+                for (ObjectGuid const& playerGuid : guids)
                 {
-                    if (Player* player = itr->GetSource())
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                        continue;
                     {
                         // set to false if this player hasn't saved her. Another player can't put it to true.
                         MoiraSaved = MoiraSaved && ((player->GetQuestStatus(PRINCESS_QUEST_HORDE) == QUEST_STATUS_REWARDED)

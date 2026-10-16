@@ -24,6 +24,7 @@
 #include "DatabaseEnv.h"
 #include "ObjectGuid.h"
 #include <map>
+#include <shared_mutex>
 #include <string>
 
 typedef std::list<AchievementCriteriaEntry const*> AchievementCriteriaEntryList;
@@ -358,58 +359,67 @@ public:
     bool IsStatisticAchievement(AchievementEntry const* achievement) const;
     bool IsAverageCriteria(AchievementCriteriaEntry const* criteria) const;
 
-    [[nodiscard]] AchievementCriteriaEntryList const* GetAchievementCriteriaByType(AchievementCriteriaTypes type) const
+    // All getters below return copies: the stores rebuild on world-thread
+    // reload while kill-credit/loot reads run on map threads.
+    [[nodiscard]] AchievementCriteriaEntryList GetAchievementCriteriaByType(AchievementCriteriaTypes type) const
     {
-        return &_achievementCriteriasByType[type];
+        std::shared_lock<std::shared_mutex> lock(_achLock);
+        return _achievementCriteriasByType[type];
     }
 
-    AchievementCriteriaEntryList const* GetSpecialAchievementCriteriaByType(AchievementCriteriaTypes type, uint32 val)
+    [[nodiscard]] AchievementCriteriaEntryList GetSpecialAchievementCriteriaByType(AchievementCriteriaTypes type, uint32 val) const
     {
-        if (_specialList[type].find(val) != _specialList[type].end())
-            return &_specialList[type][val];
-        return nullptr;
+        std::shared_lock<std::shared_mutex> lock(_achLock);
+        auto itr = _specialList[type].find(val);
+        return itr != _specialList[type].end() ? itr->second : AchievementCriteriaEntryList{};
     }
 
-    AchievementCriteriaEntryList const* GetAchievementCriteriaByCondition(AchievementCriteriaCondition condition, uint32 val)
+    [[nodiscard]] AchievementCriteriaEntryList GetAchievementCriteriaByCondition(AchievementCriteriaCondition condition, uint32 val) const
     {
-        if (_achievementCriteriasByCondition[condition].find(val) != _achievementCriteriasByCondition[condition].end())
-            return &_achievementCriteriasByCondition[condition][val];
-        return nullptr;
+        std::shared_lock<std::shared_mutex> lock(_achLock);
+        auto itr = _achievementCriteriasByCondition[condition].find(val);
+        return itr != _achievementCriteriasByCondition[condition].end() ? itr->second : AchievementCriteriaEntryList{};
     }
 
-    [[nodiscard]] AchievementCriteriaEntryList const& GetTimedAchievementCriteriaByType(AchievementCriteriaTimedTypes type) const
+    [[nodiscard]] AchievementCriteriaEntryList GetTimedAchievementCriteriaByType(AchievementCriteriaTimedTypes type) const
     {
+        std::shared_lock<std::shared_mutex> lock(_achLock);
         return _achievementCriteriasByTimedType[type];
     }
 
-    [[nodiscard]] AchievementCriteriaEntryList const* GetAchievementCriteriaByAchievement(uint32 id) const
+    [[nodiscard]] AchievementCriteriaEntryList GetAchievementCriteriaByAchievement(uint32 id) const
     {
+        std::shared_lock<std::shared_mutex> lock(_achLock);
         AchievementCriteriaListByAchievement::const_iterator itr = _achievementCriteriaListByAchievement.find(id);
-        return itr != _achievementCriteriaListByAchievement.end() ? &itr->second : nullptr;
+        return itr != _achievementCriteriaListByAchievement.end() ? itr->second : AchievementCriteriaEntryList{};
     }
 
-    [[nodiscard]] AchievementEntryList const* GetAchievementByReferencedId(uint32 id) const
+    [[nodiscard]] AchievementEntryList GetAchievementByReferencedId(uint32 id) const
     {
+        std::shared_lock<std::shared_mutex> lock(_achLock);
         AchievementListByReferencedId::const_iterator itr = _achievementListByReferencedId.find(id);
-        return itr != _achievementListByReferencedId.end() ? &itr->second : nullptr;
+        return itr != _achievementListByReferencedId.end() ? itr->second : AchievementEntryList{};
     }
 
-    AchievementReward const* GetAchievementReward(AchievementEntry const* achievement) const
+    [[nodiscard]] Optional<AchievementReward> GetAchievementReward(AchievementEntry const* achievement) const
     {
+        std::shared_lock<std::shared_mutex> lock(_achLock);
         AchievementRewards::const_iterator iter = _achievementRewards.find(achievement->ID);
-        return iter != _achievementRewards.end() ? &iter->second : nullptr;
+        return iter != _achievementRewards.end() ? Optional<AchievementReward>(iter->second) : Optional<AchievementReward>{};
     }
 
-    AchievementRewardLocale const* GetAchievementRewardLocale(AchievementEntry const* achievement) const
+    [[nodiscard]] Optional<AchievementRewardLocale> GetAchievementRewardLocale(AchievementEntry const* achievement) const
     {
+        std::shared_lock<std::shared_mutex> lock(_achLock);
         AchievementRewardLocales::const_iterator iter = _achievementRewardLocales.find(achievement->ID);
-        return iter != _achievementRewardLocales.end() ? &iter->second : nullptr;
+        return iter != _achievementRewardLocales.end() ? Optional<AchievementRewardLocale>(iter->second) : Optional<AchievementRewardLocale>{};
     }
 
-    AchievementCriteriaDataSet const* GetCriteriaDataSet(AchievementCriteriaEntry const* achievementCriteria) const
+    [[nodiscard]] Optional<AchievementCriteriaDataSet> GetCriteriaDataSet(AchievementCriteriaEntry const* achievementCriteria) const
     {
+        std::shared_lock<std::shared_mutex> lock(_achLock);
         AchievementCriteriaDataMap::const_iterator iter = _criteriaDataMap.find(achievementCriteria->ID);
-        return iter != _criteriaDataMap.end() ? &iter->second : nullptr;
+        return iter != _criteriaDataMap.end() ? Optional<AchievementCriteriaDataSet>(iter->second) : Optional<AchievementCriteriaDataSet>{};
     }
 
     bool IsRealmCompleted(AchievementEntry const* achievement) const;
@@ -439,9 +449,16 @@ private:
 
     typedef std::unordered_map<uint32 /*achievementId*/, SystemTimePoint /*completionTime*/> AllCompletedAchievements;
     AllCompletedAchievements _allCompletedAchievements;
+    // Guards _allCompletedAchievements. Completions land from map threads
+    // (kill credit) while checks run anywhere; leaf-only, never nest.
+    mutable std::shared_mutex _realmCompletedLock;
 
     AchievementRewards _achievementRewards;
     AchievementRewardLocales _achievementRewardLocales;
+
+    // Guards every store above (criteria lists/maps, rewards, data sets).
+    // Reads run on map threads, Load* runs on world thread.
+    mutable std::shared_mutex _achLock;
 
     // pussywizard:
     std::map<uint32, AchievementCriteriaEntryList> _specialList[ACHIEVEMENT_CRITERIA_TYPE_TOTAL];

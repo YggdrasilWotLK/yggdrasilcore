@@ -203,7 +203,7 @@ public:
     uint32 getIntConfig(ServerConfigs index) const override;
 
     void setStringConfig(ServerConfigs index, std::string const& value) override;
-    std::string_view getStringConfig(ServerConfigs index) const override;
+    std::string getStringConfig(ServerConfigs index) const override;
 
     /// Are we on a "Player versus Player" server?
     [[nodiscard]] bool IsPvPRealm() const override;

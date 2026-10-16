@@ -620,36 +620,36 @@ void InstanceScript::DoRespawnCreature(uint32 type, bool force)
 
 void InstanceScript::DoUpdateWorldState(uint32 uiStateId, uint32 uiStateData)
 {
-    Map::PlayerList const& lPlayers = instance->GetPlayers();
-
-    if (!lPlayers.IsEmpty())
-    {
-        for (Map::PlayerList::const_iterator itr = lPlayers.begin(); itr != lPlayers.end(); ++itr)
-            if (Player* player = itr->GetSource())
-                player->SendUpdateWorldState(uiStateId, uiStateData);
-    }
-    else
+    if (!instance->HavePlayers())
     {
         LOG_DEBUG("scripts.ai", "DoUpdateWorldState attempt send data but no players in map.");
+        return;
     }
+
+    instance->DoForAllPlayers([&](Player* player)
+    {
+        player->SendUpdateWorldState(uiStateId, uiStateData);
+    });
 }
 
 // Send Notify to all players in instance
 void InstanceScript::DoSendNotifyToInstance(char const* format, ...)
 {
-    if (!instance->GetPlayers().IsEmpty())
+    if (!instance->HavePlayers())
     {
-        va_list ap;
-        va_start(ap, format);
-        char buff[1024];
-        vsnprintf(buff, 1024, format, ap);
-        va_end(ap);
-
-        instance->DoForAllPlayers([&, buff](Player* player)
-        {
-            ChatHandler(player->GetSession()).SendNotification("{}", buff);
-        });
+        return;
     }
+
+    va_list ap;
+    va_start(ap, format);
+    char buff[1024];
+    vsnprintf(buff, 1024, format, ap);
+    va_end(ap);
+
+    instance->DoForAllPlayers([&, buff](Player* player)
+    {
+        ChatHandler(player->GetSession()).SendNotification("{}", buff);
+    });
 }
 
 // Update Achievement Criteria for all players in instance

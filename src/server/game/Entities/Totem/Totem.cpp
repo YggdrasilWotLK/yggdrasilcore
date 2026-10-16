@@ -158,10 +158,14 @@ void Totem::UnSummon(Milliseconds msTime)
 
             if (Group* group = player->GetGroup())
             {
-                for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+                std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                for (ObjectGuid const& guid : guids)
                 {
-                    Player* target = itr->GetSource();
-                    if (target && target->IsInMap(player) && group->SameSubGroup(player, target))
+                    Player* target = ObjectAccessor::FindPlayer(guid);
+                    if (!target || !target->IsInWorld())
+                        continue;
+
+                    if (target->IsInMap(player) && group->SameSubGroup(player, target))
                         target->RemoveAurasDueToSpell(GetSpell(), GetGUID());
                 }
             }

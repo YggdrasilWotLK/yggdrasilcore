@@ -16,6 +16,7 @@
  */
 
 #include "Pet.h"
+#include <mutex>
 #include "AreaDefines.h"
 #include "ArenaSpectator.h"
 #include "CharmInfo.h"
@@ -75,7 +76,7 @@ void Pet::AddToWorld()
     if (!IsInWorld())
     {
         ///- Register the pet for guid lookup
-        GetMap()->GetObjectsStore().Insert<Creature>(GetGUID(), this);
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Insert<Creature>(GetGUID(), this); }
         Unit::AddToWorld();
         Motion_Initialize();
         AIM_Initialize();
@@ -124,9 +125,11 @@ void Pet::RemoveFromWorld()
     ///- Remove the pet from the accessor
     if (IsInWorld())
     {
+        ///- Unlink from the findable store first (see Creature::RemoveFromWorld)
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<Creature>(GetGUID()); }
+
         ///- Don't call the function for Creature, normal mobs + totems go in a different storage
         Unit::RemoveFromWorld();
-        GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
     }
 }
 

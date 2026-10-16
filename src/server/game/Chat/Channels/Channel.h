@@ -20,6 +20,7 @@
 
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include <mutex>
 #include <string>
 
 class Player;
@@ -146,7 +147,7 @@ class Channel
     {
         ObjectGuid player;
         uint8 flags;
-        Player* plrPtr; // pussywizard
+        ObjectGuid plrGuid;
 
         [[nodiscard]] bool HasFlag(uint8 flag) const { return flags & flag; }
         void SetFlag(uint8 flag) { if (!HasFlag(flag)) flags |= flag; }
@@ -184,7 +185,7 @@ public:
     [[nodiscard]] bool IsLFG() const { return HasFlag(CHANNEL_FLAG_LFG); }
     [[nodiscard]] std::string const& GetPassword() const { return _password; }
     void SetPassword(std::string const& npassword) { _password = npassword; }
-    [[nodiscard]] uint32 GetNumPlayers() const { return playersStore.size(); }
+    [[nodiscard]] uint32 GetNumPlayers() const { std::lock_guard<std::recursive_mutex> lock(_channelLock); return playersStore.size(); }
     [[nodiscard]] uint8 GetFlags() const { return _flags; }
     [[nodiscard]] bool HasFlag(uint8 flag) const { return _flags & flag; }
 
@@ -193,7 +194,7 @@ public:
     void KickOrBan(Player const* player, std::string const& badname, bool ban);
     void Kick(Player const* player, std::string const& badname) { KickOrBan(player, badname, false); }
     void Ban(Player const* player, std::string const& badname) { KickOrBan(player, badname, true); }
-    void AddBan(ObjectGuid guid, uint32 time) { bannedStore[guid] = time; }
+    void AddBan(ObjectGuid guid, uint32 time) { std::lock_guard<std::recursive_mutex> lock(_channelLock); bannedStore[guid] = time; }
     void UnBan(Player const* player, std::string const& badname);
     void UnBan(ObjectGuid guid);
     void Password(Player const* player, std::string const& pass);
@@ -269,7 +270,7 @@ private:
 
     bool ShouldAnnouncePlayer(Player const* player) const;
 
-    [[nodiscard]] bool IsOn(ObjectGuid who) const { return playersStore.find(who) != playersStore.end(); }
+    [[nodiscard]] bool IsOn(ObjectGuid who) const { std::lock_guard<std::recursive_mutex> lock(_channelLock); return playersStore.find(who) != playersStore.end(); }
     [[nodiscard]] bool IsBanned(ObjectGuid guid) const;
 
     void UpdateChannelInDB() const;
@@ -279,28 +280,16 @@ private:
 
     [[nodiscard]] uint8 GetPlayerFlags(ObjectGuid guid) const
     {
+        std::lock_guard<std::recursive_mutex> lock(_channelLock);
         PlayerContainer::const_iterator itr = playersStore.find(guid);
         return itr != playersStore.end() ? itr->second.flags : 0;
     }
 
-    void SetModerator(ObjectGuid guid, bool set)
-    {
-        PlayerInfo& pinfo = playersStore[guid];
-        if (pinfo.IsModerator() != set)
-        {
-            uint8 oldFlag = pinfo.flags;
-            pinfo.SetModerator(set);
-
-            WorldPacket data;
-            MakeModeChange(&data, guid, oldFlag);
-            SendToAll(&data);
-
-            FlagsNotify(pinfo.plrPtr);
-        }
-    }
+    void SetModerator(ObjectGuid guid, bool set);
 
     void SetMute(ObjectGuid guid, bool set)
     {
+        std::lock_guard<std::recursive_mutex> lock(_channelLock);
         PlayerInfo& pinfo = playersStore[guid];
         if (pinfo.IsMuted() != set)
         {
@@ -333,5 +322,8 @@ private:
     PlayerContainer playersStore;
     BannedContainer bannedStore;
     PlayersWatchingContainer playersWatchingStore;
+    // Guards all three stores. Methods call each other (Join->SetOwner),
+    // so recursive: same-thread nesting is safe, cross-thread serializes.
+    mutable std::recursive_mutex _channelLock;
 };
 #endif

@@ -24,6 +24,7 @@
 #include "Player.h"
 #include <set>
 #include <unordered_map>
+#include <vector>
 
 class Item;
 
@@ -379,24 +380,10 @@ public: // pussywizard: public class Member
     };
 
     // pussywizard: public GetMember
-    inline const Member* GetMember(ObjectGuid guid) const
-    {
-        auto itr = m_members.find(guid.GetCounter());
-        return (itr != m_members.end()) ? &itr->second : nullptr;
-    }
-    inline Member* GetMember(ObjectGuid guid)
-    {
-        auto itr = m_members.find(guid.GetCounter());
-        return (itr != m_members.end()) ? &itr->second : nullptr;
-    }
-    inline Member* GetMember(std::string_view name)
-    {
-        for (auto& m_member : m_members)
-            if (m_member.second.GetName() == name)
-                return &m_member.second;
-
-        return nullptr;
-    }
+    // Copy-out: entries mutate/erase on other threads, never hold them.
+    Optional<Member> GetMember(ObjectGuid guid) const;
+    Optional<Member> GetMember(ObjectGuid guid);
+    Optional<Member> GetMember(std::string_view name);
 
 private:
     // Base class for event entries
@@ -496,8 +483,12 @@ private:
         template <typename... Ts>
         void AddEvent(CharacterDatabaseTransaction trans, Ts&&... args);
         uint32 GetNextGUID();
+        // Deprecated: exposes the live list; use GetGuildLogSnapshot instead.
         std::list<Entry>& GetGuildLog() { return m_log; }
+        // Deprecated: exposes the live list; use GetGuildLogSnapshot instead.
         std::list<Entry> const& GetGuildLog() const { return m_log; }
+        // Locked copy-out snapshot of the log.
+        std::vector<Entry> GetGuildLogSnapshot() const;
 
     private:
         uint32 m_guildId;
@@ -763,11 +754,17 @@ public:
     template<class Do>
     void BroadcastWorker(Do& _do, Player* except = nullptr)
     {
-        for (auto const& m_member : m_members)
-            if (Player* player = m_member.second.FindPlayer())
-                if (player != except)
-                    _do(player);
+        std::vector<ObjectGuid> guids = GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
+        {
+            Player* player = ObjectAccessor::FindPlayer(guid);
+            if (!player || !player->IsInWorld())
+                continue;
+            if (player != except)
+                _do(player);
+        }
     }
+    std::vector<ObjectGuid> GetMemberGUIDs() const;
 
     // Members
     // Adds member to guild. If rankId == GUILD_RANK_NONE, lowest rank is assigned.
@@ -781,7 +778,7 @@ public:
 
     // pussywizard
     uint64 GetTotalBankMoney() const { return m_bankMoney; }
-    uint32 GetMemberCount() const { return m_members.size(); }
+    uint32 GetMemberCount() const;
     time_t GetCreatedDate() const { return m_createdDate; }
 
     // Bank tabs
@@ -790,7 +787,7 @@ public:
     void ResetTimes();
 
     [[nodiscard]] bool ModifyBankMoney(CharacterDatabaseTransaction trans, const uint64& amount, bool add) { return _ModifyBankMoney(trans, amount, add); }
-    [[nodiscard]] uint32 GetMemberSize() const { return m_members.size(); }
+    [[nodiscard]] uint32 GetMemberSize() const;
 
     bool MemberHasTabRights(ObjectGuid guid, uint8 tabId, uint32 rights) const;
     bool HasRankRight(Player* player, uint32 right) const;
@@ -819,13 +816,17 @@ protected:
 
 private:
     inline uint8 _GetRanksSize() const { return uint8(m_ranks.size()); }
+    // Requires caller-held GetGuildLock; never store.
     inline const RankInfo* GetRankInfo(uint8 rankId) const { return rankId < _GetRanksSize() ? &m_ranks[rankId] : nullptr; }
+    // Requires caller-held GetGuildLock; never store.
     inline RankInfo* GetRankInfo(uint8 rankId) { return rankId < _GetRanksSize() ? &m_ranks[rankId] : nullptr; }
 
     inline uint8 _GetLowestRankId() const { return uint8(m_ranks.size() - 1); }
 
     inline uint8 _GetPurchasedTabsSize() const { return uint8(m_bankTabs.size()); }
+    // Requires caller-held GetGuildLock; never store.
     inline BankTab* GetBankTab(uint8 tabId) { return tabId < m_bankTabs.size() ? &m_bankTabs[tabId] : nullptr; }
+    // Requires caller-held GetGuildLock; never store.
     inline BankTab const* GetBankTab(uint8 tabId) const { return tabId < m_bankTabs.size() ? &m_bankTabs[tabId] : nullptr; }
 
     inline void _DeleteMemberFromDB(ObjectGuid::LowType lowguid) const
