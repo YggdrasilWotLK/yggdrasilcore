@@ -4509,8 +4509,9 @@ void Unit::_AddAura(UnitAura* aura, Unit* caster)
             if ((*itr) != aura &&
                     (*itr)->IsSingleTargetWith(aura))
             {
-                (*itr)->Remove();
-                itr = scAuras.begin();
+                Aura* old = *itr;
+                itr = scAuras.erase(itr);
+                old->Remove();
             }
             else
                 ++itr;
@@ -5240,8 +5241,10 @@ void Unit::RemoveNotOwnSingleTargetAuras()
         Aura* aura = *iter;
         if (aura->GetUnitOwner() != this)
         {
+            // Drop our registry entry first: Remove() below may fail to
+            // unregister (caster already gone) and must not restart us.
+            iter = scAuras.erase(iter);
             aura->Remove();
-            iter = scAuras.begin();
         }
         else
             ++iter;
