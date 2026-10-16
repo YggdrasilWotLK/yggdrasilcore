@@ -43,7 +43,7 @@ public:
 
     Map* FindBaseMap(uint32 mapId) const // pussywizard: need this public for movemaps (mmaps)
     {
-        std::lock_guard<std::mutex> guard(Lock);
+        std::lock_guard<std::recursive_mutex> guard(Lock);
         MapMapType::const_iterator iter = i_maps.find(mapId);
         return (iter == i_maps.end() ? nullptr : iter->second);
     }
@@ -169,7 +169,7 @@ private:
     MapMgr(const MapMgr&);
     MapMgr& operator=(const MapMgr&);
 
-    mutable std::mutex Lock;
+    mutable std::recursive_mutex Lock;
     MapMapType i_maps;
     IntervalTimer i_timer[4]; // continents, bgs/arenas, instances, total from the beginning
     uint8 mapUpdateStep;
@@ -182,7 +182,7 @@ private:
 template<typename Worker>
 void MapMgr::DoForAllMaps(Worker&& worker)
 {
-    std::lock_guard<std::mutex> guard(Lock);
+    std::lock_guard<std::recursive_mutex> guard(Lock);
 
     for (auto& mapPair : i_maps)
     {
@@ -201,7 +201,7 @@ void MapMgr::DoForAllMaps(Worker&& worker)
 template<typename Worker>
 inline void MapMgr::DoForAllMapsWithMapId(uint32 mapId, Worker&& worker)
 {
-    std::lock_guard<std::mutex> guard(Lock);
+    std::lock_guard<std::recursive_mutex> guard(Lock);
 
     auto itr = i_maps.find(mapId);
     if (itr != i_maps.end())
