@@ -226,6 +226,12 @@ private:
     GameEventGuidMap  GameEventCreatureGuids;
     GameEventGuidMap  GameEventGameobjectGuids;
     std::vector<uint32> ModifiedHolidays;
+    // Snapshot copy for external readers (calendar invites).
+    std::vector<uint32> GetModifiedHolidays() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
+        return ModifiedHolidays;
+    }
 };
 
 #define sGameEventMgr GameEventMgr::instance()
