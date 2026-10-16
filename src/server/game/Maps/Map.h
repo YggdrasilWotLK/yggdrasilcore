@@ -205,10 +205,8 @@ public:
     void GameObjectRelocation(GameObject* go, float x, float y, float z, float o);
     void DynamicObjectRelocation(DynamicObject* go, float x, float y, float z, float o);
 
-    // Grid-visit contract: the visitor must NOT add/remove/teleport/unload
-    // objects (that invalidates the iterated grid containers). Collect
-    // GUIDs during the visit, resolve them afterwards, and defer
-    // Kill/Delete/Teleport/Unsummon until after iteration completes.
+    // Grid-visit contract: visitors must not mutate grid containers.
+    // Collect GUIDs, resolve afterwards, defer Kill/Teleport/Unsummon.
     template<class T, class CONTAINER> void Visit(const Cell& cell, TypeContainerVisitor<T, CONTAINER>& visitor);
 
     bool IsGridLoaded(GridCoord const& gridCoord) const;

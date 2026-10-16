@@ -217,10 +217,8 @@ private:
     // Guards _activeEvents only; sibling event-data maps keep today's
     // exposure (event transitions are world-thread serial).
     mutable std::shared_mutex _activeEventsLock;
-    // Guards _gameEvent and every sibling event-data map plus the public
-    // guid maps below. Recursive: Update/Start/Stop nest into
-    // Apply/UnApply/Spawn/Unspawn. Leaf vs outside locks; order vs
-    // _activeEventsLock is _eventDataLock -> _activeEventsLock, never inverse.
+    // Guards all event-data maps below. Recursive (Update/Start/Stop nest).
+    // Order vs _activeEventsLock: eventData -> activeEvents, never inverse.
     mutable std::recursive_mutex _eventDataLock;
     bool _isSystemInit;
     GameEventSeasonalQuestsMap _gameEventSeasonalQuestsMap;

@@ -47,11 +47,12 @@ void OutdoorPvPNA::HandleKill(Player* killer, Unit* killed)
 {
     if (Group* group = killer->GetGroup())
     {
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            Player* groupGuy = itr->GetSource();
+            Player* groupGuy = ObjectAccessor::FindPlayer(guid);
 
-            if (!groupGuy)
+            if (!groupGuy || !groupGuy->IsInWorld())
                 continue;
 
             // skip if too far away

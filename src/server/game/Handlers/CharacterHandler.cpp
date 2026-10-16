@@ -1092,8 +1092,11 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
     {
         bool isReferrer = pCurrChar->GetSession()->IsARecruiter();
 
-        for (auto const& [accID, session] : sWorldSessionMgr->GetAllSessions())
+        std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+        for (WorldSession* session : sessions)
         {
+            if (!session)
+                continue;
             if (!session->GetRecruiterId() && !session->IsARecruiter())
                 continue;
 

@@ -113,9 +113,12 @@ void FollowerAI::JustDied(Unit* /*pKiller*/)
     {
         if (Group* group = player->GetGroup())
         {
-            for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                if (Player* member = groupRef->GetSource())
+                Player* member = ObjectAccessor::FindPlayer(guid);
+                if (!member || !member->IsInWorld())
+                    continue;
                 {
                     if (member->IsInMap(player) && member->GetQuestStatus(m_pQuestForFollow->GetQuestId()) == QUEST_STATUS_INCOMPLETE)
                         member->FailQuest(m_pQuestForFollow->GetQuestId());
@@ -198,9 +201,12 @@ void FollowerAI::UpdateAI(uint32 uiDiff)
 
                 if (Group* group = player->GetGroup())
                 {
-                    for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
+                    std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                    for (ObjectGuid const& guid : guids)
                     {
-                        Player* member = groupRef->GetSource();
+                        Player* member = ObjectAccessor::FindPlayer(guid);
+                        if (!member || !member->IsInWorld())
+                            continue;
 
                         if (member && me->IsWithinDistInMap(member, MAX_PLAYER_DISTANCE, true, false))
                         {
@@ -305,9 +311,12 @@ Player* FollowerAI::GetLeaderForFollower()
         {
             if (Group* group = player->GetGroup())
             {
-                for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
+                std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                for (ObjectGuid const& guid : guids)
                 {
-                    Player* member = groupRef->GetSource();
+                    Player* member = ObjectAccessor::FindPlayer(guid);
+                    if (!member || !member->IsInWorld())
+                        continue;
 
                     if (member && me->IsWithinDistInMap(member, MAX_PLAYER_DISTANCE) && member->IsAlive())
                     {

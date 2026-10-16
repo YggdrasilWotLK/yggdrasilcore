@@ -84,9 +84,14 @@ void KillRewarder::_InitGroupData()
     if (_group)
     {
         // 2. In case when player is in group, initialize variables necessary for group calculations:
-        for (GroupReference* itr = _group->GetFirstMember(); itr != nullptr; itr = itr->next())
-            if (Player* member = itr->GetSource())
-                if ((_killer == member || member->IsAtGroupRewardDistance(_victim)))
+        std::vector<ObjectGuid> guids = _group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
+        {
+            Player* member = ObjectAccessor::FindPlayer(guid);
+            if (!member || !member->IsInWorld())
+                continue;
+
+            if ((_killer == member || member->IsAtGroupRewardDistance(_victim)))
                 {
                     const uint8 lvl = member->GetLevel();
                     if (member->IsAlive())
@@ -111,6 +116,7 @@ void KillRewarder::_InitGroupData()
                     // 2.5. _sumLevel - sum of levels of group members within reward distance;
                     _sumLevel += lvl;
                 }
+        }
         // 2.6. _isFullXP - flag identifying that for all group members victim is not gray,
         //      so 100% XP will be rewarded (50% otherwise).
         _isFullXP = _maxNotGrayMember && (_maxLevel == _maxNotGrayMember->GetLevel());
@@ -248,17 +254,19 @@ void KillRewarder::_RewardGroup()
             }
 
             // 3.1.3. Reward each group member (even dead or corpse) within reward distance.
-            for (GroupReference* itr = _group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = _group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                if (Player* member = itr->GetSource())
+                Player* member = ObjectAccessor::FindPlayer(guid);
+                if (!member || !member->IsInWorld())
+                    continue;
+
+                if (_killer == member || member->IsAtGroupRewardDistance(_victim))
                 {
-                    if (_killer == member || member->IsAtGroupRewardDistance(_victim))
-                    {
-                        _RewardPlayer(member, isDungeon);
-                        // Xinef: only count players
-                        //if (_victim->IsPlayer())
-                        //    member->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_SPECIAL_PVP_KILL, 1, 0, _victim);
-                    }
+                    _RewardPlayer(member, isDungeon);
+                    // Xinef: only count players
+                    //if (_victim->IsPlayer())
+                    //    member->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_SPECIAL_PVP_KILL, 1, 0, _victim);
                 }
             }
         }

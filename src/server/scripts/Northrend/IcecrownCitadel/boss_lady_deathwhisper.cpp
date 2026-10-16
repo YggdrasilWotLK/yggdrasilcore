@@ -538,10 +538,15 @@ public:
                     {
                         if (Group* group = owner->GetGroup())
                         {
-                            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-                                if (Player* member = itr->GetSource())
-                                    if (member->IsInMap(owner))
-                                        member->KilledMonsterCredit(NPC_DARNAVAN_CREDIT);
+                            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                            for (ObjectGuid const& guid : guids)
+                            {
+                                Player* member = ObjectAccessor::FindPlayer(guid);
+                                if (!member || !member->IsInWorld())
+                                    continue;
+                                if (member->IsInMap(owner))
+                                    member->KilledMonsterCredit(NPC_DARNAVAN_CREDIT);
+                            }
                         }
                         else
                             owner->KilledMonsterCredit(NPC_DARNAVAN_CREDIT);
@@ -1046,10 +1051,15 @@ public:
                 return;
             }
 
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-                if (Player* member = itr->GetSource())
-                    if (member->IsInMap(owner))
-                        member->FailQuest(QUEST_DEPROGRAMMING);
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
+            {
+                Player* member = ObjectAccessor::FindPlayer(guid);
+                if (!member || !member->IsInWorld())
+                    continue;
+                if (member->IsInMap(owner))
+                    member->FailQuest(QUEST_DEPROGRAMMING);
+            }
         }
 
         void MovementInform(uint32 type, uint32 id) override

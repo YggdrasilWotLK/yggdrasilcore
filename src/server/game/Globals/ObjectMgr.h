@@ -1593,9 +1593,8 @@ private:
     CreatureTemplateContainer _creatureTemplateStore;
     CreatureCustomIDsContainer _creatureCustomIDsStore;
     std::vector<CreatureTemplate*> _creatureTemplateStoreFast; // pussywizard
-    // Guards all template stores above/below (creature/GO/item/equipment/
-    // addons/locales touched by reload). Recursive: loads nest and getters
-    // call each other; leaf vs outside locks, same rank as SpellMgr lock.
+    // Guards all template stores. Recursive (loads nest, getters call
+    // each other). Leaf lock, same rank as the SpellMgr lock.
     mutable std::recursive_mutex _templateLock;
     CreatureModelContainer _creatureModelStore;
     CreatureAddonContainer _creatureAddonStore;

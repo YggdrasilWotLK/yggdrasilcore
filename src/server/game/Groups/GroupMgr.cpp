@@ -124,10 +124,7 @@ void GroupMgr::DestroyGroup(Group* group)
     for (auto const& entry : _groupGraveyard)
         if (entry.first == group)
             return; // already a zombie
-    // Clear stale holders while the object is still alive. DestroyGroup also
-    // runs without a prior Disband (never-created invite-only groups), so
-    // member slots / invitees may still be linked here. All under the
-    // recursive GetSocialLock; FindPlayer/SetGroup/SetBgRaid take it too.
+    // Clear stale holders while alive (invite-only groups may skip Disband).
     std::vector<ObjectGuid> memberGuids;
     memberGuids.reserve(group->m_memberSlots.size());
     for (Group::MemberSlot const& slot : group->m_memberSlots)

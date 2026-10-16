@@ -293,9 +293,8 @@ bool Battleground::HasPlayer(ObjectGuid guid) const
 
 void Battleground::Update(uint32 diff)
 {
-    // No outer social lock: processors and helpers below are snapshot-
-    // then-act and self-locking. Per-op locks keep each mutation
-    // consistent; tick-level fields are atomic.
+    // No outer social lock: processors/helpers are snapshot-then-act
+    // and self-locking; tick-level fields are atomic.
     // pussywizard:
     m_UpdateTimer += diff;
     if (m_UpdateTimer < BATTLEGROUND_UPDATE_INTERVAL)

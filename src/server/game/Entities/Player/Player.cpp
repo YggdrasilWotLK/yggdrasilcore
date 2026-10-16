@@ -12796,10 +12796,14 @@ bool Player::GetsRecruitAFriendBonus(bool forXP)
     {
         if (Group* group = this->GetGroup())
         {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                Player* player = itr->GetSource();
-                if (!player || !player->IsInMap(this))
+                Player* player = ObjectAccessor::FindPlayer(guid);
+                if (!player || !player->IsInWorld())
+                    continue;
+
+                if (!player->IsInMap(this))
                     continue;
 
                 if (!player->IsAtRecruitAFriendDistance(this))
@@ -12845,10 +12849,11 @@ void Player::RewardPlayerAndGroupAtEvent(uint32 creature_id, WorldObject* pRewar
     // prepare data for near group iteration
     if (Group* group = GetGroup())
     {
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            Player* player = itr->GetSource();
-            if (!player)
+            Player* player = ObjectAccessor::FindPlayer(guid);
+            if (!player || !player->IsInWorld())
                 continue;
 
             if (!player->IsAtGroupRewardDistance(pRewardSource))
@@ -13094,12 +13099,15 @@ Player* Player::GetNextRandomRaidMember(float radius)
     std::vector<Player*> nearMembers;
     nearMembers.reserve(group->GetMembersCount());
 
-    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+    std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+    for (ObjectGuid const& guid : guids)
     {
-        Player* Target = itr->GetSource();
+        Player* Target = ObjectAccessor::FindPlayer(guid);
+        if (!Target || !Target->IsInWorld())
+            continue;
 
         // IsHostileTo check duel and controlled by enemy
-        if (Target && Target != this && IsWithinDistInMap(Target, radius) &&
+        if (Target != this && IsWithinDistInMap(Target, radius) &&
                 !Target->HasInvisibilityAura() && !IsHostileTo(Target))
             nearMembers.push_back(Target);
     }
@@ -13137,9 +13145,13 @@ PartyResult Player::CanUninviteFromGroup(ObjectGuid targetPlayerGUID) const
             return ERR_PARTY_LFG_BOOT_LOOT_ROLLS;
 
         /// @todo: Should also be sent when anyone has recently left combat, with an aprox ~5 seconds timer.
-        for (GroupReference const* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
-            if (itr->GetSource() && itr->GetSource()->IsInMap(this) && itr->GetSource()->IsInCombat())
+        std::vector<ObjectGuid> guids = grp->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
+        {
+            Player* member = ObjectAccessor::FindPlayer(guid);
+            if (member && member->IsInWorld() && member->IsInMap(this) && member->IsInCombat())
                 return ERR_PARTY_LFG_BOOT_IN_COMBAT;
+        }
 
         if (Player* target = ObjectAccessor::FindConnectedPlayer(targetPlayerGUID))
         {

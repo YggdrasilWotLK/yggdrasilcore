@@ -120,9 +120,8 @@ void GridObjectUnloader::Visit(GridRefMgr<T>& m)
         obj->CleanupsBeforeDelete();
 
         obj->GetMap()->RemoveObjectFromMapUpdateList(obj);
-        // Alternate delete path: the object may still sit in i_objectsToRemove
-        // (added via AddObjectToRemoveList); erase first so the sweep never
-        // touches freed memory. Ownership unchanged (deleted below).
+        // May still sit in i_objectsToRemove: erase so the sweep never
+        // touches freed memory.
         obj->GetMap()->RemoveObjectFromRemoveList(obj);
 
         ///- object will get delinked from the manager when deleted

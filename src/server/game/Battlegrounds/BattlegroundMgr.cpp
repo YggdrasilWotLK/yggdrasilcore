@@ -103,9 +103,8 @@ void BattlegroundMgr::DeleteAllBattlegrounds()
 // used to update running battlegrounds, and delete finished ones
 void BattlegroundMgr::Update(uint32 diff)
 {
-    // Snapshot-then-act: collect live BGs under the lock, tick them
-    // without it (each BG update is self-synchronizing), re-lock only
-    // to erase/delete flagged instances. Deletion happens only here.
+    // Snapshot BGs under lock, tick them without it, re-lock only to
+    // erase/delete flagged instances (deletion happens only here).
     std::vector<Battleground*> tickList;
     {
         std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());

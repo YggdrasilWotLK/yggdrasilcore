@@ -280,9 +280,8 @@ namespace lfg
 
     void LFGMgr::Update(uint32 tdiff, uint8 task)
     {
-        // Task 0 is snapshot-then-act below and manages its own per-item
-        // locks; tasks 1/2 (matchmaking) need a consistent view, keep the
-        // outer lock for them.
+        // Task 0 manages its own per-item locks; tasks 1/2 keep the
+        // outer lock (matchmaking needs a consistent view).
         std::unique_ptr<std::lock_guard<std::recursive_mutex>> outerLock;
         if (task != 0)
             outerLock = std::make_unique<std::lock_guard<std::recursive_mutex>>(*sGroupMgr->GetSocialLock());
@@ -669,9 +668,14 @@ namespace lfg
                 else
                 {
                     uint8 memberCount = 0;
-                    for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr && joinData.result == LFG_JOIN_OK; itr = itr->next())
+                    std::vector<ObjectGuid> guids = grp->GetMemberGUIDs();
+                    for (ObjectGuid const& memberGuid : guids)
                     {
-                        if (Player* plrg = itr->GetSource())
+                        if (joinData.result != LFG_JOIN_OK)
+                            break;
+                        Player* plrg = ObjectAccessor::FindPlayer(memberGuid);
+                        if (!plrg || !plrg->IsInWorld())
+                            continue;
                         {
                             if (plrg->HasAura(LFG_SPELL_DUNGEON_DESERTER))
                             {
@@ -702,10 +706,17 @@ namespace lfg
                     joinData.result = LFG_JOIN_RANDOM_COOLDOWN;
                 else if (grp)
                 {
-                    for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr && joinData.result == LFG_JOIN_OK; itr = itr->next())
-                        if (Player* plrg = itr->GetSource())
-                            if (plrg->HasAura(LFG_SPELL_DUNGEON_COOLDOWN)) // xinef: added !isContinue
-                                joinData.result = LFG_JOIN_PARTY_RANDOM_COOLDOWN;
+                    std::vector<ObjectGuid> cooldownGuids = grp->GetMemberGUIDs();
+                    for (ObjectGuid const& memberGuid : cooldownGuids)
+                    {
+                        if (joinData.result != LFG_JOIN_OK)
+                            break;
+                        Player* plrg = ObjectAccessor::FindPlayer(memberGuid);
+                        if (!plrg || !plrg->IsInWorld())
+                            continue;
+                        if (plrg->HasAura(LFG_SPELL_DUNGEON_COOLDOWN)) // xinef: added !isContinue
+                            joinData.result = LFG_JOIN_PARTY_RANDOM_COOLDOWN;
+                    }
                 }
             }
         }
@@ -788,9 +799,12 @@ namespace lfg
             SetState(gguid, LFG_STATE_ROLECHECK);
             // Send update to player
             LfgUpdateData updateData = LfgUpdateData(LFG_UPDATETYPE_JOIN_QUEUE, dungeons, comment);
-            for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> roleGuids = grp->GetMemberGUIDs();
+            for (ObjectGuid const& memberGuid : roleGuids)
             {
-                if (Player* plrg = itr->GetSource())
+                Player* plrg = ObjectAccessor::FindPlayer(memberGuid);
+                if (!plrg || !plrg->IsInWorld())
+                    continue;
                 {
                     ObjectGuid pguid = plrg->GetGUID();
                     plrg->GetSession()->SendLfgUpdateParty(updateData);
@@ -1743,9 +1757,12 @@ namespace lfg
         // Select a player inside to be teleported to
         WorldLocation const* teleportLocation = nullptr;
         bool leaderTeleportIncluded = false;
-        for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> teleportGuids = grp->GetMemberGUIDs();
+        for (ObjectGuid const& guid : teleportGuids)
         {
-            if (Player* plr = itr->GetSource())
+            Player* plr = ObjectAccessor::FindPlayer(guid);
+            if (!plr || !plr->IsInWorld())
+                continue;
             {
                 if (grp->IsLeader(plr->GetGUID()) && playersToTeleport.find(plr->GetGUID()) != playersToTeleport.end())
                 {

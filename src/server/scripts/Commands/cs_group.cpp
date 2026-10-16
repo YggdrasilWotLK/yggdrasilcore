@@ -277,10 +277,11 @@ public:
             return false;
         }
 
-        for (GroupReference* it = group->GetFirstMember(); it != nullptr; it = it->next())
+        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            Player* target = it->GetSource();
-            if (target)
+            Player* target = ObjectAccessor::FindPlayer(guid);
+            if (target && target->IsInWorld())
             {
                 target->RemoveAurasDueToSpell(27827); // Spirit of Redemption
                 target->ResurrectPlayer(!AccountMgr::IsPlayerAccount(target->GetSession()->GetSecurity()) ? 1.0f : 0.5f);

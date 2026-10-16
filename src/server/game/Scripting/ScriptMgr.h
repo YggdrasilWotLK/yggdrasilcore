@@ -792,10 +792,8 @@ public:
     // The list of hook types with the list of enabled scripts for this specific hook.
     // With this approach, we wouldn't call all available hooks in case if we override just one hook.
     static EnabledHooksVector EnabledHooks;
-    // Guards EnabledHooks: shared_lock in dispatch (CALL_ENABLED_* macros),
-    // unique_lock in AddScript/AddALScripts. Leaf lock: never hold other
-    // locks when taking it exclusively; dispatch may run script code while
-    // holding it shared, so hook implementations must not register scripts.
+    // Guards EnabledHooks: shared in dispatch, unique in AddScript.
+    // Hook implementations must not register scripts (would self-deadlock).
     static std::shared_mutex EnabledHooksLock;
 
     static void InitEnabledHooksIfNeeded(uint16 totalAvailableHooks)

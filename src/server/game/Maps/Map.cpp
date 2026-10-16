@@ -555,9 +555,8 @@ void Map::UpdateNonPlayerObjects(uint32 const diff)
 
     if (_updatableObjectListRecheckTimer.Passed())
     {
-        // Snapshot GUIDs: Update() may despawn/remove (and delete) any
-        // entry, which swap-removes inside _updatableObjectList. Never
-        // touch an object after its Update() without re-resolving it.
+        // Snapshot GUIDs: Update() may delete entries (swap-remove).
+        // Never touch an object after its Update() without re-resolving it.
         struct UpdateCheck { ObjectGuid guid; TypeID type; };
         std::vector<UpdateCheck> checks;
         checks.reserve(_updatableObjectList.size());
@@ -792,9 +791,8 @@ void Map::RemoveFromMap(T* obj, bool remove)
     if (remove)
     {
         RemoveObjectFromMapUpdateList(obj);
-        // Alternate delete path: the pointer may still sit in i_objectsToRemove
-        // (added via AddObjectToRemoveList); erase first so the sweep never
-        // touches freed memory. Ownership unchanged (DeleteFromWorld still frees).
+        // May still sit in i_objectsToRemove: erase first so the sweep
+        // never touches freed memory.
         i_objectsToRemove.erase(obj);
         DeleteFromWorld(obj);
     }
@@ -2947,8 +2945,7 @@ void Map::RemoveOldCorpses()
     for (Corpse* bones : expiredBones)
     {
         RemoveCorpse(bones);
-        // Alternate delete path: erase from i_objectsToRemove so the sweep
-        // never touches freed memory. Ownership unchanged.
+        // Erase from i_objectsToRemove so the sweep never touches freed memory.
         i_objectsToRemove.erase(bones);
         delete bones;
     }

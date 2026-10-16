@@ -122,9 +122,14 @@ namespace lfg
                 return;
             }
 
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-                if (Player* member = itr->GetSource())
-                    player->GetSession()->SendNameQueryOpcode(member->GetGUID());
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
+            {
+                Player* member = ObjectAccessor::FindPlayer(guid);
+                if (!member || !member->IsInWorld())
+                    continue;
+                player->GetSession()->SendNameQueryOpcode(member->GetGUID());
+            }
 
             if (group->IsLfgWithBuff())
                 player->CastSpell(player, LFG_SPELL_LUCK_OF_THE_DRAW, true);

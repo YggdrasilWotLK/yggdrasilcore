@@ -1663,10 +1663,14 @@ void World::ResetDailyQuests()
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_QUEST_STATUS_DAILY);
     CharacterDatabase.Execute(stmt);
 
-    WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-    for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        if (itr->second->GetPlayer())
-            itr->second->GetPlayer()->ResetDailyQuestStatus();
+    std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+    for (WorldSession* session : sessions)
+    {
+        if (!session)
+            continue;
+        if (session->GetPlayer())
+            session->GetPlayer()->ResetDailyQuestStatus();
+    }
 
     _nextDailyQuestReset = Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_DAILY_QUEST_RESET_TIME, _nextDailyQuestReset.count());
@@ -1699,10 +1703,14 @@ void World::ResetWeeklyQuests()
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_QUEST_STATUS_WEEKLY);
     CharacterDatabase.Execute(stmt);
 
-    WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-    for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        if (itr->second->GetPlayer())
-            itr->second->GetPlayer()->ResetWeeklyQuestStatus();
+    std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+    for (WorldSession* session : sessions)
+    {
+        if (!session)
+            continue;
+        if (session->GetPlayer())
+            session->GetPlayer()->ResetWeeklyQuestStatus();
+    }
 
     _nextWeeklyQuestReset = Seconds(Acore::Time::GetNextTimeWithDayAndHour(4, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_WEEKLY_QUEST_RESET_TIME, _nextWeeklyQuestReset.count());
@@ -1718,10 +1726,14 @@ void World::ResetMonthlyQuests()
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_QUEST_STATUS_MONTHLY);
     CharacterDatabase.Execute(stmt);
 
-    WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-    for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        if (itr->second->GetPlayer())
-            itr->second->GetPlayer()->ResetMonthlyQuestStatus();
+    std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+    for (WorldSession* session : sessions)
+    {
+        if (!session)
+            continue;
+        if (session->GetPlayer())
+            session->GetPlayer()->ResetMonthlyQuestStatus();
+    }
 
     _nextMonthlyQuestReset = Seconds(Acore::Time::GetNextTimeWithMonthAndHour(-1, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_MONTHLY_QUEST_RESET_TIME, _nextMonthlyQuestReset.count());
@@ -1733,10 +1745,14 @@ void World::ResetEventSeasonalQuests(uint16 event_id)
     stmt->SetData(0, event_id);
     CharacterDatabase.Execute(stmt);
 
-    WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-    for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        if (itr->second->GetPlayer())
-            itr->second->GetPlayer()->ResetSeasonalQuestStatus(event_id);
+    std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+    for (WorldSession* session : sessions)
+    {
+        if (!session)
+            continue;
+        if (session->GetPlayer())
+            session->GetPlayer()->ResetSeasonalQuestStatus(event_id);
+    }
 }
 
 void World::ResetRandomBG()
@@ -1746,10 +1762,14 @@ void World::ResetRandomBG()
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_BATTLEGROUND_RANDOM);
     CharacterDatabase.Execute(stmt);
 
-    WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-    for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        if (itr->second->GetPlayer())
-            itr->second->GetPlayer()->SetRandomWinner(false);
+    std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+    for (WorldSession* session : sessions)
+    {
+        if (!session)
+            continue;
+        if (session->GetPlayer())
+            session->GetPlayer()->SetRandomWinner(false);
+    }
 
     _nextRandomBGReset = Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_BG_DAILY_RESET_TIME, _nextRandomBGReset.count());
@@ -1793,13 +1813,17 @@ void World::LoadDBVersion()
 
 void World::UpdateAreaDependentAuras()
 {
-    WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-    for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        if (itr->second && itr->second->GetPlayer() && itr->second->GetPlayer()->IsInWorld())
+    std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+    for (WorldSession* session : sessions)
+    {
+        if (!session)
+            continue;
+        if (session->GetPlayer() && session->GetPlayer()->IsInWorld())
         {
-            itr->second->GetPlayer()->UpdateAreaDependentAuras(itr->second->GetPlayer()->GetAreaId());
-            itr->second->GetPlayer()->UpdateZoneDependentAuras(itr->second->GetPlayer()->GetZoneId());
+            session->GetPlayer()->UpdateAreaDependentAuras(session->GetPlayer()->GetAreaId());
+            session->GetPlayer()->UpdateZoneDependentAuras(session->GetPlayer()->GetZoneId());
         }
+    }
 }
 
 void World::ProcessQueryCallbacks()

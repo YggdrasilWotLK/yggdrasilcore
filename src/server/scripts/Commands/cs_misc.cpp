@@ -1090,11 +1090,12 @@ public:
             return false;
         }
 
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            Player* player = itr->GetSource();
+            Player* player = ObjectAccessor::FindPlayer(guid);
 
-            if (!player || player == handler->GetSession()->GetPlayer() || !player->GetSession())
+            if (!player || !player->IsInWorld() || player == handler->GetSession()->GetPlayer() || !player->GetSession())
             {
                 continue;
             }

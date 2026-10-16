@@ -829,6 +829,9 @@ ConditionMgr::ConditionMgr() {}
 ConditionMgr::~ConditionMgr()
 {
     Clean();
+    for (Condition* retired : _retiredConditions)
+        delete retired;
+    _retiredConditions.clear();
 }
 
 ConditionMgr* ConditionMgr::instance()
@@ -2506,9 +2509,13 @@ bool ConditionMgr::isConditionTypeValid(Condition* cond)
 
 void ConditionMgr::Clean()
 {
-    for (ConditionReferenceContainer::iterator itr = ConditionReferenceStore.begin(); itr != ConditionReferenceStore.end(); ++itr)
+    // Deferred delete: readers may still evaluate lists copied before this
+    // reload. Free the previous reload's batch now, retire this one.
+    for (Condition* retired : _retiredConditions)
+        delete retired;
+    _retiredConditions.clear();    for (ConditionReferenceContainer::iterator itr = ConditionReferenceStore.begin(); itr != ConditionReferenceStore.end(); ++itr)
     {
-        for (ConditionList::const_iterator it = itr->second.begin(); it != itr->second.end(); ++it) delete *it;
+        for (ConditionList::const_iterator it = itr->second.begin(); it != itr->second.end(); ++it) _retiredConditions.push_back(*it);
         itr->second.clear();
     }
 
@@ -2518,7 +2525,7 @@ void ConditionMgr::Clean()
     {
         for (ConditionTypeContainer::iterator it = itr->second.begin(); it != itr->second.end(); ++it)
         {
-            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) delete *i;
+            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) _retiredConditions.push_back(*i);
             it->second.clear();
         }
         itr->second.clear();
@@ -2530,7 +2537,7 @@ void ConditionMgr::Clean()
     {
         for (ConditionTypeContainer::iterator it = itr->second.begin(); it != itr->second.end(); ++it)
         {
-            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) delete *i;
+            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) _retiredConditions.push_back(*i);
             it->second.clear();
         }
         itr->second.clear();
@@ -2542,7 +2549,7 @@ void ConditionMgr::Clean()
     {
         for (ConditionTypeContainer::iterator it = itr->second.begin(); it != itr->second.end(); ++it)
         {
-            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) delete *i;
+            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) _retiredConditions.push_back(*i);
             it->second.clear();
         }
         itr->second.clear();
@@ -2554,7 +2561,7 @@ void ConditionMgr::Clean()
     {
         for (ConditionTypeContainer::iterator it = itr->second.begin(); it != itr->second.end(); ++it)
         {
-            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) delete *i;
+            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) _retiredConditions.push_back(*i);
             it->second.clear();
         }
         itr->second.clear();
@@ -2566,7 +2573,7 @@ void ConditionMgr::Clean()
     {
         for (ConditionTypeContainer::iterator it = itr->second.begin(); it != itr->second.end(); ++it)
         {
-            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) delete *i;
+            for (ConditionList::const_iterator i = it->second.begin(); i != it->second.end(); ++i) _retiredConditions.push_back(*i);
             it->second.clear();
         }
         itr->second.clear();
@@ -2575,7 +2582,7 @@ void ConditionMgr::Clean()
     NpcVendorConditionContainerStore.clear();
 
     // this is a BIG hack, feel free to fix it if you can figure out the ConditionMgr ;)
-    for (std::list<Condition*>::const_iterator itr = AllocatedMemoryStore.begin(); itr != AllocatedMemoryStore.end(); ++itr) delete *itr;
+    for (std::list<Condition*>::const_iterator itr = AllocatedMemoryStore.begin(); itr != AllocatedMemoryStore.end(); ++itr) _retiredConditions.push_back(*itr);
 
     AllocatedMemoryStore.clear();
 }

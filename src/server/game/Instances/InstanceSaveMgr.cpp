@@ -547,13 +547,17 @@ void InstanceSaveMgr::Update()
         LOG_INFO("instance.save", "Instance ID reset occurred, sending updated calendar and raid info to all players!");
         WorldPacket dummy;
 
-        WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-        for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-            if (Player* plr = itr->second->GetPlayer())
+        std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+        for (WorldSession* session : sessions)
+        {
+            if (!session)
+                continue;
+            if (Player* plr = session->GetPlayer())
             {
-                itr->second->HandleCalendarGetCalendar(dummy);
+                session->HandleCalendarGetCalendar(dummy);
                 plr->SendRaidInfo();
             }
+        }
     }
 }
 

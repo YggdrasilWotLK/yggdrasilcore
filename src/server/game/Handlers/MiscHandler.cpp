@@ -1275,10 +1275,11 @@ void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPacket& recv_data)
     {
         if (group->IsLeader(_player->GetGUID()))
         {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                Player* groupGuy = itr->GetSource();
-                if (!groupGuy)
+                Player* groupGuy = ObjectAccessor::FindPlayer(guid);
+                if (!groupGuy || !groupGuy->IsInWorld())
                     continue;
 
                 if (!groupGuy->IsInWorld())
@@ -1349,10 +1350,11 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                 return;
             }
 
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                Player* groupGuy = itr->GetSource();
-                if (!groupGuy)
+                Player* groupGuy = ObjectAccessor::FindPlayer(guid);
+                if (!groupGuy || !groupGuy->IsInWorld())
                     continue;
 
                 if (!groupGuy->IsInWorld())
@@ -1429,10 +1431,11 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
 
             bool anyoneInside = false;
             playerTeleport.clear();
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> raidGuids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : raidGuids)
             {
-                Player* groupGuy = itr->GetSource();
-                if (!groupGuy)
+                Player* groupGuy = ObjectAccessor::FindPlayer(guid);
+                if (!groupGuy || !groupGuy->IsInWorld())
                     continue;
 
                 if (IsSharedDifficultyMap(groupGuy->GetMap()->GetId()))

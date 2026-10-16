@@ -392,9 +392,8 @@ void Creature::RemoveFromWorld()
 {
     if (IsInWorld())
     {
-        // Unlink from findable stores FIRST so concurrent/reentrant
-        // Find* calls during the callbacks below cannot observe a
-        // half-removed object.
+        // Unlink from findable stores first: reentrant Find* calls in the
+        // callbacks below must not observe a half-removed object.
         if (m_spawnId)
             { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this); }
 

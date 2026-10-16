@@ -3544,8 +3544,12 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
                 {
                     if (Group* group = player->GetGroup())
                     {
-                        for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
-                            if (Player* member = groupRef->GetSource())
+                        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                        for (ObjectGuid const& guid : guids)
+                        {
+                            Player* member = ObjectAccessor::FindPlayer(guid);
+                            if (!member || !member->IsInWorld())
+                                continue;
                             {
                                 if (member->IsInMap(player))
                                     targets.push_back(member);
@@ -3555,6 +3559,7 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
                                         if (pet->IsPet() && pet->IsInMap(player))
                                             targets.push_back(pet);
                             }
+                        }
                     }
                     // We still add the player to the list if there is no group. If we do
                     // this even if there is a group (thus the else-check), it will add the
@@ -3962,9 +3967,12 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
             {
                 if (Group* lootGroup = me->GetLootRecipientGroup())
                 {
-                    for (GroupReference* it = lootGroup->GetFirstMember(); it != nullptr; it = it->next())
+                    std::vector<ObjectGuid> guids = lootGroup->GetMemberGUIDs();
+                    for (ObjectGuid const& guid : guids)
                     {
-                        if (Player* recipient = it->GetSource())
+                        Player* recipient = ObjectAccessor::FindPlayer(guid);
+                        if (!recipient || !recipient->IsInWorld())
+                            continue;
                         {
                             targets.push_back(recipient);
                         }

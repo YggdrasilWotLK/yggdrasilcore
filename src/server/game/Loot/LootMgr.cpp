@@ -505,15 +505,17 @@ void Loot::AddItem(LootStoreItem const& item)
         {
             if (auto group = player->GetGroup())
             {
-                for (auto itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+                std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                for (ObjectGuid const& guid : guids)
                 {
-                    if (auto member = itr->GetSource())
+                    auto member = ObjectAccessor::FindPlayer(guid);
+                    if (!member || !member->IsInWorld())
+                        continue;
+
+                    if (generatedLoot.AllowedForPlayer(member, sourceWorldObjectGUID))
                     {
-                        if (generatedLoot.AllowedForPlayer(member, sourceWorldObjectGUID))
-                        {
-                            canSeeItemInLootWindow = true;
-                            break;
-                        }
+                        canSeeItemInLootWindow = true;
+                        break;
                     }
                 }
             }
@@ -569,14 +571,16 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
     {
         roundRobinPlayer = lootOwner->GetGUID();
 
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            if (Player* player = itr->GetSource()) // should actually be looted object instead of lootOwner but looter has to be really close so doesnt really matter
+            Player* player = ObjectAccessor::FindPlayer(guid); // should actually be looted object instead of lootOwner but looter has to be really close so doesnt really matter
+            if (!player || !player->IsInWorld())
+                continue;
+
+            if (player->IsAtLootRewardDistance(lootSource ? lootSource : lootOwner))
             {
-                if (player->IsAtLootRewardDistance(lootSource ? lootSource : lootOwner))
-                {
-                    FillNotNormalLootFor(player);
-                }
+                FillNotNormalLootFor(player);
             }
         }
 

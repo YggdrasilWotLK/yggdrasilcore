@@ -33,22 +33,8 @@ private:
 public:
     static GroupMgr* instance();
 
-    // Single lock for the whole social cluster (Group/GroupMgr/LFG/BG/Arena/
-    // InstanceSave): these call into each other, so separate locks could
-    // invert. Recursive: same-thread nesting is always safe. Leaf-only vs
-    // outside locks (sessions/DB/ObjectAccessor never call back here).
-    //
-    // Global lock order, outer -> inner (never acquire outer while holding
-    // inner; never hold any of these across network/DB I/O):
-    //   1. World/session/DB locks (outermost, owned elsewhere)
-    //   2. GetSocialLock (this lock: social cluster)
-    //   3. Guild/Channel/SocialMgr subsystem locks
-    //   4. Map playerRef/store locks, MapMgr lock
-    //   5. Leaf store locks, never nested outward: achievement, condition,
-    //      disable, gameevent (eventData -> activeEvents), wholist,
-    //      worldstate, config cache
-    // New code: snapshot-then-act (copy GUIDs/IDs under lock, resolve and
-    // act outside it) instead of holding across callbacks.
+    // Lock order, outer -> inner: world/session > social (this) > guild/channel/socialmgr > map > leaf stores.
+    // Snapshot-then-act; never hold across I/O.
     static std::recursive_mutex* GetSocialLock()
     {
         static std::recursive_mutex lock;

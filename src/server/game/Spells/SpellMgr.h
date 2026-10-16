@@ -804,10 +804,8 @@ public:
     void LoadSpellSpecificAndAuraState();
 
 private:
-    // Guards every map above. Recursive: getters nest (chains, difficulty)
-    // and loads nest (ranks, specific/aura); readers are combat-hot but
-    // critical sections are map finds only. Leaf vs outside locks, same rank
-    // as the ObjectMgr template lock; never take DisableLock while holding.
+    // Guards every map above. Recursive (getters/loads nest).
+    // Leaf lock, same rank as the ObjectMgr template lock.
     mutable std::recursive_mutex _spellLock;
     SpellDifficultySearcherMap mSpellDifficultySearcherMap;
     SpellChainMap              mSpellChains;

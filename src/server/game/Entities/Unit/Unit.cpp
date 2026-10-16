@@ -11223,21 +11223,25 @@ Unit* Unit::GetNextRandomRaidMemberOrPet(float radius)
     // reserve place for players and pets because resizing vector every unit push is unefficient (vector is reallocated then)
     nearMembers.reserve(group->GetMembersCount() * 2);
 
-    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-        if (Player* Target = itr->GetSource())
-        {
-            if (Target != this && !IsWithinDistInMap(Target, radius))
-                continue;
+    std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+    for (ObjectGuid const& guid : guids)
+    {
+        Player* Target = ObjectAccessor::FindPlayer(guid);
+        if (!Target || !Target->IsInWorld())
+            continue;
 
-            // IsHostileTo check duel and controlled by enemy
-            if (Target != this && Target->IsAlive() && !IsHostileTo(Target))
-                nearMembers.push_back(Target);
+        if (Target != this && !IsWithinDistInMap(Target, radius))
+            continue;
 
-            // Push player's pet to vector
-            if (Unit* pet = Target->GetGuardianPet())
-                if (pet != this && pet->IsAlive() && IsWithinDistInMap(pet, radius) && !IsHostileTo(pet))
-                    nearMembers.push_back(pet);
-        }
+        // IsHostileTo check duel and controlled by enemy
+        if (Target != this && Target->IsAlive() && !IsHostileTo(Target))
+            nearMembers.push_back(Target);
+
+        // Push player's pet to vector
+        if (Unit* pet = Target->GetGuardianPet())
+            if (pet != this && pet->IsAlive() && IsWithinDistInMap(pet, radius) && !IsHostileTo(pet))
+                nearMembers.push_back(pet);
+    }
 
     if (nearMembers.empty())
         return nullptr;
@@ -17664,21 +17668,25 @@ bool Unit::HandleAuraRaidProcFromChargeWithValue(AuraEffect* triggeredByAura)
                 }
                 else
                 {
-                    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-                        if (Player* Target = itr->GetSource())
-                        {
-                            if (Target != this && !IsWithinDistInMap(Target, radius))
-                                continue;
+                    std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                    for (ObjectGuid const& guid : guids)
+                    {
+                        Player* Target = ObjectAccessor::FindPlayer(guid);
+                        if (!Target || !Target->IsInWorld())
+                            continue;
 
-                            // IsHostileTo check duel and controlled by enemy
-                            if (Target != this && Target->IsAlive() && !IsHostileTo(Target))
-                                nearMembers.push_back(Target);
+                        if (Target != this && !IsWithinDistInMap(Target, radius))
+                            continue;
 
-                            // Push player's pet to vector
-                            if (Unit* pet = Target->GetGuardianPet())
-                                if (pet != this && pet->IsAlive() && IsWithinDistInMap(pet, radius) && !IsHostileTo(pet))
-                                    nearMembers.push_back(pet);
-                        }
+                        // IsHostileTo check duel and controlled by enemy
+                        if (Target != this && Target->IsAlive() && !IsHostileTo(Target))
+                            nearMembers.push_back(Target);
+
+                        // Push player's pet to vector
+                        if (Unit* pet = Target->GetGuardianPet())
+                            if (pet != this && pet->IsAlive() && IsWithinDistInMap(pet, radius) && !IsHostileTo(pet))
+                                nearMembers.push_back(pet);
+                    }
                 }
 
                 if (!nearMembers.empty())
@@ -17779,13 +17787,21 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
         if (lr && lr->IsInMap(creature))
             player = creature->GetLootRecipient();
         else if (Group* lrg = creature->GetLootRecipientGroup())
-            for (GroupReference* itr = lrg->GetFirstMember(); itr != nullptr; itr = itr->next())
-                if (Player* member = itr->GetSource())
-                    if (member->IsAtLootRewardDistance(creature))
-                    {
-                        player = member;
-                        break;
-                    }
+        {
+            std::vector<ObjectGuid> guids = lrg->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
+            {
+                Player* member = ObjectAccessor::FindPlayer(guid);
+                if (!member || !member->IsInWorld())
+                    continue;
+
+                if (member->IsAtLootRewardDistance(creature))
+                {
+                    player = member;
+                    break;
+                }
+            }
+        }
     }
 
     // Exploit fix
@@ -18872,12 +18888,15 @@ void Unit::GetPartyMembers(std::list<Unit*>& TagUnitMap)
     {
         uint8 subgroup = owner->ToPlayer()->GetSubGroup();
 
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            Player* Target = itr->GetSource();
+            Player* Target = ObjectAccessor::FindPlayer(guid);
+            if (!Target || !Target->IsInWorld())
+                continue;
 
             // IsHostileTo check duel and controlled by enemy
-            if (Target && Target->IsInMap(owner) && Target->GetSubGroup() == subgroup && !IsHostileTo(Target))
+            if (Target->IsInMap(owner) && Target->GetSubGroup() == subgroup && !IsHostileTo(Target))
             {
                 if (Target->IsAlive())
                     TagUnitMap.push_back(Target);

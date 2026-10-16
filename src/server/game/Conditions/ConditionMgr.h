@@ -22,6 +22,7 @@
 #include <list>
 #include <map>
 #include <shared_mutex>
+#include <vector>
 
 class Player;
 class Unit;
@@ -280,6 +281,8 @@ private:
 
     void Clean(); // free up resources
     std::list<Condition*> AllocatedMemoryStore; // some garbage collection :)
+    // Retired on reload, freed on the next one (see Clean).
+    std::vector<Condition*> _retiredConditions;
 
     ConditionContainer                ConditionStore;
     ConditionReferenceContainer       ConditionReferenceStore;
@@ -287,9 +290,8 @@ private:
     CreatureSpellConditionContainer   SpellClickEventConditionStore;
     NpcVendorConditionContainer       NpcVendorConditionContainerStore;
     SmartEventConditionContainer      SmartEventConditionStore;
-    // Guards all stores above. Readers copy the ConditionList under shared
-    // lock; LoadConditions/Clean take unique. Pointees are stable between
-    // reloads; never hold across DB reload (use epoch before deleting).
+    // Guards all stores above. Readers copy lists under shared lock;
+    // LoadConditions/Clean take unique (Clean defers deletes one reload).
     mutable std::shared_mutex _condLock;
 };
 

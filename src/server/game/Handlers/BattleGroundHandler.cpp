@@ -869,10 +869,11 @@ void WorldSession::HandleBattlemasterJoinArena(WorldPacket& recvData)
         }
 
         WorldPacket data;
-        for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = grp->GetMemberGUIDs();
+        for (ObjectGuid const& memberGuid : guids)
         {
-            Player* member = itr->GetSource();
-            if (!member)
+            Player* member = ObjectAccessor::FindPlayer(memberGuid);
+            if (!member || !member->IsInWorld())
                 continue;
 
             if (err <= 0)

@@ -48,6 +48,8 @@ WorldState::~WorldState()
 
 void WorldState::Load()
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_WORLD_STATE);
     PreparedQueryResult result = CharacterDatabase.Query(stmt);
 
@@ -189,6 +191,8 @@ uint64 WorldState::getWorldState(uint32 index) const
 
 void WorldState::Save(WorldStateSaveIds saveId)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     switch (saveId)
     {
         case SAVE_ID_QUEL_DANAS:
@@ -311,6 +315,7 @@ void WorldState::HandleExternalEvent(WorldStateEvent eventId, uint32 param)
 
 void WorldState::Update(uint32 diff)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     if (_adalSongOfBattleTimer)
     {
         if (_adalSongOfBattleTimer <= diff)
@@ -378,7 +383,7 @@ void WorldState::HandlePlayerEnterZone(Player* player, AreaTableIDs zoneId)
         case AREA_MAGISTERS_TERRACE:
         case AREA_SUNWELL_PLATEAU:
         {
-            std::lock_guard<std::mutex> guard(m_sunsReachData.m_sunsReachReclamationMutex);
+            std::lock_guard<std::recursive_mutex> guard(m_sunsReachData.m_sunsReachReclamationMutex);
             m_sunsReachData.m_sunsReachReclamationPlayers.push_back(player->GetGUID());
             if (m_sunsReachData.m_subphaseMask == SUBPHASE_ALL)
                 player->CastSpell(player, SPELL_KIRU_SONG_OF_VICTORY, true);
@@ -415,7 +420,7 @@ void WorldState::HandlePlayerLeaveZone(Player* player, AreaTableIDs zoneId)
         case AREA_MAGISTERS_TERRACE:
         case AREA_SUNWELL_PLATEAU:
         {
-            std::lock_guard<std::mutex> guard(m_sunsReachData.m_sunsReachReclamationMutex);
+            std::lock_guard<std::recursive_mutex> guard(m_sunsReachData.m_sunsReachReclamationMutex);
             player->RemoveAurasDueToSpell(SPELL_KIRU_SONG_OF_VICTORY);
             auto position = std::find(m_sunsReachData.m_sunsReachReclamationPlayers.begin(), m_sunsReachData.m_sunsReachReclamationPlayers.end(), player->GetGUID());
             if (position != m_sunsReachData.m_sunsReachReclamationPlayers.end())
@@ -547,9 +552,9 @@ void WorldState::DispelAdalsSongOfBattle()
     });
 }
 
-void WorldState::SendWorldstateUpdate(std::mutex& mutex, GuidVector const& guids, uint32 value, uint32 worldStateId)
+void WorldState::SendWorldstateUpdate(std::recursive_mutex& mutex, GuidVector const& guids, uint32 value, uint32 worldStateId)
 {
-    std::lock_guard<std::mutex> guard(mutex);
+    std::lock_guard<std::recursive_mutex> guard(mutex);
     for (ObjectGuid const& guid : guids)
         if (Player* player = ObjectAccessor::FindPlayer(guid))
             player->SendUpdateWorldState(worldStateId, value);
@@ -573,6 +578,7 @@ enum WorldStateSunsReachQuests
 
 void WorldState::AddSunsReachProgress(uint32 questId)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     uint32 counter = 0;
     int32 otherCounter = -1;
     int32 worldState = 0;
@@ -719,6 +725,7 @@ void WorldState::AddSunsReachProgress(uint32 questId)
 
 void WorldState::HandleSunsReachPhaseTransition(uint32 newPhase)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     if (newPhase < m_sunsReachData.m_phase)
     {
         while (newPhase != m_sunsReachData.m_phase)
@@ -751,6 +758,7 @@ void WorldState::HandleSunsReachPhaseTransition(uint32 newPhase)
 
 void WorldState::HandleSunsReachSubPhaseTransition(int32 subPhaseMask, bool initial)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     bool start = true;
     if (subPhaseMask < 0)
     {
@@ -855,7 +863,6 @@ void WorldState::HandleSunsReachSubPhaseTransition(int32 subPhaseMask, bool init
 
         if (!initial)
         {
-            std::lock_guard<std::mutex> guard(m_sunsReachData.m_sunsReachReclamationMutex);
             for (ObjectGuid const& guid : m_sunsReachData.m_sunsReachReclamationPlayers)
                 if (Player* player = ObjectAccessor::FindPlayer(guid))
                 {
@@ -872,6 +879,7 @@ void WorldState::HandleSunsReachSubPhaseTransition(int32 subPhaseMask, bool init
 
 void WorldState::HandleSunwellGateTransition(uint32 newGate)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     if (newGate < m_sunsReachData.m_gate)
     {
         while (newGate != m_sunsReachData.m_gate)
@@ -902,12 +910,14 @@ void WorldState::HandleSunwellGateTransition(uint32 newGate)
 
 void WorldState::SetSunsReachCounter(SunsReachCounters index, uint32 value)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     m_sunsReachData.m_sunsReachReclamationCounters[index] = value;
     Save(SAVE_ID_QUEL_DANAS);
 }
 
 void WorldState::StopSunsReachPhase(bool forward)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     switch (m_sunsReachData.m_phase)
     {
         case SUNS_REACH_PHASE_1_STAGING_AREA: sGameEventMgr->StopEvent(GAME_EVENT_QUEL_DANAS_PHASE_1); break;
@@ -920,6 +930,7 @@ void WorldState::StopSunsReachPhase(bool forward)
 
 void WorldState::StartSunsReachPhase(bool initial)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     switch (m_sunsReachData.m_phase)
     {
         case SUNS_REACH_PHASE_1_STAGING_AREA:
@@ -957,6 +968,7 @@ void WorldState::StartSunsReachPhase(bool initial)
 
 std::string WorldState::GetSunsReachPrintout()
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     auto formatPhase = [this]() -> std::string {
         std::string name;
         switch (m_sunsReachData.m_phase)
@@ -1043,7 +1055,7 @@ std::string WorldState::GetSunsReachPrintout()
 
 std::string WorldState::GetScourgeInvasionPrintout()
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     std::string output = "Scourge Invasion Status:\n";
 
     auto formatState = [this]() -> std::string
@@ -1147,6 +1159,7 @@ enum WorldStateSunwellGateQuests
 
 void WorldState::AddSunwellGateProgress(uint32 questId)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     uint32 counter = 0;
     int32 worldState = 0;
     uint32 addedValue = 1;
@@ -1200,12 +1213,14 @@ void WorldState::AddSunwellGateProgress(uint32 questId)
 
 void WorldState::SetSunwellGateCounter(SunwellGateCounters index, uint32 value)
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     m_sunsReachData.m_gateCounters[index] = value;
     Save(SAVE_ID_QUEL_DANAS);
 }
 
 void WorldState::StartSunwellGatePhase()
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     switch (m_sunsReachData.m_gate)
     {
         case SUNWELL_ALL_GATES_CLOSED: sGameEventMgr->StartEvent(GAME_EVENT_SWP_GATES_PHASE_0); break;
@@ -1218,6 +1233,7 @@ void WorldState::StartSunwellGatePhase()
 
 void WorldState::StopSunwellGatePhase()
 {
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     switch (m_sunsReachData.m_gate)
     {
         case SUNWELL_ALL_GATES_CLOSED: sGameEventMgr->StopEvent(GAME_EVENT_SWP_GATES_PHASE_0); break;
@@ -1250,6 +1266,7 @@ uint32 SunsReachReclamationData::GetSunwellGatePercentage(uint32 gate)
 
 void WorldState::SetScourgeInvasionState(SIState state)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     SIState oldState = m_siData.m_state;
     if (oldState == state)
         return;
@@ -1292,6 +1309,7 @@ void WorldState::SendScourgeInvasionMail()
 
 void WorldState::StartScourgeInvasion(bool sendMail)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     sGameEventMgr->StartEvent(GAME_EVENT_SCOURGE_INVASION, false);
 
     if (sendMail)
@@ -1411,7 +1429,7 @@ ScourgeInvasionData::ScourgeInvasionData()
 
 void ScourgeInvasionData::Reset()
 {
-    std::lock_guard<std::mutex> guard(m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siMutex);
     for (auto& timepoint : m_timers)
         timepoint = TimePoint();
 
@@ -1439,6 +1457,7 @@ std::string ScourgeInvasionData::GetData()
 
 void WorldState::StopScourgeInvasion()
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     sGameEventMgr->StopEvent(GAME_EVENT_SCOURGE_INVASION);
     sGameEventMgr->StopEvent(GAME_EVENT_SCOURGE_INVASION_WINTERSPRING);
     sGameEventMgr->StopEvent(GAME_EVENT_SCOURGE_INVASION_TANARIS);
@@ -1460,6 +1479,7 @@ void WorldState::StopScourgeInvasion()
 
 uint32 WorldState::GetSIRemaining(SIRemaining remaining) const
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     return m_siData.m_remaining[remaining];
 }
 
@@ -1483,31 +1503,33 @@ uint32 WorldState::GetSIRemainingByZone(uint32 zoneId) const
 
 void WorldState::SetSIRemaining(SIRemaining remaining, uint32 value)
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     m_siData.m_remaining[remaining] = value;
     Save(SAVE_ID_SCOURGE_INVASION);
 }
 
 TimePoint WorldState::GetSITimer(SITimers timer)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     return m_siData.m_timers[timer];
 }
 
 void WorldState::SetSITimer(SITimers timer, TimePoint timePoint)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     m_siData.m_timers[timer] = timePoint;
     Save(SAVE_ID_SCOURGE_INVASION);
 }
 
 uint32 WorldState::GetBattlesWon()
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     return m_siData.m_battlesWon;
 }
 
 void WorldState::AddBattlesWon(int32 count)
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     m_siData.m_battlesWon += count;
     HandleDefendedZones();
     Save(SAVE_ID_SCOURGE_INVASION);
@@ -1515,13 +1537,13 @@ void WorldState::AddBattlesWon(int32 count)
 
 uint32 WorldState::GetLastAttackZone()
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     return m_siData.m_lastAttackZone;
 }
 
 void WorldState::SetLastAttackZone(uint32 zoneId)
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     m_siData.m_lastAttackZone = zoneId;
     Save(SAVE_ID_SCOURGE_INVASION);
 }
@@ -1572,6 +1594,7 @@ void WorldState::BroadcastSIWorldstates()
 
 void WorldState::HandleDefendedZones()
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     if (m_siData.m_battlesWon < sWorld->getIntConfig(CONFIG_SCOURGEINVASION_COUNTER_FIRST))
     {
         sGameEventMgr->StopEvent(GAME_EVENT_SCOURGE_INVASION_50_INVASIONS);
@@ -1642,6 +1665,7 @@ void WorldState::StartNewCityAttackIfTime(uint32 attackTimeVar, uint32 zoneId)
 
 void WorldState::StartNewInvasion(uint32 zoneId)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     if (IsActiveZone(zoneId))
         return;
 
@@ -1684,6 +1708,7 @@ void WorldState::StartNewInvasion(uint32 zoneId)
 
 void WorldState::StartNewCityAttack(uint32 zoneId)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     LOG_DEBUG("gameevent", "Scourge Invasion Event: Starting new City attack in zone {}.", zoneId);
 
     ScourgeInvasionData::CityAttack& zone = m_siData.m_cityAttacks[zoneId];
@@ -1711,6 +1736,7 @@ void WorldState::StartNewCityAttack(uint32 zoneId)
 
 bool WorldState::ResumeInvasion(ScourgeInvasionData::InvasionZone& zone)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     // Dont have a save variable to know which necropolises had already been destroyed, so we
     // just summon the same amount, but not necessarily the same necropolises
     LOG_DEBUG("gameevent", "Scourge Invasion Event: Resuming Scourge invasion in zone {}", zone.zoneId);
@@ -1741,6 +1767,7 @@ bool WorldState::ResumeInvasion(ScourgeInvasionData::InvasionZone& zone)
 
 bool WorldState::SummonMouth(Map* map, ScourgeInvasionData::InvasionZone& zone, Position position, bool newInvasion)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     AddPendingInvasion(zone.zoneId);
     // Remove old mouth if required.
    if (Creature* existingMouth = map->GetCreature(zone.mouthGuid))
@@ -1768,6 +1795,7 @@ enum PallidHorrorPaths
 
 bool WorldState::SummonPallid(Map* map, ScourgeInvasionData::CityAttack& zone, const Position& position, uint32 spawnLoc)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     AddPendingPallid(zone.zoneId);
     // Remove old pallid if required.
     uint32 pathID = 0;
@@ -1794,6 +1822,7 @@ bool WorldState::SummonPallid(Map* map, ScourgeInvasionData::CityAttack& zone, c
 
 void WorldState::HandleActiveZone(uint32 attackTimeVar, uint32 zoneId, uint32 remainingVar, TimePoint now)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     TimePoint timePoint = sWorldState->GetSITimer(SITimers(attackTimeVar));
 
     ScourgeInvasionData::InvasionZone& zone = m_siData.m_activeInvasions[zoneId];
@@ -1845,40 +1874,43 @@ void WorldState::HandleActiveZone(uint32 attackTimeVar, uint32 zoneId, uint32 re
 
 void WorldState::SetPallidGuid(uint32 zoneId, ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     m_siData.m_cityAttacks[zoneId].pallidGuid = guid;
 }
 
 void WorldState::SetMouthGuid(uint32 zoneId, ObjectGuid guid)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     m_siData.m_activeInvasions[zoneId].mouthGuid = guid;
 }
 
 void WorldState::AddPendingInvasion(uint32 zoneId)
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     m_siData.m_pendingInvasions.insert(zoneId);
 }
 
 void WorldState::RemovePendingInvasion(uint32 zoneId)
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     m_siData.m_pendingInvasions.erase(zoneId);
 }
 
 void WorldState::AddPendingPallid(uint32 zoneId)
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     m_siData.m_pendingPallids.insert(zoneId);
 }
 
 void WorldState::RemovePendingPallid(uint32 zoneId)
 {
-    std::lock_guard<std::mutex> guard(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> guard(m_siData.m_siMutex);
     m_siData.m_pendingPallids.erase(zoneId);
 }
 
 void WorldState::OnEnable(ScourgeInvasionData::InvasionZone& zone)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     // If there were remaining necropolises in the old zone before shutdown, we
     // restore that zone
     if (sWorldState->GetSIRemaining(SIRemaining(zone.remainingNecropoli)) > 0)
@@ -1890,6 +1922,7 @@ void WorldState::OnEnable(ScourgeInvasionData::InvasionZone& zone)
 
 void WorldState::OnDisable(ScourgeInvasionData::InvasionZone& zone)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     if (!zone.mouthGuid)
         return;
 
@@ -1901,6 +1934,7 @@ void WorldState::OnDisable(ScourgeInvasionData::InvasionZone& zone)
 
 void WorldState::OnDisable(ScourgeInvasionData::CityAttack& zone)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     if (!zone.pallidGuid)
         return;
 
@@ -1918,6 +1952,7 @@ bool WorldState::IsActiveZone(uint32 /*zoneId*/)
 // returns the amount of pending zones and active zones with a mouth creature on the map
 uint32 WorldState::GetActiveZones()
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
     size_t i = m_siData.m_pendingInvasions.size();
     for (auto const& [zoneId, invasionData] : m_siData.m_activeInvasions)
     {
@@ -1955,6 +1990,8 @@ uint32 WorldState::GetTimerIdForZone(uint32 zoneId)
 
 void WorldState::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet, uint32 zoneId, uint32 /*areaId*/)
 {
+    std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
+    std::lock_guard<std::recursive_mutex> sunLock(m_sunsReachData.m_sunsReachReclamationMutex);
     if (m_siData.m_state != STATE_0_DISABLED) // scourge invasion active - need to send all worldstates
     {
         uint32 victories = GetBattlesWon();

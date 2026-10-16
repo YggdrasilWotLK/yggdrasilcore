@@ -230,11 +230,12 @@ public:
             return false;
         }
 
-        for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = grp->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            Player* player = itr->GetSource();
+            Player* player = ObjectAccessor::FindPlayer(guid);
 
-            if (!player || !player->GetSession())
+            if (!player || !player->IsInWorld() || !player->GetSession())
                 continue;
 
             // check online security

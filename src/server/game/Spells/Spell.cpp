@@ -5735,16 +5735,24 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (instanceScript->IsEncounterInProgress())
                 {
                     if (Group* group = m_caster->ToPlayer()->GetGroup())
-                        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-                            if (Player* member = itr->GetSource())
-                                if (member->IsInMap(m_caster))
-                                    if (Unit* victim = member->GetVictim())
-                                        if (victim->IsInCombat() && m_caster->GetDistance(victim) < m_caster->GetVisibilityRange())
-                                        {
-                                            m_caster->CombatStart(victim);
-                                            victim->AddThreat(m_caster, 1.0f);
-                                            break;
-                                        }
+                    {
+                        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                        for (ObjectGuid const& guid : guids)
+                        {
+                            Player* member = ObjectAccessor::FindPlayer(guid);
+                            if (!member || !member->IsInWorld())
+                                continue;
+
+                            if (member->IsInMap(m_caster))
+                                if (Unit* victim = member->GetVictim())
+                                    if (victim->IsInCombat() && m_caster->GetDistance(victim) < m_caster->GetVisibilityRange())
+                                    {
+                                        m_caster->CombatStart(victim);
+                                        victim->AddThreat(m_caster, 1.0f);
+                                        break;
+                                    }
+                        }
+                    }
                     return SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED;
                 }
     }

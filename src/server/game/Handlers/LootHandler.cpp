@@ -186,10 +186,11 @@ void WorldSession::HandleLootMoneyOpcode(WorldPacket& /*recvData*/)
             Group* group = player->GetGroup();
 
             std::vector<Player*> playersNear;
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& memberGuid : guids)
             {
-                Player* member = itr->GetSource();
-                if (!member)
+                Player* member = ObjectAccessor::FindPlayer(memberGuid);
+                if (!member || !member->IsInWorld())
                     continue;
 
                 if (player->IsAtLootRewardDistance(member))
