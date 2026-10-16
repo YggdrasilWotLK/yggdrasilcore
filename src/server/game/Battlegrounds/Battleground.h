@@ -25,6 +25,7 @@
 #include "SharedDefines.h"
 #include "World.h"
 #include "WorldStatePackets.h"
+#include <atomic>
 #include <vector>
 
 class Creature;
@@ -385,7 +386,7 @@ public:
     void AddToBGFreeSlotQueue();        // this queue will be useful when more battlegrounds instances will be available
     void RemoveFromBGFreeSlotQueue();   // this method could delete whole BG instance, if another free is available
 
-    void DecreaseInvitedCount(TeamId teamId)    { if (m_BgInvitedPlayers[teamId]) --m_BgInvitedPlayers[teamId]; }
+    void DecreaseInvitedCount(TeamId teamId)    { if (m_BgInvitedPlayers[teamId].load() > 0) --m_BgInvitedPlayers[teamId]; }
     void IncreaseInvitedCount(TeamId teamId)    { ++m_BgInvitedPlayers[teamId]; }
     [[nodiscard]] uint32 GetInvitedCount(TeamId teamId) const { return m_BgInvitedPlayers[teamId]; }
 
@@ -411,7 +412,8 @@ public:
 
     typedef std::map<ObjectGuid, Player*> BattlegroundPlayerMap;
     [[nodiscard]] BattlegroundPlayerMap const& GetPlayers() const { return m_Players; }
-    [[nodiscard]] uint32 GetPlayersSize() const { return m_Players.size(); }
+    // Locked: m_Players mutates on session threads.
+    [[nodiscard]] uint32 GetPlayersSize() const;
     // Snapshot copy-outs: m_Players mutates on session threads, never hold the live map.
     [[nodiscard]] std::vector<ObjectGuid> GetPlayerGUIDs() const;
     [[nodiscard]] std::vector<std::pair<ObjectGuid, Player*>> GetPlayersSnapshot() const;
@@ -636,7 +638,7 @@ protected:
     std::map<ObjectGuid, GuidVector> m_ReviveQueue;
 
     // these are important variables used for starting messages
-    uint8 m_Events;
+    std::atomic<uint8> m_Events;
     BattlegroundStartTimeIntervals  StartDelayTimes[BG_STARTING_EVENT_COUNT];
     // this must be filled in constructors!
     uint32 StartMessageIds[BG_STARTING_EVENT_COUNT];
@@ -659,24 +661,24 @@ private:
     BattlegroundTypeId m_RealTypeID;
     BattlegroundTypeId m_RandomTypeID;                  // TypeID created from Random Battleground list
     uint32 m_InstanceID;                                // Battleground Instance's GUID!
-    BattlegroundStatus m_Status;
+    std::atomic<BattlegroundStatus> m_Status;
     uint32 m_ClientInstanceID;                          // the instance-id which is sent to the client and without any other internal use
-    uint32 m_StartTime;
-    uint32 m_ResetStatTimer;
-    uint32 m_ValidStartPositionTimer;
-    int32 m_EndTime;                                    // it is set to 120000 when bg is ending and it decreases itself
-    uint32 m_LastResurrectTime;
+    std::atomic<uint32> m_StartTime;
+    std::atomic<uint32> m_ResetStatTimer;
+    std::atomic<uint32> m_ValidStartPositionTimer;
+    std::atomic<int32> m_EndTime;                       // it is set to 120000 when bg is ending and it decreases itself
+    std::atomic<uint32> m_LastResurrectTime;
     BattlegroundBracketId m_BracketId{ BG_BRACKET_ID_FIRST };
     uint8  m_ArenaType;                                 // 2=2v2, 3=3v3, 5=5v5
     bool   _InBGFreeSlotQueue{ false };                // used to make sure that BG is only once inserted into the BattlegroundMgr.BGFreeSlotQueue[bgTypeId] deque
-    bool   m_SetDeleteThis;                             // used for safe deletion of the bg after end / all players leave
+    std::atomic<bool> m_SetDeleteThis;                  // used for safe deletion of the bg after end / all players leave
     bool   m_IsArena;
     bool   m_IsTemplate;
-    PvPTeamId m_WinnerId;
-    int32  m_StartDelayTime;
+    std::atomic<PvPTeamId> m_WinnerId;
+    std::atomic<int32>  m_StartDelayTime;
     bool   m_IsRated;                                   // is this battle rated?
-    bool   m_PrematureCountDown;
-    uint32 m_PrematureCountDownTimer;
+    std::atomic<bool> m_PrematureCountDown;
+    std::atomic<uint32> m_PrematureCountDownTimer;
     std::string m_Name{};
 
     /* Pre- and post-update hooks */
@@ -716,7 +718,7 @@ private:
     // Invited counters are useful for player invitation to BG - do not allow, if BG is started to one faction to have 2 more players than another faction
     // Invited counters will be changed only when removing already invited player from queue, removing player from battleground and inviting player to BG
     // Invited players counters
-    uint32 m_BgInvitedPlayers[PVP_TEAMS_COUNT];
+    std::atomic<uint32> m_BgInvitedPlayers[PVP_TEAMS_COUNT];
 
     // Raid Group
     Group* m_BgRaids[PVP_TEAMS_COUNT];                   // 0 - alliance, 1 - horde
@@ -725,7 +727,7 @@ private:
     ToBeTeleportedMap m_ToBeTeleported;
 
     // Players count by team
-    uint32 m_PlayersCount[PVP_TEAMS_COUNT];
+    std::atomic<uint32> m_PlayersCount[PVP_TEAMS_COUNT];
 
     // Arena team ids by team
     uint32 m_ArenaTeamIds[PVP_TEAMS_COUNT];

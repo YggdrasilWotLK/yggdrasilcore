@@ -61,12 +61,16 @@ public:
         uint32 entry = quest->GetQuestId();
 
         // check item starting quest (it can work incorrectly if added without item in inventory)
-        ItemTemplateContainer const* itc = sObjectMgr->GetItemTemplateStore();
-        ItemTemplateContainer::const_iterator result = find_if(itc->begin(), itc->end(), Finder<uint32, ItemTemplate>(entry, &ItemTemplate::StartQuest));
-
-        if (result != itc->end())
+        uint32 startItemId = 0;
+        sObjectMgr->ForEachItemTemplate([&](uint32 /*itemEntry*/, ItemTemplate const& t)
         {
-            handler->SendErrorMessage(LANG_COMMAND_QUEST_STARTFROMITEM, entry, result->second.ItemId);
+            if (!startItemId && t.StartQuest == entry)
+                startItemId = t.ItemId;
+        });
+
+        if (startItemId)
+        {
+            handler->SendErrorMessage(LANG_COMMAND_QUEST_STARTFROMITEM, entry, startItemId);
             return false;
         }
 

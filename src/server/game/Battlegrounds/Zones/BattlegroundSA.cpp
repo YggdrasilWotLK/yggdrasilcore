@@ -98,8 +98,14 @@ bool BattlegroundSA::SetupBattleground()
 bool BattlegroundSA::ResetObjs()
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-        SendTransportsRemove(itr->second);
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+            continue;
+        SendTransportsRemove(listed);
+    }
 
     uint32 atF = BG_SA_Factions[Attackers];
     uint32 defF = BG_SA_Factions[Attackers ? TEAM_ALLIANCE : TEAM_HORDE];
@@ -284,9 +290,15 @@ bool BattlegroundSA::ResetObjs()
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_SA_YELLOW_GATE, 1);
     UpdateWorldState(WORLD_STATE_BATTLEGROUND_SA_ANCIENT_GATE, 1);
 
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
     for (int i = BG_SA_BOAT_ONE; i <= BG_SA_BOAT_TWO; i++)
-        for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-            SendTransportInit(itr->second);
+        for (ObjectGuid const& playerGuid : guids)
+        {
+            Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+            if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                continue;
+            SendTransportInit(listed);
+        }
 
     // set status manually so preparation is cast correctly in 2nd round too
     SetStatus(STATUS_WAIT_JOIN);
@@ -304,15 +316,19 @@ void BattlegroundSA::StartShips()
     DoorOpen(BG_SA_BOAT_ONE);
     DoorOpen(BG_SA_BOAT_TWO);
 
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
     for (int i = BG_SA_BOAT_ONE; i <= BG_SA_BOAT_TWO; i++)
     {
-        for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
+        for (ObjectGuid const& playerGuid : guids)
         {
+            Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+            if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                continue;
             UpdateData data;
             WorldPacket pkt;
-            GetBGObject(i)->BuildValuesUpdateBlockForPlayer(&data, itr->second);
+            GetBGObject(i)->BuildValuesUpdateBlockForPlayer(&data, listed);
             data.BuildPacket(pkt);
-            itr->second->GetSession()->SendPacket(&pkt);
+            listed->GetSession()->SendPacket(&pkt);
         }
     }
     ShipsStarted = true;
@@ -377,8 +393,14 @@ void BattlegroundSA::PostUpdateImpl(uint32 diff)
 
             // status was set to STATUS_WAIT_JOIN manually for Preparation, set it back now
             SetStatus(STATUS_IN_PROGRESS);
-            for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-                itr->second->RemoveAurasDueToSpell(SPELL_PREPARATION);
+            std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+                if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                    continue;
+                listed->RemoveAurasDueToSpell(SPELL_PREPARATION);
+            }
         }
         if (TotalTime >= 30s)
         {
@@ -402,16 +424,28 @@ void BattlegroundSA::PostUpdateImpl(uint32 diff)
                     RoundScores[0].winner = Attackers;
                     RoundScores[0].time = TotalTime;
                     //Achievement Storm the Beach (1310)
-                    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-                        if (itr->second->GetTeamId() == Attackers)
-                            itr->second->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET, 65246);
+                    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+                    for (ObjectGuid const& playerGuid : guids)
+                    {
+                        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+                        if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                            continue;
+                        if (listed->GetTeamId() == Attackers)
+                            listed->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET, 65246);
+                    }
                 }
                 else
                 {
                     // cast this before Attackers variable is switched
                     // cast this spell only upon timer end, no other ability for defenders to win :)
-                    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-                        itr->second->CastSpell(itr->second, SPELL_SA_END_OF_ROUND, true);
+                    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+                    for (ObjectGuid const& playerGuid : guids)
+                    {
+                        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+                        if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                            continue;
+                        listed->CastSpell(listed, SPELL_SA_END_OF_ROUND, true);
+                    }
 
                     RoundScores[0].winner = Attackers;
                     RoundScores[0].time = BG_SA_ROUNDLENGTH;
@@ -442,8 +476,14 @@ void BattlegroundSA::PostUpdateImpl(uint32 diff)
             if (TotalTime >= EndRoundTimer)
             {
                 // cast this spell only upon timer end, no other ability for defenders to win :)
-                for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-                    itr->second->CastSpell(itr->second, SPELL_SA_END_OF_ROUND, true);
+                std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                        continue;
+                    listed->CastSpell(listed, SPELL_SA_END_OF_ROUND, true);
+                }
 
                 RoundScores[1].time = BG_SA_ROUNDLENGTH;
                 RoundScores[1].winner = GetOtherTeamId(Attackers);
@@ -544,9 +584,13 @@ void BattlegroundSA::HandleAreaTrigger(Player* /*Source*/, uint32 /*Trigger*/)
 void BattlegroundSA::TeleportPlayers()
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
     {
-        if (Player* player = itr->second)
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+            continue;
+        if (Player* player = listed)
         {
             // should remove spirit of redemption
             if (player->HasSpiritOfRedemptionAura())
@@ -1092,9 +1136,15 @@ void BattlegroundSA::EventPlayerUsedGO(Player* Source, GameObject* object)
                 RoundScores[1].time = TotalTime;
                 ToggleTimer();
                 //Achievement Storm the Beach (1310)
-                for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-                    if (itr->second->GetTeamId() == Attackers && RoundScores[1].winner == Attackers)
-                        itr->second->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET, 65246);
+                std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                        continue;
+                    if (listed->GetTeamId() == Attackers && RoundScores[1].winner == Attackers)
+                        listed->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET, 65246);
+                }
 
                 if (RoundScores[0].time == RoundScores[1].time)
                     EndBattleground(TEAM_NEUTRAL);

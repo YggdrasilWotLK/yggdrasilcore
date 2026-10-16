@@ -25,6 +25,8 @@
 #include "SharedDefines.h"
 #include "Unit.h"
 
+#include <mutex>
+
 class SpellInfo;
 class Player;
 class Unit;
@@ -723,11 +725,16 @@ public:
     [[nodiscard]] SpellAreaForAreaMapBounds GetSpellAreaForAreaMapBounds(uint32 area_id) const;
 
     // SpellInfo object management
-    [[nodiscard]] SpellInfo const* GetSpellInfo(uint32 spellId) const { return spellId < GetSpellInfoStoreSize() ?  mSpellInfoMap[spellId] : nullptr; }
+    [[nodiscard]] SpellInfo const* GetSpellInfo(uint32 spellId) const
+    {
+        std::lock_guard<std::recursive_mutex> lock(_spellLock);
+        return spellId < mSpellInfoMap.size() ? mSpellInfoMap[spellId] : nullptr;
+    }
     // Use this only with 100% valid spellIds
     [[nodiscard]] SpellInfo const* AssertSpellInfo(uint32 spellId) const
     {
-        ASSERT(spellId < GetSpellInfoStoreSize());
+        std::lock_guard<std::recursive_mutex> lock(_spellLock);
+        ASSERT(spellId < mSpellInfoMap.size());
         SpellInfo const* spellInfo = mSpellInfoMap[spellId];
         ASSERT(spellInfo);
         return spellInfo;
@@ -735,9 +742,10 @@ public:
     // use this instead of AssertSpellInfo to have the problem logged instead of crashing the server
     [[nodiscard]] SpellInfo const* CheckSpellInfo(uint32 spellId) const
     {
-        if (spellId >= GetSpellInfoStoreSize())
+        std::lock_guard<std::recursive_mutex> lock(_spellLock);
+        if (spellId >= mSpellInfoMap.size())
         {
-            LOG_ERROR("server", "spellId {} is not lower than GetSpellInfoStoreSize() ({})", spellId, GetSpellInfoStoreSize());
+            LOG_ERROR("server", "spellId {} is not lower than GetSpellInfoStoreSize() ({})", spellId, mSpellInfoMap.size());
             return nullptr;
         }
         SpellInfo const* spellInfo = mSpellInfoMap[spellId];
@@ -748,7 +756,11 @@ public:
         }
         return spellInfo;
     }
-    [[nodiscard]] uint32 GetSpellInfoStoreSize() const { return mSpellInfoMap.size(); }
+    [[nodiscard]] uint32 GetSpellInfoStoreSize() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(_spellLock);
+        return mSpellInfoMap.size();
+    }
 
     // Talent Additional Set
     [[nodiscard]] bool IsAdditionalTalentSpell(uint32 spellId) const;
@@ -792,6 +804,11 @@ public:
     void LoadSpellSpecificAndAuraState();
 
 private:
+    // Guards every map above. Recursive: getters nest (chains, difficulty)
+    // and loads nest (ranks, specific/aura); readers are combat-hot but
+    // critical sections are map finds only. Leaf vs outside locks, same rank
+    // as the ObjectMgr template lock; never take DisableLock while holding.
+    mutable std::recursive_mutex _spellLock;
     SpellDifficultySearcherMap mSpellDifficultySearcherMap;
     SpellChainMap              mSpellChains;
     SpellsRequiringSpellMap    mSpellsReqSpell;

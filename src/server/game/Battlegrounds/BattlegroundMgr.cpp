@@ -886,15 +886,14 @@ void BattlegroundMgr::LoadBattleMastersEntry()
 void BattlegroundMgr::CheckBattleMasters()
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    CreatureTemplateContainer const* ctc = sObjectMgr->GetCreatureTemplates();
-    for (CreatureTemplateContainer::const_iterator itr = ctc->begin(); itr != ctc->end(); ++itr)
+    sObjectMgr->ForEachCreatureTemplate([&](uint32 /*entry*/, CreatureTemplate const& t)
     {
-        if ((itr->second.npcflag & UNIT_NPC_FLAG_BATTLEMASTER) && mBattleMastersMap.find(itr->second.Entry) == mBattleMastersMap.end())
+        if ((t.npcflag & UNIT_NPC_FLAG_BATTLEMASTER) && mBattleMastersMap.find(t.Entry) == mBattleMastersMap.end())
         {
-            LOG_ERROR("sql.sql", "CreatureTemplate (Entry: {}) has UNIT_NPC_FLAG_BATTLEMASTER but no data in `battlemaster_entry` table. Removing flag!", itr->second.Entry);
-            const_cast<CreatureTemplate*>(&itr->second)->npcflag &= ~UNIT_NPC_FLAG_BATTLEMASTER;
+            LOG_ERROR("sql.sql", "CreatureTemplate (Entry: {}) has UNIT_NPC_FLAG_BATTLEMASTER but no data in `battlemaster_entry` table. Removing flag!", t.Entry);
+            const_cast<CreatureTemplate*>(&t)->npcflag &= ~UNIT_NPC_FLAG_BATTLEMASTER;
         }
-    }
+    });
 }
 
 HolidayIds BattlegroundMgr::BGTypeToWeekendHolidayId(BattlegroundTypeId bgTypeId)

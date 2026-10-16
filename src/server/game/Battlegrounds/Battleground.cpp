@@ -279,6 +279,12 @@ uint32 Battleground::GetSpectatorCount() const
     return m_Spectators.size();
 }
 
+uint32 Battleground::GetPlayersSize() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_Players.size();
+}
+
 bool Battleground::HasPlayer(ObjectGuid guid) const
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
@@ -534,8 +540,14 @@ inline void Battleground::_ProcessJoin(uint32 diff)
     if (m_ResetStatTimer > 5000)
     {
         m_ResetStatTimer = 0;
-        for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-            itr->second->ResetAllPowers();
+        std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+        for (ObjectGuid const& playerGuid : guids)
+        {
+            Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+            if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                continue;
+            listed->ResetAllPowers();
+        }
     }
 
     if (!m_SetupCompleted)
@@ -664,12 +676,17 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             if (BattlegroundMap* map = GetBgMap())
                 map->SetVisibilityRange(World::GetMaxVisibleDistanceInBGArenas());
 
-            for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-                if (Player* player = itr->second)
+            std::vector<ObjectGuid> startGuids = GetPlayerGUIDs();
+            for (ObjectGuid const& playerGuid : startGuids)
+            {
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+                    continue;
                 {
                     WorldPacket status;
                     sBattlegroundMgr->BuildBattlegroundStatusPacket(&status, this, player->GetCurrentBattlegroundQueueSlot(), STATUS_IN_PROGRESS, 0, GetStartTime(), GetArenaType(), player->GetBgTeamId());
-                    player->GetSession()->SendPacket(&status);
+                    if (WorldSession* session = player->GetSession())
+                        session->SendPacket(&status);
 
                     player->RemoveAurasDueToSpell(SPELL_ARENA_PREPARATION);
                     player->ResetAllPowers();
@@ -691,6 +708,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
 
                     player->UpdateObjectVisibility(true);
                 }
+            }
 
             for (SpectatorList::const_iterator itr = m_Spectators.begin(); itr != m_Spectators.end(); ++itr)
                 ArenaSpectator::HandleResetCommand(*itr);
@@ -724,10 +742,14 @@ inline void Battleground::_ProcessJoin(uint32 diff)
         {
             PlaySoundToAll(SOUND_BG_START);
 
-            for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
+            std::vector<ObjectGuid> prepGuids = GetPlayerGUIDs();
+            for (ObjectGuid const& playerGuid : prepGuids)
             {
-                itr->second->RemoveAurasDueToSpell(SPELL_PREPARATION);
-                itr->second->ResetAllPowers();
+                Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+                if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                    continue;
+                listed->RemoveAurasDueToSpell(SPELL_PREPARATION);
+                listed->ResetAllPowers();
             }
 
             // Announce BG starting
@@ -2028,9 +2050,14 @@ void Battleground::SetBracket(PvPDifficultyEntry const* bracketEntry)
 
 void Battleground::StartTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-        itr->second->StartTimedAchievement(type, entry);
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+            continue;
+        listed->StartTimedAchievement(type, entry);
+    }
 }
 
 uint32 Battleground::GetTeamScore(TeamId teamId) const

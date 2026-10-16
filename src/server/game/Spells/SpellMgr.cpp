@@ -353,6 +353,7 @@ bool IsDiminishingReturnsGroupDurationLimited(DiminishingGroup group)
 
 SpellMgr::SpellMgr()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
 }
 
 SpellMgr::~SpellMgr()
@@ -369,6 +370,7 @@ SpellMgr* SpellMgr::instance()
 /// Some checks for spells, to prevent adding deprecated/broken spells for trainers, spell book, etc
 bool SpellMgr::ComputeIsSpellValid(SpellInfo const* spellInfo, bool msg)
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     // not exist
     if (!spellInfo)
         return false;
@@ -440,6 +442,7 @@ bool SpellMgr::ComputeIsSpellValid(SpellInfo const* spellInfo, bool msg)
 
 bool SpellMgr::IsSpellValid(SpellInfo const* spellInfo)
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (!spellInfo)
         return false;
     return spellInfo->IsSpellValid();
@@ -458,6 +461,7 @@ void DeleteSpellFromAllPlayers(uint32 spellId)
 
 bool SpellMgr::CheckSpellValid(SpellInfo const* spellInfo, uint32 spellId, bool isTalent)
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (!spellInfo)
     {
         DeleteSpellFromAllPlayers(spellId);
@@ -477,17 +481,20 @@ bool SpellMgr::CheckSpellValid(SpellInfo const* spellInfo, uint32 spellId, bool 
 
 uint32 SpellMgr::GetSpellDifficultyId(uint32 spellId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellDifficultySearcherMap::const_iterator i = mSpellDifficultySearcherMap.find(spellId);
     return i == mSpellDifficultySearcherMap.end() ? 0 : (*i).second;
 }
 
 void SpellMgr::SetSpellDifficultyId(uint32 spellId, uint32 id)
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     mSpellDifficultySearcherMap[spellId] = id;
 }
 
 uint32 SpellMgr::GetSpellIdForDifficulty(uint32 spellId, Unit const* caster) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (!GetSpellInfo(spellId))
         return spellId;
 
@@ -530,6 +537,7 @@ uint32 SpellMgr::GetSpellIdForDifficulty(uint32 spellId, Unit const* caster) con
 
 SpellInfo const* SpellMgr::GetSpellForDifficultyFromSpell(SpellInfo const* spell, Unit const* caster) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 newSpellId = GetSpellIdForDifficulty(spell->Id, caster);
     SpellInfo const* newSpell = GetSpellInfo(newSpellId);
     if (!newSpell)
@@ -544,6 +552,7 @@ SpellInfo const* SpellMgr::GetSpellForDifficultyFromSpell(SpellInfo const* spell
 
 SpellChainNode const* SpellMgr::GetSpellChainNode(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellChainMap::const_iterator itr = mSpellChains.find(spell_id);
     if (itr == mSpellChains.end())
         return nullptr;
@@ -553,6 +562,7 @@ SpellChainNode const* SpellMgr::GetSpellChainNode(uint32 spell_id) const
 
 uint32 SpellMgr::GetFirstSpellInChain(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (SpellChainNode const* node = GetSpellChainNode(spell_id))
         return node->first->Id;
 
@@ -561,6 +571,7 @@ uint32 SpellMgr::GetFirstSpellInChain(uint32 spell_id) const
 
 uint32 SpellMgr::GetLastSpellInChain(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (SpellChainNode const* node = GetSpellChainNode(spell_id))
         return node->last->Id;
 
@@ -569,6 +580,7 @@ uint32 SpellMgr::GetLastSpellInChain(uint32 spell_id) const
 
 uint32 SpellMgr::GetNextSpellInChain(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (SpellChainNode const* node = GetSpellChainNode(spell_id))
         if (node->next)
             return node->next->Id;
@@ -578,6 +590,7 @@ uint32 SpellMgr::GetNextSpellInChain(uint32 spell_id) const
 
 uint32 SpellMgr::GetPrevSpellInChain(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (SpellChainNode const* node = GetSpellChainNode(spell_id))
         if (node->prev)
             return node->prev->Id;
@@ -587,6 +600,7 @@ uint32 SpellMgr::GetPrevSpellInChain(uint32 spell_id) const
 
 uint8 SpellMgr::GetSpellRank(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (SpellChainNode const* node = GetSpellChainNode(spell_id))
         return node->rank;
 
@@ -595,6 +609,7 @@ uint8 SpellMgr::GetSpellRank(uint32 spell_id) const
 
 uint32 SpellMgr::GetSpellWithRank(uint32 spell_id, uint32 rank, bool strict) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     if (SpellChainNode const* node = GetSpellChainNode(spell_id))
     {
         if (rank != node->rank)
@@ -607,16 +622,19 @@ uint32 SpellMgr::GetSpellWithRank(uint32 spell_id, uint32 rank, bool strict) con
 
 SpellRequiredMapBounds SpellMgr::GetSpellsRequiredForSpellBounds(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSpellReq.equal_range(spell_id);
 }
 
 SpellsRequiringSpellMapBounds SpellMgr::GetSpellsRequiringSpellBounds(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSpellsReqSpell.equal_range(spell_id);
 }
 
 bool SpellMgr::IsSpellRequiringSpell(uint32 spellid, uint32 req_spellid) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellsRequiringSpellMapBounds spellsRequiringSpell = GetSpellsRequiringSpellBounds(req_spellid);
     for (SpellsRequiringSpellMap::const_iterator itr = spellsRequiringSpell.first; itr != spellsRequiringSpell.second; ++itr)
     {
@@ -628,11 +646,13 @@ bool SpellMgr::IsSpellRequiringSpell(uint32 spellid, uint32 req_spellid) const
 
 bool SpellMgr::IsAdditionalTalentSpell(uint32 spellId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mTalentSpellAdditionalSet.find(spellId) != mTalentSpellAdditionalSet.end();
 }
 
 SpellLearnSkillNode const* SpellMgr::GetSpellLearnSkill(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellLearnSkillMap::const_iterator itr = mSpellLearnSkills.find(spell_id);
     if (itr != mSpellLearnSkills.end())
         return &itr->second;
@@ -642,6 +662,7 @@ SpellLearnSkillNode const* SpellMgr::GetSpellLearnSkill(uint32 spell_id) const
 
 SpellTargetPosition const* SpellMgr::GetSpellTargetPosition(uint32 spell_id, SpellEffIndex effIndex) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellTargetPositionMap::const_iterator itr = mSpellTargetPositions.find(std::make_pair(spell_id, effIndex));
     if (itr != mSpellTargetPositions.end())
         return &itr->second;
@@ -650,6 +671,7 @@ SpellTargetPosition const* SpellMgr::GetSpellTargetPosition(uint32 spell_id, Spe
 
 SpellGroupStackFlags SpellMgr::GetGroupStackFlags(uint32 groupid) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellGroupStackMap::const_iterator itr = mSpellGroupStackMap.find(groupid);
     if (itr != mSpellGroupStackMap.end())
         return itr->second;
@@ -659,6 +681,7 @@ SpellGroupStackFlags SpellMgr::GetGroupStackFlags(uint32 groupid) const
 
 uint32 SpellMgr::GetSpellGroup(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 first_rank = GetFirstSpellInChain(spell_id);
     SpellGroupMap::const_iterator itr = mSpellGroupMap.find(first_rank);
     if (itr != mSpellGroupMap.end())
@@ -669,6 +692,7 @@ uint32 SpellMgr::GetSpellGroup(uint32 spell_id) const
 
 SpellGroupSpecialFlags SpellMgr::GetSpellGroupSpecialFlags(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 first_rank = GetFirstSpellInChain(spell_id);
     SpellGroupMap::const_iterator itr = mSpellGroupMap.find(first_rank);
     if (itr != mSpellGroupMap.end())
@@ -679,6 +703,7 @@ SpellGroupSpecialFlags SpellMgr::GetSpellGroupSpecialFlags(uint32 spell_id) cons
 
 SpellGroupStackFlags SpellMgr::CheckSpellGroupStackRules(SpellInfo const* spellInfo1, SpellInfo const* spellInfo2, bool remove, bool areaAura) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 spellid_1 = spellInfo1->GetFirstRankSpell()->Id;
     uint32 spellid_2 = spellInfo2->GetFirstRankSpell()->Id;
 
@@ -721,6 +746,7 @@ SpellGroupStackFlags SpellMgr::CheckSpellGroupStackRules(SpellInfo const* spellI
 
 void SpellMgr::GetSetOfSpellsInSpellGroupWithFlag(uint32 group_id, SpellGroupSpecialFlags flag, std::set<uint32>& availableElixirs) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     for (SpellGroupMap::const_iterator itr = mSpellGroupMap.begin(); itr != mSpellGroupMap.end(); ++itr)
         if (itr->second.groupId == group_id && itr->second.specialFlags == flag)
             availableElixirs.insert(itr->first); // insert spell id
@@ -728,6 +754,7 @@ void SpellMgr::GetSetOfSpellsInSpellGroupWithFlag(uint32 group_id, SpellGroupSpe
 
 SpellProcEventEntry const* SpellMgr::GetSpellProcEvent(uint32 spellId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellProcEventMap::const_iterator itr = mSpellProcEventMap.find(spellId);
     if (itr != mSpellProcEventMap.end())
         return &itr->second;
@@ -736,6 +763,7 @@ SpellProcEventEntry const* SpellMgr::GetSpellProcEvent(uint32 spellId) const
 
 bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellInfo const* spellProto, SpellProcEventEntry const* spellProcEvent, uint32 EventProcFlag, ProcEventInfo const& eventInfo, bool active) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     // No extra req need
     uint32 procEvent_procEx = PROC_EX_NONE;
     uint32 procEvent_procPhase = PROC_SPELL_PHASE_HIT;
@@ -888,6 +916,7 @@ bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellInfo const* spellProto, Spell
 
 SpellProcEntry const* SpellMgr::GetSpellProcEntry(uint32 spellId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellProcMap::const_iterator itr = mSpellProcMap.find(spellId);
     if (itr != mSpellProcMap.end())
         return &itr->second;
@@ -896,6 +925,7 @@ SpellProcEntry const* SpellMgr::GetSpellProcEntry(uint32 spellId) const
 
 bool SpellMgr::CanSpellTriggerProcOnEvent(SpellProcEntry const& procEntry, ProcEventInfo& eventInfo) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     // proc type doesn't match
     if (!(eventInfo.GetTypeMask() & procEntry.ProcFlags))
         return false;
@@ -961,6 +991,7 @@ bool SpellMgr::CanSpellTriggerProcOnEvent(SpellProcEntry const& procEntry, ProcE
 
 SpellBonusEntry const* SpellMgr::GetSpellBonusData(uint32 spellId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     // Lookup data
     SpellBonusMap::const_iterator itr = mSpellBonusMap.find(spellId);
     if (itr != mSpellBonusMap.end())
@@ -977,6 +1008,7 @@ SpellBonusEntry const* SpellMgr::GetSpellBonusData(uint32 spellId) const
 
 SpellThreatEntry const* SpellMgr::GetSpellThreatEntry(uint32 spellID) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellThreatMap::const_iterator itr = mSpellThreatMap.find(spellID);
     if (itr != mSpellThreatMap.end())
         return &itr->second;
@@ -992,6 +1024,7 @@ SpellThreatEntry const* SpellMgr::GetSpellThreatEntry(uint32 spellID) const
 
 float SpellMgr::GetSpellMixologyBonus(uint32 spellId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellMixologyMap::const_iterator itr = mSpellMixologyMap.find(spellId);
     if (itr == mSpellMixologyMap.end())
         return 30.0f;
@@ -1001,11 +1034,13 @@ float SpellMgr::GetSpellMixologyBonus(uint32 spellId) const
 
 SkillLineAbilityMapBounds SpellMgr::GetSkillLineAbilityMapBounds(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSkillLineAbilityMap.equal_range(spell_id);
 }
 
 PetAura const* SpellMgr::GetPetAura(uint32 spell_id, uint8 eff) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellPetAuraMap::const_iterator itr = mSpellPetAuraMap.find((spell_id << 8) + eff);
     if (itr != mSpellPetAuraMap.end())
         return &itr->second;
@@ -1015,6 +1050,7 @@ PetAura const* SpellMgr::GetPetAura(uint32 spell_id, uint8 eff) const
 
 SpellEnchantProcEntry const* SpellMgr::GetSpellEnchantProcEvent(uint32 enchId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellEnchantProcEventMap::const_iterator itr = mSpellEnchantProcEventMap.find(enchId);
     if (itr != mSpellEnchantProcEventMap.end())
         return &itr->second;
@@ -1023,17 +1059,20 @@ SpellEnchantProcEntry const* SpellMgr::GetSpellEnchantProcEvent(uint32 enchId) c
 
 bool SpellMgr::IsArenaAllowedEnchancment(uint32 ench_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mEnchantCustomAttr[ench_id];
 }
 
 const std::vector<int32>* SpellMgr::GetSpellLinked(int32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     SpellLinkedMap::const_iterator itr = mSpellLinkedMap.find(spell_id);
     return itr != mSpellLinkedMap.end() ? &(itr->second) : nullptr;
 }
 
 PetLevelupSpellSet const* SpellMgr::GetPetLevelupSpellList(uint32 petFamily) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     PetLevelupSpellMap::const_iterator itr = mPetLevelupSpellMap.find(petFamily);
     if (itr != mPetLevelupSpellMap.end())
         return &itr->second;
@@ -1043,6 +1082,7 @@ PetLevelupSpellSet const* SpellMgr::GetPetLevelupSpellList(uint32 petFamily) con
 
 PetDefaultSpellsEntry const* SpellMgr::GetPetDefaultSpellsEntry(int32 id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     PetDefaultSpellsMap::const_iterator itr = mPetDefaultSpellsMap.find(id);
     if (itr != mPetDefaultSpellsMap.end())
         return &itr->second;
@@ -1051,26 +1091,31 @@ PetDefaultSpellsEntry const* SpellMgr::GetPetDefaultSpellsEntry(int32 id) const
 
 SpellAreaMapBounds SpellMgr::GetSpellAreaMapBounds(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSpellAreaMap.equal_range(spell_id);
 }
 
 SpellAreaForQuestMapBounds SpellMgr::GetSpellAreaForQuestMapBounds(uint32 quest_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSpellAreaForQuestMap.equal_range(quest_id);
 }
 
 SpellAreaForQuestMapBounds SpellMgr::GetSpellAreaForQuestEndMapBounds(uint32 quest_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSpellAreaForQuestEndMap.equal_range(quest_id);
 }
 
 SpellAreaForAuraMapBounds SpellMgr::GetSpellAreaForAuraMapBounds(uint32 spell_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSpellAreaForAuraMap.equal_range(spell_id);
 }
 
 SpellAreaForAreaMapBounds SpellMgr::GetSpellAreaForAreaMapBounds(uint32 area_id) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSpellAreaForAreaMap.equal_range(area_id);
 }
 
@@ -1222,6 +1267,7 @@ bool SpellArea::IsFitToRequirements(Player const* player, uint32 newZone, uint32
 
 void SpellMgr::UnloadSpellInfoChains()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     for (SpellChainMap::iterator itr = mSpellChains.begin(); itr != mSpellChains.end(); ++itr)
         mSpellInfoMap[itr->first]->ChainEntry = nullptr;
 
@@ -1230,6 +1276,7 @@ void SpellMgr::UnloadSpellInfoChains()
 
 void SpellMgr::LoadSpellTalentRanks()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     // cleanup core data before reload - remove reference to ChainNode from SpellInfo
     UnloadSpellInfoChains();
 
@@ -1291,6 +1338,7 @@ void SpellMgr::LoadSpellTalentRanks()
 
 void SpellMgr::LoadSpellRanks()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     // cleanup data and load spell ranks for talents from dbc
     LoadSpellTalentRanks();
 
@@ -1402,6 +1450,7 @@ void SpellMgr::LoadSpellRanks()
 
 void SpellMgr::LoadSpellRequired()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellsReqSpell.clear();                                   // need for reload case
@@ -1467,6 +1516,7 @@ void SpellMgr::LoadSpellRequired()
 
 void SpellMgr::LoadSpellLearnSkills()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellLearnSkills.clear();                              // need for reload case
@@ -1520,6 +1570,7 @@ void SpellMgr::LoadSpellLearnSkills()
 
 void SpellMgr::LoadSpellTargetPositions()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellTargetPositions.clear();                                // need for reload case
@@ -1625,6 +1676,7 @@ void SpellMgr::LoadSpellTargetPositions()
 
 void SpellMgr::LoadSpellGroups()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellGroupMap.clear();                                  // need for reload case
@@ -1685,6 +1737,7 @@ void SpellMgr::LoadSpellGroups()
 
 void SpellMgr::LoadSpellGroupStackRules()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellGroupStackMap.clear();                                  // need for reload case
@@ -1736,6 +1789,7 @@ void SpellMgr::LoadSpellGroupStackRules()
 
 void SpellMgr::LoadSpellProcEvents()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellProcEventMap.clear();                             // need for reload case
@@ -1830,6 +1884,7 @@ void SpellMgr::LoadSpellProcEvents()
 
 void SpellMgr::LoadSpellProcs()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellProcMap.clear();                             // need for reload case
@@ -1962,6 +2017,7 @@ void SpellMgr::LoadSpellProcs()
 
 void SpellMgr::LoadSpellBonuses()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellBonusMap.clear();                             // need for reload case
@@ -2003,6 +2059,7 @@ void SpellMgr::LoadSpellBonuses()
 
 void SpellMgr::LoadSpellThreats()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellThreatMap.clear();                                // need for reload case
@@ -2044,6 +2101,7 @@ void SpellMgr::LoadSpellThreats()
 
 void SpellMgr::LoadSpellMixology()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellMixologyMap.clear();                                // need for reload case
@@ -2080,6 +2138,7 @@ void SpellMgr::LoadSpellMixology()
 
 void SpellMgr::LoadSkillLineAbilityMap()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSkillLineAbilityMap.clear();
@@ -2102,6 +2161,7 @@ void SpellMgr::LoadSkillLineAbilityMap()
 
 void SpellMgr::LoadSpellPetAuras()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellPetAuraMap.clear();                                  // need for reload case
@@ -2165,6 +2225,7 @@ void SpellMgr::LoadSpellPetAuras()
 // Fill custom data about enchancments
 void SpellMgr::LoadEnchantCustomAttr()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     uint32 size = sSpellItemEnchantmentStore.GetNumRows();
@@ -2206,6 +2267,7 @@ void SpellMgr::LoadEnchantCustomAttr()
 
 void SpellMgr::LoadSpellEnchantProcData()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellEnchantProcEventMap.clear();                             // need for reload case
@@ -2251,6 +2313,7 @@ void SpellMgr::LoadSpellEnchantProcData()
 
 void SpellMgr::LoadSpellLinked()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellLinkedMap.clear();    // need for reload case
@@ -2304,6 +2367,7 @@ void SpellMgr::LoadSpellLinked()
 
 void SpellMgr::LoadPetLevelupSpellMap()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mPetLevelupSpellMap.clear();                                   // need for reload case
@@ -2398,6 +2462,7 @@ static bool LoadPetDefaultSpells_helper(CreatureTemplate const* cInfo, PetDefaul
 
 void SpellMgr::LoadPetDefaultSpells()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mPetDefaultSpellsMap.clear();
@@ -2405,28 +2470,27 @@ void SpellMgr::LoadPetDefaultSpells()
     uint32 countCreature = 0;
     uint32 countData = 0;
 
-    CreatureTemplateContainer const* ctc = sObjectMgr->GetCreatureTemplates();
-    for (CreatureTemplateContainer::const_iterator itr = ctc->begin(); itr != ctc->end(); ++itr)
+    sObjectMgr->ForEachCreatureTemplate([&](uint32 /*entry*/, CreatureTemplate const& t)
     {
-        if (!itr->second.PetSpellDataId)
-            continue;
+        if (!t.PetSpellDataId)
+            return;
 
         // for creature with PetSpellDataId get default pet spells from dbc
-        CreatureSpellDataEntry const* spellDataEntry = sCreatureSpellDataStore.LookupEntry(itr->second.PetSpellDataId);
+        CreatureSpellDataEntry const* spellDataEntry = sCreatureSpellDataStore.LookupEntry(t.PetSpellDataId);
         if (!spellDataEntry)
-            continue;
+            return;
 
-        int32 petSpellsId = -int32(itr->second.PetSpellDataId);
+        int32 petSpellsId = -int32(t.PetSpellDataId);
         PetDefaultSpellsEntry petDefSpells;
         for (uint8 j = 0; j < MAX_CREATURE_SPELL_DATA_SLOT; ++j)
             petDefSpells.spellid[j] = spellDataEntry->spellId[j];
 
-        if (LoadPetDefaultSpells_helper(&itr->second, petDefSpells))
+        if (LoadPetDefaultSpells_helper(&t, petDefSpells))
         {
             mPetDefaultSpellsMap[petSpellsId] = petDefSpells;
             ++countData;
         }
-    }
+    });
 
     LOG_INFO("server.loading", ">> Loaded Addition Spells For {} Pet Spell Data Entries in {} ms", countData, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
@@ -2478,6 +2542,7 @@ void SpellMgr::LoadPetDefaultSpells()
 
 void SpellMgr::LoadSpellAreas()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellAreaMap.clear();                                  // need for reload case
@@ -2689,6 +2754,7 @@ void SpellMgr::LoadSpellAreas()
 
 void SpellMgr::LoadSpellInfoStore()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     UnloadSpellInfoStore();
@@ -2718,6 +2784,7 @@ void SpellMgr::LoadSpellInfoStore()
 
 void SpellMgr::LoadSpellCooldownOverrides()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     mSpellCooldownOverrideMap.clear();
@@ -2749,17 +2816,20 @@ void SpellMgr::LoadSpellCooldownOverrides()
 
 bool SpellMgr::HasSpellCooldownOverride(uint32 spellId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     return mSpellCooldownOverrideMap.find(spellId) != mSpellCooldownOverrideMap.end();
 }
 
 SpellCooldownOverride SpellMgr::GetSpellCooldownOverride(uint32 spellId) const
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     auto range = mSpellCooldownOverrideMap.find(spellId);
     return range->second;
 }
 
 void SpellMgr::UnloadSpellInfoStore()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     for (uint32 i = 0; i < GetSpellInfoStoreSize(); ++i)
         delete mSpellInfoMap[i];
 
@@ -2768,6 +2838,7 @@ void SpellMgr::UnloadSpellInfoStore()
 
 void SpellMgr::UnloadSpellInfoImplicitTargetConditionLists()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     for (uint32 i = 0; i < GetSpellInfoStoreSize(); ++i)
     {
         if (mSpellInfoMap[i])
@@ -2777,6 +2848,7 @@ void SpellMgr::UnloadSpellInfoImplicitTargetConditionLists()
 
 void SpellMgr::LoadSpellSpecificAndAuraState()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 oldMSTime = getMSTime();
 
     SpellInfo* spellInfo = nullptr;
@@ -2795,6 +2867,7 @@ void SpellMgr::LoadSpellSpecificAndAuraState()
 
 void SpellMgr::LoadSpellInfoCustomAttributes()
 {
+    std::lock_guard<std::recursive_mutex> spellLock(_spellLock);
     uint32 const oldMSTime = getMSTime();
     uint32 const customAttrTime = getMSTime();
     uint32 count;

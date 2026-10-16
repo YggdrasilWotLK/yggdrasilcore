@@ -342,9 +342,13 @@ void Arena::EndBattleground(TeamId winnerTeamId)
 
         uint8 aliveWinners = GetAlivePlayersCountByTeam(winnerTeamId);
 
-        for (auto const& [playerGuid, player] : GetPlayers())
+        std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+        for (ObjectGuid const& playerGuid : guids)
         {
-            auto const& bgTeamId = player->GetBgTeamId();
+            Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+            if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                continue;
+            auto const& bgTeamId = listed->GetBgTeamId();
 
             // per player calculation
             if (winnerArenaTeam && loserArenaTeam && winnerArenaTeam != loserArenaTeam)
@@ -354,28 +358,28 @@ void Arena::EndBattleground(TeamId winnerTeamId)
                     if (bValidArena)
                     {
                         // update achievement BEFORE personal rating update
-                        uint32 rating = player->GetArenaPersonalRating(winnerArenaTeam->GetSlot());
-                        player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_RATED_ARENA, rating ? rating : 1);
-                        player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_ARENA, GetMapId());
+                        uint32 rating = listed->GetArenaPersonalRating(winnerArenaTeam->GetSlot());
+                        listed->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_RATED_ARENA, rating ? rating : 1);
+                        listed->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_ARENA, GetMapId());
 
                         // Last standing - Rated 5v5 arena & be solely alive player
-                        if (GetArenaType() == ARENA_TYPE_5v5 && aliveWinners == 1 && player->IsAlive())
+                        if (GetArenaType() == ARENA_TYPE_5v5 && aliveWinners == 1 && listed->IsAlive())
                         {
-                            player->CastSpell(player, SPELL_LAST_MAN_STANDING, true);
+                            listed->CastSpell(listed, SPELL_LAST_MAN_STANDING, true);
                         }
 
-                        winnerArenaTeam->MemberWon(player, loserMatchmakerRating, winnerMatchmakerChange);
+                        winnerArenaTeam->MemberWon(listed, loserMatchmakerRating, winnerMatchmakerChange);
                     }
                 }
                 else
                 {
-                    loserArenaTeam->MemberLost(player, winnerMatchmakerRating, loserMatchmakerChange);
+                    loserArenaTeam->MemberLost(listed, winnerMatchmakerRating, loserMatchmakerChange);
 
                     // Arena lost => reset the win_rated_arena having the "no_lose" condition
-                    player->ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_NO_LOSE, 0);
+                    listed->ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_NO_LOSE, 0);
                 }
 
-                player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_PLAY_ARENA, GetMapId());
+                listed->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_PLAY_ARENA, GetMapId());
             }
         }
 

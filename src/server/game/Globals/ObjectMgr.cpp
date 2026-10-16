@@ -521,6 +521,7 @@ void ObjectMgr::LoadPointOfInterestLocales()
 
 void ObjectMgr::LoadCreatureTemplates()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
 //                                                   0      1                   2                   3                   4            5            6     7        8
@@ -583,6 +584,7 @@ void ObjectMgr::LoadCreatureTemplates()
 */
 void ObjectMgr::LoadCreatureTemplate(Field* fields, bool triggerHook)
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 entry = fields[0].Get<uint32>();
 
     CreatureTemplate& creatureTemplate = _creatureTemplateStore[entry];
@@ -708,6 +710,7 @@ void ObjectMgr::LoadCreatureTemplate(Field* fields, bool triggerHook)
 
 void ObjectMgr::LoadCreatureTemplateModels()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     //                                               0           1                  2             3
@@ -760,6 +763,7 @@ void ObjectMgr::LoadCreatureTemplateModels()
 
 void ObjectMgr::LoadCreatureTemplateResistances()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     //                                               0           1       2
@@ -806,6 +810,7 @@ void ObjectMgr::LoadCreatureTemplateResistances()
 
 void ObjectMgr::LoadCreatureTemplateSpells()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     //                                               0           1       2
@@ -852,6 +857,7 @@ void ObjectMgr::LoadCreatureTemplateSpells()
 
 void ObjectMgr::LoadCreatureTemplateAddons()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     //                                                0       1       2      3       4       5              6               7
@@ -960,6 +966,7 @@ void ObjectMgr::LoadCreatureCustomIDs()
 
 void ObjectMgr::CheckCreatureTemplate(CreatureTemplate const* cInfo)
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     if (!cInfo)
         return;
 
@@ -1456,6 +1463,7 @@ CreatureAddon const* ObjectMgr::GetCreatureAddon(ObjectGuid::LowType lowguid)
 
 CreatureAddon const* ObjectMgr::GetCreatureTemplateAddon(uint32 entry)
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     CreatureAddonContainer::const_iterator itr = _creatureTemplateAddonStore.find(entry);
     if (itr != _creatureTemplateAddonStore.end())
         return &(itr->second);
@@ -1470,6 +1478,7 @@ CreatureMovementData const* ObjectMgr::GetCreatureMovementOverride(ObjectGuid::L
 
 EquipmentInfo const* ObjectMgr::GetEquipmentInfo(uint32 entry, int8& id)
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     EquipmentInfoContainer::const_iterator itr = _equipmentInfoStore.find(entry);
     if (itr == _equipmentInfoStore.end())
         return nullptr;
@@ -1496,6 +1505,7 @@ EquipmentInfo const* ObjectMgr::GetEquipmentInfo(uint32 entry, int8& id)
 
 void ObjectMgr::LoadEquipmentTemplates()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     //                                                 0         1       2       3       4
@@ -2872,6 +2882,7 @@ ServerConfigs const qualityToSellValueConfig[MAX_ITEM_QUALITY] =
 
 void ObjectMgr::LoadItemTemplates()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     //                                                 0      1       2               3              4        5        6       7          8         9        10        11           12
@@ -3486,6 +3497,7 @@ void ObjectMgr::LoadItemTemplates()
 
 ItemTemplate const* ObjectMgr::GetItemTemplate(uint32 entry)
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     return entry < _itemTemplateStoreFast.size() ? _itemTemplateStoreFast[entry] : nullptr;
 }
 
@@ -4623,6 +4635,7 @@ void ObjectMgr::BuildPlayerLevelInfo(uint8 race, uint8 _class, uint8 level, Play
 
 void ObjectMgr::LoadQuests()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     // For reload case
@@ -5773,10 +5786,11 @@ void ObjectMgr::LoadEventScripts()
 
     std::set<uint32> evt_scripts;
     // Load all possible script entries from gameobjects
-    GameObjectTemplateContainer const* gotc = GetGameObjectTemplates();
-    for (GameObjectTemplateContainer::const_iterator itr = gotc->begin(); itr != gotc->end(); ++itr)
-        if (uint32 eventId = itr->second.GetEventScriptId())
+    ForEachGameObjectTemplate([&](uint32 /*entry*/, GameObjectTemplate const& t)
+    {
+        if (uint32 eventId = t.GetEventScriptId())
             evt_scripts.insert(eventId);
+    });
 
     // Load all possible script entries from spells
     for (uint32 i = 1; i < sSpellMgr->GetSpellInfoStoreSize(); ++i)
@@ -7382,6 +7396,7 @@ inline void CheckGOConsumable(GameObjectTemplate const* goInfo, uint32 dataN, ui
 
 void ObjectMgr::LoadGameObjectTemplate()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     //                                                 0      1      2        3       4             5          6      7
@@ -7571,6 +7586,7 @@ void ObjectMgr::LoadGameObjectTemplate()
 
 void ObjectMgr::LoadGameObjectTemplateAddons()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     //                                                0       1       2      3        4       5        6        7        8
@@ -8235,15 +8251,14 @@ void ObjectMgr::LoadNPCSpellClickSpells()
 
     // all spellclick data loaded, now we check if there are creatures with NPC_FLAG_SPELLCLICK but with no data
     // NOTE: It *CAN* be the other way around: no spellclick flag but with spellclick data, in case of creature-only vehicle accessories
-    CreatureTemplateContainer const* ctc = GetCreatureTemplates();
-    for (CreatureTemplateContainer::const_iterator itr = ctc->begin(); itr != ctc->end(); ++itr)
+    ForEachCreatureTemplate([&](uint32 /*entry*/, CreatureTemplate const& t)
     {
-        if ((itr->second.npcflag & UNIT_NPC_FLAG_SPELLCLICK) && _spellClickInfoStore.find(itr->second.Entry) == _spellClickInfoStore.end())
+        if ((t.npcflag & UNIT_NPC_FLAG_SPELLCLICK) && _spellClickInfoStore.find(t.Entry) == _spellClickInfoStore.end())
         {
-            LOG_ERROR("sql.sql", "npc_spellclick_spells: Creature template {} has UNIT_NPC_FLAG_SPELLCLICK but no data in spellclick table! Removing flag", itr->second.Entry);
-            const_cast<CreatureTemplate*>(&itr->second)->npcflag &= ~UNIT_NPC_FLAG_SPELLCLICK;
+            LOG_ERROR("sql.sql", "npc_spellclick_spells: Creature template {} has UNIT_NPC_FLAG_SPELLCLICK but no data in spellclick table! Removing flag", t.Entry);
+            const_cast<CreatureTemplate*>(&t)->npcflag &= ~UNIT_NPC_FLAG_SPELLCLICK;
         }
-    }
+    });
 
     LOG_INFO("server.loading", ">> Loaded {} Spellclick Definitions in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
@@ -8758,6 +8773,7 @@ PetNameInvalidReason ObjectMgr::CheckPetName(std::string_view name)
 
 void ObjectMgr::LoadGameObjectForQuests()
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     uint32 oldMSTime = getMSTime();
 
     if (GetGameObjectTemplates()->empty())
@@ -10053,15 +10069,14 @@ void ObjectMgr::LoadCreatureClassLevelStats()
         ++count;
     } while (result->NextRow());
 
-    CreatureTemplateContainer const* ctc = GetCreatureTemplates();
-    for (CreatureTemplateContainer::const_iterator itr = ctc->begin(); itr != ctc->end(); ++itr)
+    ForEachCreatureTemplate([&](uint32 /*entry*/, CreatureTemplate const& t)
     {
-        for (uint16 lvl = itr->second.minlevel; lvl <= itr->second.maxlevel; ++lvl)
+        for (uint16 lvl = t.minlevel; lvl <= t.maxlevel; ++lvl)
         {
-            if (_creatureBaseStatsStore.find(MAKE_PAIR16(lvl, itr->second.unit_class)) == _creatureBaseStatsStore.end())
-                LOG_ERROR("sql.sql", "Missing base stats for creature class {} level {}", itr->second.unit_class, lvl);
+            if (_creatureBaseStatsStore.find(MAKE_PAIR16(lvl, t.unit_class)) == _creatureBaseStatsStore.end())
+                LOG_ERROR("sql.sql", "Missing base stats for creature class {} level {}", t.unit_class, lvl);
         }
-    }
+    });
 
     LOG_INFO("server.loading", ">> Loaded {} Creature Base Stats in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
@@ -10284,6 +10299,7 @@ void ObjectMgr::LoadFactionChangeTitles()
 
 GameObjectTemplate const* ObjectMgr::GetGameObjectTemplate(uint32 entry)
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     GameObjectTemplateContainer::const_iterator itr = _gameObjectTemplateStore.find(entry);
     if (itr != _gameObjectTemplateStore.end())
         return &(itr->second);
@@ -10293,12 +10309,14 @@ GameObjectTemplate const* ObjectMgr::GetGameObjectTemplate(uint32 entry)
 
 bool ObjectMgr::IsGameObjectStaticTransport(uint32 entry)
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     GameObjectTemplate const* goinfo = GetGameObjectTemplate(entry);
     return goinfo && goinfo->type == GAMEOBJECT_TYPE_TRANSPORT;
 }
 
 GameObjectTemplateAddon const* ObjectMgr::GetGameObjectTemplateAddon(uint32 entry) const
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     auto itr = _gameObjectTemplateAddonStore.find(entry);
     if (itr != _gameObjectTemplateAddonStore.end())
         return &itr->second;
@@ -10308,6 +10326,7 @@ GameObjectTemplateAddon const* ObjectMgr::GetGameObjectTemplateAddon(uint32 entr
 
 CreatureTemplate const* ObjectMgr::GetCreatureTemplate(uint32 entry)
 {
+    std::lock_guard<std::recursive_mutex> templateLock(_templateLock);
     return entry < _creatureTemplateStoreFast.size() ? _creatureTemplateStoreFast[entry] : nullptr;
 }
 

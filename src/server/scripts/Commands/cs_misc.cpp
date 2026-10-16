@@ -1839,7 +1839,7 @@ public:
 
         bool found = false;
 
-        for (auto const& [itemid, itemTemplate] : *sObjectMgr->GetItemTemplateStore())
+        sObjectMgr->ForEachItemTemplate([&](uint32 itemid, ItemTemplate const& itemTemplate)
         {
             if (itemTemplate.ItemSet == uint32(itemSetId))
             {
@@ -1870,7 +1870,7 @@ public:
                     handler->PSendSysMessage(LANG_ITEM_CANNOT_CREATE, itemTemplate.ItemId, 1);
                 }
             }
-        }
+        });
 
         if (!found)
         {

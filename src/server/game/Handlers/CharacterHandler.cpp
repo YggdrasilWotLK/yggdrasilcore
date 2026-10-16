@@ -2414,7 +2414,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
             trans->Append(stmt);
 
             // Disable all old-faction specific quests
-            for (auto const& [questID, quest] : sObjectMgr->GetQuestTemplates())
+            sObjectMgr->ForEachQuestTemplate([&](uint32 questID, Quest const* quest)
             {
                 uint32 newRaceMask = (newTeam == TEAM_ALLIANCE) ? RACEMASK_ALLIANCE : RACEMASK_HORDE;
 
@@ -2425,7 +2425,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
                     stmt->SetData(1, lowGuid);
                     trans->Append(stmt);
                 }
-            }
+            });
 
             // Spell conversion
             for (auto const& [spell_alliance, spell_horde] : sObjectMgr->FactionChangeSpells)
