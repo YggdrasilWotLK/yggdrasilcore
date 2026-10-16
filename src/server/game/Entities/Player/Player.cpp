@@ -15570,9 +15570,8 @@ bool Player::NeedSendSpectatorData() const
     if (FindMap() && FindMap()->IsBattleArena() && !IsSpectator())
     {
         Battleground* bg = ((BattlegroundMap*)FindMap())->GetBG();
-        if (bg && bg->HaveSpectators() && bg->GetStatus() == STATUS_IN_PROGRESS && !bg->GetPlayers().empty())
-            if (bg->GetPlayers().find(GetGUID()) != bg->GetPlayers().end())
-                return true;
+        if (bg && bg->GetSpectatorCount() && bg->GetStatus() == STATUS_IN_PROGRESS && bg->HasPlayer(GetGUID()))
+            return true;
     }
     return false;
 }

@@ -677,14 +677,13 @@ public:
                     m_auiEncounter[type] = data;
                     if (data == DONE)
                     {
-                        Map::PlayerList const& pList = instance->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+                        instance->DoForAllPlayers([&](Player* player)
                         {
-                            if (Creature* vehicleCreature = itr->GetSource()->GetVehicleCreatureBase())
+                            if (Creature* vehicleCreature = player->GetVehicleCreatureBase())
                             {
                                 vehicleCreature->DespawnOrUnsummon();
                             }
-                        }
+                        });
                     }
                     break;
                 case TYPE_IGNIS:
@@ -907,14 +906,13 @@ public:
 
             if (type > TYPE_LEVIATHAN && type < TYPE_WATCHERS && data == IN_PROGRESS)
             {
-                Map::PlayerList const& pList = instance->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+                instance->DoForAllPlayers([&](Player* player)
                 {
-                    if (Creature* vehicleCreature = itr->GetSource()->GetVehicleCreatureBase())
+                    if (Creature* vehicleCreature = player->GetVehicleCreatureBase())
                     {
                         vehicleCreature->DespawnOrUnsummon();
                     }
-                }
+                });
             }
         }
 

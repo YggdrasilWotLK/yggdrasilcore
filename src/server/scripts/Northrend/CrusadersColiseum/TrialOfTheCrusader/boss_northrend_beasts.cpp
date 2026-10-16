@@ -175,14 +175,17 @@ public:
                         if (!t->IsPlayer() && pInstance )
                         {
                             GuidVector validPlayers;
-                            Map::PlayerList const& pl = me->GetMap()->GetPlayers();
+                            Map* snapMap = me->GetMap();
+                            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
                             Creature* gormok = ObjectAccessor::GetCreature(*me, pInstance->GetGuidData(TYPE_GORMOK));
 
-                            for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
+                            for (ObjectGuid const& playerGuid : guids)
                             {
-                                if (Player* p = itr->GetSource())
-                                    if (p->IsAlive() && p->GetGUID() != TargetGUID && (!gormok || !p->IsWithinMeleeRange(gormok)))
-                                        validPlayers.push_back(p->GetGUID());
+                                Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                    continue;
+                                if (p->IsAlive() && p->GetGUID() != TargetGUID && (!gormok || !p->IsWithinMeleeRange(gormok)))
+                                    validPlayers.push_back(p->GetGUID());
                             }
 
                             if (!validPlayers.empty())
@@ -312,12 +315,15 @@ public:
                             if (Unit* snobold = vk->GetPassenger(i))
                             {
                                 GuidVector validPlayers;
-                                Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                                for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
+                                Map* snapMap = me->GetMap();
+                                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                                for (ObjectGuid const& playerGuid : guids)
                                 {
-                                    if (Player* p = itr->GetSource())
-                                        if (p->IsAlive() && !p->GetVehicleKit() && !p->IsMounted() && !p->GetVehicle() && !p->IsGameMaster())
-                                            validPlayers.push_back(p->GetGUID());
+                                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                                    if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                        continue;
+                                    if (p->IsAlive() && !p->GetVehicleKit() && !p->IsMounted() && !p->GetVehicle() && !p->IsGameMaster())
+                                        validPlayers.push_back(p->GetGUID());
                                 }
 
                                 if (!validPlayers.empty())
@@ -815,14 +821,19 @@ public:
 
         bool DoTrampleIfValid()
         {
-            Map::PlayerList const& lPlayers = me->GetMap()->GetPlayers();
-            for( Map::PlayerList::const_iterator itr = lPlayers.begin(); itr != lPlayers.end(); ++itr )
-                if (Unit* p = itr->GetSource())
-                    if (p->IsAlive() && p->GetExactDist(me) <= 12.0f )
-                    {
-                        DoCastAOE(SPELL_TRAMPLE);
-                        return true;
-                    }
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                    continue;
+                if (p->IsAlive() && p->GetExactDist(me) <= 12.0f )
+                {
+                    DoCastAOE(SPELL_TRAMPLE);
+                    return true;
+                }
+            }
 
             return false;
         }

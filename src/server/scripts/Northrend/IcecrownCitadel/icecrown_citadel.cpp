@@ -3486,10 +3486,14 @@ public:
             {
                 case EVENT_CHECK_FIGHT:
                     {
-                        Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
                         {
-                            if (me->GetDistance(itr->GetSource()) > 100.0f || !itr->GetSource()->IsAlive() || itr->GetSource()->IsGameMaster())
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (me->GetDistance(p) > 100.0f || !p->IsAlive() || p->IsGameMaster())
                                 continue;
 
                             events.ScheduleEvent(EVENT_CHECK_FIGHT, 1s);
@@ -3588,10 +3592,14 @@ public:
             {
                 case EVENT_CHECK_FIGHT:
                     {
-                        Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
                         {
-                            if (me->GetDistance(itr->GetSource()) > 100.0f || !itr->GetSource()->IsAlive() || itr->GetSource()->IsGameMaster())
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (me->GetDistance(p) > 100.0f || !p->IsAlive() || p->IsGameMaster())
                                 continue;
 
                             events.ScheduleEvent(EVENT_CHECK_FIGHT, 1s);

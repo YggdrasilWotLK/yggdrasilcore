@@ -614,7 +614,7 @@ void WorldSession::HandleBattlefieldStatusOpcode(WorldPacket& /*recvData*/)
 
     // for current bg send STATUS_IN_PROGRESS
     if (Battleground* bg = _player->GetBattleground())
-        if (bg->GetPlayers().count(_player->GetGUID()))
+        if (bg->HasPlayer(_player->GetGUID()))
         {
             sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, _player->GetCurrentBattlegroundQueueSlot(), STATUS_IN_PROGRESS, bg->GetEndTime(), bg->GetStartTime(), bg->GetArenaType(), _player->GetBgTeamId());
             SendPacket(&data);

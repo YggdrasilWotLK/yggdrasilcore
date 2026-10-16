@@ -24,6 +24,7 @@
 #include "Player.h"
 #include <set>
 #include <unordered_map>
+#include <vector>
 
 class Item;
 

@@ -17,6 +17,7 @@
 
 #include "AchievementCriteriaScript.h"
 #include "CreatureScript.h"
+#include "ObjectAccessor.h"
 #include "ScriptedCreature.h"
 #include "azjol_nerub.h"
 
@@ -281,11 +282,14 @@ struct npc_watcher_base : public ScriptedAI
             Player* nearestPlayer = nullptr;
             float nearestDist = 0.0f;
 
-            Map::PlayerList const& players = closestWatcher->GetMap()->GetPlayers();
-            for (auto const& ref : players)
+            Map* snapMap = closestWatcher->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                Player* player = ref.GetSource();
-                if (!player || !player->IsAlive())
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                    continue;
+                if (!player->IsAlive())
                     continue;
 
                 float dist = closestWatcher->GetDistance(player);

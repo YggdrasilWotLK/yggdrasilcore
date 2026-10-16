@@ -440,11 +440,16 @@ public:
                             allowedFlameSpreadTime = GameTime::GetGameTime().count();
 
                         std::vector<Player*> pg;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                            if (Player* plr = itr->GetSource())
-                                if (plr->IsAlive() && plr->GetExactDist2d(me) < 150.0f && !plr->IsGameMaster())
-                                    pg.push_back(plr);
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                                continue;
+                            if (plr->IsAlive() && plr->GetExactDist2d(me) < 150.0f && !plr->IsGameMaster())
+                                pg.push_back(plr);
+                        }
 
                         for( uint8 i = 0; i < 3; ++i )
                             if (!pg.empty())
@@ -1140,11 +1145,16 @@ public:
                     {
                         Player* pTarget = nullptr;
                         std::vector<Player*> pList;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                            if (Player* plr = itr->GetSource())
-                                if (plr->IsAlive() && plr->GetDistance2d(me) > 15.0f )
-                                    pList.push_back(plr);
+                        Map* snapMap2 = me->GetMap();
+                        std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids2)
+                        {
+                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap2)
+                                continue;
+                            if (plr->IsAlive() && plr->GetDistance2d(me) > 15.0f )
+                                pList.push_back(plr);
+                        }
 
                         if (!pList.empty())
                             pTarget = pList[urand(0, pList.size() - 1)];
@@ -2287,14 +2297,19 @@ public:
                             float prevdist = 100.0f;
                             Player* target = nullptr;
 
-                            Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                            for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                                if (Player* plr = itr->GetSource())
-                                    if (plr->IsAlive() && plr->GetExactDist2d(last) < prevdist && !plr->IsGameMaster())
+                            Map* snapMap3 = me->GetMap();
+                            std::vector<ObjectGuid> guids3 = snapMap3->CopyPlayerGuids();
+                            for (ObjectGuid const& playerGuid : guids3)
+                            {
+                                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap3)
+                                    continue;
+                                if (plr->IsAlive() && plr->GetExactDist2d(last) < prevdist && !plr->IsGameMaster())
                                     {
                                         target = plr;
                                         prevdist = plr->GetExactDist2d(last);
                                     }
+                            }
 
                             if (target && prevdist >= 4.0f) // no need to spread when player is standing in fire, check distance
                             {

@@ -167,10 +167,13 @@ public:
                         {
                             uint32 afflictionSpellID = RAND(SPELL_BROODAF_BLUE, SPELL_BROODAF_BLACK, SPELL_BROODAF_RED, SPELL_BROODAF_BRONZE, SPELL_BROODAF_GREEN);
                             std::vector<Player*> playerTargets;
-                            Map::PlayerList const& players = me->GetMap()->GetPlayers();
-                            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+                            Map* snapMap = me->GetMap();
+                            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                            for (ObjectGuid const& playerGuid : guids)
                             {
-                                if (Player* player = itr->GetSource()->ToPlayer())
+                                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                                    continue;
                                 {
                                     if (!player->IsGameMaster() && !player->IsSpectator() && player->IsAlive())
                                     {

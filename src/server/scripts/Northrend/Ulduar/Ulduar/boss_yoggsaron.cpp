@@ -1128,12 +1128,16 @@ public:
                     go->SetGoState(GO_STATE_ACTIVE);
             }
 
-            Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-            for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                itr->GetSource()->RemoveAura(SPELL_SANITY);
-                itr->GetSource()->RemoveAura(SPELL_INSANE1);
-                itr->GetSource()->RemoveAura(SPELL_INSANE2);
+                Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                    continue;
+                p->RemoveAura(SPELL_SANITY);
+                p->RemoveAura(SPELL_INSANE1);
+                p->RemoveAura(SPELL_INSANE2);
             }
         }
 
@@ -1614,16 +1618,20 @@ public:
         Unit* SelectCorruptionTarget()
         {
             Player* target = nullptr;
-            Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-            uint8 num = urand(0, pList.getSize() - 1);
-            uint8 count = 0;
-            for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr, ++count)
+            Map* snapMap2 = me->GetMap();
+            std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+            uint8 num = guids2.empty() ? 0 : urand(0, guids2.size() - 1);
+            for (size_t idx = 0; idx < guids2.size(); ++idx)
             {
-                if (me->GetDistance(itr->GetSource()) > 200 || itr->GetSource()->GetPositionZ() < 300 || !itr->GetSource()->IsAlive() || itr->GetSource()->IsGameMaster())
+                uint8 count = static_cast<uint8>(idx);
+                Player* p = ObjectAccessor::FindPlayer(guids2[idx]);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMap2)
+                    continue;
+                if (me->GetDistance(p) > 200 || p->GetPositionZ() < 300 || !p->IsAlive() || p->IsGameMaster())
                     continue;
 
                 if (count <= num || !target)
-                    target = itr->GetSource();
+                    target = p;
                 else
                     break;
             }
@@ -1670,18 +1678,22 @@ public:
         Unit* SelectConstrictTarget()
         {
             Player* target = nullptr;
-            Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-            uint8 num = urand(0, pList.getSize() - 1);
-            uint8 count = 0;
-            for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr, ++count)
+            Map* snapMap3 = me->GetMap();
+            std::vector<ObjectGuid> guids3 = snapMap3->CopyPlayerGuids();
+            uint8 num = guids3.empty() ? 0 : urand(0, guids3.size() - 1);
+            for (size_t idx = 0; idx < guids3.size(); ++idx)
             {
-                if (me->GetDistance(itr->GetSource()) > 10 || !itr->GetSource()->IsAlive() || itr->GetSource()->IsGameMaster())
+                uint8 count = static_cast<uint8>(idx);
+                Player* p = ObjectAccessor::FindPlayer(guids3[idx]);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMap3)
                     continue;
-                if (itr->GetSource()->HasAura(SPELL_SQUEEZE) || itr->GetSource()->HasAura(SPELL_INSANE1))
+                if (me->GetDistance(p) > 10 || !p->IsAlive() || p->IsGameMaster())
+                    continue;
+                if (p->HasAura(SPELL_SQUEEZE) || p->HasAura(SPELL_INSANE1))
                     continue;
 
                 if (count <= num || !target)
-                    target = itr->GetSource();
+                    target = p;
                 else
                     break;
             }
@@ -2331,16 +2343,20 @@ class spell_yogg_saron_brain_link_aura : public AuraScript
     {
         PreventDefaultAction();
         Player* target = nullptr;
-        Map::PlayerList const& pList = GetUnitOwner()->GetMap()->GetPlayers();
-        uint8 _offset = urand(0, pList.getSize() - 1);
-        uint8 _counter = 0;
-        for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr, ++_counter)
+        Map* snapMap4 = GetUnitOwner()->GetMap();
+        std::vector<ObjectGuid> guids4 = snapMap4->CopyPlayerGuids();
+        uint8 _offset = guids4.empty() ? 0 : urand(0, guids4.size() - 1);
+        for (size_t idx = 0; idx < guids4.size(); ++idx)
         {
-            if (itr->GetSource() == GetUnitOwner() || GetUnitOwner()->GetDistance(itr->GetSource()) > 50.0f || !itr->GetSource()->IsAlive() || itr->GetSource()->IsGameMaster())
+            uint8 _counter = static_cast<uint8>(idx);
+            Player* p = ObjectAccessor::FindPlayer(guids4[idx]);
+            if (!p || !p->IsInWorld() || p->GetMap() != snapMap4)
+                continue;
+            if (p == GetUnitOwner() || GetUnitOwner()->GetDistance(p) > 50.0f || !p->IsAlive() || p->IsGameMaster())
                 continue;
 
             if (_counter <= _offset || !target)
-                target = itr->GetSource();
+                target = p;
             else
                 break;
         }

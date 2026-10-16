@@ -385,7 +385,7 @@ bool Map::AddToMap(Transport* obj, bool /*checkTransport*/)
     for (ObjectGuid const& playerGuid : guids)
     {
         Player* plr = ObjectAccessor::FindPlayer(playerGuid);
-        if (!plr || plr->GetMap() != this)
+        if (!plr || !plr->IsInWorld() || plr->GetMap() != this)
             continue;
         if (plr->GetTransport() != obj)
         {
@@ -796,7 +796,7 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
         for (ObjectGuid const& playerGuid : transportGuids)
         {
             Player* listed = ObjectAccessor::FindPlayer(playerGuid);
-            if (!listed || listed->GetMap() != this)
+            if (!listed || !listed->IsInWorld() || listed->GetMap() != this)
                 continue;
             if (listed->GetTransport() != obj)
                 listed->SendDirectMessage(&packet);
@@ -2060,7 +2060,7 @@ Map::EnterState InstanceMap::CannotEnter(Player* player, bool loginCheck)
     for (ObjectGuid const& playerGuid : guids)
     {
         Player* iPlayer = ObjectAccessor::FindPlayer(playerGuid);
-        if (!iPlayer || iPlayer->GetMap() != this)
+        if (!iPlayer || !iPlayer->IsInWorld() || iPlayer->GetMap() != this)
             continue;
         if (iPlayer == player) // login case, player already added to map
             continue;

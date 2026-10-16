@@ -286,9 +286,13 @@ public:
                 case EVENT_MOUNT_CHARGE:
                     {
                         GuidVector LIST;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                            if (Player* plr = itr->GetSource())
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                                continue;
                             {
                                 if (me->GetExactDist(plr) < 8.0f || me->GetExactDist(plr) > 25.0f || plr->isDead())
                                     continue;
@@ -300,6 +304,7 @@ public:
                                         LIST.push_back(mount->GetGUID());
                                 }
                             }
+                        }
                         if (!LIST.empty())
                         {
                             uint8 rnd = LIST.size() > 1 ? urand(0, LIST.size() - 1) : 0;
@@ -317,9 +322,13 @@ public:
                 case EVENT_SHIELD_BREAKER:
                     {
                         GuidVector LIST;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                            if (Player* plr = itr->GetSource())
+                        Map* snapMap2 = me->GetMap();
+                        std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids2)
+                        {
+                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap2)
+                                continue;
                             {
                                 if (me->GetExactDist(plr) < 10.0f || me->GetExactDist(plr) > 30.0f )
                                     continue;
@@ -327,6 +336,7 @@ public:
                                     if (Unit* mount = v->GetBase())
                                         LIST.push_back(mount->GetGUID());
                             }
+                        }
                         if (!LIST.empty())
                         {
                             uint8 rnd = LIST.size() > 1 ? urand(0, LIST.size() - 1) : 0;
@@ -694,21 +704,26 @@ public:
                         if (pInstance)
                         {
                             bool trample = false;
-                            Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                            for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                                if (Player* plr = itr->GetSource())
-                                    if (me->GetExactDist(plr) <= 5.0f )
-                                        if (Vehicle* v = plr->GetVehicle())
-                                            if (Unit* c = v->GetBase())
-                                                if (c->IsCreature() && c->ToCreature()->GetEntry() == (pInstance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE ? VEHICLE_ARGENT_BATTLEWORG : VEHICLE_ARGENT_WARHORSE))
-                                                {
-                                                    me->GetMotionMaster()->MovementExpired();
-                                                    me->GetMotionMaster()->MoveIdle();
-                                                    me->StopMoving();
-                                                    me->CastSpell(me, SPELL_TRAMPLE_STUN, false);
-                                                    trample = true;
-                                                    break;
-                                                }
+                            Map* snapMap = me->GetMap();
+                            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                            for (ObjectGuid const& playerGuid : guids)
+                            {
+                                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                                    continue;
+                                if (me->GetExactDist(plr) <= 5.0f )
+                                    if (Vehicle* v = plr->GetVehicle())
+                                        if (Unit* c = v->GetBase())
+                                            if (c->IsCreature() && c->ToCreature()->GetEntry() == (pInstance->GetData(DATA_TEAMID_IN_INSTANCE) == TEAM_HORDE ? VEHICLE_ARGENT_BATTLEWORG : VEHICLE_ARGENT_WARHORSE))
+                                            {
+                                                me->GetMotionMaster()->MovementExpired();
+                                                me->GetMotionMaster()->MoveIdle();
+                                                me->StopMoving();
+                                                me->CastSpell(me, SPELL_TRAMPLE_STUN, false);
+                                                trample = true;
+                                                break;
+                                            }
+                            }
 
                             if (trample)
                             {
@@ -741,9 +756,13 @@ public:
                 case EVENT_MOUNT_CHARGE:
                     {
                         GuidVector LIST;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                            if (Player* plr = itr->GetSource())
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                                continue;
                             {
                                 if (me->GetExactDist(plr) < 8.0f || me->GetExactDist(plr) > 25.0f || plr->isDead())
                                     continue;
@@ -755,6 +774,7 @@ public:
                                         LIST.push_back(mount->GetGUID());
                                 }
                             }
+                        }
                         if (!LIST.empty())
                         {
                             uint8 rnd = LIST.size() > 1 ? urand(0, LIST.size() - 1) : 0;
@@ -772,9 +792,13 @@ public:
                 case EVENT_SHIELD_BREAKER:
                     {
                         GuidVector LIST;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                            if (Player* plr = itr->GetSource())
+                        Map* snapMap2 = me->GetMap();
+                        std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids2)
+                        {
+                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap2)
+                                continue;
                             {
                                 if (me->GetExactDist(plr) < 10.0f || me->GetExactDist(plr) > 30.0f )
                                     continue;
@@ -782,6 +806,7 @@ public:
                                     if (Unit* mount = v->GetBase())
                                         LIST.push_back(mount->GetGUID());
                             }
+                        }
                         if (!LIST.empty())
                         {
                             uint8 rnd = LIST.size() > 1 ? urand(0, LIST.size() - 1) : 0;
@@ -878,10 +903,13 @@ public:
                                 me->CastSpell(target, SPELL_MULTI_SHOT, false);
                             else
                             {
-                                Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                                for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
+                                Map* snapMap = me->GetMap();
+                                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                                for (ObjectGuid const& playerGuid : guids)
                                 {
-                                    Player* player = itr->GetSource();
+                                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                                        continue;
                                     if (player && me->IsInRange(player, 5.0f, 30.0f, false))
                                     {
                                         me->CastSpell(player, SPELL_MULTI_SHOT, false);
@@ -926,10 +954,13 @@ public:
                     break;
                 case EVENT_WARRIOR_SPELL_INTERCEPT:
                     {
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
                         {
-                            Player* player = itr->GetSource();
+                            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                                continue;
                             if (player && me->IsInRange(player, 8.0f, 25.0f, false))
                             {
                                 DoResetThreatList();

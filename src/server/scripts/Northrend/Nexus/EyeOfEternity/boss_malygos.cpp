@@ -494,11 +494,14 @@ public:
                         {
                             vp->SetDisableGravity(true);
 
-                            Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                            if (!PlayerList.IsEmpty())
-                                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                    if (Player* pPlayer = i->GetSource())
+                            Map* snapMap = me->GetMap();
+                            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                            if (!guids.empty())
+                                for (ObjectGuid const& playerGuid : guids)
+                                    if (Player* pPlayer = ObjectAccessor::FindPlayer(playerGuid))
                                     {
+                                        if (!pPlayer->IsInWorld() || pPlayer->GetMap() != snapMap)
+                                            continue;
                                         if (!pPlayer->IsAlive() || pPlayer->IsGameMaster())
                                             continue;
 
@@ -711,11 +714,14 @@ public:
                         me->GetThreatMgr().ClearAllThreat(); // players on vehicle are unattackable -> leads to EnterEvadeMode() because target is not acceptable!
 
                         // mount players:
-                        Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                        if (!PlayerList.IsEmpty())
-                            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                if (Player* pPlayer = i->GetSource())
+                        Map* snapMap2 = me->GetMap();
+                        std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+                        if (!guids2.empty())
+                            for (ObjectGuid const& playerGuid : guids2)
+                                if (Player* pPlayer = ObjectAccessor::FindPlayer(playerGuid))
                                 {
+                                    if (!pPlayer->IsInWorld() || pPlayer->GetMap() != snapMap2)
+                                        continue;
                                     sScriptMgr->AnticheatSetUnderACKmount(pPlayer);
 
                                     if (!pPlayer->IsAlive() || pPlayer->IsGameMaster())
@@ -1187,11 +1193,14 @@ public:
                 case EVENT_SCION_OF_ETERNITY_ARCANE_BARRAGE:
                     {
                         GuidVector guids;
-                        Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                        if (!PlayerList.IsEmpty())
-                            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                if (Player* pPlayer = i->GetSource())
+                        Map* snapMap3 = me->GetMap();
+                        std::vector<ObjectGuid> snapGuids = snapMap3->CopyPlayerGuids();
+                        if (!snapGuids.empty())
+                            for (ObjectGuid const& playerGuid : snapGuids)
+                                if (Player* pPlayer = ObjectAccessor::FindPlayer(playerGuid))
                                 {
+                                    if (!pPlayer->IsInWorld() || pPlayer->GetMap() != snapMap3)
+                                        continue;
                                     if (pPlayer->IsAlive())
                                     {
                                         if (!pPlayer->GetVehicle())

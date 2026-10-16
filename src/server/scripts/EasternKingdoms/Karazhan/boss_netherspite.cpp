@@ -135,12 +135,14 @@ struct boss_netherspite : public BossAI
 
                 if (Map* map = me->GetMap())
                 {
-                    Map::PlayerList const& players = map->GetPlayers();
+                    std::vector<ObjectGuid> guids = map->CopyPlayerGuids();
 
                     // get the best suitable target
-                    for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
+                    for (ObjectGuid const& playerGuid : guids)
                     {
-                        Player* p = i->GetSource();
+                        Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                        if (!p || !p->IsInWorld() || p->GetMap() != map)
+                            continue;
                         if (p && p->IsAlive() // alive
                             && (!target || target->GetDistance2d(portal) > p->GetDistance2d(portal)) // closer than current best
                             && !p->HasAura(PlayerDebuff[j]) // not exhausted

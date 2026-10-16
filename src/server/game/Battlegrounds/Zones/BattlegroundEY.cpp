@@ -141,23 +141,26 @@ void BattlegroundEY::UpdatePointsState()
         _capturePointInfo[point]._playersCount[TEAM_HORDE] = 0;
     }
 
-    const BattlegroundPlayerMap& bgPlayerMap = GetPlayers();
-    for (BattlegroundPlayerMap::const_iterator itr = bgPlayerMap.begin(); itr != bgPlayerMap.end(); ++itr)
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
     {
-        itr->second->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_SHOW, BG_EY_PROGRESS_BAR_DONT_SHOW);
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld())
+            continue;
+        listed->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_SHOW, BG_EY_PROGRESS_BAR_DONT_SHOW);
         for (uint8 point = 0; point < EY_POINTS_MAX; ++point)
             if (GameObject* pointObject = pointsVec[point])
-                if (itr->second->CanCaptureTowerPoint() && itr->second->IsWithinDistInMap(pointObject, BG_EY_POINT_RADIUS))
+                if (listed->CanCaptureTowerPoint() && listed->IsWithinDistInMap(pointObject, BG_EY_POINT_RADIUS))
                 {
-                    itr->second->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_SHOW, BG_EY_PROGRESS_BAR_SHOW);
-                    itr->second->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_PERCENT_GREY, BG_EY_PROGRESS_BAR_PERCENT_GREY);
-                    itr->second->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_STATUS, _capturePointInfo[point]._barStatus);
-                    ++_capturePointInfo[point]._playersCount[itr->second->GetTeamId()];
-                    _capturePointInfo[point].player = itr->second;
+                    listed->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_SHOW, BG_EY_PROGRESS_BAR_SHOW);
+                    listed->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_PERCENT_GREY, BG_EY_PROGRESS_BAR_PERCENT_GREY);
+                    listed->SendUpdateWorldState(WORLD_STATE_BATTLEGROUND_EY_PROGRESS_BAR_STATUS, _capturePointInfo[point]._barStatus);
+                    ++_capturePointInfo[point]._playersCount[listed->GetTeamId()];
+                    _capturePointInfo[point].player = listed;
 
                     // Xinef: ugly hax... area trigger is no longer called by client...
-                    if (pointObject->GetEntry() == BG_OBJECT_FR_TOWER_CAP_EY_ENTRY && itr->second->GetDistance2d(2043.96f, 1729.68f) < 3.0f)
-                        HandleAreaTrigger(itr->second, AT_FEL_REAVER_POINT);
+                    if (pointObject->GetEntry() == BG_OBJECT_FR_TOWER_CAP_EY_ENTRY && listed->GetDistance2d(2043.96f, 1729.68f) < 3.0f)
+                        HandleAreaTrigger(listed, AT_FEL_REAVER_POINT);
                 }
     }
 

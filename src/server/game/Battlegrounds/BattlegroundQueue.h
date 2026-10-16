@@ -24,6 +24,7 @@
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
 #include <array>
+#include <vector>
 
 constexpr auto COUNT_OF_PLAYERS_TO_AVERAGE_WAIT_TIME = 10;
 

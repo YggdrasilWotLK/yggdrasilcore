@@ -619,13 +619,17 @@ public:
                 case EVENT_FREYA_NATURE_BOMB:
                     {
                         uint8 _minCount = me->GetMap()->Is25ManRaid() ? urand(7, 10) : urand(3, 4);
-                        Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-                        for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
                         {
-                            if (me->GetDistance(itr->GetSource()) > 70 || !itr->GetSource()->IsAlive())
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (me->GetDistance(p) > 70 || !p->IsAlive())
                                 continue;
 
-                            me->CastSpell(itr->GetSource(), SPELL_NATURE_BOMB_FLIGHT, true);
+                            me->CastSpell(p, SPELL_NATURE_BOMB_FLIGHT, true);
 
                             if (!(--_minCount))
                                 break;

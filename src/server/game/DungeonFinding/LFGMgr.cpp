@@ -40,6 +40,8 @@
 #include "SpellAuras.h"
 #include "WorldSession.h"
 
+#include <memory>
+
 namespace lfg
 {
     LFGMgr::LFGMgr(): m_lfgProposalId(1), m_options(sWorld->getIntConfig(CONFIG_LFG_OPTIONSMASK)), m_Testing(false)
@@ -278,7 +280,12 @@ namespace lfg
 
     void LFGMgr::Update(uint32 tdiff, uint8 task)
     {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        // Task 0 is snapshot-then-act below and manages its own per-item
+        // locks; tasks 1/2 (matchmaking) need a consistent view, keep the
+        // outer lock for them.
+        std::unique_ptr<std::lock_guard<std::recursive_mutex>> outerLock;
+        if (task != 0)
+            outerLock = std::make_unique<std::lock_guard<std::recursive_mutex>>(*sGroupMgr->GetSocialLock());
         if (!isOptionEnabled(LFG_OPTION_ENABLE_DUNGEON_FINDER | LFG_OPTION_ENABLE_RAID_BROWSER | LFG_OPTION_ENABLE_SEASONAL_BOSSES))
             return;
 
@@ -286,13 +293,32 @@ namespace lfg
         {
             time_t currTime = GameTime::GetGameTime().count();
 
-            // Remove obsolete role checks
-            for (LfgRoleCheckContainer::iterator it = RoleChecksStore.begin(); it != RoleChecksStore.end();)
+            // Snapshot-then-act: collect expired entries under a short lock,
+            // process (packets + state) without holding it across sends.
+            std::vector<ObjectGuid> expiredRoleChecks;
+            std::vector<uint32> expiredProposals;
+            std::vector<ObjectGuid> expiredBoots;
             {
-                LfgRoleCheckContainer::iterator itRoleCheck = it++;
-                LfgRoleCheck& roleCheck = itRoleCheck->second;
-                if (currTime < roleCheck.cancelTime)
+                std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+                for (auto const& pair : RoleChecksStore)
+                    if (currTime >= pair.second.cancelTime)
+                        expiredRoleChecks.push_back(pair.first);
+                for (auto const& pair : ProposalsStore)
+                    if (pair.second.cancelTime < currTime)
+                        expiredProposals.push_back(pair.first);
+                for (auto const& pair : BootsStore)
+                    if (pair.second.cancelTime < currTime)
+                        expiredBoots.push_back(pair.first);
+            }
+
+            // Remove obsolete role checks
+            for (ObjectGuid const& roleCheckId : expiredRoleChecks)
+            {
+                std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+                LfgRoleCheckContainer::iterator itRoleCheck = RoleChecksStore.find(roleCheckId);
+                if (itRoleCheck == RoleChecksStore.end() || currTime < itRoleCheck->second.cancelTime)
                     continue;
+                LfgRoleCheck& roleCheck = itRoleCheck->second;
                 roleCheck.state = LFG_ROLECHECK_MISSING_ROLE;
 
                 for (LfgRolesMap::const_iterator itRoles = roleCheck.roles.begin(); itRoles != roleCheck.roles.end(); ++itRoles)
@@ -309,31 +335,32 @@ namespace lfg
             }
 
             // Remove obsolete proposals
-            for (LfgProposalContainer::iterator it = ProposalsStore.begin(); it != ProposalsStore.end();)
+            for (uint32 proposalId : expiredProposals)
             {
-                LfgProposalContainer::iterator itRemove = it++;
-                if (itRemove->second.cancelTime < currTime)
+                std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+                LfgProposalContainer::iterator itRemove = ProposalsStore.find(proposalId);
+                if (itRemove != ProposalsStore.end() && itRemove->second.cancelTime < currTime)
                     RemoveProposal(itRemove, LFG_UPDATETYPE_PROPOSAL_FAILED);
             }
 
             // Remove obsolete kicks
-            for (LfgPlayerBootContainer::iterator it = BootsStore.begin(); it != BootsStore.end();)
+            for (ObjectGuid const& bootId : expiredBoots)
             {
-                LfgPlayerBootContainer::iterator itBoot = it++;
+                std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+                LfgPlayerBootContainer::iterator itBoot = BootsStore.find(bootId);
+                if (itBoot == BootsStore.end() || itBoot->second.cancelTime >= currTime)
+                    continue;
                 LfgPlayerBoot& boot = itBoot->second;
-                if (boot.cancelTime < currTime)
+                boot.inProgress = false;
+                for (LfgAnswerContainer::const_iterator itVotes = boot.votes.begin(); itVotes != boot.votes.end(); ++itVotes)
                 {
-                    boot.inProgress = false;
-                    for (LfgAnswerContainer::const_iterator itVotes = boot.votes.begin(); itVotes != boot.votes.end(); ++itVotes)
-                    {
-                        ObjectGuid pguid = itVotes->first;
-                        if (pguid != boot.victim)
-                            SendLfgBootProposalUpdate(pguid, boot);
-                        SetState(pguid, LFG_STATE_DUNGEON);
-                    }
-                    SetState(itBoot->first, LFG_STATE_DUNGEON);
-                    BootsStore.erase(itBoot);
+                    ObjectGuid pguid = itVotes->first;
+                    if (pguid != boot.victim)
+                        SendLfgBootProposalUpdate(pguid, boot);
+                    SetState(pguid, LFG_STATE_DUNGEON);
                 }
+                SetState(itBoot->first, LFG_STATE_DUNGEON);
+                BootsStore.erase(itBoot);
             }
         }
         else if (task == 1)

@@ -356,6 +356,7 @@ void MapMgr::GetNumInstances(uint32& dungeons, uint32& battlegrounds, uint32& ar
 
 void MapMgr::GetNumPlayersInInstances(uint32& dungeons, uint32& battlegrounds, uint32& arenas, uint32& spectators)
 {
+    std::lock_guard<std::mutex> guard(Lock);
     for (MapMapType::iterator itr = i_maps.begin(); itr != i_maps.end(); ++itr)
     {
         Map* map = itr->second;
@@ -364,18 +365,21 @@ void MapMgr::GetNumPlayersInInstances(uint32& dungeons, uint32& battlegrounds, u
         MapInstanced::InstancedMaps& maps = ((MapInstanced*)map)->GetInstancedMaps();
         for (MapInstanced::InstancedMaps::iterator mitr = maps.begin(); mitr != maps.end(); ++mitr)
         {
-            if (mitr->second->IsDungeon()) dungeons += ((InstanceMap*)mitr->second)->GetPlayers().getSize();
-            else if (mitr->second->IsBattleground()) battlegrounds += ((InstanceMap*)mitr->second)->GetPlayers().getSize();
+            if (mitr->second->IsDungeon()) dungeons += ((InstanceMap*)mitr->second)->GetPlayerCountLocked();
+            else if (mitr->second->IsBattleground()) battlegrounds += ((InstanceMap*)mitr->second)->GetPlayerCountLocked();
             else if (mitr->second->IsBattleArena())
             {
                 uint32 spect = 0;
                 if (BattlegroundMap* bgmap = mitr->second->ToBattlegroundMap())
                     if (Battleground* bg = bgmap->GetBG())
-                        spect = bg->GetSpectators().size();
+                        spect = bg->GetSpectatorCount();
 
-                arenas += ((InstanceMap*)mitr->second)->GetPlayers().getSize() - spect;
+                arenas += ((InstanceMap*)mitr->second)->GetPlayerCountLocked() - spect;
                 spectators += spect;
             }
+        }
+    }
+}
         }
     }
 }

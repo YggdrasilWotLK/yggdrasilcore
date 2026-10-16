@@ -1395,9 +1395,14 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
             std::map<Player*, Position> playerTeleport;
             // handle here all players in the instance that are not in the group
             if (currMap)
-                for (Map::PlayerList::const_iterator itr = currMap->GetPlayers().begin(); itr != currMap->GetPlayers().end(); ++itr)
-                    if (Player* p = itr->GetSource())
-                        if (p->GetGroup() != group)
+            {
+                std::vector<ObjectGuid> guids = currMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!p || !p->IsInWorld() || p->GetMap() != currMap)
+                        continue;
+                    if (p->GetGroup() != group)
                         {
                             if (!p->IsInWorld() || !p->IsAlive() || p->IsInCombat() || p->GetVictim() || p->m_mover != p || p->IsNonMeleeSpellCast(true) || (!p->GetMotionMaster()->empty() && p->GetMotionMaster()->GetCurrentMovementGeneratorType() != IDLE_MOTION_TYPE)
                                     || !p->movespline->Finalized() || !p->GetMap()->ToInstanceMap() || !p->GetMap()->ToInstanceMap()->GetInstanceScript() || p->GetMap()->ToInstanceMap()->GetInstanceScript()->IsEncounterInProgress())
@@ -1407,6 +1412,8 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                             }
                             playerTeleport[p];
                         }
+                }
+            }
             for (std::map<Player*, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
             {
                 Player* p = itr->first;

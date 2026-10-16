@@ -22,8 +22,10 @@
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
 #include <map>
+#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
+#include <vector>
 
 #define max_ge_check_delay DAY          // 1 day in seconds
 
@@ -114,7 +116,7 @@ public:
     }
     [[nodiscard]] GameEventDataMap GetEventMap() const
     {
-        std::shared_lock<std::shared_mutex> lock(_eventDataLock);
+        std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
         return _gameEvent;
     }
     [[nodiscard]] bool CheckOneGameEvent(uint16 entry) const;
@@ -215,12 +217,14 @@ private:
     // Guards _activeEvents only; sibling event-data maps keep today's
     // exposure (event transitions are world-thread serial).
     mutable std::shared_mutex _activeEventsLock;
-    // Guards _gameEvent snapshot copies. Load paths take unique; Update and
-    // Start/Stop mutate live state on world thread (see follow-up to cover).
-    mutable std::shared_mutex _eventDataLock;
+    // Guards _gameEvent and every sibling event-data map plus the public
+    // guid maps below. Recursive: Update/Start/Stop nest into
+    // Apply/UnApply/Spawn/Unspawn. Leaf vs outside locks; order vs
+    // _activeEventsLock is _eventDataLock -> _activeEventsLock, never inverse.
+    mutable std::recursive_mutex _eventDataLock;
     bool _isSystemInit;
     GameEventSeasonalQuestsMap _gameEventSeasonalQuestsMap;
-public:
+    // Same lock as above: mutated on world thread, iterated on map threads.
     GameEventGuidMap  GameEventCreatureGuids;
     GameEventGuidMap  GameEventGameobjectGuids;
     std::vector<uint32> ModifiedHolidays;

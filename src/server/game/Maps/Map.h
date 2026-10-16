@@ -41,6 +41,7 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include <vector>
 
 class Unit;
 class WorldPacket;

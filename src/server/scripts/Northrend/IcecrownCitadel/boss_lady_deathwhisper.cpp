@@ -376,24 +376,29 @@ public:
                         Talk(SAY_DOMINATE_MIND);
 
                         std::vector<Player*> validPlayers;
-                        Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
-                            if (Player* plr = itr->GetSource())
-                                if (plr->IsAlive() && !plr->IsGameMaster() && plr->GetExactDist2dSq(me) < (150.0f * 150.0f))
-                                    if (!me->GetVictim() || me->GetVictim()->GetGUID() != plr->GetGUID())
-                                    {
-                                        // shouldn't be casted on any victim of summoned mobs
-                                        bool valid = true;
-                                        for (ObjectGuid const& guid : summons)
-                                            if (Creature* c = ObjectAccessor::GetCreature(*me, guid))
-                                                if (c->IsAlive() && c->GetVictim() && c->GetVictim()->GetGUID() == plr->GetGUID())
-                                                {
-                                                    valid = false;
-                                                    break;
-                                                }
-                                        if (valid)
-                                            validPlayers.push_back(plr);
-                                    }
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                                continue;
+                            if (plr->IsAlive() && !plr->IsGameMaster() && plr->GetExactDist2dSq(me) < (150.0f * 150.0f))
+                                if (!me->GetVictim() || me->GetVictim()->GetGUID() != plr->GetGUID())
+                                {
+                                    // shouldn't be casted on any victim of summoned mobs
+                                    bool valid = true;
+                                    for (ObjectGuid const& guid : summons)
+                                        if (Creature* c = ObjectAccessor::GetCreature(*me, guid))
+                                            if (c->IsAlive() && c->GetVictim() && c->GetVictim()->GetGUID() == plr->GetGUID())
+                                            {
+                                                valid = false;
+                                                break;
+                                            }
+                                    if (valid)
+                                        validPlayers.push_back(plr);
+                                }
+                        }
 
                         std::vector<Player*>::iterator begin = validPlayers.begin(), end = validPlayers.end();
 
@@ -473,14 +478,19 @@ public:
             if (summon->GetEntry() == NPC_VENGEFUL_SHADE)
             {
                 float minrange = 250.0f;
-                Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                    if (Player* p = itr->GetSource())
-                        if (p != me->GetVictim() && summon->GetExactDist(p) < minrange && me->CanCreatureAttack(p))
-                        {
-                            target = p;
-                            minrange = summon->GetExactDist(p);
-                        }
+                Map* snapMap = me->GetMap();
+                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                        continue;
+                    if (p != me->GetVictim() && summon->GetExactDist(p) < minrange && me->CanCreatureAttack(p))
+                    {
+                        target = p;
+                        minrange = summon->GetExactDist(p);
+                    }
+                }
 
                 summon->ToTempSummon()->DespawnOrUnsummon(30s);
             }

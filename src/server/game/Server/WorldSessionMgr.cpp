@@ -25,6 +25,10 @@
 #include "WorldSession.h"
 #include "WorldSessionMgr.h"
 
+#include "ObjectAccessor.h"
+
+#include <vector>
+
 WorldSessionMgr* WorldSessionMgr::Instance()
 {
     static WorldSessionMgr instance;
@@ -457,17 +461,21 @@ void WorldSessionMgr::SendServerMessage(ServerMessageType messageID, std::string
 
 void WorldSessionMgr::DoForAllOnlinePlayers(std::function<void(Player*)> exec)
 {
-    std::shared_lock lock(*HashMapHolder<Player>::GetLock());
-    for (auto const& it : ObjectAccessor::GetPlayers())
+    // Snapshot-then-act: logins/logouts take the holder lock; never hold it
+    // across session callbacks.
+    std::vector<ObjectGuid> guids;
     {
-        if (Player* player = it.second)
-        {
-            if (!player->IsInWorld())
-            {
-                continue;
-            }
+        std::shared_lock lock(*HashMapHolder<Player>::GetLock());
+        for (auto const& it : ObjectAccessor::GetPlayers())
+            if (Player* listed = it.second)
+                guids.push_back(listed->GetGUID());
+    }
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld())
+            continue;
 
-            exec(player);
-        }
+        exec(player);
     }
 }

@@ -25,6 +25,7 @@
 #include "SharedDefines.h"
 #include "World.h"
 #include "WorldStatePackets.h"
+#include <vector>
 
 class Creature;
 class GameObject;
@@ -398,6 +399,8 @@ public:
     void RemoveSpectator(Player* p) { m_Spectators.erase(p); }
     bool HaveSpectators() { return !m_Spectators.empty(); }
     [[nodiscard]] const SpectatorList& GetSpectators() const { return m_Spectators; }
+    // Locked snapshot count: m_Spectators mutates on session threads.
+    [[nodiscard]] uint32 GetSpectatorCount() const;
     void AddToBeTeleported(ObjectGuid spectator, ObjectGuid participant) { m_ToBeTeleported[spectator] = participant; }
     void RemoveToBeTeleported(ObjectGuid spectator) { ToBeTeleportedMap::iterator itr = m_ToBeTeleported.find(spectator); if (itr != m_ToBeTeleported.end()) m_ToBeTeleported.erase(itr); }
     void SpectatorsSendPacket(WorldPacket& data);
@@ -412,6 +415,7 @@ public:
     // Snapshot copy-outs: m_Players mutates on session threads, never hold the live map.
     [[nodiscard]] std::vector<ObjectGuid> GetPlayerGUIDs() const;
     [[nodiscard]] std::vector<std::pair<ObjectGuid, Player*>> GetPlayersSnapshot() const;
+    [[nodiscard]] bool HasPlayer(ObjectGuid guid) const;
 
     void ReadyMarkerClicked(Player* p); // pussywizard
     GuidSet readyMarkerClickedSet; // pussywizard

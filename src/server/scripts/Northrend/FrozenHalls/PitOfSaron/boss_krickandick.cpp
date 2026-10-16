@@ -16,6 +16,7 @@
  */
 
 #include "CreatureScript.h"
+#include "ObjectAccessor.h"
 #include "PassiveAI.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
@@ -550,11 +551,16 @@ class spell_krick_explosive_barrage_aura : public AuraScript
         if (Unit* caster = GetCaster())
             if (caster->IsCreature())
             {
-                Map::PlayerList const& players = caster->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                    if (Player* player = itr->GetSource())
-                        if (player->IsWithinDist(caster, 100.0f))
-                            caster->CastSpell(player, SPELL_EXPLOSIVE_BARRAGE_SUMMON, true);
+                Map* snapMap = caster->GetMap();
+                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                        continue;
+                    if (player->IsWithinDist(caster, 100.0f))
+                        caster->CastSpell(player, SPELL_EXPLOSIVE_BARRAGE_SUMMON, true);
+                }
             }
     }
 

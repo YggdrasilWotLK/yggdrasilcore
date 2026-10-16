@@ -25,6 +25,7 @@
 #include "QueryResult.h"
 #include "SharedDefines.h"
 #include <functional>
+#include <vector>
 
 class Battlefield;
 class Battleground;

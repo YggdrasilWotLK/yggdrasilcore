@@ -102,10 +102,15 @@ public:
             Map* map = me->GetMap();
             if (map->IsDungeon())
             {
-                Map::PlayerList const& players = map->GetPlayers();
-                for(Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                    if (itr->GetSource()->IsAlive())
-                        itr->GetSource()->RemoveAura(GROUND_SLAM_STONED_EFFECT);
+                std::vector<ObjectGuid> guids = map->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!p || !p->IsInWorld() || p->GetMap() != map)
+                        continue;
+                    if (p->IsAlive())
+                        p->RemoveAura(GROUND_SLAM_STONED_EFFECT);
+                }
             }
         }
 

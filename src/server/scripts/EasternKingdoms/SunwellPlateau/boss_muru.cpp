@@ -307,10 +307,13 @@ struct npc_singularity : public NullCreatureAI
         {
             Player* target = nullptr;
 
-            auto const& playerList = me->GetMap()->GetPlayers();
-            for (auto const& playerRef : playerList)
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                if (Player* player = playerRef.GetSource())
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                    continue;
                 {
                     if (me->IsWithinLOSInMap(player) && player->IsAlive() && !player->HasAura(SPELL_BLACK_HOLE_EFFECT))
                     {

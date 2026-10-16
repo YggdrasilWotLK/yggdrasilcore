@@ -205,14 +205,15 @@ struct boss_volazj : public BossAI
         me->SetControlled(true, UNIT_STATE_STUNNED);
 
         std::list<Player*> playerList;
-        Map::PlayerList const& players = me->GetMap()->GetPlayers();
-        for (auto const& i : players)
+        Map* snapMap = me->GetMap();
+        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+        for (ObjectGuid const& playerGuid : guids)
         {
-            if (Player* player = i.GetSource())
-            {
-                if (player->IsAlive() && player->GetDistance(me) < 400)
-                    playerList.push_back(player);
-            }
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                continue;
+            if (player->IsAlive() && player->GetDistance(me) < 400)
+                playerList.push_back(player);
         }
         
         uint32 insanityCounter = 0;
@@ -321,61 +322,64 @@ struct boss_volazj : public BossAI
                 }
 
                 // Check if any players are alive in each phase
-                Map::PlayerList const& players = me->GetMap()->GetPlayers();
-                for (auto const& i : players)
+                Map* snapMap2 = me->GetMap();
+                std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids2)
                 {
-                    if (Player* player = i.GetSource())
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap2)
+                        continue;
+                    for (uint32 j = 0; j < 5; ++j)
                     {
-                        for (uint32 j = 0; j < 5; ++j)
-                        {
-                            if (player->GetPhaseMask() & phaseMasks[j] && player->IsAlive())
-                                phaseHasPlayers[j] = true;
-                        }
+                        if (player->GetPhaseMask() & phaseMasks[j] && player->IsAlive())
+                            phaseHasPlayers[j] = true;
                     }
                 }
 
                 // Move players between phases if their phase has no clones left
-                for (auto const& i : players)
+                Map* snapMap3 = me->GetMap();
+                std::vector<ObjectGuid> guids3 = snapMap3->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids3)
                 {
-                    if (Player* player = i.GetSource())
-                    {
-                        uint32 currentPhaseMask = player->GetPhaseMask();
-                        bool currentPhaseHasCreatures = false;
-                        bool currentPhaseHasPlayers = false;
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap3)
+                        continue;
+                    uint32 currentPhaseMask = player->GetPhaseMask();
+                    bool currentPhaseHasCreatures = false;
+                    bool currentPhaseHasPlayers = false;
 
-                        for (uint32 l = 0; l < 5; ++l)
+                    for (uint32 l = 0; l < 5; ++l)
+                    {
+                        if (currentPhaseMask & phaseMasks[l])
                         {
-                            if (currentPhaseMask & phaseMasks[l])
+                            currentPhaseHasCreatures = phaseHasCreatures[l];
+                            currentPhaseHasPlayers = phaseHasPlayers[l];
+                            break;
+                        }
+                    }
+
+                    // Condition 1: If the player is in a phase with no clones but other phases have clones
+                    if (!currentPhaseHasCreatures)
+                    {
+                        for (uint32 m = 0; m < 5; ++m)
+                        {
+                            if (phaseHasCreatures[m])
                             {
-                                currentPhaseHasCreatures = phaseHasCreatures[l];
-                                currentPhaseHasPlayers = phaseHasPlayers[l];
+                                player->SetPhaseMask(phaseMasks[m], true);
                                 break;
                             }
                         }
+                    }
 
-                        // Condition 1: If the player is in a phase with no clones but other phases have clones
-                        if (!currentPhaseHasCreatures)
+                    // Condition 2: If clones are in a phase with no living players, move players to that phase if those players' phase has no clones
+                    else if (currentPhaseHasCreatures && !currentPhaseHasPlayers)
+                    {
+                        for (uint32 n = 0; n < 5; ++n)
                         {
-                            for (uint32 m = 0; m < 5; ++m)
+                            if (phaseHasCreatures[n] && !phaseHasPlayers[n])
                             {
-                                if (phaseHasCreatures[m])
-                                {
-                                    player->SetPhaseMask(phaseMasks[m], true);
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        // Condition 2: If clones are in a phase with no living players, move players to that phase if those players' phase has no clones
-                        else if (currentPhaseHasCreatures && !currentPhaseHasPlayers)
-                        {
-                            for (uint32 n = 0; n < 5; ++n)
-                            {
-                                if (phaseHasCreatures[n] && !phaseHasPlayers[n])
-                                {
-                                    player->SetPhaseMask(phaseMasks[n], true);
-                                    break;
-                                }
+                                player->SetPhaseMask(phaseMasks[n], true);
+                                break;
                             }
                         }
                     }
@@ -385,11 +389,14 @@ struct boss_volazj : public BossAI
                 && !phaseHasCreatures[3] && !phaseHasCreatures[4])
                 {
                     // Reset all players to phase 1 and remove insanity phase spell
-                    Map::PlayerList const& players = me->GetMap()->GetPlayers();
-                    for (auto const& i : players)
+                    Map* snapMap4 = me->GetMap();
+                    std::vector<ObjectGuid> guids4 = snapMap4->CopyPlayerGuids();
+                    for (ObjectGuid const& playerGuid : guids4)
                     {
-                        if (Player* player = i.GetSource())
-                            ResetPlayersPhaseMask();
+                        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                        if (!player || !player->IsInWorld() || player->GetMap() != snapMap4)
+                            continue;
+                        ResetPlayersPhaseMask();
                     }
 
                     insanityPhase = false;
@@ -462,18 +469,19 @@ private:
 
     void ResetPlayersPhaseMask()
     {
-        Map::PlayerList const& players = me->GetMap()->GetPlayers();
-        for (auto const& i : players)
+        Map* snapMap5 = me->GetMap();
+        std::vector<ObjectGuid> guids5 = snapMap5->CopyPlayerGuids();
+        for (ObjectGuid const& playerGuid : guids5)
         {
-            if (Player* player = i.GetSource())
-            {
-                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_1);
-                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_2);
-                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_3);
-                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_4);
-                player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_5);
-                player->SetPhaseMask(1, true);
-            }
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || !player->IsInWorld() || player->GetMap() != snapMap5)
+                continue;
+            player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_1);
+            player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_2);
+            player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_3);
+            player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_4);
+            player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_5);
+            player->SetPhaseMask(1, true);
         }
     }
 };

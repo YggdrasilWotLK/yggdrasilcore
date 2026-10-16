@@ -73,10 +73,13 @@ struct boss_shirrak_the_dead_watcher : public BossAI
         _JustEngagedWith();
         scheduler.Schedule(1ms, [this] (TaskContext context)
         {
-            Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                if (Player* player = i->GetSource())
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                    continue;
                 {
                     float dist = me->GetDistance(player);
                     if (player->IsAlive() && dist < 45.0f)
