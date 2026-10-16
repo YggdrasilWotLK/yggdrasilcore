@@ -392,17 +392,18 @@ void Creature::RemoveFromWorld()
 {
     if (IsInWorld())
     {
-        // Unlink from findable stores first: reentrant Find* calls in the
-        // callbacks below must not observe a half-removed object.
-        if (m_spawnId)
-            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this); }
-
-        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<Creature>(GetGUID()); }
-
         if (Transport* transport = GetTransport())
             transport->RemovePassenger(this, true);
 
         Unit::RemoveFromWorld();
+
+        // Unlink from findable stores after aura cleanup: Aura::GetCaster()
+        // resolves the caster via the store during RemoveNotOwnSingleTargetAuras.
+        // Still before the callbacks below so they cannot observe a half-removed object.
+        if (m_spawnId)
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this); }
+
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<Creature>(GetGUID()); }
 
         sScriptMgr->OnCreatureRemoveWorld(this);
 
