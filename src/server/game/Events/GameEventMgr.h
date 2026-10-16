@@ -119,6 +119,12 @@ public:
         std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
         return _gameEvent;
     }
+    // Snapshot copy for external readers (calendar invites).
+    std::vector<uint32> GetModifiedHolidays() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
+        return ModifiedHolidays;
+    }
     [[nodiscard]] bool CheckOneGameEvent(uint16 entry) const;
     [[nodiscard]] uint32 NextCheck(uint16 entry) const;
     void LoadFromDB();
@@ -226,12 +232,6 @@ private:
     GameEventGuidMap  GameEventCreatureGuids;
     GameEventGuidMap  GameEventGameobjectGuids;
     std::vector<uint32> ModifiedHolidays;
-    // Snapshot copy for external readers (calendar invites).
-    std::vector<uint32> GetModifiedHolidays() const
-    {
-        std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
-        return ModifiedHolidays;
-    }
 };
 
 #define sGameEventMgr GameEventMgr::instance()
