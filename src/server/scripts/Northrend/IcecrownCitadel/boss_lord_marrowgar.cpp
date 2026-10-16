@@ -539,13 +539,18 @@ class spell_marrowgar_bone_spike_graveyard : public SpellScript
             uint8 boneSpikeCount = uint8(GetCaster()->GetMap()->GetSpawnMode() & 1 ? 3 : 1);
 
             std::vector<Player*> validPlayers;
-            Map::PlayerList const& pList = marrowgar->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
-                if (Player* plr = itr->GetSource())
-                    if (plr->IsAlive() && !plr->IsGameMaster() && plr->GetExactDist2dSq(marrowgar) < (150.0f * 150.0f) && !plr->HasAura(SPELL_IMPALED))
-                        if (!marrowgar->GetVictim() || marrowgar->GetVictim()->GetGUID() != plr->GetGUID())
-                            if (plr->GetGUID() != marrowgarAI->GetGUID(0) && plr->GetGUID() != marrowgarAI->GetGUID(1) && plr->GetGUID() != marrowgarAI->GetGUID(2)) // not a bone slice target
-                                validPlayers.push_back(plr);
+            Map* snapMap = marrowgar->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                    continue;
+                if (plr->IsAlive() && !plr->IsGameMaster() && plr->GetExactDist2dSq(marrowgar) < (150.0f * 150.0f) && !plr->HasAura(SPELL_IMPALED))
+                    if (!marrowgar->GetVictim() || marrowgar->GetVictim()->GetGUID() != plr->GetGUID())
+                        if (plr->GetGUID() != marrowgarAI->GetGUID(0) && plr->GetGUID() != marrowgarAI->GetGUID(1) && plr->GetGUID() != marrowgarAI->GetGUID(2)) // not a bone slice target
+                            validPlayers.push_back(plr);
+            }
 
             std::vector<Player*>::iterator begin = validPlayers.begin(), end = validPlayers.end();
 

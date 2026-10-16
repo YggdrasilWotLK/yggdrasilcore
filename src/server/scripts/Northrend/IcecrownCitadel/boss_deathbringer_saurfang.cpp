@@ -406,10 +406,13 @@ public:
 				if (me->IsEngaged())
 				{
 					std::vector<Player*> playersInArea;
-					Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-					for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
+					Map* snapMap = me->GetMap();
+					std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+					for (ObjectGuid const& playerGuid : guids)
 					{
-						if (Player* p = itr->GetSource())
+						Player* p = ObjectAccessor::FindPlayer(playerGuid);
+						if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+							continue;
 						{
 							if (p->IsAlive() && p->GetExactDist(-486.0f, 2211.0f, p->GetPositionZ()) <= 80.0f)
 								playersInArea.push_back(p);
@@ -443,9 +446,11 @@ public:
 						}
 					}
 
-					for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
+					for (ObjectGuid const& playerGuid : guids)
 					{
-						if (Player* p = itr->GetSource())
+						Player* p = ObjectAccessor::FindPlayer(playerGuid);
+						if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+							continue;
 						{
 							if (p->IsAlive() && me->GetThreatMgr().GetThreat(p) > 0.0f)
 							{

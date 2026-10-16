@@ -126,9 +126,15 @@ void BattlegroundDS::StartingEventOpenDoors()
         gob->SetGoState(GO_STATE_ACTIVE);
 
     // Remove effects of Demonic Circle Summon
-    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-        if (itr->second->HasAura(48018))
-            itr->second->RemoveAurasDueToSpell(48018);
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+            continue;
+        if (listed->HasAura(48018))
+            listed->RemoveAurasDueToSpell(48018);
+    }
 }
 
 void BattlegroundDS::HandleAreaTrigger(Player* player, uint32 trigger)

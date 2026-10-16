@@ -1275,10 +1275,11 @@ void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPacket& recv_data)
     {
         if (group->IsLeader(_player->GetGUID()))
         {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                Player* groupGuy = itr->GetSource();
-                if (!groupGuy)
+                Player* groupGuy = ObjectAccessor::FindPlayer(guid);
+                if (!groupGuy || !groupGuy->IsInWorld())
                     continue;
 
                 if (!groupGuy->IsInWorld())
@@ -1349,10 +1350,11 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                 return;
             }
 
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                Player* groupGuy = itr->GetSource();
-                if (!groupGuy)
+                Player* groupGuy = ObjectAccessor::FindPlayer(guid);
+                if (!groupGuy || !groupGuy->IsInWorld())
                     continue;
 
                 if (!groupGuy->IsInWorld())
@@ -1392,12 +1394,17 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
             Map* homeMap0 = sMapMgr->CreateMap(MAP_EASTERN_KINGDOMS, nullptr);
             ASSERT(homeMap0 && homeMap571);
 
-            std::map<Player*, Position> playerTeleport;
+            std::map<ObjectGuid, Position> playerTeleport;
             // handle here all players in the instance that are not in the group
             if (currMap)
-                for (Map::PlayerList::const_iterator itr = currMap->GetPlayers().begin(); itr != currMap->GetPlayers().end(); ++itr)
-                    if (Player* p = itr->GetSource())
-                        if (p->GetGroup() != group)
+            {
+                std::vector<ObjectGuid> guids = currMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!p || !p->IsInWorld() || p->GetMap() != currMap)
+                        continue;
+                    if (p->GetGroup() != group)
                         {
                             if (!p->IsInWorld() || !p->IsAlive() || p->IsInCombat() || p->GetVictim() || p->m_mover != p || p->IsNonMeleeSpellCast(true) || (!p->GetMotionMaster()->empty() && p->GetMotionMaster()->GetCurrentMovementGeneratorType() != IDLE_MOTION_TYPE)
                                     || !p->movespline->Finalized() || !p->GetMap()->ToInstanceMap() || !p->GetMap()->ToInstanceMap()->GetInstanceScript() || p->GetMap()->ToInstanceMap()->GetInstanceScript()->IsEncounterInProgress())
@@ -1405,11 +1412,15 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                                 _player->SendRaidDifficulty(group != nullptr);
                                 return;
                             }
-                            playerTeleport[p];
+                            playerTeleport[playerGuid];
                         }
-            for (std::map<Player*, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
+                }
+            }
+            for (std::map<ObjectGuid, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
             {
-                Player* p = itr->first;
+                Player* p = ObjectAccessor::FindPlayer(itr->first);
+                if (!p || !p->IsInWorld())
+                    continue;
                 Map* oldMap = p->GetMap();
                 oldMap->RemovePlayerFromMap(p, false);
                 p->ResetMap();
@@ -1417,15 +1428,17 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                 p->SetMap(homeMap0);
                 p->Relocate(0.0f, 0.0f, 0.0f, 0.0f);
                 if (!p->TeleportTo(MAP_NORTHREND, 5790.20f, 2071.36f, 636.07f, 3.60f))
-                    p->GetSession()->KickPlayer("HandleSetRaidDifficultyOpcode 1");
+                    if (WorldSession* session = p->GetSession())
+                        session->KickPlayer("HandleSetRaidDifficultyOpcode 1");
             }
 
             bool anyoneInside = false;
             playerTeleport.clear();
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> raidGuids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : raidGuids)
             {
-                Player* groupGuy = itr->GetSource();
-                if (!groupGuy)
+                Player* groupGuy = ObjectAccessor::FindPlayer(guid);
+                if (!groupGuy || !groupGuy->IsInWorld())
                     continue;
 
                 if (IsSharedDifficultyMap(groupGuy->GetMap()->GetId()))
@@ -1441,7 +1454,7 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
                     groupGuy->SetMap(homeMap571);
                     groupGuy->Relocate(5790.20f, 2071.36f, 636.07f, 3.60f);
                     Position dest = {x, y, z + 0.1f, o};
-                    playerTeleport[groupGuy] = dest;
+                    playerTeleport[groupGuy->GetGUID()] = dest;
                 }
             }
 
@@ -1450,11 +1463,15 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPacket& recv_data)
             group->SetRaidDifficulty(Difficulty(mode));
             group->SetDifficultyChangePrevention(DIFFICULTY_PREVENTION_CHANGE_RECENTLY_CHANGED);
 
-            for (std::map<Player*, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
+            for (std::map<ObjectGuid, Position>::iterator itr = playerTeleport.begin(); itr != playerTeleport.end(); ++itr)
             {
-                itr->first->SetRaidDifficulty(Difficulty(mode)); // needed for teleport not to fail
-                if (!itr->first->TeleportTo(*(foundMaps.begin()), itr->second.GetPositionX(), itr->second.GetPositionY(), itr->second.GetPositionZ(), itr->second.GetOrientation()))
-                    itr->first->GetSession()->KickPlayer("HandleSetRaidDifficultyOpcode 2");
+                Player* teleported = ObjectAccessor::FindPlayer(itr->first);
+                if (!teleported || !teleported->IsInWorld())
+                    continue;
+                teleported->SetRaidDifficulty(Difficulty(mode)); // needed for teleport not to fail
+                if (!teleported->TeleportTo(*(foundMaps.begin()), itr->second.GetPositionX(), itr->second.GetPositionY(), itr->second.GetPositionZ(), itr->second.GetOrientation()))
+                    if (WorldSession* session = teleported->GetSession())
+                        session->KickPlayer("HandleSetRaidDifficultyOpcode 2");
             }
         }
     }

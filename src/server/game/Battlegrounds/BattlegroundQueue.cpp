@@ -262,6 +262,16 @@ uint32 BattlegroundQueue::GetAverageQueueWaitTime(GroupQueueInfo* ginfo) const
 }
 
 //remove player from queue and from group info, if group info is empty then remove it too
+std::vector<ObjectGuid> BattlegroundQueue::GetQueuedPlayerGUIDs() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_QueuedPlayers.size());
+    for (auto const& pair : m_QueuedPlayers)
+        guids.push_back(pair.first);
+    return guids;
+}
+
 void BattlegroundQueue::RemovePlayer(ObjectGuid guid, bool decreaseInvitedCount)
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
@@ -397,6 +407,16 @@ bool BattlegroundQueue::GetPlayerGroupInfoData(ObjectGuid guid, GroupQueueInfo* 
     if (qItr == m_QueuedPlayers.end())
         return false;
     *ginfo = *(qItr->second);
+    return true;
+}
+
+bool BattlegroundQueue::GetPlayerGroupInfoSnapshot(ObjectGuid guid, GroupQueueInfo& out) const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    auto qItr = m_QueuedPlayers.find(guid);
+    if (qItr == m_QueuedPlayers.end())
+        return false;
+    out = *(qItr->second);
     return true;
 }
 
@@ -1243,66 +1263,84 @@ int32 BattlegroundQueue::GetQueueAnnouncementTimer(uint32 bracketId) const
 
 void BattlegroundQueue::InviteGroupToBG(GroupQueueInfo* ginfo, Battleground* bg, TeamId teamId)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    // set side if needed
-    if (teamId != TEAM_NEUTRAL)
-        ginfo->teamId = teamId;
-
-    if (ginfo->IsInvitedToBGInstanceGUID)
-        return;
-
-    // set invitation
-    ginfo->IsInvitedToBGInstanceGUID = bg->GetInstanceID();
-
     BattlegroundTypeId bgTypeId = bg->GetBgTypeID();
     BattlegroundQueueTypeId bgQueueTypeId = BattlegroundMgr::BGQueueTypeId(ginfo->BgTypeId, ginfo->ArenaType);
     BattlegroundQueue& bgQueue = sBattlegroundMgr->GetBattlegroundQueue(bgQueueTypeId);
 
-    // set ArenaTeamId for rated matches
-    if (bg->isArena() && bg->isRated())
-        bg->SetArenaTeamIdForTeam(ginfo->teamId, ginfo->ArenaTeamId);
-
-    ginfo->RemoveInviteTime = GameTime::GetGameTimeMS().count() + INVITE_ACCEPT_WAIT_TIME;
-
-    // loop through the players
-    for (auto const& itr : ginfo->Players)
+    struct PendingInvite { ObjectGuid playerGuid; uint32 queueSlot; };
+    std::vector<PendingInvite> pending;
     {
-        // get the player
-        Player* player = ObjectAccessor::FindConnectedPlayer(itr);
-        if (!player)
+        std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        // set side if needed
+        if (teamId != TEAM_NEUTRAL)
+            ginfo->teamId = teamId;
+
+        if (ginfo->IsInvitedToBGInstanceGUID)
+            return;
+
+        // set invitation
+        ginfo->IsInvitedToBGInstanceGUID = bg->GetInstanceID();
+
+        // set ArenaTeamId for rated matches
+        if (bg->isArena() && bg->isRated())
+            bg->SetArenaTeamIdForTeam(ginfo->teamId, ginfo->ArenaTeamId);
+
+        ginfo->RemoveInviteTime = GameTime::GetGameTimeMS().count() + INVITE_ACCEPT_WAIT_TIME;
+
+        // loop through the players
+        for (auto const& itr : ginfo->Players)
+        {
+            // get the player
+            Player* player = ObjectAccessor::FindConnectedPlayer(itr);
+            if (!player)
+                continue;
+
+            // update average wait time
+            bgQueue.PlayerInvitedToBGUpdateAverageWaitTime(ginfo);
+
+            // increase invited counter for each invited player
+            bg->IncreaseInvitedCount(ginfo->teamId);
+
+            player->SetInviteForBattlegroundQueueType(bgQueueTypeId, ginfo->IsInvitedToBGInstanceGUID);
+
+            // create remind invite events
+            BGQueueInviteEvent* inviteEvent = new BGQueueInviteEvent(player->GetGUID(), ginfo->IsInvitedToBGInstanceGUID, bgTypeId, ginfo->ArenaType, ginfo->RemoveInviteTime);
+            bgQueue.AddEvent(inviteEvent, INVITATION_REMIND_TIME);
+
+            // create automatic remove events
+            BGQueueRemoveEvent* removeEvent = new BGQueueRemoveEvent(player->GetGUID(), ginfo->IsInvitedToBGInstanceGUID, bgTypeId, bgQueueTypeId, ginfo->RemoveInviteTime);
+            bgQueue.AddEvent(removeEvent, INVITE_ACCEPT_WAIT_TIME);
+
+            // Check queueSlot
+            uint32 queueSlot = player->GetBattlegroundQueueIndex(bgQueueTypeId);
+            ASSERT(queueSlot < PLAYER_MAX_BATTLEGROUND_QUEUES);
+
+            LOG_DEBUG("bg.battleground", "Battleground: invited player {} {} to BG instance {} queueindex {} bgtype {}",
+                player->GetName(), player->GetGUID().ToString(), bg->GetInstanceID(), queueSlot, bgTypeId);
+
+            pending.push_back({ player->GetGUID(), queueSlot });
+
+            // pussywizard:
+            if (bg->isArena() && bg->isRated())
+                bg->ArenaLogEntries[player->GetGUID()].Fill(player->GetName(), player->GetGUID().GetCounter(), player->GetSession()->GetAccountId(), ginfo->ArenaTeamId, player->GetSession()->GetRemoteAddress());
+        }
+    }
+
+    // Phase 2: sends run without the social lock. Revalidate each invite:
+    // the player may have logged out, left the queue, or joined another BG.
+    for (PendingInvite const& invite : pending)
+    {
+        Player* player = ObjectAccessor::FindConnectedPlayer(invite.playerGuid);
+        if (!player || !player->IsInWorld())
             continue;
-
-        // update average wait time
-        bgQueue.PlayerInvitedToBGUpdateAverageWaitTime(ginfo);
-
-        // increase invited counter for each invited player
-        bg->IncreaseInvitedCount(ginfo->teamId);
-
-        player->SetInviteForBattlegroundQueueType(bgQueueTypeId, ginfo->IsInvitedToBGInstanceGUID);
-
-        // create remind invite events
-        BGQueueInviteEvent* inviteEvent = new BGQueueInviteEvent(player->GetGUID(), ginfo->IsInvitedToBGInstanceGUID, bgTypeId, ginfo->ArenaType, ginfo->RemoveInviteTime);
-        bgQueue.AddEvent(inviteEvent, INVITATION_REMIND_TIME);
-
-        // create automatic remove events
-        BGQueueRemoveEvent* removeEvent = new BGQueueRemoveEvent(player->GetGUID(), ginfo->IsInvitedToBGInstanceGUID, bgTypeId, bgQueueTypeId, ginfo->RemoveInviteTime);
-        bgQueue.AddEvent(removeEvent, INVITE_ACCEPT_WAIT_TIME);
-
-        // Check queueSlot
-        uint32 queueSlot = player->GetBattlegroundQueueIndex(bgQueueTypeId);
-        ASSERT(queueSlot < PLAYER_MAX_BATTLEGROUND_QUEUES);
-
-        LOG_DEBUG("bg.battleground", "Battleground: invited player {} {} to BG instance {} queueindex {} bgtype {}",
-            player->GetName(), player->GetGUID().ToString(), bg->GetInstanceID(), queueSlot, bgTypeId);
+        if (!bgQueue.IsPlayerInvited(invite.playerGuid, bg->GetInstanceID(), ginfo->RemoveInviteTime))
+            continue;
 
         // send status packet
         WorldPacket data;
-        sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, queueSlot, STATUS_WAIT_JOIN, INVITE_ACCEPT_WAIT_TIME, 0, ginfo->ArenaType, TEAM_NEUTRAL, bg->isRated());
-        player->GetSession()->SendPacket(&data);
-
-        // pussywizard:
-        if (bg->isArena() && bg->isRated())
-            bg->ArenaLogEntries[player->GetGUID()].Fill(player->GetName(), player->GetGUID().GetCounter(), player->GetSession()->GetAccountId(), ginfo->ArenaTeamId, player->GetSession()->GetRemoteAddress());
+        sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, invite.queueSlot, STATUS_WAIT_JOIN, INVITE_ACCEPT_WAIT_TIME, 0, ginfo->ArenaType, TEAM_NEUTRAL, bg->isRated());
+        if (WorldSession* session = player->GetSession())
+            session->SendPacket(&data);
     }
 }
 
@@ -1315,7 +1353,7 @@ bool BGQueueInviteEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
     Player* player = ObjectAccessor::FindConnectedPlayer(m_PlayerGuid);
 
     // player logged off, so he is no longer in queue
-    if (!player)
+    if (!player || !player->IsInWorld())
         return true;
 
     Battleground* bg = sBattlegroundMgr->GetBattleground(m_BgInstanceGUID, m_BgTypeId);
@@ -1336,7 +1374,8 @@ bool BGQueueInviteEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
             // send remaining time in queue
             WorldPacket data;
             sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, queueSlot, STATUS_WAIT_JOIN, INVITE_ACCEPT_WAIT_TIME - INVITATION_REMIND_TIME, 0, m_ArenaType, TEAM_NEUTRAL, bg->isRated(), m_BgTypeId);
-            player->GetSession()->SendPacket(&data);
+            if (WorldSession* session = player->GetSession())
+                session->SendPacket(&data);
         }
     }
 
@@ -1353,7 +1392,7 @@ bool BGQueueRemoveEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
     Player* player = ObjectAccessor::FindConnectedPlayer(m_PlayerGuid);
 
     // player logged off, so he is no longer in queue
-    if (!player)
+    if (!player || !player->IsInWorld())
         return true;
 
     Battleground* bg = sBattlegroundMgr->GetBattleground(m_BgInstanceGUID, m_BgTypeId);

@@ -242,10 +242,10 @@ public:
             if (_creditBloodQuickening)
             {
                 instance->SetData(DATA_BLOOD_QUICKENING_STATE, DONE);
-                Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                    if (Player* p = itr->GetSource())
-                        p->KilledMonsterCredit(RAID_MODE(NPC_INFILTRATOR_MINCHAR_BQ, NPC_BLOOD_QUICKENING_CREDIT_25));
+                me->GetMap()->DoForAllPlayers([&](Player* p)
+                {
+                    p->KilledMonsterCredit(RAID_MODE(NPC_INFILTRATOR_MINCHAR_BQ, NPC_BLOOD_QUICKENING_CREDIT_25));
+                });
                 if (Creature* minchar = me->FindNearestCreature(NPC_INFILTRATOR_MINCHAR_BQ, 200.0f))
                 {
                     minchar->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
@@ -359,11 +359,16 @@ public:
                     if (me->GetVictim())
                     {
                         std::list<Player*> myList;
-                        const Map::PlayerList& pl = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (p->IsAlive() && p != me->GetVictim() && !p->IsGameMaster() && !p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
-                                    myList.push_back(p);
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (p->IsAlive() && p != me->GetVictim() && !p->IsGameMaster() && !p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
+                                myList.push_back(p);
+                        }
                         if (!myList.empty())
                         {
                             myList.sort(Acore::ObjectDistanceOrderPred(me->GetVictim()));
@@ -429,11 +434,16 @@ public:
                     if (!me->HasReactState(REACT_PASSIVE))
                     {
                         std::list<Player*> myList;
-                        const Map::PlayerList& pl = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (p->IsAlive() && p != me->GetVictim() && p->GetGUID() != _offtankGUID && !p->IsGameMaster() && p->GetDistance(me) < 100.0f && !p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
-                                    myList.push_back(p);
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (p->IsAlive() && p != me->GetVictim() && p->GetGUID() != _offtankGUID && !p->IsGameMaster() && p->GetDistance(me) < 100.0f && !p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
+                                myList.push_back(p);
+                        }
                         Acore::Containers::RandomResize(myList, Is25ManRaid() ? 3 : 2);
                         if (myList.size() > 1)
                         {
@@ -452,11 +462,16 @@ public:
                     if (!me->HasReactState(REACT_PASSIVE))
                     {
                         std::list<Player*> myList;
-                        const Map::PlayerList& pl = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (p->IsAlive() && p != me->GetVictim() && p->GetGUID() != _offtankGUID && !p->IsGameMaster() && !p->HasAura(SPELL_PACT_OF_THE_DARKFALLEN) && !p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
-                                    myList.push_back(p);
+                        Map* snapMap2 = me->GetMap();
+                        std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids2)
+                        {
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap2)
+                                continue;
+                            if (p->IsAlive() && p != me->GetVictim() && p->GetGUID() != _offtankGUID && !p->IsGameMaster() && !p->HasAura(SPELL_PACT_OF_THE_DARKFALLEN) && !p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
+                                myList.push_back(p);
+                        }
 
                         if (!myList.empty())
                         {
@@ -476,11 +491,16 @@ public:
                     if (!me->HasReactState(REACT_PASSIVE))
                     {
                         std::list<Player*> myList;
-                        const Map::PlayerList& pl = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (p->IsAlive() && p != me->GetVictim() && p->GetGUID() != _offtankGUID && !p->IsGameMaster() && !p->HasAura(SPELL_PACT_OF_THE_DARKFALLEN) && !p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
-                                    myList.push_back(p);
+                        Map* snapMap = me->GetMap();
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (p->IsAlive() && p != me->GetVictim() && p->GetGUID() != _offtankGUID && !p->IsGameMaster() && !p->HasAura(SPELL_PACT_OF_THE_DARKFALLEN) && !p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
+                                myList.push_back(p);
+                        }
 
                         Acore::Containers::RandomResize(myList, uint32(Is25ManRaid() ? 4 : 2));
                         for (std::list<Player*>::iterator itr = myList.begin(); itr != myList.end(); ++itr)
@@ -555,11 +575,16 @@ public:
 
         void EnterEvadeMode(EvadeReason why) override
         {
-            const Map::PlayerList& pl = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                if (Player* p = itr->GetSource())
-                    if (p->IsAlive() && p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
-                        Unit::Kill(me, p);
+            Map* snapMapEvade = me->GetMap();
+            std::vector<ObjectGuid> guidsEvade = snapMapEvade->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guidsEvade)
+            {
+                Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMapEvade)
+                    continue;
+                if (p->IsAlive() && p->HasAura(SPELL_UNCONTROLLABLE_FRENZY))
+                    Unit::Kill(me, p);
+            }
 
             if (_killMinchar)
             {

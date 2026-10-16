@@ -1970,7 +1970,9 @@ void Spell::SelectEffectTypeImplicitTargets(uint8 effIndex)
 
                 CallScriptObjectTargetSelectHandlers(target, SpellEffIndex(effIndex), SpellImplicitTargetInfo());
 
-                if (target && target->ToPlayer())
+                // Validate before use: the target may have logged out,
+                // teleported maps, or been deleted since selection.
+                if (target && target->IsInWorld() && target->FindMap() == m_caster->FindMap() && target->ToPlayer())
                     AddUnitTarget(target->ToUnit(), 1 << effIndex, false);
             }
             return;
@@ -2543,9 +2545,10 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
         if (!farMask)
             return;
         // find unit in world
-        // Xinef: FindUnit Access without Map check!!! Intended
+        // Xinef: FindUnit Access without Map check!!! Intended (far targets
+        // may live on another map); still require a live object.
         effectUnit = ObjectAccessor::FindPlayer(target->targetGUID);
-        if (!effectUnit)
+        if (!effectUnit || !effectUnit->IsInWorld())
             return;
 
         // do far effects on the unit
@@ -5732,16 +5735,24 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (instanceScript->IsEncounterInProgress())
                 {
                     if (Group* group = m_caster->ToPlayer()->GetGroup())
-                        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-                            if (Player* member = itr->GetSource())
-                                if (member->IsInMap(m_caster))
-                                    if (Unit* victim = member->GetVictim())
-                                        if (victim->IsInCombat() && m_caster->GetDistance(victim) < m_caster->GetVisibilityRange())
-                                        {
-                                            m_caster->CombatStart(victim);
-                                            victim->AddThreat(m_caster, 1.0f);
-                                            break;
-                                        }
+                    {
+                        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                        for (ObjectGuid const& guid : guids)
+                        {
+                            Player* member = ObjectAccessor::FindPlayer(guid);
+                            if (!member || !member->IsInWorld())
+                                continue;
+
+                            if (member->IsInMap(m_caster))
+                                if (Unit* victim = member->GetVictim())
+                                    if (victim->IsInCombat() && m_caster->GetDistance(victim) < m_caster->GetVisibilityRange())
+                                    {
+                                        m_caster->CombatStart(victim);
+                                        victim->AddThreat(m_caster, 1.0f);
+                                        break;
+                                    }
+                        }
+                    }
                     return SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED;
                 }
     }

@@ -323,36 +323,61 @@ void CreatureTextMgr::SendNonChatPacket(WorldObject* source, WorldPacket const* 
         case TEXT_RANGE_AREA:
             {
                 uint32 areaId = source->GetAreaId();
-                Map::PlayerList const& players = source->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                    if (itr->GetSource()->GetAreaId() == areaId && (teamId == TEAM_NEUTRAL || itr->GetSource()->GetTeamId() == teamId) && (!gmOnly || itr->GetSource()->IsGameMaster()))
-                        itr->GetSource()->GetSession()->SendPacket(data);
+                Map* textMap = source->GetMap();
+                std::vector<ObjectGuid> guids = textMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != textMap)
+                        continue;
+                    if (player->GetAreaId() == areaId && (teamId == TEAM_NEUTRAL || player->GetTeamId() == teamId) && (!gmOnly || player->IsGameMaster()))
+                        if (WorldSession* session = player->GetSession())
+                            session->SendPacket(data);
+                }
                 return;
             }
         case TEXT_RANGE_ZONE:
             {
                 uint32 zoneId = source->GetZoneId();
-                Map::PlayerList const& players = source->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                    if (itr->GetSource()->GetZoneId() == zoneId && (teamId == TEAM_NEUTRAL || itr->GetSource()->GetTeamId() == teamId) && (!gmOnly || itr->GetSource()->IsGameMaster()))
-                        itr->GetSource()->GetSession()->SendPacket(data);
+                Map* textMap = source->GetMap();
+                std::vector<ObjectGuid> guids = textMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != textMap)
+                        continue;
+                    if (player->GetZoneId() == zoneId && (teamId == TEAM_NEUTRAL || player->GetTeamId() == teamId) && (!gmOnly || player->IsGameMaster()))
+                        if (WorldSession* session = player->GetSession())
+                            session->SendPacket(data);
+                }
                 return;
             }
         case TEXT_RANGE_MAP:
             {
-                Map::PlayerList const& players = source->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                    if ((teamId == TEAM_NEUTRAL || itr->GetSource()->GetTeamId() == teamId) && (!gmOnly || itr->GetSource()->IsGameMaster()))
-                        itr->GetSource()->GetSession()->SendPacket(data);
+                Map* textMap = source->GetMap();
+                std::vector<ObjectGuid> guids = textMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != textMap)
+                        continue;
+                    if ((teamId == TEAM_NEUTRAL || player->GetTeamId() == teamId) && (!gmOnly || player->IsGameMaster()))
+                        if (WorldSession* session = player->GetSession())
+                            session->SendPacket(data);
+                }
                 return;
             }
         case TEXT_RANGE_WORLD:
             {
-                WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-                for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-                    if (Player* player = itr->second->GetPlayer())
+                std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+                for (WorldSession* session : sessions)
+                {
+                    if (!session)
+                        continue;
+                    if (Player* player = session->GetPlayer())
                         if ((teamId == TEAM_NEUTRAL || player->GetTeamId() == teamId) && (!gmOnly || player->IsGameMaster()))
                             player->GetSession()->SendPacket(data);
+                }
                 return;
             }
         case TEXT_RANGE_NORMAL:

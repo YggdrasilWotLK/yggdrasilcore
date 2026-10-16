@@ -449,11 +449,14 @@ public:
 			if (_instance->GetBossState(DATA_VALITHRIA_DREAMWALKER) == IN_PROGRESS)
 			{
 				// Check if no players have X < 4295, if so reset
-				Map::PlayerList const& players = me->GetMap()->GetPlayers();
+				Map* snapMap = me->GetMap();
+				std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
 				bool hasPlayerInside = false;
-				for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+				for (ObjectGuid const& playerGuid : guids)
 				{
-					if (Player* player = itr->GetSource())
+					Player* player = ObjectAccessor::FindPlayer(playerGuid);
+					if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+						continue;
 					{
 						if (player->IsAlive() && (player->GetPositionX() < 4295.0f))
 						{

@@ -325,10 +325,10 @@ void SmartAIMgr::LoadSmartAIFromDB()
 void SmartAIMgr::CheckIfSmartAIInDatabaseExists()
 {
     // SMART_SCRIPT_TYPE_CREATURE
-    for (auto const& [entry, creatureTemplate] : *sObjectMgr->GetCreatureTemplates())
+    sObjectMgr->ForEachCreatureTemplate([&](uint32 /*entry*/, CreatureTemplate const& creatureTemplate)
     {
         if (creatureTemplate.AIName != "SmartAI")
-            continue;
+            return;
 
         bool found = false;
 
@@ -353,13 +353,13 @@ void SmartAIMgr::CheckIfSmartAIInDatabaseExists()
 
         if (!found)
             LOG_ERROR("sql.sql", "Creature entry ({}) has SmartAI enabled but no SmartAI entries in the database.", creatureTemplate.Entry);
-    }
+    });
 
     // SMART_SCRIPT_TYPE_GAMEOBJECT
-    for (auto const& [entry, gameobjectTemplate] : *sObjectMgr->GetGameObjectTemplates())
+    sObjectMgr->ForEachGameObjectTemplate([&](uint32 /*entry*/, GameObjectTemplate const& gameobjectTemplate)
     {
         if (gameobjectTemplate.AIName != "SmartGameObjectAI")
-            continue;
+            return;
 
         bool found = false;
 
@@ -384,7 +384,7 @@ void SmartAIMgr::CheckIfSmartAIInDatabaseExists()
 
         if (!found)
             LOG_ERROR("sql.sql", "Gameobject entry ({}) has SmartGameobjectAI enabled but no SmartAI entries in the database.", gameobjectTemplate.entry);
-    }
+    });
 
     // SMART_SCRIPT_TYPE_AREATRIGGER
     uint32 scriptID = sObjectMgr->GetScriptId("SmartTrigger");

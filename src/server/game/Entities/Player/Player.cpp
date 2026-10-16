@@ -11613,8 +11613,15 @@ void Player::SetSelection(ObjectGuid guid)
         ArenaSpectator::SendCommand_GUID(FindMap(), GetGUID(), "TRG", guid);
 }
 
+void Player::SetGroupInvite(Group* group)
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    m_groupInvite = group;
+}
+
 void Player::SetGroup(Group* group, int8 subgroup)
 {
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (!group)
         m_group.unlink();
     else
@@ -11626,6 +11633,13 @@ void Player::SetGroup(Group* group, int8 subgroup)
     }
 
     UpdateObjectVisibility(false);
+}
+
+ObjectGuid Player::GetGroupGUID() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    Group const* group = m_group.getTarget();
+    return group ? group->GetGUID() : ObjectGuid::Empty;
 }
 
 void Player::SendInitialPacketsBeforeAddToMap()
@@ -12782,10 +12796,14 @@ bool Player::GetsRecruitAFriendBonus(bool forXP)
     {
         if (Group* group = this->GetGroup())
         {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+            for (ObjectGuid const& guid : guids)
             {
-                Player* player = itr->GetSource();
-                if (!player || !player->IsInMap(this))
+                Player* player = ObjectAccessor::FindPlayer(guid);
+                if (!player || !player->IsInWorld())
+                    continue;
+
+                if (!player->IsInMap(this))
                     continue;
 
                 if (!player->IsAtRecruitAFriendDistance(this))
@@ -12831,10 +12849,11 @@ void Player::RewardPlayerAndGroupAtEvent(uint32 creature_id, WorldObject* pRewar
     // prepare data for near group iteration
     if (Group* group = GetGroup())
     {
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
         {
-            Player* player = itr->GetSource();
-            if (!player)
+            Player* player = ObjectAccessor::FindPlayer(guid);
+            if (!player || !player->IsInWorld())
                 continue;
 
             if (!player->IsAtGroupRewardDistance(pRewardSource))
@@ -13080,12 +13099,15 @@ Player* Player::GetNextRandomRaidMember(float radius)
     std::vector<Player*> nearMembers;
     nearMembers.reserve(group->GetMembersCount());
 
-    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+    std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+    for (ObjectGuid const& guid : guids)
     {
-        Player* Target = itr->GetSource();
+        Player* Target = ObjectAccessor::FindPlayer(guid);
+        if (!Target || !Target->IsInWorld())
+            continue;
 
         // IsHostileTo check duel and controlled by enemy
-        if (Target && Target != this && IsWithinDistInMap(Target, radius) &&
+        if (Target != this && IsWithinDistInMap(Target, radius) &&
                 !Target->HasInvisibilityAura() && !IsHostileTo(Target))
             nearMembers.push_back(Target);
     }
@@ -13123,9 +13145,13 @@ PartyResult Player::CanUninviteFromGroup(ObjectGuid targetPlayerGUID) const
             return ERR_PARTY_LFG_BOOT_LOOT_ROLLS;
 
         /// @todo: Should also be sent when anyone has recently left combat, with an aprox ~5 seconds timer.
-        for (GroupReference const* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
-            if (itr->GetSource() && itr->GetSource()->IsInMap(this) && itr->GetSource()->IsInCombat())
+        std::vector<ObjectGuid> guids = grp->GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
+        {
+            Player* member = ObjectAccessor::FindPlayer(guid);
+            if (member && member->IsInWorld() && member->IsInMap(this) && member->IsInCombat())
                 return ERR_PARTY_LFG_BOOT_IN_COMBAT;
+        }
 
         if (Player* target = ObjectAccessor::FindConnectedPlayer(targetPlayerGUID))
         {
@@ -14823,12 +14849,6 @@ void Player::SendClearCooldown(uint32 spell_id, Unit* target)
 
 void Player::ResetMap()
 {
-    // this may be called during Map::Update
-    // after decrement+unlink, ++m_mapRefIter will continue correctly
-    // when the first element of the list is being removed
-    // nocheck_prev will return the padding element of the RefMgr
-    // instead of nullptr in the case of prev
-    GetMap()->UpdateIteratorBack(this);
     Map* map = GetMap();
     Unit::ResetMap();
     if (map)
@@ -15576,9 +15596,8 @@ bool Player::NeedSendSpectatorData() const
     if (FindMap() && FindMap()->IsBattleArena() && !IsSpectator())
     {
         Battleground* bg = ((BattlegroundMap*)FindMap())->GetBG();
-        if (bg && bg->HaveSpectators() && bg->GetStatus() == STATUS_IN_PROGRESS && !bg->GetPlayers().empty())
-            if (bg->GetPlayers().find(GetGUID()) != bg->GetPlayers().end())
-                return true;
+        if (bg && bg->GetSpectatorCount() && bg->GetStatus() == STATUS_IN_PROGRESS && bg->HasPlayer(GetGUID()))
+            return true;
     }
     return false;
 }

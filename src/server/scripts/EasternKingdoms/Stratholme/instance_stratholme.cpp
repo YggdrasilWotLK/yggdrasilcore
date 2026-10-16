@@ -422,7 +422,8 @@ public:
         {
             events.Update(diff);
 
-            Map::PlayerList const& players = instance->GetPlayers();
+            Map* snapMap = instance;
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
             // Loop over the two Gate traps, each one has up to three timers (trap reset, gate opening delay, critters spawning delay)
             for (uint8 i = 0; i < 2; i++)
             {
@@ -431,9 +432,11 @@ public:
                     break;
 
                 // Check that the trap is not on cooldown, if so check if player/pet is in range
-                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+                for (ObjectGuid const& playerGuid : guids)
                 {
-                    if (Player* player = itr->GetSource())
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                        continue;
                     {
                         // should pet also trigger the trap? could not find any source for it
                         if (!player->IsGameMaster() && player->IsWithinDist2d(aGateTrap[i].m_positionX, aGateTrap[i].m_positionY, 5.5f))
@@ -552,15 +555,19 @@ public:
                 }
                 case EVENT_FORCE_SLAUGHTER_EVENT:
                 {
-                    Map::PlayerList const& PlayerList = instance->GetPlayers();
-                    if (!PlayerList.IsEmpty())
-                        for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                            if (Player* player = i->GetSource())
-                                if (player->GetDistance2d(4034.97f, -3402.13f) < 50.0f)
-                                {
-                                    ProcessSlaughterEvent();
-                                    return;
-                                }
+                    std::vector<ObjectGuid> guids = instance->CopyPlayerGuids();
+                    if (!guids.empty())
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!player || !player->IsInWorld() || player->GetMap() != instance)
+                                continue;
+                            if (player->GetDistance2d(4034.97f, -3402.13f) < 50.0f)
+                            {
+                                ProcessSlaughterEvent();
+                                return;
+                            }
+                        }
 
                     events.ScheduleEvent(EVENT_FORCE_SLAUGHTER_EVENT, 3s);
                     break;

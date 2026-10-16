@@ -405,9 +405,10 @@ public:
             {
                 if (me->IsInCombat())
                 {
-                    Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                    for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                        itr->GetSource()->CastSpell(itr->GetSource(), SPELL_FLASH_FREEZE_INSTAKILL, true);
+                    me->GetMap()->DoForAllPlayers([&](Player* p)
+                    {
+                        p->CastSpell(p, SPELL_FLASH_FREEZE_INSTAKILL, true);
+                    });
                     EnterEvadeMode();
                 }
                 return;
@@ -449,9 +450,15 @@ public:
                 case EVENT_FLASH_FREEZE:
                     {
                         std::list<Unit*> targets;
-                        Map::PlayerList const& pl = me->GetMap()->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            targets.push_back(itr->GetSource());
+                        Map* snapMap2 = me->GetMap();
+                        std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids2)
+                        {
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap2)
+                                continue;
+                            targets.push_back(p);
+                        }
                         targets.remove_if(Acore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
                         targets.remove_if(Acore::UnitAuraCheck(true, SPELL_FLASH_FREEZE_TRAPPED_PLAYER));
                         Acore::Containers::RandomResize(targets, (RAID_MODE(2,3)));
@@ -521,13 +528,19 @@ public:
             char faction = 'A';
             if (hhd[0][0].id)
             {
-                Map::PlayerList const& cl = me->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = cl.begin(); itr != cl.end(); ++itr)
-                    if (!itr->GetSource()->IsGameMaster())
+                Map* snapMap3 = me->GetMap();
+                std::vector<ObjectGuid> guids3 = snapMap3->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids3)
+                {
+                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!p || !p->IsInWorld() || p->GetMap() != snapMap3)
+                        continue;
+                    if (!p->IsGameMaster())
                     {
-                        faction = (itr->GetSource()->GetTeamId() == TEAM_ALLIANCE ? 'A' : 'H');
+                        faction = (p->GetTeamId() == TEAM_ALLIANCE ? 'A' : 'H');
                         break;
                     }
+                }
             }
 
             uint8 cnt = 0;

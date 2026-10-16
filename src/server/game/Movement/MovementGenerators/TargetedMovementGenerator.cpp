@@ -142,8 +142,12 @@ void ChaseMovementGenerator<T>::DistanceYourself(T* owner, float distance)
     if (!i_path)
         i_path = std::make_unique<PathGenerator>(owner);
 
+    Unit* target = i_target.isValid() ? i_target.getTarget() : nullptr;
+    if (!target || !target->IsInWorld())
+        return;
+
     float x, y, z;
-    i_target->GetNearPoint(owner, x, y, z, owner->GetBoundaryRadius(), distance, i_target->GetAngle(owner));
+    target->GetNearPoint(owner, x, y, z, owner->GetBoundaryRadius(), distance, target->GetAngle(owner));
     if (DispatchSplineToPosition(owner, x, y, z, false, false, 0.f, false, false))
     {
         m_currentMode = CHASE_MODE_DISTANCING;
@@ -314,13 +318,21 @@ bool ChaseMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
         return true;
     }
 
+    // Target may be gone (logout/teleport/delete unlinks the reference):
+    // never dereference a null target below.
+    Unit* target = i_target.isValid() ? i_target.getTarget() : nullptr;
+    if (!target || !target->IsInWorld())
+    {
+        owner->StopMoving();
+        _lastTargetPosition.reset();
+        return true;
+    }
+
     bool forceDest =
         //(cOwner && (cOwner->isWorldBoss() || cOwner->IsDungeonBoss())) || // force for all bosses, even not in instances
-        (i_target->IsPlayer() && i_target->ToPlayer()->IsGameMaster()) || // for .npc follow
+        (target->IsPlayer() && target->ToPlayer()->IsGameMaster()) || // for .npc follow
         (owner->CanFly())
         ; // closes "bool forceDest", that way it is more appropriate, so we can comment out crap whenever we need to
-
-    Unit* target = i_target.getTarget();
 
     bool mutualChase = IsMutualChase(owner, target);
     bool const mutualTarget = target->GetVictim() == owner;

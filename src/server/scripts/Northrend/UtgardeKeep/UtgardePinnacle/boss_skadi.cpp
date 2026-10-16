@@ -409,10 +409,14 @@ public:
 
         void CheckPlayers()
         {
-            Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-            for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                if (itr->GetSource()->GetPositionY() > -490.0f || itr->GetSource()->IsGameMaster() || !itr->GetSource()->IsAlive())
+                Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                    continue;
+                if (p->GetPositionY() > -490.0f || p->IsGameMaster() || !p->IsAlive())
                     continue;
 
                 return;

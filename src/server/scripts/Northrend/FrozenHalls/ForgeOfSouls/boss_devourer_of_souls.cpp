@@ -16,6 +16,7 @@
  */
 
 #include "CreatureScript.h"
+#include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
 #include "Spell.h"
@@ -132,17 +133,15 @@ public:
                 pInstance->SetData(DATA_DEVOURER, IN_PROGRESS);
 
             // Suport for Quest Tempering the Blade
-            Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-            for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
+            me->GetMap()->DoForAllPlayers([&](Player* player)
             {
-                Player* player = itr->GetSource();
                 if ((player->GetTeamId() == TEAM_ALLIANCE && player->GetQuestStatus(QUEST_TEMPERING_THE_BLADE_A) == QUEST_STATUS_INCOMPLETE) ||
                         (player->GetTeamId() == TEAM_HORDE && player->GetQuestStatus(QUEST_TEMPERING_THE_BLADE_H) == QUEST_STATUS_INCOMPLETE))
                 {
                     if (!me->FindNearestCreature(NPC_CRUCIBLE_OF_SOULS, 100.0f))
                         me->SummonCreature(NPC_CRUCIBLE_OF_SOULS, 5672.29f, 2520.69f, 713.44f, 0.96f);
                 }
-            }
+            });
         }
 
         void SpellHitTarget(Unit* target, SpellInfo const* spell) override

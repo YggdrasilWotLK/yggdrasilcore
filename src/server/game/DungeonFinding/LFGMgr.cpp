@@ -40,6 +40,8 @@
 #include "SpellAuras.h"
 #include "WorldSession.h"
 
+#include <memory>
+
 namespace lfg
 {
     LFGMgr::LFGMgr(): m_lfgProposalId(1), m_options(sWorld->getIntConfig(CONFIG_LFG_OPTIONSMASK)), m_Testing(false)
@@ -278,7 +280,11 @@ namespace lfg
 
     void LFGMgr::Update(uint32 tdiff, uint8 task)
     {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        // Task 0 manages its own per-item locks; tasks 1/2 keep the
+        // outer lock (matchmaking needs a consistent view).
+        std::unique_ptr<std::lock_guard<std::recursive_mutex>> outerLock;
+        if (task != 0)
+            outerLock = std::make_unique<std::lock_guard<std::recursive_mutex>>(*sGroupMgr->GetSocialLock());
         if (!isOptionEnabled(LFG_OPTION_ENABLE_DUNGEON_FINDER | LFG_OPTION_ENABLE_RAID_BROWSER | LFG_OPTION_ENABLE_SEASONAL_BOSSES))
             return;
 
@@ -286,13 +292,32 @@ namespace lfg
         {
             time_t currTime = GameTime::GetGameTime().count();
 
-            // Remove obsolete role checks
-            for (LfgRoleCheckContainer::iterator it = RoleChecksStore.begin(); it != RoleChecksStore.end();)
+            // Snapshot-then-act: collect expired entries under a short lock,
+            // process (packets + state) without holding it across sends.
+            std::vector<ObjectGuid> expiredRoleChecks;
+            std::vector<uint32> expiredProposals;
+            std::vector<ObjectGuid> expiredBoots;
             {
-                LfgRoleCheckContainer::iterator itRoleCheck = it++;
-                LfgRoleCheck& roleCheck = itRoleCheck->second;
-                if (currTime < roleCheck.cancelTime)
+                std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+                for (auto const& pair : RoleChecksStore)
+                    if (currTime >= pair.second.cancelTime)
+                        expiredRoleChecks.push_back(pair.first);
+                for (auto const& pair : ProposalsStore)
+                    if (pair.second.cancelTime < currTime)
+                        expiredProposals.push_back(pair.first);
+                for (auto const& pair : BootsStore)
+                    if (pair.second.cancelTime < currTime)
+                        expiredBoots.push_back(pair.first);
+            }
+
+            // Remove obsolete role checks
+            for (ObjectGuid const& roleCheckId : expiredRoleChecks)
+            {
+                std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+                LfgRoleCheckContainer::iterator itRoleCheck = RoleChecksStore.find(roleCheckId);
+                if (itRoleCheck == RoleChecksStore.end() || currTime < itRoleCheck->second.cancelTime)
                     continue;
+                LfgRoleCheck& roleCheck = itRoleCheck->second;
                 roleCheck.state = LFG_ROLECHECK_MISSING_ROLE;
 
                 for (LfgRolesMap::const_iterator itRoles = roleCheck.roles.begin(); itRoles != roleCheck.roles.end(); ++itRoles)
@@ -309,31 +334,32 @@ namespace lfg
             }
 
             // Remove obsolete proposals
-            for (LfgProposalContainer::iterator it = ProposalsStore.begin(); it != ProposalsStore.end();)
+            for (uint32 proposalId : expiredProposals)
             {
-                LfgProposalContainer::iterator itRemove = it++;
-                if (itRemove->second.cancelTime < currTime)
+                std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+                LfgProposalContainer::iterator itRemove = ProposalsStore.find(proposalId);
+                if (itRemove != ProposalsStore.end() && itRemove->second.cancelTime < currTime)
                     RemoveProposal(itRemove, LFG_UPDATETYPE_PROPOSAL_FAILED);
             }
 
             // Remove obsolete kicks
-            for (LfgPlayerBootContainer::iterator it = BootsStore.begin(); it != BootsStore.end();)
+            for (ObjectGuid const& bootId : expiredBoots)
             {
-                LfgPlayerBootContainer::iterator itBoot = it++;
+                std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+                LfgPlayerBootContainer::iterator itBoot = BootsStore.find(bootId);
+                if (itBoot == BootsStore.end() || itBoot->second.cancelTime >= currTime)
+                    continue;
                 LfgPlayerBoot& boot = itBoot->second;
-                if (boot.cancelTime < currTime)
+                boot.inProgress = false;
+                for (LfgAnswerContainer::const_iterator itVotes = boot.votes.begin(); itVotes != boot.votes.end(); ++itVotes)
                 {
-                    boot.inProgress = false;
-                    for (LfgAnswerContainer::const_iterator itVotes = boot.votes.begin(); itVotes != boot.votes.end(); ++itVotes)
-                    {
-                        ObjectGuid pguid = itVotes->first;
-                        if (pguid != boot.victim)
-                            SendLfgBootProposalUpdate(pguid, boot);
-                        SetState(pguid, LFG_STATE_DUNGEON);
-                    }
-                    SetState(itBoot->first, LFG_STATE_DUNGEON);
-                    BootsStore.erase(itBoot);
+                    ObjectGuid pguid = itVotes->first;
+                    if (pguid != boot.victim)
+                        SendLfgBootProposalUpdate(pguid, boot);
+                    SetState(pguid, LFG_STATE_DUNGEON);
                 }
+                SetState(itBoot->first, LFG_STATE_DUNGEON);
+                BootsStore.erase(itBoot);
             }
         }
         else if (task == 1)
@@ -642,9 +668,14 @@ namespace lfg
                 else
                 {
                     uint8 memberCount = 0;
-                    for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr && joinData.result == LFG_JOIN_OK; itr = itr->next())
+                    std::vector<ObjectGuid> guids = grp->GetMemberGUIDs();
+                    for (ObjectGuid const& memberGuid : guids)
                     {
-                        if (Player* plrg = itr->GetSource())
+                        if (joinData.result != LFG_JOIN_OK)
+                            break;
+                        Player* plrg = ObjectAccessor::FindPlayer(memberGuid);
+                        if (!plrg || !plrg->IsInWorld())
+                            continue;
                         {
                             if (plrg->HasAura(LFG_SPELL_DUNGEON_DESERTER))
                             {
@@ -675,10 +706,17 @@ namespace lfg
                     joinData.result = LFG_JOIN_RANDOM_COOLDOWN;
                 else if (grp)
                 {
-                    for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr && joinData.result == LFG_JOIN_OK; itr = itr->next())
-                        if (Player* plrg = itr->GetSource())
-                            if (plrg->HasAura(LFG_SPELL_DUNGEON_COOLDOWN)) // xinef: added !isContinue
-                                joinData.result = LFG_JOIN_PARTY_RANDOM_COOLDOWN;
+                    std::vector<ObjectGuid> cooldownGuids = grp->GetMemberGUIDs();
+                    for (ObjectGuid const& memberGuid : cooldownGuids)
+                    {
+                        if (joinData.result != LFG_JOIN_OK)
+                            break;
+                        Player* plrg = ObjectAccessor::FindPlayer(memberGuid);
+                        if (!plrg || !plrg->IsInWorld())
+                            continue;
+                        if (plrg->HasAura(LFG_SPELL_DUNGEON_COOLDOWN)) // xinef: added !isContinue
+                            joinData.result = LFG_JOIN_PARTY_RANDOM_COOLDOWN;
+                    }
                 }
             }
         }
@@ -761,9 +799,12 @@ namespace lfg
             SetState(gguid, LFG_STATE_ROLECHECK);
             // Send update to player
             LfgUpdateData updateData = LfgUpdateData(LFG_UPDATETYPE_JOIN_QUEUE, dungeons, comment);
-            for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
+            std::vector<ObjectGuid> roleGuids = grp->GetMemberGUIDs();
+            for (ObjectGuid const& memberGuid : roleGuids)
             {
-                if (Player* plrg = itr->GetSource())
+                Player* plrg = ObjectAccessor::FindPlayer(memberGuid);
+                if (!plrg || !plrg->IsInWorld())
+                    continue;
                 {
                     ObjectGuid pguid = plrg->GetGUID();
                     plrg->GetSession()->SendLfgUpdateParty(updateData);
@@ -1716,9 +1757,12 @@ namespace lfg
         // Select a player inside to be teleported to
         WorldLocation const* teleportLocation = nullptr;
         bool leaderTeleportIncluded = false;
-        for (GroupReference* itr = grp->GetFirstMember(); itr != nullptr; itr = itr->next())
+        std::vector<ObjectGuid> teleportGuids = grp->GetMemberGUIDs();
+        for (ObjectGuid const& guid : teleportGuids)
         {
-            if (Player* plr = itr->GetSource())
+            Player* plr = ObjectAccessor::FindPlayer(guid);
+            if (!plr || !plr->IsInWorld())
+                continue;
             {
                 if (grp->IsLeader(plr->GetGUID()) && playersToTeleport.find(plr->GetGUID()) != playersToTeleport.end())
                 {
@@ -2443,21 +2487,21 @@ namespace lfg
         return roles;
     }
 
-    const std::string& LFGMgr::GetComment(ObjectGuid guid)
+    std::string LFGMgr::GetComment(ObjectGuid guid)
     {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         LOG_DEBUG("lfg", "LFGMgr::GetComment: [{}] = {}", guid.ToString(), PlayersStore[guid].GetComment());
         return PlayersStore[guid].GetComment();
     }
 
-    LfgDungeonSet const& LFGMgr::GetSelectedDungeons(ObjectGuid guid)
+    LfgDungeonSet LFGMgr::GetSelectedDungeons(ObjectGuid guid)
     {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         LOG_DEBUG("lfg", "LFGMgr::GetSelectedDungeons: [{}]", guid.ToString());
         return PlayersStore[guid].GetSelectedDungeons();
     }
 
-    LfgLockMap const& LFGMgr::GetLockedDungeons(ObjectGuid guid)
+    LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
     {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         LOG_DEBUG("lfg", "LFGMgr::GetLockedDungeons: [{}]", guid.ToString());
@@ -2656,7 +2700,7 @@ namespace lfg
         PlayersStore[guid].SetGroup(group);
     }
 
-    LfgGuidSet const& LFGMgr::GetPlayers(ObjectGuid guid)
+    LfgGuidSet LFGMgr::GetPlayers(ObjectGuid guid)
     {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         return GroupsStore[guid].GetPlayers();

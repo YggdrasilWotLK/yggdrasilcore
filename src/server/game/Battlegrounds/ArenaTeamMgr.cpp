@@ -50,11 +50,26 @@ ArenaTeamMgr* ArenaTeamMgr::instance()
 ArenaTeam* ArenaTeamMgr::GetArenaTeamById(uint32 arenaTeamId) const
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return GetArenaTeamByIdLocked(arenaTeamId);
+}
+
+ArenaTeam* ArenaTeamMgr::GetArenaTeamByIdLocked(uint32 arenaTeamId) const
+{
     ArenaTeamContainer::const_iterator itr = ArenaTeamStore.find(arenaTeamId);
     if (itr != ArenaTeamStore.end())
         return itr->second;
 
     return nullptr;
+}
+
+std::vector<uint32> ArenaTeamMgr::GetArenaTeamIdsSnapshot() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<uint32> ids;
+    ids.reserve(ArenaTeamStore.size());
+    for (auto const& pair : ArenaTeamStore)
+        ids.push_back(pair.first);
+    return ids;
 }
 
 ArenaTeam* ArenaTeamMgr::GetArenaTeamByName(const std::string& arenaTeamName) const

@@ -49,7 +49,7 @@ public:
     static void LoadChannels();
 
     static void LoadChannelRights();
-    static const ChannelRights& GetChannelRightsFor(const std::string& name);
+    static ChannelRights GetChannelRightsFor(const std::string& name);
     static void SetChannelRightsFor(const std::string& name, const uint32& flags, const uint32& speakDelay, const std::string& joinmessage, const std::string& speakmessage, const std::set<uint32>& moderators);
     static uint32 _channelIdMax;
 
@@ -60,6 +60,7 @@ private:
     mutable std::mutex _channelsLock;
     TeamId _teamId;
     static ChannelRightsMap channels_rights;
+    static std::mutex _channelRightsLock;
     static ChannelRights channelRightsEmpty; // when not found in the map, reference to this is returned
 
     void MakeNotOnPacket(WorldPacket* data, std::string const& name);

@@ -171,6 +171,12 @@ void GameObject::RemoveFromWorld()
     ///- Remove the gameobject from the accessor
     if (IsInWorld())
     {
+        // Unlink from findable stores first: reentrant Find* calls in the
+        // teardown below must not observe a half-removed object.
+        if (m_spawnId)
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this); }
+        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID()); }
+
         sScriptMgr->OnGameObjectRemoveWorld(this);
 
         if (m_zoneScript)
@@ -192,10 +198,6 @@ void GameObject::RemoveFromWorld()
         }
 
         WorldObject::RemoveFromWorld();
-
-        if (m_spawnId)
-            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this); }
-        { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID()); }
     }
 }
 
@@ -1653,14 +1655,16 @@ void GameObject::Use(Unit* user)
 
                     if (Group* group = player->GetGroup())
                     {
-                        for (GroupReference const* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+                        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                        for (ObjectGuid const& guid : guids)
                         {
-                            if (Player* member = itr->GetSource())
+                            Player* member = ObjectAccessor::FindPlayer(guid);
+                            if (!member || !member->IsInWorld())
+                                continue;
+
+                            if (member->IsAtGroupRewardDistance(this))
                             {
-                                if (member->IsAtGroupRewardDistance(this))
-                                {
-                                    member->KillCreditGO(info->entry, GetGUID());
-                                }
+                                member->KillCreditGO(info->entry, GetGUID());
                             }
                         }
                     }
@@ -2662,7 +2666,8 @@ void GameObject::SetLootRecipient(Map* map)
     for (ObjectGuid const& playerGuid : guids)
     {
         Player* groupMember = ObjectAccessor::FindPlayer(playerGuid);
-        if (groupMember && groupMember->GetMap() == map)
+        if (!groupMember || !groupMember->IsInWorld() || groupMember->GetMap() != map)
+            continue;
         {
             if (groupMember->IsGameMaster() || groupMember->IsSpectator())
             {

@@ -40,6 +40,8 @@
 #include "GameTime.h"
 #include "Map.h"
 #include "MapMgr.h"
+
+#include <vector>
 #include "MiscPackets.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
@@ -101,30 +103,50 @@ void BattlegroundMgr::DeleteAllBattlegrounds()
 // used to update running battlegrounds, and delete finished ones
 void BattlegroundMgr::Update(uint32 diff)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    // update all battlegrounds and delete if needed
-    for (auto& [_, bgData] : bgDataStore)
+    // Snapshot BGs under lock, tick them without it, re-lock only to
+    // erase/delete flagged instances (deletion happens only here).
+    std::vector<Battleground*> tickList;
     {
-        auto& bgList = bgData._Battlegrounds;
-        auto itrDelete = bgList.begin();
-
-        // first one is template and should not be deleted
-        for (BattlegroundContainer::iterator itr = ++itrDelete; itr != bgList.end();)
+        std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        for (auto& [_, bgData] : bgDataStore)
         {
-            itrDelete = itr++;
-            Battleground* bg = itrDelete->second;
+            auto& bgList = bgData._Battlegrounds;
+            // first one is template and must not be ticked
+            for (auto itr = std::next(bgList.begin()); itr != bgList.end(); ++itr)
+                if (itr->second)
+                    tickList.push_back(itr->second);
+        }
+    }
 
+    for (Battleground* bg : tickList)
+        if (!bg->ToBeDeleted())
             bg->Update(diff);
-            if (bg->ToBeDeleted())
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        // delete flagged battlegrounds
+        for (auto& [_, bgData] : bgDataStore)
+        {
+            auto& bgList = bgData._Battlegrounds;
+            auto itrDelete = bgList.begin();
+
+            // first one is template and should not be deleted
+            for (BattlegroundContainer::iterator itr = ++itrDelete; itr != bgList.end();)
             {
-                itrDelete->second = nullptr;
-                bgList.erase(itrDelete);
+                itrDelete = itr++;
+                Battleground* bg = itrDelete->second;
 
-                BattlegroundClientIdsContainer& clients = bgData._ClientBattlegroundIds[bg->GetBracketId()];
-                if (!clients.empty())
-                    clients.erase(bg->GetClientInstanceID());
+                if (bg->ToBeDeleted())
+                {
+                    itrDelete->second = nullptr;
+                    bgList.erase(itrDelete);
 
-                delete bg;
+                    BattlegroundClientIdsContainer& clients = bgData._ClientBattlegroundIds[bg->GetBracketId()];
+                    if (!clients.empty())
+                        clients.erase(bg->GetClientInstanceID());
+
+                    delete bg;
+                }
             }
         }
     }
@@ -886,15 +908,14 @@ void BattlegroundMgr::LoadBattleMastersEntry()
 void BattlegroundMgr::CheckBattleMasters()
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    CreatureTemplateContainer const* ctc = sObjectMgr->GetCreatureTemplates();
-    for (CreatureTemplateContainer::const_iterator itr = ctc->begin(); itr != ctc->end(); ++itr)
+    sObjectMgr->ForEachCreatureTemplate([&](uint32 /*entry*/, CreatureTemplate const& t)
     {
-        if ((itr->second.npcflag & UNIT_NPC_FLAG_BATTLEMASTER) && mBattleMastersMap.find(itr->second.Entry) == mBattleMastersMap.end())
+        if ((t.npcflag & UNIT_NPC_FLAG_BATTLEMASTER) && mBattleMastersMap.find(t.Entry) == mBattleMastersMap.end())
         {
-            LOG_ERROR("sql.sql", "CreatureTemplate (Entry: {}) has UNIT_NPC_FLAG_BATTLEMASTER but no data in `battlemaster_entry` table. Removing flag!", itr->second.Entry);
-            const_cast<CreatureTemplate*>(&itr->second)->npcflag &= ~UNIT_NPC_FLAG_BATTLEMASTER;
+            LOG_ERROR("sql.sql", "CreatureTemplate (Entry: {}) has UNIT_NPC_FLAG_BATTLEMASTER but no data in `battlemaster_entry` table. Removing flag!", t.Entry);
+            const_cast<CreatureTemplate*>(&t)->npcflag &= ~UNIT_NPC_FLAG_BATTLEMASTER;
         }
-    }
+    });
 }
 
 HolidayIds BattlegroundMgr::BGTypeToWeekendHolidayId(BattlegroundTypeId bgTypeId)

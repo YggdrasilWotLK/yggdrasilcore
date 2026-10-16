@@ -211,12 +211,15 @@ struct boss_ahune : public BossAI
         if (Creature* ahuneBunny = instance->GetCreature(DATA_AHUNE_BUNNY))
             Unit::Kill(me, ahuneBunny);
 
-        Map::PlayerList const& players = me->GetMap()->GetPlayers();
-        if (!players.IsEmpty())
+        Map* snapMap = me->GetMap();
+        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+        if (!guids.empty())
         {
-            if (Group* group = players.begin()->GetSource()->GetGroup())
-                if (group->isLFGGroup())
-                    sLFGMgr->FinishDungeon(group->GetGUID(), 286, me->GetMap());
+            Player* firstPlayer = ObjectAccessor::FindPlayer(guids.front());
+            if (firstPlayer && firstPlayer->IsInWorld() && firstPlayer->GetMap() == snapMap)
+                if (Group* group = firstPlayer->GetGroup())
+                    if (group->isLFGGroup())
+                        sLFGMgr->FinishDungeon(group->GetGUID(), 286, snapMap);
         }
 
         _JustDied();

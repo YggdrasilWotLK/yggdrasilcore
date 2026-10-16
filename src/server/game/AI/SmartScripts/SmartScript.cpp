@@ -333,24 +333,26 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             {
                 if (me && me->FindMap())
                 {
-                    Map::PlayerList const& players = me->GetMap()->GetPlayers();
+                    Map* musicMap = me->GetMap();
+                    uint32 zoneId = me->GetZoneId();
+                    uint32 areaId = me->GetAreaId();
+                    std::vector<ObjectGuid> guids = musicMap->CopyPlayerGuids();
 
-                    if (!players.IsEmpty())
+                    for (ObjectGuid const& playerGuid : guids)
                     {
-                        for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
-                            if (Player* player = i->GetSource())
+                        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                        if (!player || !player->IsInWorld() || player->GetMap() != musicMap)
+                            continue;
+                        if (player->GetZoneId() == zoneId)
+                        {
+                            if (e.action.music.type > 1)
                             {
-                                if (player->GetZoneId() == me->GetZoneId())
-                                {
-                                    if (e.action.music.type > 1)
-                                    {
-                                        if (player->GetAreaId() == me->GetAreaId())
-                                            targets.push_back(player);
-                                    }
-                                    else
-                                        targets.push_back(player);
-                                }
+                                if (player->GetAreaId() == areaId)
+                                    targets.push_back(player);
                             }
+                            else
+                                targets.push_back(player);
+                        }
                     }
                 }
             }
@@ -379,24 +381,26 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             {
                 if (me && me->FindMap())
                 {
-                    Map::PlayerList const& players = me->GetMap()->GetPlayers();
+                    Map* musicMap = me->GetMap();
+                    uint32 zoneId = me->GetZoneId();
+                    uint32 areaId = me->GetAreaId();
+                    std::vector<ObjectGuid> guids = musicMap->CopyPlayerGuids();
 
-                    if (!players.IsEmpty())
+                    for (ObjectGuid const& playerGuid : guids)
                     {
-                        for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
-                            if (Player* player = i->GetSource())
+                        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                        if (!player || !player->IsInWorld() || player->GetMap() != musicMap)
+                            continue;
+                        if (player->GetZoneId() == zoneId)
+                        {
+                            if (e.action.randomMusic.type > 1)
                             {
-                                if (player->GetZoneId() == me->GetZoneId())
-                                {
-                                    if (e.action.randomMusic.type > 1)
-                                    {
-                                        if (player->GetAreaId() == me->GetAreaId())
-                                            targets.push_back(player);
-                                    }
-                                    else
-                                        targets.push_back(player);
-                                }
+                                if (player->GetAreaId() == areaId)
+                                    targets.push_back(player);
                             }
+                            else
+                                targets.push_back(player);
+                        }
                     }
                 }
             }
@@ -1263,13 +1267,20 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             {
                 if (me && !me->isDead())
                 {
-                    me->m_Events.AddEventAtOffset([&]
+                    ObjectGuid dieGuid = me->GetGUID();
+                    Map* dieMap = me->GetMap();
+                    me->m_Events.AddEventAtOffset([dieGuid, dieMap]
                         {
+                            // Resolve on fire: me may have despawned/unloaded since scheduling.
+                            if (!dieMap)
+                                return;
+                            Creature* target = dieMap->GetCreature(dieGuid);
+                            if (!target || target->isDead())
+                                return;
                             // We need to check again to see if we didn't die in the process.
-                            if (me && !me->isDead())
                             {
-                                me->KillSelf();
-                                LOG_DEBUG("sql.sql", "SmartScript::ProcessAction: SMART_ACTION_DIE: Creature {}", me->GetGUID().ToString());
+                                target->KillSelf();
+                                LOG_DEBUG("sql.sql", "SmartScript::ProcessAction: SMART_ACTION_DIE: Creature {}", target->GetGUID().ToString());
                             }
                         }, Milliseconds(e.action.die.milliseconds));
                 }
@@ -3533,8 +3544,12 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
                 {
                     if (Group* group = player->GetGroup())
                     {
-                        for (GroupReference* groupRef = group->GetFirstMember(); groupRef != nullptr; groupRef = groupRef->next())
-                            if (Player* member = groupRef->GetSource())
+                        std::vector<ObjectGuid> guids = group->GetMemberGUIDs();
+                        for (ObjectGuid const& guid : guids)
+                        {
+                            Player* member = ObjectAccessor::FindPlayer(guid);
+                            if (!member || !member->IsInWorld())
+                                continue;
                             {
                                 if (member->IsInMap(player))
                                     targets.push_back(member);
@@ -3544,6 +3559,7 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
                                         if (pet->IsPet() && pet->IsInMap(player))
                                             targets.push_back(pet);
                             }
+                        }
                     }
                     // We still add the player to the list if there is no group. If we do
                     // this even if there is a group (thus the else-check), it will add the
@@ -3951,9 +3967,12 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
             {
                 if (Group* lootGroup = me->GetLootRecipientGroup())
                 {
-                    for (GroupReference* it = lootGroup->GetFirstMember(); it != nullptr; it = it->next())
+                    std::vector<ObjectGuid> guids = lootGroup->GetMemberGUIDs();
+                    for (ObjectGuid const& guid : guids)
                     {
-                        if (Player* recipient = it->GetSource())
+                        Player* recipient = ObjectAccessor::FindPlayer(guid);
+                        if (!recipient || !recipient->IsInWorld())
+                            continue;
                         {
                             targets.push_back(recipient);
                         }
@@ -4987,6 +5006,12 @@ void SmartScript::OnUpdate(uint32 const diff)
 {
     if ((mScriptType == SMART_SCRIPT_TYPE_CREATURE || mScriptType == SMART_SCRIPT_TYPE_GAMEOBJECT) && !GetBaseObject())
         return;
+
+    // Base object may have despawned/unloaded since the last tick; running
+    // events against a dead object is a UAF. Abort the tick if it's gone.
+    if (WorldObject* base = GetBaseObject())
+        if (!base->IsInWorld())
+            return;
 
     InstallEvents();//before UpdateTimers
 

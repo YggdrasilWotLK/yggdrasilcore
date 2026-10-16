@@ -1449,10 +1449,17 @@ bool Group::CountRollVote(ObjectGuid playerGUID, ObjectGuid Guid, uint8 Choice)
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     if (m_disbanded)
         return false;
-    Rolls::iterator rollI = GetRoll(Guid);
+    Rolls::iterator rollI = RollId.end();
+    Roll* roll = nullptr;
+    for (Rolls::iterator it = RollId.begin(); it != RollId.end(); ++it)
+        if ((*it)->itemGUID == Guid && (*it)->isValid())
+        {
+            rollI = it;
+            roll = *it;
+            break;
+        }
     if (rollI == RollId.end())
         return false;
-    Roll* roll = *rollI;
 
     Roll::PlayerVote::iterator itr = roll->playerVote.find(playerGUID);
     // this condition means that player joins to the party after roll begins
@@ -2497,6 +2504,40 @@ Group::MemberSlotList Group::GetMemberSlots() const
     return m_memberSlots;
 }
 
+std::vector<ObjectGuid> Group::GetMemberGUIDs() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_memberSlots.size());
+    for (MemberSlot const& slot : m_memberSlots)
+        guids.push_back(slot.guid);
+    return guids;
+}
+
+uint32 Group::GetMembersCount() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_memberSlots.size();
+}
+
+uint32 Group::GetInviteeCount() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_invitees.size();
+}
+
+bool Group::IsDisbanded() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_disbanded;
+}
+
+ObjectGuid const Group::GetTargetIcon(uint8 id) const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_targetIcons[id];
+}
+
 Player* Group::GetLeader()
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
@@ -2509,10 +2550,10 @@ ObjectGuid Group::GetGUID() const
     return m_guid;
 }
 
-const char* Group::GetLeaderName() const
+std::string Group::GetLeaderName() const
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    return m_leaderName.c_str();
+    return m_leaderName;
 }
 
 LootMethod Group::GetLootMethod() const
@@ -2681,14 +2722,13 @@ bool Group::isRollLootActive() const
     return !RollId.empty();
 }
 
-Group::Rolls::iterator Group::GetRoll(ObjectGuid Guid)
+Optional<Roll> Group::GetRollCopy(ObjectGuid guid) const
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    Rolls::iterator iter;
-    for (iter = RollId.begin(); iter != RollId.end(); ++iter)
-        if ((*iter)->itemGUID == Guid && (*iter)->isValid())
-            return iter;
-    return RollId.end();
+    for (Roll* roll : RollId)
+        if (roll->itemGUID == guid && roll->isValid())
+            return Optional<Roll>(*roll);
+    return {};
 }
 
 void Group::LinkMember(GroupReference* pRef)

@@ -457,7 +457,7 @@ namespace lfg
         /// Check if given guid applied for given map and difficulty. Used to know
         bool inLfgDungeonMap(ObjectGuid guid, uint32 map, Difficulty difficulty);
         /// Get selected dungeons
-        LfgDungeonSet const& GetSelectedDungeons(ObjectGuid guid);
+        LfgDungeonSet GetSelectedDungeons(ObjectGuid guid);
         /// Get current lfg state
         LfgState GetState(ObjectGuid guid);
         /// Get current dungeon
@@ -477,7 +477,7 @@ namespace lfg
         /// Get current player roles
         uint8 GetRoles(ObjectGuid guid);
         /// Get current player comment (used for LFR)
-        std::string const& GetComment(ObjectGuid gguid);
+        std::string GetComment(ObjectGuid gguid);
         /// Gets current lfg options
         uint32 GetOptions();
         /// Sets new lfg options
@@ -513,7 +513,7 @@ namespace lfg
 
         // LFGHandler
         /// Get locked dungeons
-        LfgLockMap const& GetLockedDungeons(ObjectGuid guid);
+        LfgLockMap GetLockedDungeons(ObjectGuid guid);
         /// Returns current lfg status
         LfgUpdateData GetLfgStatus(ObjectGuid guid);
         /// Checks if Seasonal dungeon is active
@@ -598,6 +598,7 @@ namespace lfg
         void MakeNewGroup(LfgProposal const& proposal);
 
         // Generic
+        // Caller must hold GetSocialLock for the entire use; never store the reference.
         LFGQueue& GetQueue(ObjectGuid guid);
         LfgDungeonSet const& GetDungeonsByRandom(uint32 randomdungeon);
         LfgType GetDungeonType(uint32 dungeon);
@@ -610,7 +611,7 @@ namespace lfg
         void SendLfgUpdatePlayer(ObjectGuid guid, LfgUpdateData const& data);
         void SendLfgUpdateProposal(ObjectGuid guid, LfgProposal const& proposal);
 
-        LfgGuidSet const& GetPlayers(ObjectGuid guid);
+        LfgGuidSet GetPlayers(ObjectGuid guid);
 
         // General variables
         uint32 m_lfgProposalId;                            ///< used as internal counter for proposals

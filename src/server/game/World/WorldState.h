@@ -22,6 +22,7 @@
 #include "Player.h"
 #include "WorldStateDefines.h"
 #include <atomic>
+#include <mutex>
 
 enum WorldStateCondition
 {
@@ -199,7 +200,7 @@ struct ScourgeInvasionData
     uint32 m_lastAttackZone;
     uint32 m_remaining[SI_REMAINING_MAX];
     uint64 m_broadcastTimer;
-    std::mutex m_siMutex;
+    mutable std::recursive_mutex m_siMutex;
 
     std::set<uint32> m_pendingInvasions;
     std::set<uint32> m_pendingPallids;
@@ -265,7 +266,7 @@ struct SunsReachReclamationData
     uint32 m_subphaseMask;
     uint32 m_sunsReachReclamationCounters[COUNTERS_MAX];
     GuidVector m_sunsReachReclamationPlayers;
-    std::mutex m_sunsReachReclamationMutex;
+    mutable std::recursive_mutex m_sunsReachReclamationMutex;
     uint32 m_gate;
     uint32 m_gateCounters[COUNTERS_MAX_GATES];
     SunsReachReclamationData() : m_phase(SUNS_REACH_PHASE_1_STAGING_AREA), m_subphaseMask(0), m_gate(SUNWELL_ALL_GATES_CLOSED)
@@ -310,7 +311,7 @@ class WorldState
     private:
         typedef std::map<uint32, uint64> WorldStatesMap;
         WorldStatesMap _worldstates;
-        void SendWorldstateUpdate(std::mutex& mutex, GuidVector const& guids, uint32 value, uint32 worldStateId);
+        void SendWorldstateUpdate(std::recursive_mutex& mutex, GuidVector const& guids, uint32 value, uint32 worldStateId);
         void StopSunsReachPhase(bool forward);
         void StartSunsReachPhase(bool initial = false);
         void StartSunwellGatePhase();

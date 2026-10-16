@@ -1648,14 +1648,19 @@ struct npc_coren_direbrew : public ScriptedAI
         _events.Reset();
         _summons.DespawnAll();
 
-        Map::PlayerList const& players = me->GetMap()->GetPlayers();
-        if (!players.IsEmpty())
+        Map* snapMap = me->GetMap();
+        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+        if (!guids.empty())
         {
-            if (Group* group = players.begin()->GetSource()->GetGroup())
+            Player* firstPlayer = ObjectAccessor::FindPlayer(guids.front());
+            if (firstPlayer && firstPlayer->IsInWorld() && firstPlayer->GetMap() == snapMap)
             {
-                if (group->isLFGGroup())
+                if (Group* group = firstPlayer->GetGroup())
                 {
-                    sLFGMgr->FinishDungeon(group->GetGUID(), 287, me->GetMap());
+                    if (group->isLFGGroup())
+                    {
+                        sLFGMgr->FinishDungeon(group->GetGUID(), 287, snapMap);
+                    }
                 }
             }
         }

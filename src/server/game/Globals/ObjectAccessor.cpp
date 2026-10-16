@@ -107,6 +107,13 @@ namespace PlayerNameMapHolder
         PlayerNameMap.erase(name);
     }
 
+    void UpdateReference(std::string const& oldname, Player* p)
+    {
+        std::unique_lock<std::shared_mutex> lock(PlayerNameMapLock);
+        PlayerNameMap.erase(oldname);
+        PlayerNameMap[p->GetName()] = p;
+    }
+
     Player* Find(std::string const& name)
     {
         std::string charName(name);
@@ -355,6 +362,5 @@ void ObjectAccessor::RemoveObject(Player* player)
 
 void ObjectAccessor::UpdatePlayerNameMapReference(std::string oldname, Player* player)
 {
-    PlayerNameMapHolder::RemoveByName(oldname);
-    PlayerNameMapHolder::Insert(player);
+    PlayerNameMapHolder::UpdateReference(oldname, player);
 }

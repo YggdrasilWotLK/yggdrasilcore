@@ -16,10 +16,13 @@
  */
 
 #include "GroupMgr.h"
+#include "Battleground.h"
 #include "Common.h"
 #include "DBCStores.h"
 #include "InstanceSaveMgr.h"
 #include "Log.h"
+#include "ObjectAccessor.h"
+#include "Player.h"
 #include "World.h"
 
 GroupMgr::GroupMgr()
@@ -121,6 +124,28 @@ void GroupMgr::DestroyGroup(Group* group)
     for (auto const& entry : _groupGraveyard)
         if (entry.first == group)
             return; // already a zombie
+    // Clear stale holders while alive (invite-only groups may skip Disband).
+    std::vector<ObjectGuid> memberGuids;
+    memberGuids.reserve(group->m_memberSlots.size());
+    for (Group::MemberSlot const& slot : group->m_memberSlots)
+        memberGuids.push_back(slot.guid);
+    std::vector<Player*> invitees(group->m_invitees.begin(), group->m_invitees.end());
+    Battleground* bgGroup = group->m_bgGroup;
+    for (ObjectGuid const& guid : memberGuids)
+        if (Player* player = ObjectAccessor::FindPlayer(guid))
+            if (player->GetGroup() == group)
+                player->SetGroup(nullptr);
+    for (Player* invited : invitees)
+        if (invited && invited->GetGroupInvite() == group)
+            invited->SetGroupInvite(nullptr);
+    if (bgGroup)
+    {
+        if (bgGroup->GetBgRaid(TEAM_ALLIANCE) == group)
+            bgGroup->SetBgRaid(TEAM_ALLIANCE, nullptr);
+        if (bgGroup->GetBgRaid(TEAM_HORDE) == group)
+            bgGroup->SetBgRaid(TEAM_HORDE, nullptr);
+    }
+
     GroupStore.erase(group->GetGUID().GetCounter());
     group->MarkDisbanded();
     _groupGraveyard.emplace_back(group, getMSTime());

@@ -860,16 +860,14 @@ public:
                 std::list<Creature*> crushers;
                 me->GetCreaturesWithEntryInRange(crushers, 500.0f, NPC_ANUB_AR_CRUSHER);
 
-                Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
                 for (Creature* crusher : crushers)
                 {
                     if (!crusher->IsAlive() || crusher->IsInCombat())
                         continue;
-                    for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+                    me->GetMap()->DoForAllPlayers([&](Player* player)
                     {
-                        Player* player = itr->GetSource();
-                        if (!player || !player->IsAlive() || player->IsGameMaster())
-                            continue;
+                        if (!player->IsAlive() || player->IsGameMaster())
+                            return;
                         float z = player->GetPositionZ();
                         float y = player->GetPositionY();
                         if (y < GAUNTLET_MAX_Y && z > GAUNTLET_END_Z)
@@ -877,7 +875,7 @@ public:
                             crusher->AI()->AttackStart(player);
                             crusher->AddThreat(player, 1.0f);
                         }
-                    }
+                    });
                 }
             }
             if (index == 7)
@@ -1046,11 +1044,14 @@ public:
 
         bool AnyPlayerBelowWalkTrigger() const
         {
-            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                Player* player = itr->GetSource();
-                if (!player || player->IsGameMaster())
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                    continue;
+                if (player->IsGameMaster())
                     continue;
                 if (player->GetPositionY() < GAUNTLET_MAX_Y && player->GetPositionZ() > GAUNTLET_END_Z && player->GetPositionZ() < GAUNTLET_START_Z)
                     return true;
@@ -1060,11 +1061,14 @@ public:
 
         bool AnyPlayerInHadronoxUpperGauntlet() const
         {
-            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                Player* player = itr->GetSource();
-                if (!player || player->IsGameMaster())
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                    continue;
+                if (player->IsGameMaster())
                     continue;
                 float z = player->GetPositionZ();
                 if (player->IsAlive() && z > GAUNTLET_END_Z && z < 785.0f)
@@ -1075,11 +1079,14 @@ public:
 
         bool AnyPlayerInHadronoxGauntlet() const
         {
-            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                Player* player = itr->GetSource();
-                if (!player || player->IsGameMaster())
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                    continue;
+                if (player->IsGameMaster())
                     continue;
                 float z = player->GetPositionZ();
                 float y = player->GetPositionY();
@@ -1091,10 +1098,16 @@ public:
 
         bool AnyPlayerValid() const
         {
-            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
-                if (me->GetDistance(itr->GetSource()) < 130.0f && itr->GetSource()->IsAlive() && !itr->GetSource()->IsGameMaster() && me->CanCreatureAttack(itr->GetSource()))
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                    continue;
+                if (me->GetDistance(player) < 130.0f && player->IsAlive() && !player->IsGameMaster() && me->CanCreatureAttack(player))
                     return true;
+            }
 
             return false;
         }
@@ -1105,11 +1118,14 @@ public:
             {
                 std::list<Unit*> targets;
 
-                Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-                for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+                Map* snapMap = me->GetMap();
+                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
                 {
-                    Player* player = itr->GetSource();
-                    if (!player || !player->IsAlive() || player->IsGameMaster())
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                        continue;
+                    if (!player->IsAlive() || player->IsGameMaster())
                         continue;
                     if (!IsValidSpellTarget(me, player))
                         continue;
@@ -1194,12 +1210,10 @@ public:
                         {
                             _reachedFinalWaypoint = true;
                             _leashPos = me->GetPosition();
-                            Map::PlayerList const& playerList = me->GetMap()->GetPlayers();
-                            for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+                            me->GetMap()->DoForAllPlayers([&](Player* player)
                             {
-                                Player* player = itr->GetSource();
-                                if (!player || !player->IsAlive() || player->IsGameMaster())
-                                    continue;
+                                if (!player->IsAlive() || player->IsGameMaster())
+                                    return;
                                 float z = player->GetPositionZ();
                                 float y = player->GetPositionY();
                                 if (y < GAUNTLET_MAX_Y && z > GAUNTLET_END_Z)
@@ -1208,7 +1222,7 @@ public:
                                     me->SetInCombatWith(player);
                                     player->SetInCombatWith(me);
                                 }
-                            }
+                            });
                         }
                     }
                     else if (!_waitingForNextStep)

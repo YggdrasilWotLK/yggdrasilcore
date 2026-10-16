@@ -233,33 +233,35 @@ void ArenaSpectator::HandleResetCommand(Player* player)
     if (!bg || bg->GetStatus() != STATUS_IN_PROGRESS)
         return;
 
-    Battleground::BattlegroundPlayerMap const& pl = bg->GetPlayers();
-    for (Battleground::BattlegroundPlayerMap::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
+    std::vector<ObjectGuid> snapshot = bg->GetPlayerGUIDs();
+    for (ObjectGuid const& guid : snapshot)
     {
-        if (player->HasReceivedSpectatorResetFor(itr->first))
+        if (player->HasReceivedSpectatorResetFor(guid))
             continue;
 
-        Player* plr = itr->second;
-        player->AddReceivedSpectatorResetFor(itr->first);
+        Player* plr = ObjectAccessor::FindPlayer(guid);
+        if (!plr || !plr->IsInWorld())
+            continue;
+        player->AddReceivedSpectatorResetFor(guid);
 
-        SendCommand_String(player, itr->first, "NME", plr->GetName().c_str());
+        SendCommand_String(player, guid, "NME", plr->GetName().c_str());
         // Xinef: addon compatibility
-        SendCommand_UInt32Value(player, itr->first, "TEM", plr->GetBgTeamId() == TEAM_ALLIANCE ? ALLIANCE : HORDE);
-        SendCommand_UInt32Value(player, itr->first, "CLA", plr->getClass());
-        SendCommand_UInt32Value(player, itr->first, "MHP", plr->GetMaxHealth());
-        SendCommand_UInt32Value(player, itr->first, "CHP", plr->GetHealth());
-        SendCommand_UInt32Value(player, itr->first, "STA", plr->IsAlive() ? 1 : 0);
+        SendCommand_UInt32Value(player, guid, "TEM", plr->GetBgTeamId() == TEAM_ALLIANCE ? ALLIANCE : HORDE);
+        SendCommand_UInt32Value(player, guid, "CLA", plr->getClass());
+        SendCommand_UInt32Value(player, guid, "MHP", plr->GetMaxHealth());
+        SendCommand_UInt32Value(player, guid, "CHP", plr->GetHealth());
+        SendCommand_UInt32Value(player, guid, "STA", plr->IsAlive() ? 1 : 0);
         Powers ptype = plr->getPowerType();
-        SendCommand_UInt32Value(player, itr->first, "PWT", ptype);
-        SendCommand_UInt32Value(player, itr->first, "MPW", ptype == POWER_RAGE || ptype == POWER_RUNIC_POWER ? plr->GetMaxPower(ptype) / 10 : plr->GetMaxPower(ptype));
-        SendCommand_UInt32Value(player, itr->first, "CPW", ptype == POWER_RAGE || ptype == POWER_RUNIC_POWER ? plr->GetPower(ptype) / 10 : plr->GetPower(ptype));
+        SendCommand_UInt32Value(player, guid, "PWT", ptype);
+        SendCommand_UInt32Value(player, guid, "MPW", ptype == POWER_RAGE || ptype == POWER_RUNIC_POWER ? plr->GetMaxPower(ptype) / 10 : plr->GetMaxPower(ptype));
+        SendCommand_UInt32Value(player, guid, "CPW", ptype == POWER_RAGE || ptype == POWER_RUNIC_POWER ? plr->GetPower(ptype) / 10 : plr->GetPower(ptype));
         Pet* pet = plr->GetPet();
-        SendCommand_UInt32Value(player, itr->first, "PHP", pet && pet->GetCreatureTemplate()->family ? (uint32)pet->GetHealthPct() : 0);
-        SendCommand_UInt32Value(player, itr->first, "PET", pet ? pet->GetCreatureTemplate()->family : 0);
-        SendCommand_GUID(player, itr->first, "TRG", plr->GetTarget());
-        SendCommand_UInt32Value(player, itr->first, "RES", 1);
-        SendCommand_UInt32Value(player, itr->first, "CDC", 1);
-        SendCommand_UInt32Value(player, itr->first, "TIM", (bg->GetStartTime() < 46 * MINUTE * IN_MILLISECONDS) ? (46 * MINUTE * IN_MILLISECONDS - bg->GetStartTime()) / IN_MILLISECONDS : 0);
+        SendCommand_UInt32Value(player, guid, "PHP", pet && pet->GetCreatureTemplate()->family ? (uint32)pet->GetHealthPct() : 0);
+        SendCommand_UInt32Value(player, guid, "PET", pet ? pet->GetCreatureTemplate()->family : 0);
+        SendCommand_GUID(player, guid, "TRG", plr->GetTarget());
+        SendCommand_UInt32Value(player, guid, "RES", 1);
+        SendCommand_UInt32Value(player, guid, "CDC", 1);
+        SendCommand_UInt32Value(player, guid, "TIM", (bg->GetStartTime() < 46 * MINUTE * IN_MILLISECONDS) ? (46 * MINUTE * IN_MILLISECONDS - bg->GetStartTime()) / IN_MILLISECONDS : 0);
         // "SPE" not here (only possible to send starting a new cast)
 
         // send all "CD"
@@ -267,7 +269,7 @@ void ArenaSpectator::HandleResetCommand(Player* player)
         for (SpellCooldowns::const_iterator itrc = sc.begin(); itrc != sc.end(); ++itrc)
             if (itrc->second.sendToSpectator && itrc->second.maxduration >= SPECTATOR_COOLDOWN_MIN * IN_MILLISECONDS && itrc->second.maxduration <= SPECTATOR_COOLDOWN_MAX * IN_MILLISECONDS)
                 if (uint32 cd = (getMSTimeDiff(getMSTime(), itrc->second.end) / 1000))
-                    SendCommand_Cooldown(player, itr->first, "ACD", itrc->first, cd, itrc->second.maxduration / 1000);
+                    SendCommand_Cooldown(player, guid, "ACD", itrc->first, cd, itrc->second.maxduration / 1000);
 
         // send all visible "AUR"
         Unit::VisibleAuraMap const* visibleAuras = plr->GetVisibleAuras();
@@ -275,7 +277,7 @@ void ArenaSpectator::HandleResetCommand(Player* player)
         {
             Aura* aura = aitr->second->GetBase();
             if (ShouldSendAura(aura, aitr->second->GetEffectMask(), plr->GetGUID(), false))
-                SendCommand_Aura(player, itr->first, "AUR", aura->GetCasterGUID(), aura->GetSpellInfo()->Id, aura->GetSpellInfo()->IsPositive(), aura->GetSpellInfo()->Dispel, aura->GetDuration(), aura->GetMaxDuration(), (aura->GetCharges() > 1 ? aura->GetCharges() : aura->GetStackAmount()), false);
+                SendCommand_Aura(player, guid, "AUR", aura->GetCasterGUID(), aura->GetSpellInfo()->Id, aura->GetSpellInfo()->IsPositive(), aura->GetSpellInfo()->Dispel, aura->GetDuration(), aura->GetMaxDuration(), (aura->GetCharges() > 1 ? aura->GetCharges() : aura->GetStackAmount()), false);
         }
     }
 }

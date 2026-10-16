@@ -197,14 +197,19 @@ struct npc_kiljaeden_controller : public NullCreatureAI
             instance->SetBossState(DATA_KILJAEDEN, IN_PROGRESS);
 
             scheduler.Schedule(1s, [this](TaskContext context) {
-                auto const& playerList = me->GetMap()->GetPlayers();
-                for (auto const& playerRef : playerList)
-                    if (Player* player = playerRef.GetSource())
-                        if (!player->IsGameMaster() && me->GetDistance2d(player) < 60.0f && player->IsAlive())
-                        {
-                            context.Repeat();
-                            return;
-                        }
+                Map* snapMap = me->GetMap();
+                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                for (ObjectGuid const& playerGuid : guids)
+                {
+                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                        continue;
+                    if (!player->IsGameMaster() && me->GetDistance2d(player) < 60.0f && player->IsAlive())
+                    {
+                        context.Repeat();
+                        return;
+                    }
+                }
 
                 CreatureAI::EnterEvadeMode();
             });

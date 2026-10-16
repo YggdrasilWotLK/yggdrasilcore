@@ -1110,16 +1110,10 @@ public:
 
         void UpdateWorldState(Map* map, uint32 id, uint32 state)
         {
-            Map::PlayerList const& players = map->GetPlayers();
-
-            if (!players.IsEmpty())
+            map->DoForAllPlayers([&](Player* player)
             {
-                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                {
-                    if (Player* player = itr->GetSource())
-                        player->SendUpdateWorldState(id, state);
-                }
-            }
+                player->SendUpdateWorldState(id, state);
+            });
         }
 
         void SetHoldState(bool bOnHold)
@@ -1963,10 +1957,13 @@ public:
                                     (*itr)->DespawnOrUnsummon();
                             if (Map* map = me->GetMap())
                             {
-                                Map::PlayerList const& PlayerList = map->GetPlayers();
-                                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                                Map* snapMap = map;
+                                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                                for (ObjectGuid const& playerGuid : guids)
                                 {
-                                    if (Player* player = i->GetSource())
+                                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
+                                        continue;
                                     {
                                         if (me->IsInRange(player, 0.0f, 50.0f))
                                         {
@@ -2487,16 +2484,10 @@ public:
 
         void UpdateWorldState(Map* map, uint32 id, uint32 state)
         {
-            Map::PlayerList const& players = map->GetPlayers();
-
-            if (!players.IsEmpty())
+            map->DoForAllPlayers([&](Player* player)
             {
-                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                {
-                    if (Player* player = itr->GetSource())
-                        player->SendUpdateWorldState(id, state);
-                }
-            }
+                player->SendUpdateWorldState(id, state);
+            });
         }
 
         void SetHoldState(bool bOnHold)
@@ -3829,23 +3820,19 @@ public:
                                 saurfang->AI()->Talk(SAY_SAURFANG_ARRIVAL_3);
                             if (Map* map = me->GetMap())
                             {
-                                Map::PlayerList const& PlayerList = map->GetPlayers();
-                                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                                map->DoForAllPlayers([&](Player* player)
                                 {
-                                    if (Player* player = i->GetSource())
+                                    if (me->IsInRange(player, 0.0f, 50.0f))
                                     {
-                                        if (me->IsInRange(player, 0.0f, 50.0f))
+                                        if (player->GetTeamId() == TEAM_HORDE)
                                         {
-                                            if (player->GetTeamId() == TEAM_HORDE)
-                                            {
-                                                player->RemoveAura(SPELL_SYLVANAS_BUFF);
-                                                player->RemoveAura(SPELL_THRALL_BUFF);
-                                                player->CompleteQuest(QUEST_BATTLE_H);
-                                                player->CastSpell(player, SPELL_PHASING_HORDE);
-                                            }
+                                            player->RemoveAura(SPELL_SYLVANAS_BUFF);
+                                            player->RemoveAura(SPELL_THRALL_BUFF);
+                                            player->CompleteQuest(QUEST_BATTLE_H);
+                                            player->CastSpell(player, SPELL_PHASING_HORDE);
                                         }
                                     }
-                                }
+                                });
                             }
                             JumpToNextStep(5 * IN_MILLISECONDS);
                             break;

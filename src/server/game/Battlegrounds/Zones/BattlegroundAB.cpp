@@ -577,11 +577,14 @@ void BattlegroundAB::ApplyPhaseMask()
         if (_capturePointInfo[i]._ownerTeamId != TEAM_NEUTRAL)
             phaseMask |= 1 << (i * 2 + 1 + _capturePointInfo[i]._ownerTeamId);
 
-    const BattlegroundPlayerMap& bgPlayerMap = GetPlayers();
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
 
-    for (auto const& itr : bgPlayerMap)
+    for (ObjectGuid const& playerGuid : guids)
     {
-        itr.second->SetPhaseMask(phaseMask, false);
-        itr.second->UpdateObjectVisibility(true, false);
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld())
+            continue;
+        listed->SetPhaseMask(phaseMask, false);
+        listed->UpdateObjectVisibility(true, false);
     }
 }

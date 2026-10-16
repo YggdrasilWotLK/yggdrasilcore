@@ -188,7 +188,11 @@ bool Battlefield::Update(uint32 diff)
         {
             time_t now = GameTime::GetGameTime().count();
             for (int team = 0; team < 2; team++)
-                for (PlayerTimerMap::iterator itr = m_InvitedPlayers[team].begin(); itr != m_InvitedPlayers[team].end(); ++itr)
+            {
+                // Snapshot: KickPlayerFromBattlefield teleports, which routes back
+                // through HandlePlayerLeaveZone and mutates this map.
+                PlayerTimerMap invitedCopy(m_InvitedPlayers[team]);
+                for (PlayerTimerMap::const_iterator itr = invitedCopy.begin(); itr != invitedCopy.end(); ++itr)
                     if (itr->second <= now)
                     {
                         if (Player* player = ObjectAccessor::FindPlayer(itr->first))
@@ -196,6 +200,7 @@ bool Battlefield::Update(uint32 diff)
                                 player->GetSession()->SendBfLeaveMessage(m_BattleId, BFLeaveReason(4));
                         KickPlayerFromBattlefield(itr->first);
                     }
+            }
 
             for (int team = 0; team < 2; team++)
                 for (PlayerTimerMap::iterator itr = m_InvitedPlayers[team].begin(); itr != m_InvitedPlayers[team].end();)
@@ -208,9 +213,14 @@ bool Battlefield::Update(uint32 diff)
 
             InvitePlayersInZoneToWar();
             for (int team = 0; team < 2; team++)
-                for (PlayerTimerMap::iterator itr = m_PlayersWillBeKick[team].begin(); itr != m_PlayersWillBeKick[team].end(); ++itr)
+            {
+                // Snapshot: KickPlayerFromBattlefield teleports, which routes back
+                // through HandlePlayerLeaveZone and mutates this map.
+                PlayerTimerMap kickCopy(m_PlayersWillBeKick[team]);
+                for (PlayerTimerMap::const_iterator itr = kickCopy.begin(); itr != kickCopy.end(); ++itr)
                     if (itr->second <= now)
                         KickPlayerFromBattlefield(itr->first);
+            }
             m_uiKickDontAcceptTimer = 5000;
         }
         else
@@ -237,9 +247,16 @@ bool Battlefield::Update(uint32 diff)
 void Battlefield::InvitePlayersInZoneToQueue()
 {
     for (uint8 team = 0; team < 2; ++team)
-        for (GuidUnorderedSet::const_iterator itr = m_players[team].begin(); itr != m_players[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                InvitePlayerToQueue(player);
+    {
+        GuidUnorderedSet zoneCopy(m_players[team]);
+        for (ObjectGuid const& playerGuid : zoneCopy)
+        {
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || !player->IsInWorld())
+                continue;
+            InvitePlayerToQueue(player);
+        }
+    }
 }
 
 void Battlefield::InvitePlayerToQueue(Player* player)
@@ -258,7 +275,9 @@ void Battlefield::InvitePlayersInQueueToWar()
         GuidUnorderedSet copy(m_PlayersInQueue[team]);
         for (GuidUnorderedSet::const_iterator itr = copy.begin(); itr != copy.end(); ++itr)
         {
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 if (m_PlayersInWar[player->GetTeamId()].size() + m_InvitedPlayers[player->GetTeamId()].size() < m_MaxPlayer)
                     InvitePlayerToWar(player);
@@ -275,9 +294,13 @@ void Battlefield::InvitePlayersInQueueToWar()
 void Battlefield::InvitePlayersInZoneToWar()
 {
     for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
-        for (GuidUnorderedSet::const_iterator itr = m_players[team].begin(); itr != m_players[team].end(); ++itr)
+    {
+        GuidUnorderedSet zoneCopy(m_players[team]);
+        for (GuidUnorderedSet::const_iterator itr = zoneCopy.begin(); itr != zoneCopy.end(); ++itr)
         {
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 if (m_PlayersInWar[player->GetTeamId()].count(player->GetGUID()) || m_InvitedPlayers[player->GetTeamId()].count(player->GetGUID()))
                     continue;
@@ -287,6 +310,7 @@ void Battlefield::InvitePlayersInZoneToWar()
                     m_PlayersWillBeKick[player->GetTeamId()][player->GetGUID()] = GameTime::GetGameTime().count() + 10;
             }
         }
+    }
 }
 
 void Battlefield::InvitePlayerToWar(Player* player)
@@ -333,17 +357,26 @@ void Battlefield::KickAfkPlayers()
 {
     // xinef: optimization, dont lookup player twice
     for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[team].begin(); itr != m_PlayersInWar[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                if (player->isAFK() && player->GetZoneId() == GetZoneId() && !player->IsGameMaster())
-                    player->TeleportTo(KickPosition);
+    {
+        // Snapshot: TeleportTo routes back through HandlePlayerLeaveZone
+        // and mutates m_PlayersInWar.
+        GuidUnorderedSet warCopy(m_PlayersInWar[team]);
+        for (GuidUnorderedSet::const_iterator itr = warCopy.begin(); itr != warCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            if (player->isAFK() && player->GetZoneId() == GetZoneId() && !player->IsGameMaster())
+                player->TeleportTo(KickPosition);
+        }
+    }
 }
 
 void Battlefield::KickPlayerFromBattlefield(ObjectGuid guid)
 {
     if (Player* player = ObjectAccessor::FindPlayer(guid))
     {
-        if (player->GetZoneId() == GetZoneId() && !player->IsGameMaster())
+        if (player->IsInWorld() && player->GetZoneId() == GetZoneId() && !player->IsGameMaster())
         {
             player->GetSession()->SendBfLeaveMessage(m_BattleId, BF_LEAVE_REASON_EXITED);
             player->TeleportTo(KickPosition);
@@ -472,40 +505,71 @@ void Battlefield::TeamCastSpell(TeamId team, int32 spellId)
 {
     if (spellId > 0)
     {
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[team].begin(); itr != m_PlayersInWar[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->CastSpell(player, uint32(spellId), true);
+        GuidUnorderedSet warCopy(m_PlayersInWar[team]);
+        for (GuidUnorderedSet::const_iterator itr = warCopy.begin(); itr != warCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->CastSpell(player, uint32(spellId), true);
+        }
     }
     else
     {
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[team].begin(); itr != m_PlayersInWar[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->RemoveAuraFromStack(uint32(-spellId));
+        GuidUnorderedSet warCopy(m_PlayersInWar[team]);
+        for (GuidUnorderedSet::const_iterator itr = warCopy.begin(); itr != warCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->RemoveAuraFromStack(uint32(-spellId));
+        }
     }
 }
 
 void Battlefield::BroadcastPacketToZone(WorldPacket const* data) const
 {
     for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
-        for (GuidUnorderedSet::const_iterator itr = m_players[team].begin(); itr != m_players[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->GetSession()->SendPacket(data);
+    {
+        GuidUnorderedSet zoneCopy(m_players[team]);
+        for (GuidUnorderedSet::const_iterator itr = zoneCopy.begin(); itr != zoneCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->GetSession()->SendPacket(data);
+        }
+    }
 }
 
 void Battlefield::BroadcastPacketToQueue(WorldPacket const* data) const
 {
     for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInQueue[team].begin(); itr != m_PlayersInQueue[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->GetSession()->SendPacket(data);
+    {
+        GuidUnorderedSet queueCopy(m_PlayersInQueue[team]);
+        for (GuidUnorderedSet::const_iterator itr = queueCopy.begin(); itr != queueCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->GetSession()->SendPacket(data);
+        }
+    }
 }
 
 void Battlefield::BroadcastPacketToWar(WorldPacket const* data) const
 {
     for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[team].begin(); itr != m_PlayersInWar[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->GetSession()->SendPacket(data);
+    {
+        GuidUnorderedSet warCopy(m_PlayersInWar[team]);
+        for (GuidUnorderedSet::const_iterator itr = warCopy.begin(); itr != warCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->GetSession()->SendPacket(data);
+        }
+    }
 }
 
 void Battlefield::SendWarning(uint8 id, WorldObject const* target /*= nullptr*/)
@@ -517,9 +581,16 @@ void Battlefield::SendWarning(uint8 id, WorldObject const* target /*= nullptr*/)
 void Battlefield::SendUpdateWorldState(uint32 field, uint32 value)
 {
     for (uint8 i = 0; i < PVP_TEAMS_COUNT; ++i)
-        for (GuidUnorderedSet::iterator itr = m_players[i].begin(); itr != m_players[i].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->SendUpdateWorldState(field, value);
+    {
+        GuidUnorderedSet zoneCopy(m_players[i]);
+        for (GuidUnorderedSet::iterator itr = zoneCopy.begin(); itr != zoneCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->SendUpdateWorldState(field, value);
+        }
+    }
 }
 
 void Battlefield::RegisterZone(uint32 zoneId)
@@ -770,17 +841,17 @@ void BfGraveyard::Resurrect()
     if (m_ResurrectQueue.empty())
         return;
 
-    for (GuidUnorderedSet::const_iterator itr = m_ResurrectQueue.begin(); itr != m_ResurrectQueue.end(); ++itr)
+    GuidUnorderedSet resurrectCopy(m_ResurrectQueue);
+    for (GuidUnorderedSet::const_iterator itr = resurrectCopy.begin(); itr != resurrectCopy.end(); ++itr)
     {
         // Get player object from his guid
         Player* player = ObjectAccessor::FindPlayer(*itr);
-        if (!player)
+        if (!player || !player->IsInWorld())
             continue;
 
-        // Check  if the player is in world and on the good graveyard
-        if (player->IsInWorld())
-            if (Unit* spirit = ObjectAccessor::GetCreature(*player, m_SpiritGuide[m_ControlTeam]))
-                spirit->CastSpell(spirit, SPELL_SPIRIT_HEAL, true);
+        // Check if the player is on the good graveyard
+        if (Unit* spirit = ObjectAccessor::GetCreature(*player, m_SpiritGuide[m_ControlTeam]))
+            spirit->CastSpell(spirit, SPELL_SPIRIT_HEAL, true);
 
         // Resurect player
         player->CastSpell(player, SPELL_RESURRECTION_VISUAL, true);
@@ -805,10 +876,13 @@ void BfGraveyard::GiveControlTo(TeamId team)
 void BfGraveyard::RelocateDeadPlayers()
 {
     GraveyardStruct const* closestGrave = nullptr;
-    for (GuidUnorderedSet::const_iterator itr = m_ResurrectQueue.begin(); itr != m_ResurrectQueue.end(); ++itr)
+    // Snapshot: TeleportTo routes back through RemovePlayerFromResurrectQueue
+    // and mutates m_ResurrectQueue.
+    GuidUnorderedSet resurrectCopy(m_ResurrectQueue);
+    for (GuidUnorderedSet::const_iterator itr = resurrectCopy.begin(); itr != resurrectCopy.end(); ++itr)
     {
         Player* player = ObjectAccessor::FindPlayer(*itr);
-        if (!player)
+        if (!player || !player->IsInWorld())
             continue;
 
         if (closestGrave)
@@ -965,8 +1039,13 @@ void BfCapturePoint::SendChangePhase()
         return;
 
     for (uint8 team = 0; team < 2; ++team)
-        for (GuidUnorderedSet::iterator itr = m_activePlayers[team].begin(); itr != m_activePlayers[team].end(); ++itr)  // send to all players present in the area
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
+    {
+        GuidUnorderedSet activeCopy(m_activePlayers[team]);
+        for (GuidUnorderedSet::iterator itr = activeCopy.begin(); itr != activeCopy.end(); ++itr)  // send to all players present in the area
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 // send this too, sometimes the slider disappears, dunno why :(
                 player->SendUpdateWorldState(capturePoint->GetGOInfo()->capturePoint.worldState1, 1);
@@ -975,6 +1054,8 @@ void BfCapturePoint::SendChangePhase()
                 // send this too, sometimes it resets :S
                 player->SendUpdateWorldState(capturePoint->GetGOInfo()->capturePoint.worldstate3, m_neutralValuePct);
             }
+        }
+    }
 }
 
 bool BfCapturePoint::SetCapturePointData(GameObject* capturePoint, TeamId team)
@@ -1050,12 +1131,22 @@ bool BfCapturePoint::Update(uint32 diff)
     {
         for (GuidUnorderedSet::iterator itr = m_activePlayers[team].begin(); itr != m_activePlayers[team].end();)
         {
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                if (!capturePoint->IsWithinDistInMap(player, radius) || !player->IsOutdoorPvPActive())
-                {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            // Drop stale entries for players that already logged out;
+            // HandlePlayerLeave needs a live player for the worldstate update.
+            if (!player || !player->IsInWorld())
+            {
+                if (player)
                     itr = HandlePlayerLeave(player);
-                    continue;
-                }
+                else
+                    itr = m_activePlayers[team].erase(itr);
+                continue;
+            }
+            if (!capturePoint->IsWithinDistInMap(player, radius) || !player->IsOutdoorPvPActive())
+            {
+                itr = HandlePlayerLeave(player);
+                continue;
+            }
 
             ++itr;
         }
@@ -1160,9 +1251,16 @@ bool BfCapturePoint::Update(uint32 diff)
 void BfCapturePoint::SendUpdateWorldState(uint32 field, uint32 value)
 {
     for (uint8 team = 0; team < 2; ++team)
-        for (GuidUnorderedSet::iterator itr = m_activePlayers[team].begin(); itr != m_activePlayers[team].end(); ++itr)  // send to all players present in the area
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->SendUpdateWorldState(field, value);
+    {
+        GuidUnorderedSet activeCopy(m_activePlayers[team]);
+        for (GuidUnorderedSet::iterator itr = activeCopy.begin(); itr != activeCopy.end(); ++itr)  // send to all players present in the area
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->SendUpdateWorldState(field, value);
+        }
+    }
 }
 
 void BfCapturePoint::SendObjectiveComplete(uint32 id, ObjectGuid guid)
@@ -1181,9 +1279,14 @@ void BfCapturePoint::SendObjectiveComplete(uint32 id, ObjectGuid guid)
     }
 
     // send to all players present in the area
-    for (GuidUnorderedSet::iterator itr = m_activePlayers[team].begin(); itr != m_activePlayers[team].end(); ++itr)
-        if (Player* player = ObjectAccessor::FindPlayer(*itr))
-            player->KilledMonsterCredit(id, guid);
+    GuidUnorderedSet activeCopy(m_activePlayers[team]);
+    for (GuidUnorderedSet::iterator itr = activeCopy.begin(); itr != activeCopy.end(); ++itr)
+    {
+        Player* player = ObjectAccessor::FindPlayer(*itr);
+        if (!player || !player->IsInWorld())
+            continue;
+        player->KilledMonsterCredit(id, guid);
+    }
 }
 
 bool BfCapturePoint::IsInsideObjective(Player* player) const

@@ -79,11 +79,10 @@ public:
                     {
                         if (bf->GetTimer() <= (16 * MINUTE * IN_MILLISECONDS) && bf->GetTimer() >= (15 * MINUTE * IN_MILLISECONDS))
                         {
-                            Map::PlayerList const& PlayerList = instance->GetPlayers();
-                            if (!PlayerList.IsEmpty())
-                                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                    if (Player* player = i->GetSource())
-                                        player->TextEmote("This instance will reset in 15 minutes.", nullptr, true);
+                            instance->DoForAllPlayers([&](Player* player)
+                            {
+                                player->TextEmote("This instance will reset in 15 minutes.", nullptr, true);
+                            });
                         }
                         else if (bf->GetTimer() <= (10 * MINUTE * IN_MILLISECONDS) && bf->GetTimer() >= (9 * MINUTE * IN_MILLISECONDS))
                         {
@@ -103,11 +102,10 @@ public:
                         }
                         else if (bf->GetTimer() <= (2 * MINUTE * IN_MILLISECONDS) && bf->GetTimer() > (MINUTE * IN_MILLISECONDS))
                         {
-                            Map::PlayerList const& PlayerList = instance->GetPlayers();
-                            if (!PlayerList.IsEmpty())
-                                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                    if (Player* player = i->GetSource())
-                                        player->TextEmote("This instance is about to reset. Prepare to be removed.", nullptr, true);
+                            instance->DoForAllPlayers([&](Player* player)
+                            {
+                                player->TextEmote("This instance is about to reset. Prepare to be removed.", nullptr, true);
+                            });
                         }
                         else if (bf->GetTimer() <= MINUTE * IN_MILLISECONDS)
                         {
@@ -116,11 +114,14 @@ public:
                                     if (cr->IsInCombat() && cr->AI())
                                         cr->AI()->EnterEvadeMode();
 
-                            Map::PlayerList const& PlayerList = instance->GetPlayers();
-                            if (!PlayerList.IsEmpty())
-                                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                                    if (Player* player = i->GetSource())
-                                        player->TeleportTo(player->m_homebindMapId, player->m_homebindX, player->m_homebindY, player->m_homebindZ, player->GetOrientation());
+                            std::vector<ObjectGuid> guids = instance->CopyPlayerGuids();
+                            for (ObjectGuid const& playerGuid : guids)
+                            {
+                                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                                if (!player || !player->IsInWorld() || player->GetMap() != instance)
+                                    continue;
+                                player->TeleportTo(player->m_homebindMapId, player->m_homebindX, player->m_homebindY, player->m_homebindZ, player->GetOrientation());
+                            }
                         }
                     }
                 }

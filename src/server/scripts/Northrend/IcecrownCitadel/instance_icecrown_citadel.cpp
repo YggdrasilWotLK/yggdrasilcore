@@ -1053,9 +1053,10 @@ public:
 
         void RemoveBackPack()
         {
-            for (auto const& itr : instance->GetPlayers())
-                if (Player* _player = itr.GetSource())
-                    _player->DestroyItemCount(ITEM_GOBLIN_ROCKET_PACK, _player->GetItemCount(ITEM_GOBLIN_ROCKET_PACK), true);
+            instance->DoForAllPlayers([&](Player* player)
+            {
+                player->DestroyItemCount(ITEM_GOBLIN_ROCKET_PACK, player->GetItemCount(ITEM_GOBLIN_ROCKET_PACK), true);
+            });
         }
 
         bool SetBossState(uint32 type, EncounterState state) override
@@ -1677,9 +1678,11 @@ public:
             if (LichKingRandomWhisperTimer <= diff)
             {
                 LichKingRandomWhisperTimer = urand(100, 300) * IN_MILLISECONDS;
-                Map::PlayerList const& players = instance->GetPlayers();
-                if (!players.IsEmpty())
-                    if (Player* player = players.begin()->GetSource())
+                std::vector<ObjectGuid> guids = instance->CopyPlayerGuids();
+                if (!guids.empty())
+                {
+                    Player* player = ObjectAccessor::FindPlayer(guids.front());
+                    if (player && player->IsInWorld() && player->GetMap() == instance)
                         if (player->GetQuestStatus(QUEST_A_FEAST_OF_SOULS) == QUEST_STATUS_INCOMPLETE)
                         {
                             if (Creature* theLichKing = instance->GetCreature(TheLichKingLhGUID))
@@ -1687,6 +1690,7 @@ public:
                                 theLichKing->AI()->Talk(SAY_SOULS_LICH_KING_RAND_WHISPER, player);
                             }
                         }
+                }
             }
             else
                 LichKingRandomWhisperTimer -= diff;

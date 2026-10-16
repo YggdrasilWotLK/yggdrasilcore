@@ -129,15 +129,19 @@ void CreatureAI::DoZoneInCombat(Creature* creature /*= nullptr*/, float maxRange
         return;
     }
 
-    Map::PlayerList const& playerList = map->GetPlayers();
-    if (playerList.IsEmpty())
+    std::vector<ObjectGuid> guids = map->CopyPlayerGuids();
+    if (guids.empty())
     {
         return;
     }
 
-    for (Map::PlayerList::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
+    for (ObjectGuid const& playerGuid : guids)
     {
-        if (Player* player = itr->GetSource())
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetMap() != map)
+        {
+            continue;
+        }
         {
             if (!IsValidCombatTarget(creature, player))
             {

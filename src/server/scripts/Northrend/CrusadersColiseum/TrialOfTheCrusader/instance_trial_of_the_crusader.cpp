@@ -137,20 +137,25 @@ public:
                     validDedicatedInsanityItems[dedicatedInsanityItems[i]] = true;
             }
 
-            Map::PlayerList const& pl = instance->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                if (Player* plr = itr->GetSource())
-                    if (!plr->IsGameMaster() && plr->IsInCombat() /*performance*/)
-                    {
-                        for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i) // loop through equipped items
-                            if (Item* item = plr->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-                                if (!IsValidDedicatedInsanityItem(item->GetTemplate()))
-                                {
-                                    bDedicatedInsanity = false;
-                                    SaveToDB();
-                                    return;
-                                }
-                    }
+            Map* snapMap = instance;
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                    continue;
+                if (!plr->IsGameMaster() && plr->IsInCombat() /*performance*/)
+                {
+                    for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i) // loop through equipped items
+                        if (Item* item = plr->GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+                            if (!IsValidDedicatedInsanityItem(item->GetTemplate()))
+                            {
+                                bDedicatedInsanity = false;
+                                SaveToDB();
+                                return;
+                            }
+                }
+            }
         }
 
         void OnUnitDeath(Unit* u) override
@@ -182,11 +187,16 @@ public:
 
         bool IsEncounterInProgress() const override
         {
-            Map::PlayerList const& pl = instance->GetPlayers();
-            for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                if (Player* plr = itr->GetSource())
-                    if (plr->IsAlive() && !plr->IsGameMaster())
-                        return EncounterStatus == IN_PROGRESS; // found alive player
+            Map* snapMap = instance;
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                    continue;
+                if (plr->IsAlive() && !plr->IsGameMaster())
+                    return EncounterStatus == IN_PROGRESS; // found alive player
+            }
 
             if (EncounterStatus != NOT_STARTED)
                 *(const_cast<uint32*>(&EncounterStatus)) = NOT_STARTED;
@@ -281,10 +291,10 @@ public:
                     {
                         if (AttemptsLeft > 0)
                             --AttemptsLeft;
-                        Map::PlayerList const& pl = instance->GetPlayers();
-                        for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                            if (Player* plr = itr->GetSource())
-                                plr->SendUpdateWorldState(WORLD_STATE_TRIAL_OF_THE_CRUSADER_UI_COUNT, AttemptsLeft);
+                        instance->DoForAllPlayers([&](Player* plr)
+                        {
+                            plr->SendUpdateWorldState(WORLD_STATE_TRIAL_OF_THE_CRUSADER_UI_COUNT, AttemptsLeft);
+                        });
                     }
                     InstanceCleanup(true);
                     SaveToDB();
@@ -1103,9 +1113,10 @@ public:
                                 //if (Unit* target = c->SelectNearestTarget(200.0f))
                                 //  c->AI()->AttackStart(target);
                             }
-                        Map::PlayerList const& pl = instance->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            itr->GetSource()->AddToNotify(NOTIFY_AI_RELOCATION);
+                        instance->DoForAllPlayers([&](Player* notified)
+                        {
+                            notified->AddToNotify(NOTIFY_AI_RELOCATION);
+                        });
                         EncounterStatus = IN_PROGRESS;
                         break;
                     }
@@ -1400,9 +1411,13 @@ public:
         bool DoNeedCleanup(Player* ignoredPlayer = nullptr)
         {
             uint8 aliveCount = 0;
-            for (auto const& itr: instance->GetPlayers())
+            Map* snapMap = instance;
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
             {
-                if (Player* plr = itr.GetSource())
+                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
+                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
+                    continue;
                 {
                     if (plr != ignoredPlayer && plr->IsAlive() && !plr->IsGameMaster())
                     {
@@ -1553,10 +1568,10 @@ public:
             if (instance->IsHeroic() && AttemptsLeft > 0 && !fromFailed && EncounterStatus == IN_PROGRESS)
             {
                 --AttemptsLeft;
-                Map::PlayerList const& pl = instance->GetPlayers();
-                for( Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr )
-                    if (Player* plr = itr->GetSource())
-                        plr->SendUpdateWorldState(WORLD_STATE_TRIAL_OF_THE_CRUSADER_UI_COUNT, AttemptsLeft);
+                instance->DoForAllPlayers([&](Player* plr)
+                {
+                    plr->SendUpdateWorldState(WORLD_STATE_TRIAL_OF_THE_CRUSADER_UI_COUNT, AttemptsLeft);
+                });
             }
 
             if (instance->IsHeroic() && AttemptsLeft == 0 )

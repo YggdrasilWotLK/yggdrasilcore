@@ -184,8 +184,15 @@ public:
         uint32 count = 0;
         uint32 maxResults = sWorld->getIntConfig(CONFIG_MAX_RESULTS_LOOKUP_COMMANDS);
 
-        for (auto const& [entry, creatureTemplate] : *sObjectMgr->GetCreatureTemplates())
+        // Snapshot keys under lock; per-entry getter locks internally, preserving early-return semantics.
+        std::vector<uint32> creatureEntries;
+        sObjectMgr->ForEachCreatureTemplate([&](uint32 entry, CreatureTemplate const&) { creatureEntries.push_back(entry); });
+        for (uint32 entry : creatureEntries)
         {
+            CreatureTemplate const* creatureTemplatePtr = sObjectMgr->GetCreatureTemplate(entry);
+            if (!creatureTemplatePtr)
+                continue;
+            CreatureTemplate const& creatureTemplate = *creatureTemplatePtr;
             uint32 id = creatureTemplate.Entry;
             uint8 localeIndex = handler->GetSessionDbLocaleIndex();
             if (CreatureLocale const* creatureLocale = sObjectMgr->GetCreatureLocale(id))
@@ -473,8 +480,15 @@ public:
         uint32 maxResults = sWorld->getIntConfig(CONFIG_MAX_RESULTS_LOOKUP_COMMANDS);
 
         // Search in `item_template`
-        for (auto const& [entry, itemTemplate] : *sObjectMgr->GetItemTemplateStore())
+        // Snapshot keys under lock; per-entry getter locks internally, preserving early-return semantics.
+        std::vector<uint32> itemEntries;
+        sObjectMgr->ForEachItemTemplate([&](uint32 entry, ItemTemplate const&) { itemEntries.push_back(entry); });
+        for (uint32 entry : itemEntries)
         {
+            ItemTemplate const* itemTemplatePtr = sObjectMgr->GetItemTemplate(entry);
+            if (!itemTemplatePtr)
+                continue;
+            ItemTemplate const& itemTemplate = *itemTemplatePtr;
             int localeIndex = handler->GetSessionDbLocaleIndex();
             if (localeIndex >= 0)
             {
@@ -667,8 +681,15 @@ public:
         uint32 count = 0;
         uint32 maxResults = sWorld->getIntConfig(CONFIG_MAX_RESULTS_LOOKUP_COMMANDS);
 
-        for (auto const& [entry, gameObjectTemplate] : *sObjectMgr->GetGameObjectTemplates())
+        // Snapshot keys under lock; per-entry getter locks internally, preserving early-return semantics.
+        std::vector<uint32> goEntries;
+        sObjectMgr->ForEachGameObjectTemplate([&](uint32 entry, GameObjectTemplate const&) { goEntries.push_back(entry); });
+        for (uint32 entry : goEntries)
         {
+            GameObjectTemplate const* goTemplatePtr = sObjectMgr->GetGameObjectTemplate(entry);
+            if (!goTemplatePtr)
+                continue;
+            GameObjectTemplate const& gameObjectTemplate = *goTemplatePtr;
             uint8 localeIndex = handler->GetSessionDbLocaleIndex();
             if (GameObjectLocale const* objectLocalte = sObjectMgr->GetGameObjectLocale(gameObjectTemplate.entry))
             {
@@ -765,8 +786,14 @@ public:
         uint32 count = 0;
         uint32 maxResults = sWorld->getIntConfig(CONFIG_MAX_RESULTS_LOOKUP_COMMANDS);
 
-        for (auto const& [entry, qInfo] : sObjectMgr->GetQuestTemplates())
+        // Snapshot keys under lock; per-entry getter locks internally, preserving early-return semantics.
+        std::vector<uint32> questEntries;
+        sObjectMgr->ForEachQuestTemplate([&](uint32 entry, Quest const*) { questEntries.push_back(entry); });
+        for (uint32 entry : questEntries)
         {
+            Quest const* qInfo = sObjectMgr->GetQuestTemplate(entry);
+            if (!qInfo)
+                continue;
             int localeIndex = handler->GetSessionDbLocaleIndex();
             if (localeIndex >= 0)
             {

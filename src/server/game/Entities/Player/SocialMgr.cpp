@@ -319,24 +319,33 @@ void SocialMgr::BroadcastToFriendListers(Player* player, WorldPacket* packet)
     if (!player)
         return;
 
-    std::shared_lock<std::shared_mutex> lock(_socialLock);
+    ObjectGuid playerGuid = player->GetGUID();
     TeamId teamId = player->GetTeamId();
     AccountTypes security = player->GetSession()->GetSecurity();
     bool allowTwoSideWhoList = sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_WHO_LIST);
     AccountTypes gmLevelInWhoList = AccountTypes(sWorld->getIntConfig(CONFIG_GM_LEVEL_IN_WHO_LIST));
 
-    for (auto const& itr : m_socialMap)
+    // Snapshot the recipient list under the lock; SendPacket below can
+    // re-enter SocialMgr (session callbacks), so never hold it across sends.
+    std::vector<ObjectGuid> friendGuids;
     {
-        auto const& itr2 = itr.second.m_playerSocialMap.find(player->GetGUID());
-        if (itr2 != itr.second.m_playerSocialMap.end() && (itr2->second.Flags & SOCIAL_FLAG_FRIEND))
+        std::shared_lock<std::shared_mutex> lock(_socialLock);
+        for (auto const& itr : m_socialMap)
         {
-            Player* pFriend = ObjectAccessor::FindPlayer(itr.first);
-
-            // PLAYER see his team only and PLAYER can't see MODERATOR, GAME MASTER, ADMINISTRATOR characters
-            // MODERATOR, GAME MASTER, ADMINISTRATOR can see all
-            if (pFriend && (!AccountMgr::IsPlayerAccount(pFriend->GetSession()->GetSecurity()) || ((pFriend->GetTeamId() == teamId || allowTwoSideWhoList) && security <= gmLevelInWhoList)) && player->IsVisibleGloballyFor(pFriend))
-                pFriend->GetSession()->SendPacket(packet);
+            auto const& itr2 = itr.second.m_playerSocialMap.find(playerGuid);
+            if (itr2 != itr.second.m_playerSocialMap.end() && (itr2->second.Flags & SOCIAL_FLAG_FRIEND))
+                friendGuids.push_back(itr.first);
         }
+    }
+
+    for (ObjectGuid const& friendGuid : friendGuids)
+    {
+        Player* pFriend = ObjectAccessor::FindPlayer(friendGuid);
+
+        // PLAYER see his team only and PLAYER can't see MODERATOR, GAME MASTER, ADMINISTRATOR characters
+        // MODERATOR, GAME MASTER, ADMINISTRATOR can see all
+        if (pFriend && pFriend->IsInWorld() && (!AccountMgr::IsPlayerAccount(pFriend->GetSession()->GetSecurity()) || ((pFriend->GetTeamId() == teamId || allowTwoSideWhoList) && security <= gmLevelInWhoList)) && player->IsVisibleGloballyFor(pFriend))
+            pFriend->GetSession()->SendPacket(packet);
     }
 }
 

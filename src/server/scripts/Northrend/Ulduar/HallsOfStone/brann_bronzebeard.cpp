@@ -400,11 +400,15 @@ public:
                 case ACTION_START_TRIBUNAL:
                 {
                     me->SetReactState(REACT_PASSIVE);
-                    Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                    if (!PlayerList.IsEmpty())
-                        for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                    Map* snapMap = me->GetMap();
+                    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                    if (!guids.empty())
+                        for (ObjectGuid const& playerGuid : guids)
                         {
-                            me->SetFaction(i->GetSource()->GetFaction());
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            me->SetFaction(p->GetFaction());
                             break;
                         }
 

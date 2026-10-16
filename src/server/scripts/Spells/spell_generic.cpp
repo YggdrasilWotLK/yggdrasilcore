@@ -544,10 +544,11 @@ class spell_gen_rallying_cry_of_the_dragonslayer : public SpellScript
         if (GetCaster()->GetMapId() == MAP_KALIMDOR)
             zoneId = AREA_ORGRIMMAR;
 
-        Map::PlayerList const& pList = GetCaster()->GetMap()->GetPlayers();
-        for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
-            if (itr->GetSource()->GetZoneId() == zoneId)
-                targets.push_back(itr->GetSource());
+        GetCaster()->GetMap()->DoForAllPlayers([&](Player* player)
+        {
+            if (player->GetZoneId() == zoneId)
+                targets.push_back(player);
+        });
     }
 
     void Register() override

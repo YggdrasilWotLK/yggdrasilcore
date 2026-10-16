@@ -275,10 +275,16 @@ void BattlefieldWG::OnBattleStart()
             (*itr)->GetCapturePointGo()->GetEntry() == GO_WINTERGRASP_FACTORY_BANNER_SE || (*itr)->GetCapturePointGo()->GetEntry() == GO_WINTERGRASP_FACTORY_BANNER_SW ? GetAttackerTeam() : GetDefenderTeam());
 
     for (uint8 team = 0; team < 2; ++team)
-        for (GuidUnorderedSet::const_iterator itr = m_players[team].begin(); itr != m_players[team].end(); ++itr)
+    {
+        // Snapshot: TeleportTo routes back through HandlePlayerLeaveZone
+        // and mutates m_players.
+        GuidUnorderedSet zoneCopy(m_players[team]);
+        for (GuidUnorderedSet::const_iterator itr = zoneCopy.begin(); itr != zoneCopy.end(); ++itr)
         {
             // Kick player in orb room, TODO: offline player ?
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 float x, y, z;
                 player->GetPosition(x, y, z);
@@ -287,6 +293,7 @@ void BattlefieldWG::OnBattleStart()
                 SendInitWorldStatesTo(player);
             }
         }
+    }
     // Initialize vehicle counter
     UpdateCounterVehicle(true);
     // Send start warning to all players
@@ -328,23 +335,37 @@ void BattlefieldWG::UpdateCounterVehicle(bool init)
 void BattlefieldWG::UpdateVehicleCountWG()
 {
     for (uint8 i = 0; i < PVP_TEAMS_COUNT; ++i)
-        for (GuidUnorderedSet::iterator itr = m_players[i].begin(); itr != m_players[i].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
+    {
+        GuidUnorderedSet zoneCopy(m_players[i]);
+        for (GuidUnorderedSet::iterator itr = zoneCopy.begin(); itr != zoneCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 player->SendUpdateWorldState(WORLD_STATE_BATTLEFIELD_WG_VEHICLE_H,     GetData(BATTLEFIELD_WG_DATA_VEHICLE_H));
                 player->SendUpdateWorldState(WORLD_STATE_BATTLEFIELD_WG_MAX_VEHICLE_H, GetData(BATTLEFIELD_WG_DATA_MAX_VEHICLE_H));
                 player->SendUpdateWorldState(WORLD_STATE_BATTLEFIELD_WG_VEHICLE_A,     GetData(BATTLEFIELD_WG_DATA_VEHICLE_A));
                 player->SendUpdateWorldState(WORLD_STATE_BATTLEFIELD_WG_MAX_VEHICLE_A, GetData(BATTLEFIELD_WG_DATA_MAX_VEHICLE_A));
             }
+        }
+    }
 }
 
 void BattlefieldWG::CapturePointTaken(uint32 areaId)
 {
     for (uint8 i = 0; i < PVP_TEAMS_COUNT; ++i)
-        for (GuidUnorderedSet::iterator itr = m_players[i].begin(); itr != m_players[i].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                if (player->GetAreaId() == areaId)
-                    player->UpdateAreaDependentAuras(areaId);
+    {
+        GuidUnorderedSet zoneCopy(m_players[i]);
+        for (GuidUnorderedSet::iterator itr = zoneCopy.begin(); itr != zoneCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            if (player->GetAreaId() == areaId)
+                player->UpdateAreaDependentAuras(areaId);
+        }
+    }
 }
 
 void BattlefieldWG::OnBattleEnd(bool endByTimer)
@@ -415,7 +436,8 @@ void BattlefieldWG::OnBattleEnd(bool endByTimer)
 
     for (uint8 team = 0; team < 2; ++team)
     {
-        for (GuidUnorderedSet::const_iterator itr = m_vehicles[team].begin(); itr != m_vehicles[team].end(); ++itr)
+        GuidUnorderedSet vehicleCopy(m_vehicles[team]);
+        for (GuidUnorderedSet::const_iterator itr = vehicleCopy.begin(); itr != vehicleCopy.end(); ++itr)
             if (Creature* creature = GetCreature(*itr))
                 creature->DespawnOrUnsummon(1ms);
 
@@ -441,9 +463,12 @@ void BattlefieldWG::OnBattleEnd(bool endByTimer)
         spellFullAtt = SPELL_DESTROYED_TOWER;
     }
 
-    for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[GetDefenderTeam()].begin(); itr != m_PlayersInWar[GetDefenderTeam()].end(); ++itr)
+    GuidUnorderedSet defenderCopy(m_PlayersInWar[GetDefenderTeam()]);
+    for (GuidUnorderedSet::const_iterator itr = defenderCopy.begin(); itr != defenderCopy.end(); ++itr)
     {
-        if (Player* player = ObjectAccessor::FindPlayer(*itr))
+        Player* player = ObjectAccessor::FindPlayer(*itr);
+        if (!player || !player->IsInWorld())
+            continue;
         {
             // Victory in Wintergrasp
             player->AreaExploredOrEventHappens(GetDefenderTeam() ? 13183 : 13181); // HORDE / ALLY win wg quest id
@@ -459,8 +484,12 @@ void BattlefieldWG::OnBattleEnd(bool endByTimer)
         }
     }
 
-    for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[GetAttackerTeam()].begin(); itr != m_PlayersInWar[GetAttackerTeam()].end(); ++itr)
-        if (Player* player = ObjectAccessor::FindPlayer(*itr))
+    GuidUnorderedSet attackerCopy(m_PlayersInWar[GetAttackerTeam()]);
+    for (GuidUnorderedSet::const_iterator itr = attackerCopy.begin(); itr != attackerCopy.end(); ++itr)
+    {
+        Player* player = ObjectAccessor::FindPlayer(*itr);
+        if (!player || !player->IsInWorld())
+            continue;
         {
             player->CastSpell(player, SPELL_DEFEAT_REWARD, true);
             RemoveAurasFromPlayer(player);
@@ -470,14 +499,18 @@ void BattlefieldWG::OnBattleEnd(bool endByTimer)
             for (uint8 i = 0; i < brokenTowersAtt; ++i)
                 player->CastSpell(player, spellFullAtt, true);
         }
+    }
 
     if (!endByTimer)
     {
         for (uint8 team = 0; team < 2; ++team)
         {
-            for (GuidUnorderedSet::const_iterator itr = m_players[team].begin(); itr != m_players[team].end(); ++itr)
+            GuidUnorderedSet zoneCopy(m_players[team]);
+            for (GuidUnorderedSet::const_iterator itr = zoneCopy.begin(); itr != zoneCopy.end(); ++itr)
             {
-                if (Player* player = ObjectAccessor::FindPlayer(*itr))
+                Player* player = ObjectAccessor::FindPlayer(*itr);
+                if (!player || !player->IsInWorld())
+                    continue;
                 {
                     player->RemoveAurasDueToSpell(m_DefenderTeam == TEAM_ALLIANCE ? SPELL_HORDE_CONTROL_PHASE_SHIFT : SPELL_ALLIANCE_CONTROL_PHASE_SHIFT, player->GetGUID());
                     player->AddAura(m_DefenderTeam == TEAM_HORDE ? SPELL_HORDE_CONTROL_PHASE_SHIFT : SPELL_ALLIANCE_CONTROL_PHASE_SHIFT, player);
@@ -595,7 +628,7 @@ void BattlefieldWG::OnCreatureCreate(Creature* creature)
                         return;
 
                     Player* creator = ObjectAccessor::FindPlayer(creature->ToTempSummon()->GetSummonerGUID());
-                    if (!creator)
+                    if (!creator || !creator->IsInWorld())
                         return;
                     TeamId team = creator->GetTeamId();
 
@@ -735,9 +768,12 @@ void BattlefieldWG::HandleKill(Player* killer, Unit* victim)
         if (victim->IsPlayer() && victim->HasAura(SPELL_LIEUTENANT))
         {
             // Quest - Wintergrasp - PvP Kill - Horde/Alliance
-            for (auto& playerGuid : m_PlayersInWar[killerTeam])
+            GuidUnorderedSet warCopy(m_PlayersInWar[killerTeam]);
+            for (ObjectGuid const& playerGuid : warCopy)
             {
-                if (Player* player = ObjectAccessor::FindPlayer(playerGuid))
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld())
+                    continue;
                 {
                     if (player->GetDistance2d(killer) < 40)
                     {
@@ -747,9 +783,12 @@ void BattlefieldWG::HandleKill(Player* killer, Unit* victim)
             }
         }
 
-        for (auto& playerGuid : m_PlayersInWar[killerTeam])
+        GuidUnorderedSet warCopy(m_PlayersInWar[killerTeam]);
+        for (ObjectGuid const& playerGuid : warCopy)
         {
-            if (Player* player = ObjectAccessor::FindPlayer(playerGuid))
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 if (player->GetDistance2d(killer) < 40)
                 {
@@ -767,9 +806,12 @@ void BattlefieldWG::HandleKill(Player* killer, Unit* victim)
     else if (victim->IsVehicle() && !killer->IsFriendlyTo(victim))
     {
         // Quest - Wintergrasp - PvP Kill - Vehicle
-        for (auto& playerGuid : m_PlayersInWar[killerTeam])
+        GuidUnorderedSet warCopy(m_PlayersInWar[killerTeam]);
+        for (ObjectGuid const& playerGuid : warCopy)
         {
-            if (Player* player = ObjectAccessor::FindPlayer(playerGuid))
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 if (player->GetDistance2d(killer) < 40)
                 {
@@ -993,9 +1035,16 @@ void BattlefieldWG::SendInitWorldStatesTo(Player* player)
 void BattlefieldWG::SendInitWorldStatesToAll()
 {
     for (uint8 team = 0; team < 2; team++)
-        for (GuidUnorderedSet::iterator itr = m_players[team].begin(); itr != m_players[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                SendInitWorldStatesTo(player);
+    {
+        GuidUnorderedSet zoneCopy(m_players[team]);
+        for (GuidUnorderedSet::iterator itr = zoneCopy.begin(); itr != zoneCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            SendInitWorldStatesTo(player);
+        }
+    }
 }
 
 void BattlefieldWG::SendUpdateWorldStates(Player* player)
@@ -1050,13 +1099,22 @@ void BattlefieldWG::UpdatedDestroyedTowerCount(TeamId team, GameObject* go)
         UpdateData(BATTLEFIELD_WG_DATA_BROKEN_TOWER_ATT, 1);
 
         // Remove buff stack on attackers
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[GetAttackerTeam()].begin(); itr != m_PlayersInWar[GetAttackerTeam()].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->RemoveAuraFromStack(SPELL_TOWER_CONTROL);
+        GuidUnorderedSet attackerCopy(m_PlayersInWar[GetAttackerTeam()]);
+        for (GuidUnorderedSet::const_iterator itr = attackerCopy.begin(); itr != attackerCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->RemoveAuraFromStack(SPELL_TOWER_CONTROL);
+        }
 
         // Add buff stack to defenders
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[GetDefenderTeam()].begin(); itr != m_PlayersInWar[GetDefenderTeam()].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
+        GuidUnorderedSet defenderCopy(m_PlayersInWar[GetDefenderTeam()]);
+        for (GuidUnorderedSet::const_iterator itr = defenderCopy.begin(); itr != defenderCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 // Quest - Wintergrasp - Southern Tower Kill
                 if (go && player->GetDistance2d(go) < 200.0f)
@@ -1065,6 +1123,7 @@ void BattlefieldWG::UpdatedDestroyedTowerCount(TeamId team, GameObject* go)
                 player->CastSpell(player, SPELL_TOWER_CONTROL, true);
                 player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET, SPELL_LEANING_TOWER_ACHIEVEMENT, 0, 0);
             }
+        }
 
         // If all three south towers are destroyed (ie. all attack towers), remove ten minutes from battle time
         if (GetData(BATTLEFIELD_WG_DATA_BROKEN_TOWER_ATT) == 3)
@@ -1079,13 +1138,18 @@ void BattlefieldWG::UpdatedDestroyedTowerCount(TeamId team, GameObject* go)
     else
     {
         // Xinef: rest of structures, quest credit
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[GetAttackerTeam()].begin(); itr != m_PlayersInWar[GetAttackerTeam()].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
+        GuidUnorderedSet attackerCopy(m_PlayersInWar[GetAttackerTeam()]);
+        for (GuidUnorderedSet::const_iterator itr = attackerCopy.begin(); itr != attackerCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 // Quest - Wintergrasp - Vehicle Protected
                 if (go && player->GetDistance2d(go) < 100.0f)
                     player->KilledMonsterCredit(NPC_QUEST_VEHICLE_PROTECTED);
             }
+        }
     }
 }
 
@@ -1192,10 +1256,13 @@ void BattlefieldWG::UpdateTenacity()
     // Return if no change in stack and apply tenacity to newcomers
     if (newStack == m_tenacityStack)
     {
-        for (GuidUnorderedSet::const_iterator itr = m_updateTenacityList.begin(); itr != m_updateTenacityList.end(); ++itr)
+        GuidUnorderedSet tenacityCopy(m_updateTenacityList);
+        for (GuidUnorderedSet::const_iterator itr = tenacityCopy.begin(); itr != tenacityCopy.end(); ++itr)
         {
             if (Player* newPlayer = ObjectAccessor::FindPlayer(*itr))
             {
+                if (!newPlayer->IsInWorld())
+                    continue;
                 if ((newPlayer->GetTeamId() == TEAM_ALLIANCE && m_tenacityStack > 0) || (newPlayer->GetTeamId() == TEAM_HORDE && m_tenacityStack < 0))
                 {
                     newStack = std::min(std::abs(newStack), 20);
@@ -1228,11 +1295,17 @@ void BattlefieldWG::UpdateTenacity()
     // Remove old buff
     if (team != TEAM_NEUTRAL)
     {
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[team].begin(); itr != m_PlayersInWar[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                player->RemoveAurasDueToSpell(SPELL_TENACITY);
+        GuidUnorderedSet warCopy(m_PlayersInWar[team]);
+        for (GuidUnorderedSet::const_iterator itr = warCopy.begin(); itr != warCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
+            player->RemoveAurasDueToSpell(SPELL_TENACITY);
+        }
 
-        for (GuidUnorderedSet::const_iterator itr = m_vehicles[team].begin(); itr != m_vehicles[team].end(); ++itr)
+        GuidUnorderedSet vehicleCopy(m_vehicles[team]);
+        for (GuidUnorderedSet::const_iterator itr = vehicleCopy.begin(); itr != vehicleCopy.end(); ++itr)
             if (Creature* creature = GetCreature(*itr))
                 creature->RemoveAurasDueToSpell(SPELL_TENACITY_VEHICLE);
     }
@@ -1244,15 +1317,21 @@ void BattlefieldWG::UpdateTenacity()
         newStack = std::min(std::abs(newStack), 20);
         uint32 buff_honor = GetHonorBuff(newStack);
 
-        for (GuidUnorderedSet::const_iterator itr = m_PlayersInWar[team].begin(); itr != m_PlayersInWar[team].end(); ++itr)
-            if (Player* player = ObjectAccessor::FindPlayer(*itr))
+        GuidUnorderedSet warCopy(m_PlayersInWar[team]);
+        for (GuidUnorderedSet::const_iterator itr = warCopy.begin(); itr != warCopy.end(); ++itr)
+        {
+            Player* player = ObjectAccessor::FindPlayer(*itr);
+            if (!player || !player->IsInWorld())
+                continue;
             {
                 player->SetAuraStack(SPELL_TENACITY, player, newStack);
                 if (buff_honor)
                     player->CastSpell(player, buff_honor, true);
             }
+        }
 
-        for (GuidUnorderedSet::const_iterator itr = m_vehicles[team].begin(); itr != m_vehicles[team].end(); ++itr)
+        GuidUnorderedSet vehicleCopy(m_vehicles[team]);
+        for (GuidUnorderedSet::const_iterator itr = vehicleCopy.begin(); itr != vehicleCopy.end(); ++itr)
             if (Creature* creature = GetCreature(*itr))
             {
                 creature->SetAuraStack(SPELL_TENACITY_VEHICLE, creature, newStack);

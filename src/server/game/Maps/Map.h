@@ -41,6 +41,7 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include <vector>
 
 class Unit;
 class WorldPacket;
@@ -204,6 +205,8 @@ public:
     void GameObjectRelocation(GameObject* go, float x, float y, float z, float o);
     void DynamicObjectRelocation(DynamicObject* go, float x, float y, float z, float o);
 
+    // Grid-visit contract: visitors must not mutate grid containers.
+    // Collect GUIDs, resolve afterwards, defer Kill/Teleport/Unsummon.
     template<class T, class CONTAINER> void Visit(const Cell& cell, TypeContainerVisitor<T, CONTAINER>& visitor);
 
     bool IsGridLoaded(GridCoord const& gridCoord) const;
@@ -312,14 +315,17 @@ public:
     }
 
     void AddObjectToRemoveList(WorldObject* obj);
+    void RemoveObjectFromRemoveList(WorldObject* obj);
     virtual void DelayedUpdate(const uint32 diff);
 
     void resetMarkedCells() { marked_cells.reset(); }
     bool isCellMarked(uint32 pCellId) { return marked_cells.test(pCellId); }
     void markCell(uint32 pCellId) { marked_cells.set(pCellId); }
 
-    [[nodiscard]] bool HavePlayers() const { return !m_mapRefMgr.IsEmpty(); }
+    [[nodiscard]] bool HavePlayers() const { std::shared_lock<std::shared_mutex> lock(_playerRefLock); return !m_mapRefMgr.IsEmpty(); }
     [[nodiscard]] uint32 GetPlayersCountExceptGMs() const;
+    [[nodiscard]] uint32 GetPlayerCountLocked() const;
+    [[nodiscard]] std::vector<ObjectGuid> CopyPlayerGuids() const;
 
     void SendToPlayers(WorldPacket const* data) const;
 
@@ -331,8 +337,6 @@ public:
     void ScriptCommandStart(ScriptInfo const& script, uint32 delay, Object* source, Object* target);
 
     CreatureGroupHolderType CreatureGroupHolder;
-
-    void UpdateIteratorBack(Player* player);
 
     TempSummon* SummonCreature(uint32 entry, Position const& pos, SummonPropertiesEntry const* properties = nullptr, uint32 duration = 0, WorldObject* summoner = nullptr, uint32 spellId = 0, uint32 vehId = 0, bool visibleBySummonerOnly = false);
     GameObject* SummonGameObject(uint32 entry, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 respawnTime, bool checkTransport = true);
@@ -354,14 +358,19 @@ public:
     typedef std::unordered_multimap<ObjectGuid::LowType, GameObject*> GameObjectBySpawnIdContainer;
     GameObjectBySpawnIdContainer& GetGameObjectBySpawnIdStore() { return _gameobjectBySpawnIdStore; }
 
-    [[nodiscard]] std::unordered_set<Corpse*> const* GetCorpsesInGrid(uint32 gridId) const
+    // Snapshot copy: corpse grid sets mutate on map threads.
+    [[nodiscard]] std::vector<Corpse*> GetCorpsesInGrid(uint32 gridId) const
     {
         std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
+        std::vector<Corpse*> result;
         auto itr = _corpsesByGrid.find(gridId);
         if (itr != _corpsesByGrid.end())
-            return &itr->second;
-
-        return nullptr;
+        {
+            result.reserve(itr->second.size());
+            for (Corpse* corpse : itr->second)
+                result.push_back(corpse);
+        }
+        return result;
     }
 
     [[nodiscard]] Corpse* GetCorpseByPlayer(ObjectGuid const& ownerGuid) const
@@ -572,7 +581,6 @@ protected:
     time_t _instanceResetPeriod; // pussywizard
 
     MapRefMgr m_mapRefMgr;
-    MapRefMgr::iterator m_mapRefIter;
     // Guards m_mapRefMgr; never hold across player updates.
     mutable std::shared_mutex _playerRefLock;
 public:

@@ -489,9 +489,14 @@ public:
                 actionEvents.ScheduleEvent(EVENT_ACTION_PHASE5 + 1, 22s);
                 me->SetFacingTo(1.84f);
 
-                if (!me->GetMap()->GetPlayers().IsEmpty())
-                    if (Player* player = me->GetMap()->GetPlayers().getFirst()->GetSource())
+                Map* snapMap = me->GetMap();
+                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                if (!guids.empty())
+                {
+                    Player* player = ObjectAccessor::FindPlayer(guids.front());
+                    if (player && player->IsInWorld() && player->GetMap() == snapMap)
                         player->RewardPlayerAndGroupAtEvent(31006, player); // Malganis quest entry required
+                }
             }
         }
 
@@ -1235,10 +1240,10 @@ void npc_arthas::npc_arthasAI::ScheduleNextEvent(uint32 currentEvent, Millisecon
 
 void npc_arthas::npc_arthasAI::SummonNextWave()
 {
-    Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-    if (!PlayerList.IsEmpty())
-        for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-            i->GetSource()->PlayerTalkClass->SendPointOfInterest(1000 + waveGroupId);
+    me->GetMap()->DoForAllPlayers([&](Player* p)
+    {
+        p->PlayerTalkClass->SendPointOfInterest(1000 + waveGroupId);
+    });
 
     waveKillCount = 0; // this is forced condition!
     uint32 tableId = waveGroupId;

@@ -121,9 +121,15 @@ namespace Acore
 template<class Do>
 void Battleground::BroadcastWorker(Do& _do)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-        _do(itr->second);
+    // Snapshot-then-act: never hold the social lock across sends.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+        _do(player);
+    }
 }
 
 void BattlegroundScore::AppendToPacket(WorldPacket& data)
@@ -212,6 +218,83 @@ Battleground::Battleground()
     m_UpdateTimer = 0;
 }
 
+Battleground::Battleground(Battleground const& other)
+{
+    *this = other;
+}
+
+Battleground& Battleground::operator=(Battleground const& other)
+{
+    if (this == &other)
+        return *this;
+
+    readyMarkerClickedSet = other.readyMarkerClickedSet;
+    ArenaLogEntries = other.ArenaLogEntries;
+    BgObjects = other.BgObjects;
+    BgCreatures = other.BgCreatures;
+    m_SetupCompleted = other.m_SetupCompleted;
+    PlayerScores = other.PlayerScores;
+    m_Players = other.m_Players;
+    m_ReviveQueue = other.m_ReviveQueue;
+    m_Events.store(other.m_Events.load());
+    for (uint8 i = 0; i < BG_STARTING_EVENT_COUNT; ++i)
+    {
+        StartDelayTimes[i] = other.StartDelayTimes[i];
+        StartMessageIds[i] = other.StartMessageIds[i];
+    }
+    m_BuffChange = other.m_BuffChange;
+    m_IsRandom = other.m_IsRandom;
+    m_HonorMode = other.m_HonorMode;
+    for (uint8 i = 0; i < PVP_TEAMS_COUNT; ++i)
+    {
+        m_TeamScores[i] = other.m_TeamScores[i];
+        _arenaTeamScores[i] = other._arenaTeamScores[i];
+        m_BgInvitedPlayers[i].store(other.m_BgInvitedPlayers[i].load());
+        m_BgRaids[i] = other.m_BgRaids[i];
+        m_PlayersCount[i].store(other.m_PlayersCount[i].load());
+        m_ArenaTeamIds[i] = other.m_ArenaTeamIds[i];
+        m_ArenaTeamMMR[i] = other.m_ArenaTeamMMR[i];
+    }
+    m_UpdateTimer.store(other.m_UpdateTimer.load());
+    _reviveEvents = other._reviveEvents;
+    m_RealTypeID = other.m_RealTypeID;
+    m_RandomTypeID = other.m_RandomTypeID;
+    m_InstanceID = other.m_InstanceID;
+    m_Status.store(other.m_Status.load());
+    m_ClientInstanceID = other.m_ClientInstanceID;
+    m_StartTime.store(other.m_StartTime.load());
+    m_ResetStatTimer.store(other.m_ResetStatTimer.load());
+    m_ValidStartPositionTimer.store(other.m_ValidStartPositionTimer.load());
+    m_EndTime.store(other.m_EndTime.load());
+    m_LastResurrectTime.store(other.m_LastResurrectTime.load());
+    m_BracketId = other.m_BracketId;
+    m_ArenaType = other.m_ArenaType;
+    _InBGFreeSlotQueue = other._InBGFreeSlotQueue;
+    m_SetDeleteThis.store(other.m_SetDeleteThis.load());
+    m_IsArena = other.m_IsArena;
+    m_IsTemplate = other.m_IsTemplate;
+    m_WinnerId.store(other.m_WinnerId.load());
+    m_StartDelayTime.store(other.m_StartDelayTime.load());
+    m_IsRated = other.m_IsRated;
+    m_PrematureCountDown.store(other.m_PrematureCountDown.load());
+    m_PrematureCountDownTimer.store(other.m_PrematureCountDownTimer.load());
+    m_Name = other.m_Name;
+    m_ResurrectQueue = other.m_ResurrectQueue;
+    m_OfflineQueue = other.m_OfflineQueue;
+    m_Spectators = other.m_Spectators;
+    m_ToBeTeleported = other.m_ToBeTeleported;
+    m_LevelMin = other.m_LevelMin;
+    m_LevelMax = other.m_LevelMax;
+    m_MaxPlayersPerTeam = other.m_MaxPlayersPerTeam;
+    m_MinPlayersPerTeam = other.m_MinPlayersPerTeam;
+    m_MapId = other.m_MapId;
+    m_Map = other.m_Map;
+    m_StartMaxDist = other.m_StartMaxDist;
+    _startPosition = other._startPosition;
+    ScriptId = other.ScriptId;
+    return *this;
+}
+
 Battleground::~Battleground()
 {
     LOG_DEBUG("bg.battleground", "> Remove Battleground {} {} {}", GetName(), GetBgTypeID(), GetInstanceID());
@@ -247,12 +330,51 @@ Battleground::~Battleground()
         delete itr.second;
 }
 
-void Battleground::Update(uint32 diff)
+std::vector<ObjectGuid> Battleground::GetPlayerGUIDs() const
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_Players.size());
+    for (auto const& pair : m_Players)
+        guids.push_back(pair.first);
+    return guids;
+}
+
+std::vector<std::pair<ObjectGuid, Player*>> Battleground::GetPlayersSnapshot() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<std::pair<ObjectGuid, Player*>> snapshot;
+    snapshot.reserve(m_Players.size());
+    for (auto const& pair : m_Players)
+        snapshot.emplace_back(pair.first, pair.second);
+    return snapshot;
+}
+
+uint32 Battleground::GetSpectatorCount() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_Spectators.size();
+}
+
+uint32 Battleground::GetPlayersSize() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_Players.size();
+}
+
+bool Battleground::HasPlayer(ObjectGuid guid) const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_Players.find(guid) != m_Players.end();
+}
+
+void Battleground::Update(uint32 diff)
+{
+    // No outer social lock: processors/helpers are snapshot-then-act
+    // and self-locking; tick-level fields are atomic.
     // pussywizard:
     m_UpdateTimer += diff;
-    if (m_UpdateTimer < BATTLEGROUND_UPDATE_INTERVAL)
+    if (m_UpdateTimer.load() < BATTLEGROUND_UPDATE_INTERVAL)
         return;
 
     diff = BATTLEGROUND_UPDATE_INTERVAL; // just change diff value, no need to replace variable name in many places
@@ -326,92 +448,108 @@ void Battleground::Update(uint32 diff)
 
 inline void Battleground::_CheckSafePositions(uint32 diff)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     float maxDist = GetStartMaxDist();
     if (!maxDist)
         return;
 
-    m_ValidStartPositionTimer += diff;
-
-    if (m_ValidStartPositionTimer >= CHECK_PLAYER_POSITION_INVERVAL)
     {
+        std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        m_ValidStartPositionTimer += diff;
+
+        if (m_ValidStartPositionTimer.load() < CHECK_PLAYER_POSITION_INVERVAL)
+            return;
+
         m_ValidStartPositionTimer = 0;
+    }
 
-        for (auto const& [playerGuid, player] : GetPlayers())
+    // Snapshot-then-act: TeleportTo can unlink; never hold the lock across it.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+
+        Position pos = player->GetPosition();
+        Position const* startPos = GetTeamStartPosition(player->GetBgTeamId());
+
+        if (pos.GetExactDistSq(startPos) > maxDist)
         {
-            Position pos = player->GetPosition();
-            Position const* startPos = GetTeamStartPosition(player->GetBgTeamId());
-
-            if (pos.GetExactDistSq(startPos) > maxDist)
-            {
-                LOG_DEBUG("bg.battleground", "BATTLEGROUND: Sending {} back to start location (map: {}) (possible exploit)", player->GetName(), GetMapId());
-                player->TeleportTo(GetMapId(), startPos->GetPositionX(), startPos->GetPositionY(), startPos->GetPositionZ(), startPos->GetOrientation());
-            }
+            LOG_DEBUG("bg.battleground", "BATTLEGROUND: Sending {} back to start location (map: {}) (possible exploit)", player->GetName(), GetMapId());
+            player->TeleportTo(GetMapId(), startPos->GetPositionX(), startPos->GetPositionY(), startPos->GetPositionZ(), startPos->GetOrientation());
         }
     }
 }
 
 inline void Battleground::_ProcessResurrect(uint32 diff)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     // *********************************************************
     // ***        BATTLEGROUND RESURRECTION SYSTEM           ***
     // *********************************************************
     // this should be handled by spell system
 
-    _reviveEvents.Update(diff);
-
-    m_LastResurrectTime += diff;
-    if (m_LastResurrectTime >= RESURRECTION_INTERVAL)
+    std::map<ObjectGuid, GuidVector> reviveSnapshot;
+    GuidVector resurrectSnapshot;
     {
-        if (GetReviveQueueSize())
+        std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+        _reviveEvents.Update(diff);
+
+        m_LastResurrectTime += diff;
+        if (m_LastResurrectTime.load() >= RESURRECTION_INTERVAL)
         {
-            for (std::map<ObjectGuid, GuidVector>::iterator itr = m_ReviveQueue.begin(); itr != m_ReviveQueue.end(); ++itr)
+            if (GetReviveQueueSize())
             {
-                Creature* sh = nullptr;
-                for (ObjectGuid const& guid : itr->second)
-                {
-                    Player* player = ObjectAccessor::FindPlayer(guid);
-                    if (!player)
-                        continue;
-
-                    if (!sh && player->IsInWorld())
-                    {
-                        sh = player->GetMap()->GetCreature(itr->first);
-                        // only for visual effect
-                        if (sh)
-                            // Spirit Heal, effect 117
-                            sh->CastSpell(sh, SPELL_SPIRIT_HEAL, true);
-                    }
-
-                    // Resurrection visual
-                    player->CastSpell(player, SPELL_RESURRECTION_VISUAL, true);
-                    m_ResurrectQueue.push_back(guid);
-                }
-
-                itr->second.clear();
+                reviveSnapshot = m_ReviveQueue;
+                m_ReviveQueue.clear();
+                m_LastResurrectTime = 0;
             }
-
-            m_ReviveQueue.clear();
-            m_LastResurrectTime = 0;
+            else
+                // queue is clear and time passed, just update last resurrection time
+                m_LastResurrectTime = 0;
         }
-        else
-            // queue is clear and time passed, just update last resurrection time
-            m_LastResurrectTime = 0;
+        else if (m_LastResurrectTime.load() > 500)    // Resurrect players only half a second later, to see spirit heal effect on NPC
+        {
+            resurrectSnapshot = m_ResurrectQueue;
+            m_ResurrectQueue.clear();
+        }
     }
-    else if (m_LastResurrectTime > 500)    // Resurrect players only half a second later, to see spirit heal effect on NPC
+
+    // Snapshot-then-act: casts/resurrects run without the social lock.
+    for (auto const& [spiritHealerGuid, guids] : reviveSnapshot)
     {
-        for (ObjectGuid const& guid : m_ResurrectQueue)
+        Creature* sh = nullptr;
+        for (ObjectGuid const& guid : guids)
         {
             Player* player = ObjectAccessor::FindPlayer(guid);
-            if (!player)
+            if (!player || !player->IsInWorld() || player->GetBattleground() != this)
                 continue;
-            player->ResurrectPlayer(1.0f);
-            player->CastSpell(player, 6962, true);
-            player->CastSpell(player, SPELL_SPIRIT_HEAL_MANA, true);
-            player->SpawnCorpseBones(false);
+
+            if (!sh && player->GetMap())
+            {
+                sh = player->GetMap()->GetCreature(spiritHealerGuid);
+                // only for visual effect
+                if (sh)
+                    // Spirit Heal, effect 117
+                    sh->CastSpell(sh, SPELL_SPIRIT_HEAL, true);
+            }
+
+            // Resurrection visual
+            player->CastSpell(player, SPELL_RESURRECTION_VISUAL, true);
+
+            std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+            m_ResurrectQueue.push_back(guid);
         }
-        m_ResurrectQueue.clear();
+    }
+
+    for (ObjectGuid const& guid : resurrectSnapshot)
+    {
+        Player* player = ObjectAccessor::FindPlayer(guid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+        player->ResurrectPlayer(1.0f);
+        player->CastSpell(player, 6962, true);
+        player->CastSpell(player, SPELL_SPIRIT_HEAL_MANA, true);
+        player->SpawnCorpseBones(false);
     }
 }
 
@@ -438,7 +576,7 @@ inline void Battleground::_ProcessProgress(uint32 diff)
         m_PrematureCountDown = true;
         m_PrematureCountDownTimer = sBattlegroundMgr->GetPrematureFinishTime();
     }
-    else if (m_PrematureCountDownTimer < diff)
+    else if (m_PrematureCountDownTimer.load() < diff)
     {
         // time's up!
         EndBattleground(GetPrematureWinner());
@@ -446,14 +584,14 @@ inline void Battleground::_ProcessProgress(uint32 diff)
     }
     else if (!sBattlegroundMgr->isTesting())
     {
-        uint32 newtime = m_PrematureCountDownTimer - diff;
+        uint32 newtime = m_PrematureCountDownTimer.load() - diff;
         // announce every minute
         if (newtime > (MINUTE * IN_MILLISECONDS))
         {
             if (newtime / (MINUTE * IN_MILLISECONDS) != m_PrematureCountDownTimer / (MINUTE * IN_MILLISECONDS))
                 GetBgMap()->DoForAllPlayers([&](Player* player)
                     {
-                        ChatHandler(player->GetSession()).PSendSysMessage(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING, (uint32)(m_PrematureCountDownTimer / (MINUTE * IN_MILLISECONDS)));
+                        ChatHandler(player->GetSession()).PSendSysMessage(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING, (uint32)(m_PrematureCountDownTimer.load() / (MINUTE * IN_MILLISECONDS)));
                     });
         }
         else
@@ -462,7 +600,7 @@ inline void Battleground::_ProcessProgress(uint32 diff)
             if (newtime / (15 * IN_MILLISECONDS) != m_PrematureCountDownTimer / (15 * IN_MILLISECONDS))
                 GetBgMap()->DoForAllPlayers([&](Player* player)
                     {
-                        ChatHandler(player->GetSession()).PSendSysMessage(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING_SECS, (uint32)(m_PrematureCountDownTimer / IN_MILLISECONDS));
+                        ChatHandler(player->GetSession()).PSendSysMessage(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING_SECS, (uint32)(m_PrematureCountDownTimer.load() / IN_MILLISECONDS));
                     });
         }
         m_PrematureCountDownTimer = newtime;
@@ -477,11 +615,17 @@ inline void Battleground::_ProcessJoin(uint32 diff)
     // *********************************************************
     ModifyStartDelayTime(diff);
 
-    if (m_ResetStatTimer > 5000)
+    if (m_ResetStatTimer.load() > 5000)
     {
         m_ResetStatTimer = 0;
-        for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-            itr->second->ResetAllPowers();
+        std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+        for (ObjectGuid const& playerGuid : guids)
+        {
+            Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+            if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                continue;
+            listed->ResetAllPowers();
+        }
     }
 
     if (!m_SetupCompleted)
@@ -539,7 +683,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
     }
 
     // First announcement at 120s or 60s (Depending on BG or Arena and configured time)
-    if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_FIRST] && !(m_Events & BG_STARTING_EVENT_1))
+    if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_FIRST] && !(m_Events.load() & BG_STARTING_EVENT_1))
     {
         m_Events |= BG_STARTING_EVENT_1;
 
@@ -547,7 +691,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             SendBroadcastText(StartMessageIds[BG_STARTING_EVENT_FIRST], CHAT_MSG_BG_SYSTEM_NEUTRAL);
     }
     // Second announcement at 60s or 30s
-    else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_SECOND] && !(m_Events & BG_STARTING_EVENT_2))
+    else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_SECOND] && !(m_Events.load() & BG_STARTING_EVENT_2))
     {
         m_Events |= BG_STARTING_EVENT_2;
 
@@ -555,7 +699,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             SendBroadcastText(StartMessageIds[BG_STARTING_EVENT_SECOND], CHAT_MSG_BG_SYSTEM_NEUTRAL);
     }
     // Third announcement at 30s or 15s
-    else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_THIRD] && !(m_Events & BG_STARTING_EVENT_3))
+    else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_THIRD] && !(m_Events.load() & BG_STARTING_EVENT_3))
     {
         m_Events |= BG_STARTING_EVENT_3;
 
@@ -590,7 +734,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             }
     }
     // Delay expired (after configured prep time)
-    else if (GetStartDelayTime() <= 0 && !(m_Events & BG_STARTING_EVENT_4))
+    else if (GetStartDelayTime() <= 0 && !(m_Events.load() & BG_STARTING_EVENT_4))
     {
         m_Events |= BG_STARTING_EVENT_4;
 
@@ -610,12 +754,17 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             if (BattlegroundMap* map = GetBgMap())
                 map->SetVisibilityRange(World::GetMaxVisibleDistanceInBGArenas());
 
-            for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-                if (Player* player = itr->second)
+            std::vector<ObjectGuid> startGuids = GetPlayerGUIDs();
+            for (ObjectGuid const& playerGuid : startGuids)
+            {
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+                    continue;
                 {
                     WorldPacket status;
                     sBattlegroundMgr->BuildBattlegroundStatusPacket(&status, this, player->GetCurrentBattlegroundQueueSlot(), STATUS_IN_PROGRESS, 0, GetStartTime(), GetArenaType(), player->GetBgTeamId());
-                    player->GetSession()->SendPacket(&status);
+                    if (WorldSession* session = player->GetSession())
+                        session->SendPacket(&status);
 
                     player->RemoveAurasDueToSpell(SPELL_ARENA_PREPARATION);
                     player->ResetAllPowers();
@@ -637,6 +786,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
 
                     player->UpdateObjectVisibility(true);
                 }
+            }
 
             for (SpectatorList::const_iterator itr = m_Spectators.begin(); itr != m_Spectators.end(); ++itr)
                 ArenaSpectator::HandleResetCommand(*itr);
@@ -670,10 +820,14 @@ inline void Battleground::_ProcessJoin(uint32 diff)
         {
             PlaySoundToAll(SOUND_BG_START);
 
-            for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
+            std::vector<ObjectGuid> prepGuids = GetPlayerGUIDs();
+            for (ObjectGuid const& playerGuid : prepGuids)
             {
-                itr->second->RemoveAurasDueToSpell(SPELL_PREPARATION);
-                itr->second->ResetAllPowers();
+                Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+                if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+                    continue;
+                listed->RemoveAurasDueToSpell(SPELL_PREPARATION);
+                listed->ResetAllPowers();
             }
 
             // Announce BG starting
@@ -693,7 +847,7 @@ inline void Battleground::_ProcessLeave(uint32 diff)
     // *********************************************************
     // remove all players from battleground after 2 minutes
     m_EndTime -= diff;
-    if (m_EndTime <= 0)
+    if (m_EndTime.load() <= 0)
     {
         m_EndTime = TIME_TO_AUTOREMOVE; // pussywizard: 0 -> TIME_TO_AUTOREMOVE
         BattlegroundPlayerMap::iterator itr, next;
@@ -722,17 +876,31 @@ Position const* Battleground::GetTeamStartPosition(TeamId teamId) const
 
 void Battleground::SendPacketToAll(WorldPacket const* packet)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-        itr->second->GetSession()->SendPacket(packet);
+    // Snapshot-then-act: never hold the social lock across sends.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+        if (WorldSession* session = player->GetSession())
+            session->SendPacket(packet);
+    }
 }
 
 void Battleground::SendPacketToTeam(TeamId teamId, WorldPacket const* packet, Player* sender, bool self)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-        if (itr->second->GetBgTeamId() == teamId && (self || sender != itr->second))
-            itr->second->GetSession()->SendPacket(packet);
+    // Snapshot-then-act: never hold the social lock across sends.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+        if (player->GetBgTeamId() == teamId && (self || sender != player))
+            if (WorldSession* session = player->GetSession())
+                session->SendPacket(packet);
+    }
 }
 
 void Battleground::SendChatMessage(Creature* source, uint8 textId, WorldObject* target /*= nullptr*/)
@@ -763,53 +931,81 @@ void Battleground::PlaySoundToAll(uint32 soundID)
 
 void Battleground::CastSpellOnTeam(uint32 spellId, TeamId teamId)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-        if (itr->second->GetBgTeamId() == teamId)
-            itr->second->CastSpell(itr->second, spellId, true);
+    // Snapshot-then-act: never hold the social lock across casts.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+        if (player->GetBgTeamId() == teamId)
+            player->CastSpell(player, spellId, true);
+    }
 }
 
 void Battleground::RemoveAuraOnTeam(uint32 spellId, TeamId teamId)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-        if (itr->second->GetBgTeamId() == teamId)
-            itr->second->RemoveAura(spellId);
+    // Snapshot-then-act: never hold the social lock across aura updates.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+        if (player->GetBgTeamId() == teamId)
+            player->RemoveAura(spellId);
+    }
 }
 
 void Battleground::YellToAll(Creature* creature, char const* text, uint32 language)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
+    // Snapshot-then-act: never hold the social lock across sends.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
     {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
         WorldPacket data;
-        ChatHandler::BuildChatPacket(data, CHAT_MSG_MONSTER_YELL, Language(language), creature, itr->second, text);
-        itr->second->SendDirectMessage(&data);
+        ChatHandler::BuildChatPacket(data, CHAT_MSG_MONSTER_YELL, Language(language), creature, player, text);
+        player->SendDirectMessage(&data);
     }
 }
 
 void Battleground::RewardHonorToTeam(uint32 honor, TeamId teamId)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-        if (itr->second->GetBgTeamId() == teamId)
-            UpdatePlayerScore(itr->second, SCORE_BONUS_HONOR, honor);
+    // Snapshot guids; UpdatePlayerScore takes the lock per player.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+        if (player->GetBgTeamId() == teamId)
+            UpdatePlayerScore(player, SCORE_BONUS_HONOR, honor);
+    }
 }
 
 void Battleground::RewardReputationToTeam(uint32 factionId, uint32 reputation, TeamId teamId)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-        if (itr->second->GetBgTeamId() == teamId)
+    // Snapshot-then-act: never hold the social lock across DB-adjacent rep updates.
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetBattleground() != this)
+            continue;
+        if (player->GetBgTeamId() == teamId)
         {
-            uint32 realFactionId = GetRealRepFactionForPlayer(factionId, itr->second);
+            uint32 realFactionId = GetRealRepFactionForPlayer(factionId, player);
 
             float repGain = static_cast<float>(reputation);
-            AddPct(repGain, itr->second->GetTotalAuraModifier(SPELL_AURA_MOD_REPUTATION_GAIN));
-            AddPct(repGain, itr->second->GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_FACTION_REPUTATION_GAIN, realFactionId));
+            AddPct(repGain, player->GetTotalAuraModifier(SPELL_AURA_MOD_REPUTATION_GAIN));
+            AddPct(repGain, player->GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_FACTION_REPUTATION_GAIN, realFactionId));
             if (FactionEntry const* factionEntry = sFactionStore.LookupEntry(realFactionId))
-                itr->second->GetReputationMgr().ModifyReputation(factionEntry, repGain);
+                player->GetReputationMgr().ModifyReputation(factionEntry, repGain);
         }
+    }
 }
 
 uint32 Battleground::GetRealRepFactionForPlayer(uint32 factionId, Player* player)
@@ -1147,7 +1343,7 @@ void Battleground::Init()
 
     if (m_BgInvitedPlayers[TEAM_ALLIANCE] > 0 || m_BgInvitedPlayers[TEAM_HORDE] > 0)
     {
-        LOG_ERROR("bg.battleground", "Battleground::Reset: one of the counters is not 0 (alliance: {}, horde: {}) for BG (map: {}, instance id: {})!", m_BgInvitedPlayers[TEAM_ALLIANCE], m_BgInvitedPlayers[TEAM_HORDE], m_MapId, m_InstanceID);
+        LOG_ERROR("bg.battleground", "Battleground::Reset: one of the counters is not 0 (alliance: {}, horde: {}) for BG (map: {}, instance id: {})!", m_BgInvitedPlayers[TEAM_ALLIANCE].load(), m_BgInvitedPlayers[TEAM_HORDE].load(), m_MapId, m_InstanceID);
         ABORT();
     }
 
@@ -1932,9 +2128,14 @@ void Battleground::SetBracket(PvPDifficultyEntry const* bracketEntry)
 
 void Battleground::StartTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry)
 {
-    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-        itr->second->StartTimedAchievement(type, entry);
+    std::vector<ObjectGuid> guids = GetPlayerGUIDs();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* listed = ObjectAccessor::FindPlayer(playerGuid);
+        if (!listed || !listed->IsInWorld() || listed->GetBattleground() != this)
+            continue;
+        listed->StartTimedAchievement(type, entry);
+    }
 }
 
 uint32 Battleground::GetTeamScore(TeamId teamId) const

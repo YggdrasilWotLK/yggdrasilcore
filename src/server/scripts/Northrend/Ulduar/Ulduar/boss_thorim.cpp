@@ -647,11 +647,16 @@ public:
 
         Player* GetArenaPlayer()
         {
-            Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-            for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
-                if (Player* p = itr->GetSource())
-                    if (p->GetPositionX() > 2085 && p->GetPositionX() < 2185 && p->GetPositionY() < -214 && p->GetPositionY() > -305 && p->IsAlive() && p->GetPositionZ() < 425)
-                        return p;
+            Map* snapMap = me->GetMap();
+            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+            for (ObjectGuid const& playerGuid : guids)
+            {
+                Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                    continue;
+                if (p->GetPositionX() > 2085 && p->GetPositionX() < 2185 && p->GetPositionY() < -214 && p->GetPositionY() > -305 && p->IsAlive() && p->GetPositionZ() < 425)
+                    return p;
+            }
             return nullptr;
         }
 
@@ -1641,16 +1646,20 @@ public:
         bool SelectT()
         {
             Player* target = nullptr;
-            Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-            uint8 num = urand(0, pList.getSize() - 1);
-            uint8 count = 0;
-            for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr, ++count)
+            Map* snapMap2 = me->GetMap();
+            std::vector<ObjectGuid> guids2 = snapMap2->CopyPlayerGuids();
+            uint8 num = guids2.empty() ? 0 : urand(0, guids2.size() - 1);
+            for (size_t idx = 0; idx < guids2.size(); ++idx)
             {
-                if (itr->GetSource()->GetPositionX() > 2180 || !itr->GetSource()->IsAlive() || itr->GetSource()->GetPositionZ() > 425)
+                uint8 count = static_cast<uint8>(idx);
+                Player* p = ObjectAccessor::FindPlayer(guids2[idx]);
+                if (!p || !p->IsInWorld() || p->GetMap() != snapMap2)
+                    continue;
+                if (p->GetPositionX() > 2180 || !p->IsAlive() || p->GetPositionZ() > 425)
                     continue;
 
                 if (count <= num || !target)
-                    target = itr->GetSource();
+                    target = p;
                 else
                     break;
             }

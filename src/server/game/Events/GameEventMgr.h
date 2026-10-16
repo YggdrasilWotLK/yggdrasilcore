@@ -22,8 +22,10 @@
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
 #include <map>
+#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
+#include <vector>
 
 #define max_ge_check_delay DAY          // 1 day in seconds
 
@@ -112,7 +114,17 @@ public:
         std::shared_lock<std::shared_mutex> lock(_activeEventsLock);
         return _activeEvents;
     }
-    [[nodiscard]] GameEventDataMap const& GetEventMap() const { return _gameEvent; }
+    [[nodiscard]] GameEventDataMap GetEventMap() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
+        return _gameEvent;
+    }
+    // Snapshot copy for external readers (calendar invites).
+    std::vector<uint32> GetModifiedHolidays() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(_eventDataLock);
+        return ModifiedHolidays;
+    }
     [[nodiscard]] bool CheckOneGameEvent(uint16 entry) const;
     [[nodiscard]] uint32 NextCheck(uint16 entry) const;
     void LoadFromDB();
@@ -211,9 +223,12 @@ private:
     // Guards _activeEvents only; sibling event-data maps keep today's
     // exposure (event transitions are world-thread serial).
     mutable std::shared_mutex _activeEventsLock;
+    // Guards all event-data maps below. Recursive (Update/Start/Stop nest).
+    // Order vs _activeEventsLock: eventData -> activeEvents, never inverse.
+    mutable std::recursive_mutex _eventDataLock;
     bool _isSystemInit;
     GameEventSeasonalQuestsMap _gameEventSeasonalQuestsMap;
-public:
+    // Same lock as above: mutated on world thread, iterated on map threads.
     GameEventGuidMap  GameEventCreatureGuids;
     GameEventGuidMap  GameEventGameobjectGuids;
     std::vector<uint32> ModifiedHolidays;

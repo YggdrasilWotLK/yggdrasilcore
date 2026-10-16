@@ -769,13 +769,7 @@ void WorldSession::LogoutPlayer(bool save)
             if (_player->GetMap()->IsDungeon() || _player->GetMap()->IsRaidOrHeroicDungeon())
             {
                 Map* logoutMap = _player->GetMap();
-                bool empty = false;
-                {
-                    std::shared_lock<std::shared_mutex> lock(*logoutMap->GetPlayerRefLock());
-                    Map::PlayerList const &playerList = logoutMap->GetPlayers();
-                    empty = playerList.IsEmpty();
-                }
-                if (empty)
+                if (!logoutMap->HavePlayers())
                     _player->TeleportToEntryPoint();
             }
         }

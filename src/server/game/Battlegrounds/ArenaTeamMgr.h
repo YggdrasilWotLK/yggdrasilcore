@@ -20,6 +20,8 @@
 
 #include "ArenaTeam.h"
 
+#include <vector>
+
 constexpr uint32 MAX_ARENA_TEAM_ID = 0xFFF00000;
 constexpr uint32 MAX_TEMP_ARENA_TEAM_ID = 0xFFFFFFFE;
 
@@ -38,6 +40,11 @@ public:
     ArenaTeam* GetArenaTeamByCaptain(ObjectGuid guid) const;
     ArenaTeam* GetArenaTeamByName(std::string const& arenaTeamName, const uint32 type) const;
     ArenaTeam* GetArenaTeamByCaptain(ObjectGuid guid, const uint32 type) const;
+    // Copy-out snapshot of all arena team ids (locks internally).
+    std::vector<uint32> GetArenaTeamIdsSnapshot() const;
+    // No internal locking: valid only under caller-held GetSocialLock, and the
+    // caller must recheck for null / continued validity before each use.
+    ArenaTeam* GetArenaTeamByIdLocked(uint32 arenaTeamId) const;
 
     void LoadArenaTeams();
     void AddArenaTeam(ArenaTeam* arenaTeam);

@@ -516,11 +516,15 @@ bool ChatHandler::HasSession() const
 
 void ChatHandler::DoForAllValidSessions(std::function<void(Player*)> exec)
 {
-    WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-    for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        if (Player* player = itr->second->GetPlayer())
+    std::vector<WorldSession*> sessions = sWorldSessionMgr->SnapshotSessions();
+    for (WorldSession* session : sessions)
+    {
+        if (!session)
+            continue;
+        if (Player* player = session->GetPlayer())
             if (player->IsInWorld())
                 exec(player);
+    }
 }
 
 char* ChatHandler::extractKeyFromLink(char* text, char const* linkType, char** something1)

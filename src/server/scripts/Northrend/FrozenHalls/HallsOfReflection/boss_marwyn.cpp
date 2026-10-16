@@ -16,6 +16,7 @@
  */
 
 #include "CreatureScript.h"
+#include "ObjectAccessor.h"
 #include "SpellScriptLoader.h"
 #include "halls_of_reflection.h"
 #include "ScriptedCreature.h"
@@ -196,11 +197,16 @@ class spell_hor_shared_suffering_aura : public AuraScript
                         uint32 count = 0;
                         uint32 ticks = 0;
                         uint32 dmgPerTick = a->GetSpellInfo()->Effects[0].BasePoints;
-                        Map::PlayerList const& pl = map->GetPlayers();
-                        for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-                            if (Player* p = itr->GetSource())
-                                if (p->IsAlive())
-                                    ++count;
+                        Map* snapMap = map;
+                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
+                        for (ObjectGuid const& playerGuid : guids)
+                        {
+                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
+                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
+                                continue;
+                            if (p->IsAlive())
+                                ++count;
+                        }
                         ticks = (a->GetDuration() / int32(a->GetSpellInfo()->Effects[0].Amplitude)) + 1;
                         int32 dmg = (ticks * dmgPerTick) / count;
                         caster->CastCustomSpell(GetTarget(), SPELL_SHARED_SUFFERING_DAMAGE, nullptr, &dmg, nullptr, true);
