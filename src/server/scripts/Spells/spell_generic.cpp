@@ -544,16 +544,11 @@ class spell_gen_rallying_cry_of_the_dragonslayer : public SpellScript
         if (GetCaster()->GetMapId() == MAP_KALIMDOR)
             zoneId = AREA_ORGRIMMAR;
 
-        Map* snapMap = GetCaster()->GetMap();
-        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-        for (ObjectGuid const& playerGuid : guids)
+        GetCaster()->GetMap()->DoForAllPlayers([&](Player* player)
         {
-            Player* player = ObjectAccessor::FindPlayer(playerGuid);
-            if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                continue;
             if (player->GetZoneId() == zoneId)
                 targets.push_back(player);
-        }
+        });
     }
 
     void Register() override

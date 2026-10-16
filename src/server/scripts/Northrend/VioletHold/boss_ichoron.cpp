@@ -137,18 +137,10 @@ public:
 
         void IchoronDoCastToAllHostilePlayers(uint32 spellId, bool triggered)
         {
-            Map* snapMap = me->GetMap();
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-            if (guids.empty())
-                return;
-
-            for (ObjectGuid const& playerGuid : guids)
+            me->GetMap()->DoForAllPlayers([&](Player* plr)
             {
-                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
-                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
-                    continue;
                 me->CastSpell(plr, spellId, triggered);
-            }
+            });
         }
 
         void JustEngagedWith(Unit* /*who*/) override

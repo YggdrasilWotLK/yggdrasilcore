@@ -73,13 +73,8 @@ struct boss_shirrak_the_dead_watcher : public BossAI
         _JustEngagedWith();
         scheduler.Schedule(1ms, [this] (TaskContext context)
         {
-            Map* snapMap = me->GetMap();
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-            for (ObjectGuid const& playerGuid : guids)
+            me->GetMap()->DoForAllPlayers([&](Player* player)
             {
-                Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                    continue;
                 {
                     float dist = me->GetDistance(player);
                     if (player->IsAlive() && dist < 45.0f)
@@ -104,7 +99,7 @@ struct boss_shirrak_the_dead_watcher : public BossAI
                         player->RemoveAurasDueToSpell(SPELL_INHIBIT_MAGIC);
                     }
                 }
-            }
+            });
             context.Repeat(3s);
         }).Schedule(28s, [this](TaskContext context)
         {

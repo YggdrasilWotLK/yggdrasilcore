@@ -297,6 +297,9 @@ class Battleground
 {
 public:
     Battleground();
+    // Explicit: atomic members are not copyable, copy their values.
+    Battleground(Battleground const& other);
+    Battleground& operator=(Battleground const& other);
     virtual ~Battleground();
 
     void Update(uint32 diff);

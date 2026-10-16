@@ -1008,20 +1008,15 @@ public:
                 if (checkTimer <= diff)
                 {
                     checkTimer = 1000;
-                    Map* snapMap = me->GetMap();
-                    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                    for (ObjectGuid const& playerGuid : guids)
+                    me->GetMap()->DoForAllPlayers([&](Player* p)
                     {
-                        Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                        if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                            continue;
                         if (CanAIAttack(p) && me->IsValidAttackTarget(p))
                         {
                             me->SetInCombatWith(p);
                             p->SetInCombatWith(me);
                             me->AddThreat(p, 0.0f);
                         }
-                    }
+                    });
                 }
                 else
                     checkTimer -= diff;
@@ -1060,16 +1055,11 @@ public:
                     if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
                     {
                         //_instance->DoCastSpellOnPlayers(SPELL_LOCK_PLAYERS_AND_TAP_CHEST);
-                        Map* snapMap = me->GetMap();
-                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                        for (ObjectGuid const& playerGuid : guids)
+                        me->GetMap()->DoForAllPlayers([&](Player* p)
                         {
-                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                continue;
                             if (!p->IsGameMaster())
                                 p->SetInCombatState(true);
-                        }
+                        });
                         _events.ScheduleEvent(EVENT_KEEP_PLAYER_IN_COMBAT, 4s);
                     }
                     break;
@@ -1373,20 +1363,15 @@ public:
                 if (checkTimer <= diff)
                 {
                     checkTimer = 1000;
-                    Map* snapMap = me->GetMap();
-                    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                    for (ObjectGuid const& playerGuid : guids)
+                    me->GetMap()->DoForAllPlayers([&](Player* p)
                     {
-                        Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                        if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                            continue;
                         if (CanAIAttack(p) && me->IsValidAttackTarget(p))
                         {
                             me->SetInCombatWith(p);
                             p->SetInCombatWith(me);
                             me->AddThreat(p, 0.0f);
                         }
-                    }
+                    });
                 }
                 else
                     checkTimer -= diff;
@@ -1428,16 +1413,11 @@ public:
                     if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
                     {
                         //_instance->DoCastSpellOnPlayers(SPELL_LOCK_PLAYERS_AND_TAP_CHEST);
-                        Map* snapMap = me->GetMap();
-                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                        for (ObjectGuid const& playerGuid : guids)
+                        me->GetMap()->DoForAllPlayers([&](Player* p)
                         {
-                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                continue;
                             if (!p->IsGameMaster())
                                 p->SetInCombatState(true);
-                        }
+                        });
                         _events.ScheduleEvent(EVENT_KEEP_PLAYER_IN_COMBAT, 4s);
                     }
                     break;

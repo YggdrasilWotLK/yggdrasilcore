@@ -152,17 +152,12 @@ struct boss_keristrasza : public BossAI
             break;
         case EVENT_ACHIEVEMENT_CHECK:
         {
-            Map* snapMap = me->GetMap();
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-            for (ObjectGuid const& playerGuid : guids)
+            me->GetMap()->DoForAllPlayers([&](Player* p)
             {
-                Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                    continue;
                 if (Aura* aur = p->GetAura(SPELL_INTENSE_COLD_TRIGGER))
                     if (aur->GetStackAmount() > 2)
                         aGuids.insert(p->GetGUID().GetCounter());
-            }
+            });
             events.ScheduleEvent(EVENT_ACHIEVEMENT_CHECK, 500ms);
             break;
         }

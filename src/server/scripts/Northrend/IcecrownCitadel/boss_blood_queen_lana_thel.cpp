@@ -242,15 +242,10 @@ public:
             if (_creditBloodQuickening)
             {
                 instance->SetData(DATA_BLOOD_QUICKENING_STATE, DONE);
-                Map* snapMap = me->GetMap();
-                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                for (ObjectGuid const& playerGuid : guids)
+                me->GetMap()->DoForAllPlayers([&](Player* p)
                 {
-                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                    if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                        continue;
                     p->KilledMonsterCredit(RAID_MODE(NPC_INFILTRATOR_MINCHAR_BQ, NPC_BLOOD_QUICKENING_CREDIT_25));
-                }
+                });
                 if (Creature* minchar = me->FindNearestCreature(NPC_INFILTRATOR_MINCHAR_BQ, 200.0f))
                 {
                     minchar->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);

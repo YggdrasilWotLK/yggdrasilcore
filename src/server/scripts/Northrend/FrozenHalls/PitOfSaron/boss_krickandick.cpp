@@ -551,16 +551,12 @@ class spell_krick_explosive_barrage_aura : public AuraScript
         if (Unit* caster = GetCaster())
             if (caster->IsCreature())
             {
-                Map* snapMap = caster->GetMap();
-                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                for (ObjectGuid const& playerGuid : guids)
+                caster->GetMap()->DoForAllPlayers([&](Player* player)
                 {
-                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                        continue;
-                    if (player->IsWithinDist(caster, 100.0f))
-                        caster->CastSpell(player, SPELL_EXPLOSIVE_BARRAGE_SUMMON, true);
-                }
+                    if (!player->IsWithinDist(caster, 100.0f))
+                        return;
+                    caster->CastSpell(player, SPELL_EXPLOSIVE_BARRAGE_SUMMON, true);
+                });
             }
     }
 

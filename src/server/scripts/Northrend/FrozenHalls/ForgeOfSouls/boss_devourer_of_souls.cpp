@@ -133,20 +133,15 @@ public:
                 pInstance->SetData(DATA_DEVOURER, IN_PROGRESS);
 
             // Suport for Quest Tempering the Blade
-            Map* snapMap = me->GetMap();
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-            for (ObjectGuid const& playerGuid : guids)
+            me->GetMap()->DoForAllPlayers([&](Player* player)
             {
-                Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                    continue;
                 if ((player->GetTeamId() == TEAM_ALLIANCE && player->GetQuestStatus(QUEST_TEMPERING_THE_BLADE_A) == QUEST_STATUS_INCOMPLETE) ||
                         (player->GetTeamId() == TEAM_HORDE && player->GetQuestStatus(QUEST_TEMPERING_THE_BLADE_H) == QUEST_STATUS_INCOMPLETE))
                 {
                     if (!me->FindNearestCreature(NPC_CRUCIBLE_OF_SOULS, 100.0f))
                         me->SummonCreature(NPC_CRUCIBLE_OF_SOULS, 5672.29f, 2520.69f, 713.44f, 0.96f);
                 }
-            }
+            });
         }
 
         void SpellHitTarget(Unit* target, SpellInfo const* spell) override

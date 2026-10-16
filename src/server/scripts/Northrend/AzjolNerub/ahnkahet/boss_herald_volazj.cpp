@@ -337,13 +337,8 @@ struct boss_volazj : public BossAI
                 }
 
                 // Move players between phases if their phase has no clones left
-                Map* snapMap3 = me->GetMap();
-                std::vector<ObjectGuid> guids3 = snapMap3->CopyPlayerGuids();
-                for (ObjectGuid const& playerGuid : guids3)
+                me->GetMap()->DoForAllPlayers([&](Player* player)
                 {
-                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap3)
-                        continue;
                     uint32 currentPhaseMask = player->GetPhaseMask();
                     bool currentPhaseHasCreatures = false;
                     bool currentPhaseHasPlayers = false;
@@ -383,21 +378,16 @@ struct boss_volazj : public BossAI
                             }
                         }
                     }
-                }
+                });
                 
                 if (!phaseHasCreatures[0] && !phaseHasCreatures[1] && !phaseHasCreatures[2]
                 && !phaseHasCreatures[3] && !phaseHasCreatures[4])
                 {
                     // Reset all players to phase 1 and remove insanity phase spell
-                    Map* snapMap4 = me->GetMap();
-                    std::vector<ObjectGuid> guids4 = snapMap4->CopyPlayerGuids();
-                    for (ObjectGuid const& playerGuid : guids4)
+                    me->GetMap()->DoForAllPlayers([&](Player*)
                     {
-                        Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                        if (!player || !player->IsInWorld() || player->GetMap() != snapMap4)
-                            continue;
                         ResetPlayersPhaseMask();
-                    }
+                    });
 
                     insanityPhase = false;
                     me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
@@ -469,20 +459,15 @@ private:
 
     void ResetPlayersPhaseMask()
     {
-        Map* snapMap5 = me->GetMap();
-        std::vector<ObjectGuid> guids5 = snapMap5->CopyPlayerGuids();
-        for (ObjectGuid const& playerGuid : guids5)
+        me->GetMap()->DoForAllPlayers([&](Player* player)
         {
-            Player* player = ObjectAccessor::FindPlayer(playerGuid);
-            if (!player || !player->IsInWorld() || player->GetMap() != snapMap5)
-                continue;
             player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_1);
             player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_2);
             player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_3);
             player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_4);
             player->RemoveAurasDueToSpell(SPELL_INSANITY_PHASING_5);
             player->SetPhaseMask(1, true);
-        }
+        });
     }
 };
 

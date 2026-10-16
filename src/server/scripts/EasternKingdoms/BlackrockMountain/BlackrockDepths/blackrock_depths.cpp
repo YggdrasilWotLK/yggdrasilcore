@@ -410,15 +410,10 @@ public:
                                     go->SetOwnerGUID(ObjectGuid::Empty);
                                 }
 
-                                Map* snapMap = me->GetMap();
-                                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                                for (ObjectGuid const& playerGuid : guids)
+                                me->GetMap()->DoForAllPlayers([&](Player* p)
                                 {
-                                    Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                                    if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                        continue;
                                     p->KilledMonsterCredit(16166);
-                                }
+                                });
                             }
 
                             HandleGameObject(DATA_ARENA2, false);

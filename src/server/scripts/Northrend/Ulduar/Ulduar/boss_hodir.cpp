@@ -405,15 +405,10 @@ public:
             {
                 if (me->IsInCombat())
                 {
-                    Map* snapMap = me->GetMap();
-                    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                    for (ObjectGuid const& playerGuid : guids)
+                    me->GetMap()->DoForAllPlayers([&](Player* p)
                     {
-                        Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                        if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                            continue;
                         p->CastSpell(p, SPELL_FLASH_FREEZE_INSTAKILL, true);
-                    }
+                    });
                     EnterEvadeMode();
                 }
                 return;

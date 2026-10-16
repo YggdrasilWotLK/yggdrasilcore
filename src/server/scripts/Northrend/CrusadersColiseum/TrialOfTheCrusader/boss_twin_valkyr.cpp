@@ -833,14 +833,10 @@ class spell_valkyr_touch_aura : public AuraScript
         if (caster->GetMap()->GetId() == 649 )
         {
             uint32 excludedID = GetSpellInfo()->ExcludeTargetAuraSpell;
-            Map* snapMap = caster->GetMap();
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-            for (ObjectGuid const& playerGuid : guids)
+            caster->GetMap()->DoForAllPlayers([&](Player* plr)
             {
-                Player* plr = ObjectAccessor::FindPlayer(playerGuid);
-                if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
-                    continue;
-                if (plr->IsAlive() && !plr->HasAura(excludedID) && !plr->HasSpiritOfRedemptionAura())
+                if (!plr->IsAlive() || plr->HasAura(excludedID) || plr->HasSpiritOfRedemptionAura())
+                    return;
                 {
                         uint32 absorb = 0;
                         uint32 resist = 0;
@@ -863,7 +859,7 @@ class spell_valkyr_touch_aura : public AuraScript
                         plr->SendPeriodicAuraLog(&pInfo);
                         Unit::DealDamage(caster, plr, damage, 0, DOT, GetSpellInfo()->GetSchoolMask(), GetSpellInfo(), true);
                     }
-            }
+            });
         }
     }
 

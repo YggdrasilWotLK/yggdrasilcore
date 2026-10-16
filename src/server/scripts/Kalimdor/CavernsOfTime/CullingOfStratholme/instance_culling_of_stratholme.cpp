@@ -142,14 +142,10 @@ public:
                     _crateCount++;
                     if (_crateCount == 5)
                     {
-                        std::vector<ObjectGuid> guids = instance->CopyPlayerGuids();
-                        for (ObjectGuid const& playerGuid : guids)
+                        instance->DoForAllPlayers([&](Player* player)
                         {
-                            Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                            if (!player || !player->IsInWorld() || player->GetMap() != instance)
-                                continue;
                             player->KilledMonsterCredit(NPC_GRAIN_CREATE_TRIGGER);
-                        }
+                        });
 
                         _showCrateTimer++;
                         if (GetData(DATA_ARTHAS_EVENT) < COS_PROGRESS_CRATES_FOUND)

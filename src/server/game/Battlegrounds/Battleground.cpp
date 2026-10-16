@@ -218,6 +218,83 @@ Battleground::Battleground()
     m_UpdateTimer = 0;
 }
 
+Battleground::Battleground(Battleground const& other)
+{
+    *this = other;
+}
+
+Battleground& Battleground::operator=(Battleground const& other)
+{
+    if (this == &other)
+        return *this;
+
+    readyMarkerClickedSet = other.readyMarkerClickedSet;
+    ArenaLogEntries = other.ArenaLogEntries;
+    BgObjects = other.BgObjects;
+    BgCreatures = other.BgCreatures;
+    m_SetupCompleted = other.m_SetupCompleted;
+    PlayerScores = other.PlayerScores;
+    m_Players = other.m_Players;
+    m_ReviveQueue = other.m_ReviveQueue;
+    m_Events.store(other.m_Events.load());
+    for (uint8 i = 0; i < BG_STARTING_EVENT_COUNT; ++i)
+    {
+        StartDelayTimes[i] = other.StartDelayTimes[i];
+        StartMessageIds[i] = other.StartMessageIds[i];
+    }
+    m_BuffChange = other.m_BuffChange;
+    m_IsRandom = other.m_IsRandom;
+    m_HonorMode = other.m_HonorMode;
+    for (uint8 i = 0; i < PVP_TEAMS_COUNT; ++i)
+    {
+        m_TeamScores[i] = other.m_TeamScores[i];
+        _arenaTeamScores[i] = other._arenaTeamScores[i];
+        m_BgInvitedPlayers[i].store(other.m_BgInvitedPlayers[i].load());
+        m_BgRaids[i] = other.m_BgRaids[i];
+        m_PlayersCount[i].store(other.m_PlayersCount[i].load());
+        m_ArenaTeamIds[i] = other.m_ArenaTeamIds[i];
+        m_ArenaTeamMMR[i] = other.m_ArenaTeamMMR[i];
+    }
+    m_UpdateTimer.store(other.m_UpdateTimer.load());
+    _reviveEvents = other._reviveEvents;
+    m_RealTypeID = other.m_RealTypeID;
+    m_RandomTypeID = other.m_RandomTypeID;
+    m_InstanceID = other.m_InstanceID;
+    m_Status.store(other.m_Status.load());
+    m_ClientInstanceID = other.m_ClientInstanceID;
+    m_StartTime.store(other.m_StartTime.load());
+    m_ResetStatTimer.store(other.m_ResetStatTimer.load());
+    m_ValidStartPositionTimer.store(other.m_ValidStartPositionTimer.load());
+    m_EndTime.store(other.m_EndTime.load());
+    m_LastResurrectTime.store(other.m_LastResurrectTime.load());
+    m_BracketId = other.m_BracketId;
+    m_ArenaType = other.m_ArenaType;
+    _InBGFreeSlotQueue = other._InBGFreeSlotQueue;
+    m_SetDeleteThis.store(other.m_SetDeleteThis.load());
+    m_IsArena = other.m_IsArena;
+    m_IsTemplate = other.m_IsTemplate;
+    m_WinnerId.store(other.m_WinnerId.load());
+    m_StartDelayTime.store(other.m_StartDelayTime.load());
+    m_IsRated = other.m_IsRated;
+    m_PrematureCountDown.store(other.m_PrematureCountDown.load());
+    m_PrematureCountDownTimer.store(other.m_PrematureCountDownTimer.load());
+    m_Name = other.m_Name;
+    m_ResurrectQueue = other.m_ResurrectQueue;
+    m_OfflineQueue = other.m_OfflineQueue;
+    m_Spectators = other.m_Spectators;
+    m_ToBeTeleported = other.m_ToBeTeleported;
+    m_LevelMin = other.m_LevelMin;
+    m_LevelMax = other.m_LevelMax;
+    m_MaxPlayersPerTeam = other.m_MaxPlayersPerTeam;
+    m_MinPlayersPerTeam = other.m_MinPlayersPerTeam;
+    m_MapId = other.m_MapId;
+    m_Map = other.m_Map;
+    m_StartMaxDist = other.m_StartMaxDist;
+    _startPosition = other._startPosition;
+    ScriptId = other.ScriptId;
+    return *this;
+}
+
 Battleground::~Battleground()
 {
     LOG_DEBUG("bg.battleground", "> Remove Battleground {} {} {}", GetName(), GetBgTypeID(), GetInstanceID());

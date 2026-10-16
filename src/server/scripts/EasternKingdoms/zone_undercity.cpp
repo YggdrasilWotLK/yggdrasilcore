@@ -1110,19 +1110,10 @@ public:
 
         void UpdateWorldState(Map* map, uint32 id, uint32 state)
         {
-            Map* snapMap = map;
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-
-            if (!guids.empty())
+            map->DoForAllPlayers([&](Player* player)
             {
-                for (ObjectGuid const& playerGuid : guids)
-                {
-                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                        continue;
-                    player->SendUpdateWorldState(id, state);
-                }
-            }
+                player->SendUpdateWorldState(id, state);
+            });
         }
 
         void SetHoldState(bool bOnHold)
@@ -2493,19 +2484,10 @@ public:
 
         void UpdateWorldState(Map* map, uint32 id, uint32 state)
         {
-            Map* snapMap = map;
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-
-            if (!guids.empty())
+            map->DoForAllPlayers([&](Player* player)
             {
-                for (ObjectGuid const& playerGuid : guids)
-                {
-                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                        continue;
-                    player->SendUpdateWorldState(id, state);
-                }
-            }
+                player->SendUpdateWorldState(id, state);
+            });
         }
 
         void SetHoldState(bool bOnHold)
@@ -3838,26 +3820,19 @@ public:
                                 saurfang->AI()->Talk(SAY_SAURFANG_ARRIVAL_3);
                             if (Map* map = me->GetMap())
                             {
-                                Map* snapMap = map;
-                                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                                for (ObjectGuid const& playerGuid : guids)
+                                map->DoForAllPlayers([&](Player* player)
                                 {
-                                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                                        continue;
+                                    if (me->IsInRange(player, 0.0f, 50.0f))
                                     {
-                                        if (me->IsInRange(player, 0.0f, 50.0f))
+                                        if (player->GetTeamId() == TEAM_HORDE)
                                         {
-                                            if (player->GetTeamId() == TEAM_HORDE)
-                                            {
-                                                player->RemoveAura(SPELL_SYLVANAS_BUFF);
-                                                player->RemoveAura(SPELL_THRALL_BUFF);
-                                                player->CompleteQuest(QUEST_BATTLE_H);
-                                                player->CastSpell(player, SPELL_PHASING_HORDE);
-                                            }
+                                            player->RemoveAura(SPELL_SYLVANAS_BUFF);
+                                            player->RemoveAura(SPELL_THRALL_BUFF);
+                                            player->CompleteQuest(QUEST_BATTLE_H);
+                                            player->CastSpell(player, SPELL_PHASING_HORDE);
                                         }
                                     }
-                                }
+                                });
                             }
                             JumpToNextStep(5 * IN_MILLISECONDS);
                             break;

@@ -860,19 +860,14 @@ public:
                 std::list<Creature*> crushers;
                 me->GetCreaturesWithEntryInRange(crushers, 500.0f, NPC_ANUB_AR_CRUSHER);
 
-                Map* snapMap = me->GetMap();
-                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
                 for (Creature* crusher : crushers)
                 {
                     if (!crusher->IsAlive() || crusher->IsInCombat())
                         continue;
-                    for (ObjectGuid const& playerGuid : guids)
+                    me->GetMap()->DoForAllPlayers([&](Player* player)
                     {
-                        Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                        if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                            continue;
                         if (!player->IsAlive() || player->IsGameMaster())
-                            continue;
+                            return;
                         float z = player->GetPositionZ();
                         float y = player->GetPositionY();
                         if (y < GAUNTLET_MAX_Y && z > GAUNTLET_END_Z)
@@ -880,7 +875,7 @@ public:
                             crusher->AI()->AttackStart(player);
                             crusher->AddThreat(player, 1.0f);
                         }
-                    }
+                    });
                 }
             }
             if (index == 7)
@@ -1215,15 +1210,10 @@ public:
                         {
                             _reachedFinalWaypoint = true;
                             _leashPos = me->GetPosition();
-                            Map* snapMap = me->GetMap();
-                            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                            for (ObjectGuid const& playerGuid : guids)
+                            me->GetMap()->DoForAllPlayers([&](Player* player)
                             {
-                                Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                                if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                                    continue;
                                 if (!player->IsAlive() || player->IsGameMaster())
-                                    continue;
+                                    return;
                                 float z = player->GetPositionZ();
                                 float y = player->GetPositionY();
                                 if (y < GAUNTLET_MAX_Y && z > GAUNTLET_END_Z)
@@ -1232,7 +1222,7 @@ public:
                                     me->SetInCombatWith(player);
                                     player->SetInCombatWith(me);
                                 }
-                            }
+                            });
                         }
                     }
                     else if (!_waitingForNextStep)

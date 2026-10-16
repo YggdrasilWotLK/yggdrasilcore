@@ -440,15 +440,10 @@ public:
                             DoUpdateWorldState(WORLD_STATE_HALLS_OF_REFLECTION_WAVES_ENABLED, 0);
 
                             // give quest
-                            Map* snapMap = instance;
-                            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                            for (ObjectGuid const& playerGuid : guids)
+                            instance->DoForAllPlayers([&](Player* p)
                             {
-                                Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                    continue;
                                 p->CastSpell(p, p->GetTeamId() == TEAM_ALLIANCE ? SPELL_HOR_START_QUEST_ALLY : SPELL_HOR_START_QUEST_HORDE, true);
-                            }
+                            });
                         }
                     }
                     break;
@@ -465,15 +460,11 @@ public:
                 case ACTION_SPIRITUAL_REFLECTIONS_COPY:
                     {
                         uint8 i = 0;
-                        Map* snapMap = instance;
-                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                        for (ObjectGuid const& playerGuid : guids)
+                        instance->DoForAllPlayers([&](Player* p)
                         {
-                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                continue;
-                            if (p->IsAlive() && !p->IsGameMaster())
-                                if (Creature* c = instance->GetCreature(NPC_SpiritualReflectionGUID[i++]))
+                            if (!p->IsAlive() || p->IsGameMaster())
+                                return;
+                            if (Creature* c = instance->GetCreature(NPC_SpiritualReflectionGUID[i++]))
                                     {
                                         if (!c->IsAlive())
                                             c->Respawn();
@@ -491,7 +482,7 @@ public:
                                         p->CastSpell(c, SPELL_HOR_CLONE, true);
                                         p->CastSpell(c, SPELL_HOR_CLONE_NAME, true);
                                     }
-                        }
+                        });
                     }
                     break;
                 case ACTION_SPIRITUAL_REFLECTIONS_ACTIVATE:
@@ -1182,15 +1173,10 @@ public:
                         case 10:
                             ++outroStep;
                             outroTimer = 0;
-                            Map* snapMap = instance;
-                            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                            for (ObjectGuid const& playerGuid : guids)
+                            instance->DoForAllPlayers([&](Player* p)
                             {
-                                Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                    continue;
                                 p->KilledMonsterCredit(NPC_WRATH_OF_THE_LICH_KING_CREDIT);
-                            }
+                            });
                             if (GetTeamIdInInstance() == TEAM_ALLIANCE)
                                 if (Creature* c = instance->GetCreature(NPC_LeaderGUID))
                                 {

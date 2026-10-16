@@ -1240,16 +1240,10 @@ void npc_arthas::npc_arthasAI::ScheduleNextEvent(uint32 currentEvent, Millisecon
 
 void npc_arthas::npc_arthasAI::SummonNextWave()
 {
-    Map* snapMap = me->GetMap();
-    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-    if (!guids.empty())
-        for (ObjectGuid const& playerGuid : guids)
-        {
-            Player* p = ObjectAccessor::FindPlayer(playerGuid);
-            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                continue;
-            p->PlayerTalkClass->SendPointOfInterest(1000 + waveGroupId);
-        }
+    me->GetMap()->DoForAllPlayers([&](Player* p)
+    {
+        p->PlayerTalkClass->SendPointOfInterest(1000 + waveGroupId);
+    });
 
     waveKillCount = 0; // this is forced condition!
     uint32 tableId = waveGroupId;

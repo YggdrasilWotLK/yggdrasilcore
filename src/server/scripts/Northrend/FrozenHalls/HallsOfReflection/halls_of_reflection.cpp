@@ -1793,16 +1793,11 @@ public:
                                 div2 = 0;
                                 if (me->HasAura(SPELL_REMORSELESS_WINTER)) // prevent going behind him during fight
                                 {
-                                    Map* snapMap = pInstance->instance;
-                                    std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                                    for (ObjectGuid const& playerGuid : guids)
+                                    pInstance->instance->DoForAllPlayers([&](Player* p)
                                     {
-                                        Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                                        if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                            continue;
                                         if (!p->IsGameMaster() && p->IsAlive() && (p->GetPositionX() - me->GetPositionX() + p->GetPositionY() - me->GetPositionY()) > 20.0f)
                                             me->CastSpell(p, SPELL_LICH_KING_ZAP_PLAYER, true);
-                                    }
+                                    });
                                 }
                             }
                         }
@@ -2065,15 +2060,10 @@ public:
                     break;
                 case EVENT_SAY_LEAVE:
                     {
-                        Map* snapMap = pInstance->instance;
-                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                        for (ObjectGuid const& playerGuid : guids)
+                        pInstance->instance->DoForAllPlayers([&](Player* p)
                         {
-                            Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                            if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                continue;
                             p->KilledMonsterCredit(me->GetEntry()); //for quest
-                        }
+                        });
                         Talk(me->GetEntry() == NPC_JAINA_PART2 ? SAY_JAINA_AGGRO : SAY_SYLVANA_AGGRO);
                         me->SetSheath(SHEATH_STATE_MELEE);
                         me->SetWalk(false);

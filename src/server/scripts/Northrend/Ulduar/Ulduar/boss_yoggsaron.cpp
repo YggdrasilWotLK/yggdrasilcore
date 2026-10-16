@@ -1128,17 +1128,12 @@ public:
                     go->SetGoState(GO_STATE_ACTIVE);
             }
 
-            Map* snapMap = me->GetMap();
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-            for (ObjectGuid const& playerGuid : guids)
+            me->GetMap()->DoForAllPlayers([&](Player* p)
             {
-                Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                    continue;
                 p->RemoveAura(SPELL_SANITY);
                 p->RemoveAura(SPELL_INSANE1);
                 p->RemoveAura(SPELL_INSANE2);
-            }
+            });
         }
 
         void DoAction(int32 param) override

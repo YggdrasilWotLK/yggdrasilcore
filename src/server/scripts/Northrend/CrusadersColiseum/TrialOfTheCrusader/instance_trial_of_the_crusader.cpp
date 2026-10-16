@@ -291,15 +291,10 @@ public:
                     {
                         if (AttemptsLeft > 0)
                             --AttemptsLeft;
-                        Map* snapMap = instance;
-                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                        for (ObjectGuid const& playerGuid : guids)
+                        instance->DoForAllPlayers([&](Player* plr)
                         {
-                            Player* plr = ObjectAccessor::FindPlayer(playerGuid);
-                            if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
-                                continue;
                             plr->SendUpdateWorldState(WORLD_STATE_TRIAL_OF_THE_CRUSADER_UI_COUNT, AttemptsLeft);
-                        }
+                        });
                     }
                     InstanceCleanup(true);
                     SaveToDB();
@@ -1118,15 +1113,10 @@ public:
                                 //if (Unit* target = c->SelectNearestTarget(200.0f))
                                 //  c->AI()->AttackStart(target);
                             }
-                        Map* snapMap = instance;
-                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                        for (ObjectGuid const& playerGuid : guids)
+                        instance->DoForAllPlayers([&](Player* notified)
                         {
-                            Player* notified = ObjectAccessor::FindPlayer(playerGuid);
-                            if (!notified || !notified->IsInWorld() || notified->GetMap() != snapMap)
-                                continue;
                             notified->AddToNotify(NOTIFY_AI_RELOCATION);
-                        }
+                        });
                         EncounterStatus = IN_PROGRESS;
                         break;
                     }
@@ -1578,15 +1568,10 @@ public:
             if (instance->IsHeroic() && AttemptsLeft > 0 && !fromFailed && EncounterStatus == IN_PROGRESS)
             {
                 --AttemptsLeft;
-                Map* snapMap = instance;
-                std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                for (ObjectGuid const& playerGuid : guids)
+                instance->DoForAllPlayers([&](Player* plr)
                 {
-                    Player* plr = ObjectAccessor::FindPlayer(playerGuid);
-                    if (!plr || !plr->IsInWorld() || plr->GetMap() != snapMap)
-                        continue;
                     plr->SendUpdateWorldState(WORLD_STATE_TRIAL_OF_THE_CRUSADER_UI_COUNT, AttemptsLeft);
-                }
+                });
             }
 
             if (instance->IsHeroic() && AttemptsLeft == 0 )

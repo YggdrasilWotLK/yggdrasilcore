@@ -427,17 +427,11 @@ public:
 
         void SendUpdateWorldState(uint32 id, uint32 state)
         {
-            Map* snapMap = me->GetMap();
-            std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-            if (!guids.empty())
-                for (ObjectGuid const& playerGuid : guids)
-                {
-                    Player* player = ObjectAccessor::FindPlayer(playerGuid);
-                    if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                        continue;
-                    if (player->GetPhaseMask() & 128) // Xinef: client skips players without chapter 5 aura anyway, speedup
-                        player->SendUpdateWorldState(id, state);
-                }
+            me->GetMap()->DoForAllPlayers([&](Player* player)
+            {
+                if (player->GetPhaseMask() & 128) // Xinef: client skips players without chapter 5 aura anyway, speedup
+                    player->SendUpdateWorldState(id, state);
+            });
         }
 
         void SendInitialWorldStates()
@@ -1138,19 +1132,11 @@ public:
                     break;
                 case EVENT_OUTRO_SCENE_60:
                     {
-                        Map* snapMap = me->GetMap();
-                        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-                        if (!guids.empty())
+                        me->GetMap()->DoForAllPlayers([&](Player* p)
                         {
-                            for (ObjectGuid const& playerGuid : guids)
-                            {
-                                Player* p = ObjectAccessor::FindPlayer(playerGuid);
-                                if (!p || !p->IsInWorld() || p->GetMap() != snapMap)
-                                    continue;
-                                if (p->IsAlive() && me->IsWithinDistInMap(p, 100))
-                                    p->CastSpell(p, SPELL_THE_LIGHT_OF_DAWN_Q, false);
-                            }
-                        }
+                            if (p->IsAlive() && me->IsWithinDistInMap(p, 100))
+                                p->CastSpell(p, SPELL_THE_LIGHT_OF_DAWN_Q, false);
+                        });
                         me->ReplaceAllNpcFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                         break;
                     }

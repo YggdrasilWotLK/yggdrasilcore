@@ -277,18 +277,11 @@ class spell_teron_gorefiend_shadowy_construct : public AuraScript
         GetUnitOwner()->ApplySpellImmune(0, IMMUNITY_ALLOW_ID, SPELL_SPIRIT_VOLLEY, true);
 
         GetUnitOwner()->ToCreature()->SetInCombatWithZone();
-        Map* snapMap = GetUnitOwner()->GetMap();
-        std::vector<ObjectGuid> guids = snapMap->CopyPlayerGuids();
-        for (ObjectGuid const& playerGuid : guids)
+        GetUnitOwner()->GetMap()->DoForAllPlayers([&](Player* player)
         {
-            Player* player = ObjectAccessor::FindPlayer(playerGuid);
-            if (!player || !player->IsInWorld() || player->GetMap() != snapMap)
-                continue;
-            {
-                if (GetUnitOwner()->IsValidAttackTarget(player))
-                    GetUnitOwner()->AddThreat(player, 1000000.0f);
-            }
-        }
+            if (GetUnitOwner()->IsValidAttackTarget(player))
+                GetUnitOwner()->AddThreat(player, 1000000.0f);
+        });
 
         GetUnitOwner()->CastSpell(GetUnitOwner(), SPELL_BRIEF_STUN, true);
     }
