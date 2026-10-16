@@ -43,6 +43,7 @@ public:
 
     Map* FindBaseMap(uint32 mapId) const // pussywizard: need this public for movemaps (mmaps)
     {
+        std::lock_guard<std::mutex> guard(Lock);
         MapMapType::const_iterator iter = i_maps.find(mapId);
         return (iter == i_maps.end() ? nullptr : iter->second);
     }
@@ -168,7 +169,7 @@ private:
     MapMgr(const MapMgr&);
     MapMgr& operator=(const MapMgr&);
 
-    std::mutex Lock;
+    mutable std::mutex Lock;
     MapMapType i_maps;
     IntervalTimer i_timer[4]; // continents, bgs/arenas, instances, total from the beginning
     uint8 mapUpdateStep;

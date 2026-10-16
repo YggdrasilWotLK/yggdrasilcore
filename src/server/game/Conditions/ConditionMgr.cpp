@@ -840,6 +840,7 @@ ConditionMgr* ConditionMgr::instance()
 ConditionList ConditionMgr::GetConditionReferences(uint32 refId)
 {
     ConditionList                               conditions;
+    std::shared_lock<std::shared_mutex> lock(_condLock);
     ConditionReferenceContainer::const_iterator ref = ConditionReferenceStore.find(refId);
     if (ref != ConditionReferenceStore.end())
         conditions = (*ref).second;
@@ -866,9 +867,14 @@ uint32 ConditionMgr::GetSearcherTypeMaskForConditionList(ConditionList const& co
 
         if ((*i)->ReferenceId) // handle reference
         {
-            ConditionReferenceContainer::const_iterator ref = ConditionReferenceStore.find((*i)->ReferenceId);
-            ASSERT(ref != ConditionReferenceStore.end() && "ConditionMgr::GetSearcherTypeMaskForConditionList - incorrect reference");
-            ElseGroupStore[(*i)->ElseGroup] &= GetSearcherTypeMaskForConditionList((*ref).second);
+            ConditionList refConditions;
+            {
+                std::shared_lock<std::shared_mutex> lock(_condLock);
+                ConditionReferenceContainer::const_iterator ref = ConditionReferenceStore.find((*i)->ReferenceId);
+                ASSERT(ref != ConditionReferenceStore.end() && "ConditionMgr::GetSearcherTypeMaskForConditionList - incorrect reference");
+                refConditions = (*ref).second;
+            }
+            ElseGroupStore[(*i)->ElseGroup] &= GetSearcherTypeMaskForConditionList(refConditions);
         }
         else // handle normal condition
         {
@@ -904,10 +910,20 @@ bool ConditionMgr::IsObjectMeetToConditionList(ConditionSourceInfo& sourceInfo, 
 
             if ((*i)->ReferenceId) // handle reference
             {
-                ConditionReferenceContainer::const_iterator ref = ConditionReferenceStore.find((*i)->ReferenceId);
-                if (ref != ConditionReferenceStore.end())
+                ConditionList refConditions;
+                bool found = false;
                 {
-                    if (!IsObjectMeetToConditionList(sourceInfo, (*ref).second))
+                    std::shared_lock<std::shared_mutex> lock(_condLock);
+                    ConditionReferenceContainer::const_iterator ref = ConditionReferenceStore.find((*i)->ReferenceId);
+                    if (ref != ConditionReferenceStore.end())
+                    {
+                        refConditions = (*ref).second;
+                        found = true;
+                    }
+                }
+                if (found)
+                {
+                    if (!IsObjectMeetToConditionList(sourceInfo, refConditions))
                         ElseGroupStore[(*i)->ElseGroup] = false;
                 }
                 else
@@ -965,6 +981,7 @@ bool ConditionMgr::CanHaveSourceIdSet(ConditionSourceType sourceType) const
 ConditionList ConditionMgr::GetConditionsForNotGroupedEntry(ConditionSourceType sourceType, uint32 entry)
 {
     ConditionList spellCond;
+    std::shared_lock<std::shared_mutex> lock(_condLock);
     if (sourceType > CONDITION_SOURCE_TYPE_NONE && sourceType < CONDITION_SOURCE_TYPE_MAX)
     {
         ConditionContainer::const_iterator itr = ConditionStore.find(sourceType);
@@ -984,6 +1001,7 @@ ConditionList ConditionMgr::GetConditionsForNotGroupedEntry(ConditionSourceType 
 ConditionList ConditionMgr::GetConditionsForSpellClickEvent(uint32 creatureId, uint32 spellId)
 {
     ConditionList                                   cond;
+    std::shared_lock<std::shared_mutex> lock(_condLock);
     CreatureSpellConditionContainer::const_iterator itr = SpellClickEventConditionStore.find(creatureId);
     if (itr != SpellClickEventConditionStore.end())
     {
@@ -1000,6 +1018,7 @@ ConditionList ConditionMgr::GetConditionsForSpellClickEvent(uint32 creatureId, u
 ConditionList ConditionMgr::GetConditionsForVehicleSpell(uint32 creatureId, uint32 spellId)
 {
     ConditionList                                   cond;
+    std::shared_lock<std::shared_mutex> lock(_condLock);
     CreatureSpellConditionContainer::const_iterator itr = VehicleSpellConditionStore.find(creatureId);
     if (itr != VehicleSpellConditionStore.end())
     {
@@ -1016,6 +1035,7 @@ ConditionList ConditionMgr::GetConditionsForVehicleSpell(uint32 creatureId, uint
 ConditionList ConditionMgr::GetConditionsForSmartEvent(int32 entryOrGuid, uint32 eventId, uint32 sourceType)
 {
     ConditionList                                cond;
+    std::shared_lock<std::shared_mutex> lock(_condLock);
     SmartEventConditionContainer::const_iterator itr = SmartEventConditionStore.find(std::make_pair(entryOrGuid, sourceType));
     if (itr != SmartEventConditionStore.end())
     {
@@ -1032,6 +1052,7 @@ ConditionList ConditionMgr::GetConditionsForSmartEvent(int32 entryOrGuid, uint32
 ConditionList ConditionMgr::GetConditionsForNpcVendorEvent(uint32 creatureId, uint32 itemId)
 {
     ConditionList                               cond;
+    std::shared_lock<std::shared_mutex> lock(_condLock);
     NpcVendorConditionContainer::const_iterator itr = NpcVendorConditionContainerStore.find(creatureId);
     if (itr != NpcVendorConditionContainerStore.end())
     {
@@ -1055,6 +1076,7 @@ ConditionList ConditionMgr::GetConditionsForNpcVendorEvent(uint32 creatureId, ui
 void ConditionMgr::LoadConditions(bool isReload)
 {
     uint32 oldMSTime = getMSTime();
+    std::unique_lock<std::shared_mutex> lock(_condLock);
 
     Clean();
 

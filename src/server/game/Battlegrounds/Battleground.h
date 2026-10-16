@@ -409,6 +409,9 @@ public:
     typedef std::map<ObjectGuid, Player*> BattlegroundPlayerMap;
     [[nodiscard]] BattlegroundPlayerMap const& GetPlayers() const { return m_Players; }
     [[nodiscard]] uint32 GetPlayersSize() const { return m_Players.size(); }
+    // Snapshot copy-outs: m_Players mutates on session threads, never hold the live map.
+    [[nodiscard]] std::vector<ObjectGuid> GetPlayerGUIDs() const;
+    [[nodiscard]] std::vector<std::pair<ObjectGuid, Player*>> GetPlayersSnapshot() const;
 
     void ReadyMarkerClicked(Player* p); // pussywizard
     GuidSet readyMarkerClickedSet; // pussywizard

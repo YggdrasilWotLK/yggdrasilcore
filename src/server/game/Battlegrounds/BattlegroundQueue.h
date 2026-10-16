@@ -90,6 +90,9 @@ public:
 
     void AddEvent(BasicEvent* Event, uint64 e_time);
 
+    // Snapshot copy-out: m_QueuedPlayers mutates on session threads.
+    [[nodiscard]] std::vector<ObjectGuid> GetQueuedPlayerGUIDs() const;
+
     typedef std::map<ObjectGuid, GroupQueueInfo*> QueuedPlayersMap;
     QueuedPlayersMap m_QueuedPlayers;
 

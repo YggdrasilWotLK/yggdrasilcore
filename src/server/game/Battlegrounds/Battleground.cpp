@@ -247,6 +247,26 @@ Battleground::~Battleground()
         delete itr.second;
 }
 
+std::vector<ObjectGuid> Battleground::GetPlayerGUIDs() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_Players.size());
+    for (auto const& pair : m_Players)
+        guids.push_back(pair.first);
+    return guids;
+}
+
+std::vector<std::pair<ObjectGuid, Player*>> Battleground::GetPlayersSnapshot() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<std::pair<ObjectGuid, Player*>> snapshot;
+    snapshot.reserve(m_Players.size());
+    for (auto const& pair : m_Players)
+        snapshot.emplace_back(pair.first, pair.second);
+    return snapshot;
+}
+
 void Battleground::Update(uint32 diff)
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
@@ -372,10 +392,10 @@ inline void Battleground::_ProcessResurrect(uint32 diff)
                 for (ObjectGuid const& guid : itr->second)
                 {
                     Player* player = ObjectAccessor::FindPlayer(guid);
-                    if (!player)
+                    if (!player || !player->IsInWorld())
                         continue;
 
-                    if (!sh && player->IsInWorld())
+                    if (!sh && player->GetMap())
                     {
                         sh = player->GetMap()->GetCreature(itr->first);
                         // only for visual effect

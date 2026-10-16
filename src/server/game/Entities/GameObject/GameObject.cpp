@@ -2662,7 +2662,8 @@ void GameObject::SetLootRecipient(Map* map)
     for (ObjectGuid const& playerGuid : guids)
     {
         Player* groupMember = ObjectAccessor::FindPlayer(playerGuid);
-        if (groupMember && groupMember->GetMap() == map)
+        if (!groupMember || !groupMember->IsInWorld() || groupMember->GetMap() != map)
+            continue;
         {
             if (groupMember->IsGameMaster() || groupMember->IsSpectator())
             {

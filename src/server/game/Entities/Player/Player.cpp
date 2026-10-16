@@ -14823,12 +14823,6 @@ void Player::SendClearCooldown(uint32 spell_id, Unit* target)
 
 void Player::ResetMap()
 {
-    // this may be called during Map::Update
-    // after decrement+unlink, ++m_mapRefIter will continue correctly
-    // when the first element of the list is being removed
-    // nocheck_prev will return the padding element of the RefMgr
-    // instead of nullptr in the case of prev
-    GetMap()->UpdateIteratorBack(this);
     Map* map = GetMap();
     Unit::ResetMap();
     if (map)

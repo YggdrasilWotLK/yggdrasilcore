@@ -1365,7 +1365,7 @@ void World::setStringConfig(ServerConfigs index, std::string const& value)
     _worldConfig.OverwriteConfigValue<std::string>(index, value);
 }
 
-std::string_view World::getStringConfig(ServerConfigs index) const
+std::string World::getStringConfig(ServerConfigs index) const
 {
     return _worldConfig.GetConfigValue(index);
 }

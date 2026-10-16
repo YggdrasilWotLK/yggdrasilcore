@@ -21,6 +21,7 @@
 #include "Common.h"
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
+#include <shared_mutex>
 
 class WhoListPlayerInfo
 {
@@ -87,10 +88,16 @@ public:
     static WhoListCacheMgr* instance();
 
     void Update();
-    WhoListInfoVector const& GetWhoList() const { return _whoListStorage; }
+    // Snapshot copy-out: Update() rebuilds the vector on world thread.
+    WhoListInfoVector GetWhoList() const
+    {
+        std::shared_lock<std::shared_mutex> lock(_whoLock);
+        return _whoListStorage;
+    }
 
 protected:
     WhoListInfoVector _whoListStorage;
+    mutable std::shared_mutex _whoLock;
 };
 
 #define sWhoListCacheMgr WhoListCacheMgr::instance()

@@ -31,8 +31,8 @@ WhoListCacheMgr* WhoListCacheMgr::instance()
 void WhoListCacheMgr::Update()
 {
     // clear current list
-    _whoListStorage.clear();
-    _whoListStorage.reserve(sWorldSessionMgr->GetPlayerCount() + 1);
+    WhoListInfoVector fresh;
+    fresh.reserve(sWorldSessionMgr->GetPlayerCount() + 1);
 
     // Shared ownership of the iteration: logins/logouts take unique_lock.
     std::shared_lock<std::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
@@ -57,9 +57,12 @@ void WhoListCacheMgr::Update()
 
         wstrToLower(wideGuildName);
 
-        _whoListStorage.emplace_back(player->GetGUID(), player->GetTeamId(), player->GetSession()->GetSecurity(), player->GetLevel(),
+        fresh.emplace_back(player->GetGUID(), player->GetTeamId(), player->GetSession()->GetSecurity(), player->GetLevel(),
             player->getClass(), player->getRace(),
             (player->IsSpectator() ? AREA_DALARAN : player->GetZoneId()), player->getGender(), player->IsVisible(),
             widePlayerName, wideGuildName, playerName, guildName);
     }
+
+    std::unique_lock<std::shared_mutex> whoLock(_whoLock);
+    _whoListStorage.swap(fresh);
 }

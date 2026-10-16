@@ -262,6 +262,16 @@ uint32 BattlegroundQueue::GetAverageQueueWaitTime(GroupQueueInfo* ginfo) const
 }
 
 //remove player from queue and from group info, if group info is empty then remove it too
+std::vector<ObjectGuid> BattlegroundQueue::GetQueuedPlayerGUIDs() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_QueuedPlayers.size());
+    for (auto const& pair : m_QueuedPlayers)
+        guids.push_back(pair.first);
+    return guids;
+}
+
 void BattlegroundQueue::RemovePlayer(ObjectGuid guid, bool decreaseInvitedCount)
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());

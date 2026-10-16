@@ -2443,21 +2443,21 @@ namespace lfg
         return roles;
     }
 
-    const std::string& LFGMgr::GetComment(ObjectGuid guid)
+    std::string LFGMgr::GetComment(ObjectGuid guid)
     {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         LOG_DEBUG("lfg", "LFGMgr::GetComment: [{}] = {}", guid.ToString(), PlayersStore[guid].GetComment());
         return PlayersStore[guid].GetComment();
     }
 
-    LfgDungeonSet const& LFGMgr::GetSelectedDungeons(ObjectGuid guid)
+    LfgDungeonSet LFGMgr::GetSelectedDungeons(ObjectGuid guid)
     {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         LOG_DEBUG("lfg", "LFGMgr::GetSelectedDungeons: [{}]", guid.ToString());
         return PlayersStore[guid].GetSelectedDungeons();
     }
 
-    LfgLockMap const& LFGMgr::GetLockedDungeons(ObjectGuid guid)
+    LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
     {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         LOG_DEBUG("lfg", "LFGMgr::GetLockedDungeons: [{}]", guid.ToString());
@@ -2656,7 +2656,7 @@ namespace lfg
         PlayersStore[guid].SetGroup(group);
     }
 
-    LfgGuidSet const& LFGMgr::GetPlayers(ObjectGuid guid)
+    LfgGuidSet LFGMgr::GetPlayers(ObjectGuid guid)
     {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
         return GroupsStore[guid].GetPlayers();

@@ -185,7 +185,7 @@ public:
     [[nodiscard]] bool IsLFG() const { return HasFlag(CHANNEL_FLAG_LFG); }
     [[nodiscard]] std::string const& GetPassword() const { return _password; }
     void SetPassword(std::string const& npassword) { _password = npassword; }
-    [[nodiscard]] uint32 GetNumPlayers() const { return playersStore.size(); }
+    [[nodiscard]] uint32 GetNumPlayers() const { std::lock_guard<std::recursive_mutex> lock(_channelLock); return playersStore.size(); }
     [[nodiscard]] uint8 GetFlags() const { return _flags; }
     [[nodiscard]] bool HasFlag(uint8 flag) const { return _flags & flag; }
 
@@ -194,7 +194,7 @@ public:
     void KickOrBan(Player const* player, std::string const& badname, bool ban);
     void Kick(Player const* player, std::string const& badname) { KickOrBan(player, badname, false); }
     void Ban(Player const* player, std::string const& badname) { KickOrBan(player, badname, true); }
-    void AddBan(ObjectGuid guid, uint32 time) { bannedStore[guid] = time; }
+    void AddBan(ObjectGuid guid, uint32 time) { std::lock_guard<std::recursive_mutex> lock(_channelLock); bannedStore[guid] = time; }
     void UnBan(Player const* player, std::string const& badname);
     void UnBan(ObjectGuid guid);
     void Password(Player const* player, std::string const& pass);

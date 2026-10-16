@@ -2497,6 +2497,40 @@ Group::MemberSlotList Group::GetMemberSlots() const
     return m_memberSlots;
 }
 
+std::vector<ObjectGuid> Group::GetMemberGUIDs() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_memberSlots.size());
+    for (MemberSlot const& slot : m_memberSlots)
+        guids.push_back(slot.guid);
+    return guids;
+}
+
+uint32 Group::GetMembersCount() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_memberSlots.size();
+}
+
+uint32 Group::GetInviteeCount() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_invitees.size();
+}
+
+bool Group::IsDisbanded() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_disbanded;
+}
+
+ObjectGuid const Group::GetTargetIcon(uint8 id) const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_targetIcons[id];
+}
+
 Player* Group::GetLeader()
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
@@ -2509,10 +2543,10 @@ ObjectGuid Group::GetGUID() const
     return m_guid;
 }
 
-const char* Group::GetLeaderName() const
+std::string Group::GetLeaderName() const
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
-    return m_leaderName.c_str();
+    return m_leaderName;
 }
 
 LootMethod Group::GetLootMethod() const

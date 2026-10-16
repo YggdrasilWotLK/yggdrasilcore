@@ -749,11 +749,17 @@ public:
     template<class Do>
     void BroadcastWorker(Do& _do, Player* except = nullptr)
     {
-        for (auto const& m_member : m_members)
-            if (Player* player = m_member.second.FindPlayer())
-                if (player != except)
-                    _do(player);
+        std::vector<ObjectGuid> guids = GetMemberGUIDs();
+        for (ObjectGuid const& guid : guids)
+        {
+            Player* player = ObjectAccessor::FindPlayer(guid);
+            if (!player || !player->IsInWorld())
+                continue;
+            if (player != except)
+                _do(player);
+        }
     }
+    std::vector<ObjectGuid> GetMemberGUIDs() const;
 
     // Members
     // Adds member to guild. If rankId == GUILD_RANK_NONE, lowest rank is assigned.
@@ -767,7 +773,7 @@ public:
 
     // pussywizard
     uint64 GetTotalBankMoney() const { return m_bankMoney; }
-    uint32 GetMemberCount() const { return m_members.size(); }
+    uint32 GetMemberCount() const;
     time_t GetCreatedDate() const { return m_createdDate; }
 
     // Bank tabs
@@ -776,7 +782,7 @@ public:
     void ResetTimes();
 
     [[nodiscard]] bool ModifyBankMoney(CharacterDatabaseTransaction trans, const uint64& amount, bool add) { return _ModifyBankMoney(trans, amount, add); }
-    [[nodiscard]] uint32 GetMemberSize() const { return m_members.size(); }
+    [[nodiscard]] uint32 GetMemberSize() const;
 
     bool MemberHasTabRights(ObjectGuid guid, uint8 tabId, uint32 rights) const;
     bool HasRankRight(Player* player, uint32 right) const;

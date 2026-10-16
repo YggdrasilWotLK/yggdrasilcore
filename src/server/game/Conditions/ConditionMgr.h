@@ -21,6 +21,7 @@
 #include "Define.h"
 #include <list>
 #include <map>
+#include <shared_mutex>
 
 class Player;
 class Unit;
@@ -286,6 +287,10 @@ private:
     CreatureSpellConditionContainer   SpellClickEventConditionStore;
     NpcVendorConditionContainer       NpcVendorConditionContainerStore;
     SmartEventConditionContainer      SmartEventConditionStore;
+    // Guards all stores above. Readers copy the ConditionList under shared
+    // lock; LoadConditions/Clean take unique. Pointees are stable between
+    // reloads; never hold across DB reload (use epoch before deleting).
+    mutable std::shared_mutex _condLock;
 };
 
 #define sConditionMgr ConditionMgr::instance()

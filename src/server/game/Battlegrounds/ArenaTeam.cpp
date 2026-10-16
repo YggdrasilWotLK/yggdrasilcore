@@ -1057,6 +1057,12 @@ ArenaTeamMember* ArenaTeam::GetMember(ObjectGuid guid)
     return nullptr;
 }
 
+ArenaTeam::MemberList ArenaTeam::GetMembersSnapshot() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return Members;
+}
+
 uint8 ArenaTeam::GetReqPlayersForType(uint32 type)
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());

@@ -62,7 +62,7 @@ public:
     MOCK_METHOD(void, setIntConfig, (ServerConfigs index, uint32 value), ());
     MOCK_METHOD(uint32, getIntConfig, (ServerConfigs index), (const));
     MOCK_METHOD(void, setStringConfig, (ServerConfigs index, std::string const& value), ());
-    MOCK_METHOD(std::string_view, getStringConfig, (ServerConfigs index), (const));
+    MOCK_METHOD(std::string, getStringConfig, (ServerConfigs index), (const));
     MOCK_METHOD(void, setWorldState, (uint32 index, uint64 value), ());
     MOCK_METHOD(uint64, getWorldState, (uint32 index), (const));
     MOCK_METHOD(void, LoadWorldStates, ());

@@ -190,7 +190,7 @@ public:
 
     // Crash-proof: after Disband/Destroy the object stays alive as a zombie
     // until the manager frees it. Stale holders must no-op instead of UAF.
-    bool IsDisbanded() const { return m_disbanded; }
+    bool IsDisbanded() const;
     void MarkDisbanded() { m_disbanded = true; }
 
 private:
@@ -229,7 +229,7 @@ public:
     ObjectGuid GetLeaderGUID() const;
     Player* GetLeader();
     ObjectGuid GetGUID() const;
-    const char* GetLeaderName() const;
+    std::string GetLeaderName() const;
     LootMethod GetLootMethod() const;
     ObjectGuid GetLooterGuid() const;
     ObjectGuid GetMasterLooterGuid() const;
@@ -251,10 +251,11 @@ public:
 
     // Copy-out: member list mutates on other threads, never hold it.
     MemberSlotList GetMemberSlots() const;
+    std::vector<ObjectGuid> GetMemberGUIDs() const;
     GroupReference* GetFirstMember() { return m_memberMgr.getFirst(); }
     GroupReference const* GetFirstMember() const { return m_memberMgr.getFirst(); }
-    uint32 GetMembersCount() const { return m_memberSlots.size(); }
-    uint32 GetInviteeCount() const { return m_invitees.size(); }
+    uint32 GetMembersCount() const;
+    uint32 GetInviteeCount() const;
 
     uint8 GetMemberGroup(ObjectGuid guid) const;
 
@@ -273,7 +274,7 @@ public:
     void SetGroupMemberFlag(ObjectGuid guid, bool apply, GroupMemberFlags flag);
     void RemoveUniqueGroupMemberFlag(GroupMemberFlags flag);
 
-    ObjectGuid const GetTargetIcon(uint8 id) const { return m_targetIcons[id]; }
+    ObjectGuid const GetTargetIcon(uint8 id) const;
 
     Difficulty GetDifficulty(bool isRaid) const;
     Difficulty GetDungeonDifficulty() const;

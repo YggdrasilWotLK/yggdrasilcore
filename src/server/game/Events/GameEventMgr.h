@@ -112,7 +112,11 @@ public:
         std::shared_lock<std::shared_mutex> lock(_activeEventsLock);
         return _activeEvents;
     }
-    [[nodiscard]] GameEventDataMap const& GetEventMap() const { return _gameEvent; }
+    [[nodiscard]] GameEventDataMap GetEventMap() const
+    {
+        std::shared_lock<std::shared_mutex> lock(_eventDataLock);
+        return _gameEvent;
+    }
     [[nodiscard]] bool CheckOneGameEvent(uint16 entry) const;
     [[nodiscard]] uint32 NextCheck(uint16 entry) const;
     void LoadFromDB();
@@ -211,6 +215,9 @@ private:
     // Guards _activeEvents only; sibling event-data maps keep today's
     // exposure (event transitions are world-thread serial).
     mutable std::shared_mutex _activeEventsLock;
+    // Guards _gameEvent snapshot copies. Load paths take unique; Update and
+    // Start/Stop mutate live state on world thread (see follow-up to cover).
+    mutable std::shared_mutex _eventDataLock;
     bool _isSystemInit;
     GameEventSeasonalQuestsMap _gameEventSeasonalQuestsMap;
 public:

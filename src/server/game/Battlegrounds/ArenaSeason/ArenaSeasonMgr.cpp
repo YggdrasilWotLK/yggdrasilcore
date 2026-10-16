@@ -153,8 +153,9 @@ void ArenaSeasonMgr::DeleteArenaTeams()
     std::vector<BattlegroundQueueTypeId> arenasQueueTypes = {BATTLEGROUND_QUEUE_2v2, BATTLEGROUND_QUEUE_3v3, BATTLEGROUND_QUEUE_5v5};
     for (BattlegroundQueueTypeId queueType : arenasQueueTypes)
     {
-        auto queue = sBattlegroundMgr->GetBattlegroundQueue(queueType);
-        for (auto const& [playerGUID, other] : queue.m_QueuedPlayers)
+        BattlegroundQueue& queue = sBattlegroundMgr->GetBattlegroundQueue(queueType);
+        std::vector<ObjectGuid> queuedGuids = queue.GetQueuedPlayerGUIDs();
+        for (ObjectGuid const& playerGUID : queuedGuids)
             queue.RemovePlayer(playerGUID, true);
     }
 

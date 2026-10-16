@@ -2386,6 +2386,28 @@ void Guild::MassInviteToEvent(WorldSession* session, uint32 minLevel, uint32 max
 }
 
 // Members handling
+uint32 Guild::GetMemberCount() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    return m_members.size();
+}
+
+uint32 Guild::GetMemberSize() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    return m_members.size();
+}
+
+std::vector<ObjectGuid> Guild::GetMemberGUIDs() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());
+    std::vector<ObjectGuid> guids;
+    guids.reserve(m_members.size());
+    for (auto const& pair : m_members)
+        guids.push_back(pair.second.GetGUID());
+    return guids;
+}
+
 Optional<Guild::Member> Guild::GetMember(ObjectGuid guid) const
 {
     std::lock_guard<std::recursive_mutex> lock(*sGuildMgr->GetGuildLock());

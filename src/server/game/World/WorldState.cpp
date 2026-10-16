@@ -227,7 +227,11 @@ bool WorldState::IsConditionFulfilled(uint32 conditionId, uint32 state) const
         case WORLD_STATE_CONDITION_THE_IRON_EAGLE:
         case WORLD_STATE_CONDITION_THE_PURPLE_PRINCESS:
         case WORLD_STATE_CONDITION_THE_THUNDERCALLER:
-            return _transportStates.at(conditionId) == state;
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            auto itr = _transportStates.find(conditionId);
+            return itr != _transportStates.end() && itr->second.load() == state;
+        }
         case WORLD_STATE_SCOURGE_INVASION_WINTERSPRING:
             return GetSIRemaining(SI_REMAINING_WINTERSPRING) > 0;
         case WORLD_STATE_SCOURGE_INVASION_AZSHARA:
@@ -248,6 +252,7 @@ bool WorldState::IsConditionFulfilled(uint32 conditionId, uint32 state) const
 
 void WorldState::HandleConditionStateChange(WorldStateCondition conditionId, WorldStateConditionState state)
 {
+    std::lock_guard<std::mutex> lock(_mutex);
     _transportStates[conditionId] = state;
 }
 

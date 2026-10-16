@@ -61,6 +61,38 @@ InstanceSaveMgr* InstanceSaveMgr::instance()
     return &instance;
 }
 
+time_t InstanceSaveMgr::GetResetTimeFor(uint32 mapid, Difficulty d) const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    ResetTimeByMapDifficultyMap::const_iterator itr = m_resetTimeByMapDifficulty.find(MAKE_PAIR32(mapid, d));
+    return itr != m_resetTimeByMapDifficulty.end() ? itr->second : 0;
+}
+
+time_t InstanceSaveMgr::GetExtendedResetTimeFor(uint32 mapid, Difficulty d) const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    ResetTimeByMapDifficultyMap::const_iterator itr = m_resetExtendedTimeByMapDifficulty.find(MAKE_PAIR32(mapid, d));
+    return itr != m_resetExtendedTimeByMapDifficulty.end() ? itr->second : 0;
+}
+
+void InstanceSaveMgr::SetResetTimeFor(uint32 mapid, Difficulty d, time_t t)
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    m_resetTimeByMapDifficulty[MAKE_PAIR32(mapid, d)] = t;
+}
+
+void InstanceSaveMgr::SetExtendedResetTimeFor(uint32 mapid, Difficulty d, time_t t)
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    m_resetExtendedTimeByMapDifficulty[MAKE_PAIR32(mapid, d)] = t;
+}
+
+ResetTimeByMapDifficultyMap InstanceSaveMgr::GetResetTimeMap() const
+{
+    std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
+    return m_resetTimeByMapDifficulty;
+}
+
 /*
 - adding instance into manager
 */
@@ -805,7 +837,7 @@ bool InstanceSaveMgr::PlayerIsPermBoundToInstance(ObjectGuid guid, uint32 mapid,
     return false;
 }
 
-BoundInstancesMap const& InstanceSaveMgr::PlayerGetBoundInstances(ObjectGuid guid, Difficulty difficulty)
+BoundInstancesMap InstanceSaveMgr::PlayerGetBoundInstances(ObjectGuid guid, Difficulty difficulty)
 {
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     PlayerBindStorage::iterator itr = playerBindStorage.find(guid);

@@ -147,8 +147,9 @@ void MotionTransport::BuildUpdate(UpdateDataMapType& data_map)
     for (ObjectGuid const& playerGuid : guids)
     {
         Player* player = ObjectAccessor::FindPlayer(playerGuid);
-        if (player && player->GetMap() == GetMap())
-            BuildFieldsUpdate(player, data_map);
+        if (!player || !player->IsInWorld() || player->GetMap() != GetMap())
+            continue;
+        BuildFieldsUpdate(player, data_map);
     }
 
     ClearUpdateMask(true);
@@ -891,8 +892,9 @@ void StaticTransport::BuildUpdate(UpdateDataMapType& data_map)
     for (ObjectGuid const& playerGuid : guids)
     {
         Player* player = ObjectAccessor::FindPlayer(playerGuid);
-        if (player && player->GetMap() == GetMap())
-            BuildFieldsUpdate(player, data_map);
+        if (!player || !player->IsInWorld() || player->GetMap() != GetMap())
+            continue;
+        BuildFieldsUpdate(player, data_map);
     }
 
     ClearUpdateMask(true);

@@ -107,6 +107,7 @@ void DisableMgr::AddDisable(DisableType type, uint32 entry, uint8 flags, std::st
         return;
     }
 
+    std::unique_lock<std::shared_mutex> lock(m_DisableLock);
     DisableData data;
     data.flags = flags;
 

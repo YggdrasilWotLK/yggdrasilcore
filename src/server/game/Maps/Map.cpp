@@ -1927,8 +1927,10 @@ void Map::SendToPlayers(WorldPacket const* data) const
     for (ObjectGuid const& playerGuid : guids)
     {
         Player* player = ObjectAccessor::FindPlayer(playerGuid);
-        if (player && player->GetMap() == this)
-            player->GetSession()->SendPacket(data);
+        if (!player || !player->IsInWorld() || player->GetMap() != this)
+            continue;
+        if (WorldSession* session = player->GetSession())
+            session->SendPacket(data);
     }
 }
 
@@ -2536,12 +2538,6 @@ DynamicObject* Map::GetDynamicObject(ObjectGuid const& guid)
     return _objectsStore.Find<DynamicObject>(guid);
 }
 
-void Map::UpdateIteratorBack(Player* player)
-{
-    if (m_mapRefIter == player->GetMapRef())
-        m_mapRefIter = m_mapRefIter->nocheck_prev();
-}
-
 void Map::SaveCreatureRespawnTime(ObjectGuid::LowType spawnId, time_t& respawnTime)
 {
     if (!respawnTime)
@@ -2715,16 +2711,18 @@ void Map::UpdateEncounterState(EncounterCreditType type, uint32 creditEntry, Uni
 
     if (dungeonId)
     {
-        Map::PlayerList const& players = GetPlayers();
-        for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
+        std::vector<ObjectGuid> guids = CopyPlayerGuids();
+        for (ObjectGuid const& playerGuid : guids)
         {
-            if (Player* player = i->GetSource())
-                if (Group* grp = player->GetGroup())
-                    if (grp->isLFGGroup())
-                    {
-                        sLFGMgr->FinishDungeon(grp->GetGUID(), dungeonId, this);
-                        return;
-                    }
+            Player* player = ObjectAccessor::FindPlayer(playerGuid);
+            if (!player || !player->IsInWorld() || player->GetMap() != this)
+                continue;
+            if (Group* grp = player->GetGroup())
+                if (grp->isLFGGroup())
+                {
+                    sLFGMgr->FinishDungeon(grp->GetGUID(), dungeonId, this);
+                    return;
+                }
         }
     }
 }
@@ -2738,9 +2736,12 @@ void Map::LogEncounterFinished(EncounterCreditType type, uint32 creditEntry)
         return;
     std::string playersInfo;
     char buffer[16384], buffer2[255];
-    Map::PlayerList const& pl = map->GetPlayers();
-    for (Map::PlayerList::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
-        if (Player* p = itr->GetSource())
+    std::vector<ObjectGuid> guids = map->CopyPlayerGuids();
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* p = ObjectAccessor::FindPlayer(playerGuid);
+        if (!p || !p->IsInWorld() || p->GetMap() != map)
+            continue;
         {
             std::string auraStr;
             const Unit::AuraApplicationMap& a = p->GetAppliedAuras();
@@ -2754,6 +2755,7 @@ void Map::LogEncounterFinished(EncounterCreditType type, uint32 creditEntry)
                 p->GetName().c_str(), p->GetGUID().ToString().c_str(), p->GetSession()->GetAccountId(), p->GetSession()->GetRemoteAddress().c_str(), p->GetGuildId(), p->GetPositionX(), p->GetPositionY(), p->GetPositionZ(), auraStr.c_str());
             playersInfo += buffer;
         }
+    }
     CleanStringForMysqlQuery(playersInfo);
     CharacterDatabase.Execute("INSERT INTO log_encounter VALUES(NOW(), {}, {}, {}, {}, '{}')", GetId(), (uint32)GetDifficulty(), type, creditEntry, playersInfo);
 }
@@ -3017,16 +3019,20 @@ void Map::UpdateWeather(uint32 const diff)
 
 void Map::PlayDirectSoundToMap(uint32 soundId, uint32 zoneId)
 {
-    Map::PlayerList const& players = GetPlayers();
-    if (!players.IsEmpty())
-    {
-        WorldPacket data(SMSG_PLAY_SOUND, 4);
-        data << uint32(soundId);
+    std::vector<ObjectGuid> guids = CopyPlayerGuids();
+    if (guids.empty())
+        return;
 
-        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-            if (Player* player = itr->GetSource())
-                if (!zoneId || player->GetZoneId() == zoneId)
-                    player->SendDirectMessage(&data);
+    WorldPacket data(SMSG_PLAY_SOUND, 4);
+    data << uint32(soundId);
+
+    for (ObjectGuid const& playerGuid : guids)
+    {
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetMap() != this)
+            continue;
+        if (!zoneId || player->GetZoneId() == zoneId)
+            player->SendDirectMessage(&data);
     }
 }
 
@@ -3080,12 +3086,13 @@ void Map::SetZoneOverrideLight(uint32 zoneId, uint32 lightId, Milliseconds fadeI
 
 void Map::DoForAllPlayers(std::function<void(Player*)> exec)
 {
-    for (auto const& it : GetPlayers())
+    std::vector<ObjectGuid> guids = CopyPlayerGuids();
+    for (ObjectGuid const& playerGuid : guids)
     {
-        if (Player* player = it.GetSource())
-        {
-            exec(player);
-        }
+        Player* player = ObjectAccessor::FindPlayer(playerGuid);
+        if (!player || !player->IsInWorld() || player->GetMap() != this)
+            continue;
+        exec(player);
     }
 }
 

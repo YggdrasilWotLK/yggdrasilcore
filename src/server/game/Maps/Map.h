@@ -318,8 +318,23 @@ public:
     bool isCellMarked(uint32 pCellId) { return marked_cells.test(pCellId); }
     void markCell(uint32 pCellId) { marked_cells.set(pCellId); }
 
-    [[nodiscard]] bool HavePlayers() const { return !m_mapRefMgr.IsEmpty(); }
+    [[nodiscard]] bool HavePlayers() const { std::shared_lock<std::shared_mutex> lock(_playerRefLock); return !m_mapRefMgr.IsEmpty(); }
     [[nodiscard]] uint32 GetPlayersCountExceptGMs() const;
+    [[nodiscard]] uint32 GetPlayerCountLocked() const
+    {
+        std::shared_lock<std::shared_mutex> lock(_playerRefLock);
+        return m_mapRefMgr.getSize();
+    }
+    [[nodiscard]] std::vector<ObjectGuid> CopyPlayerGuids() const
+    {
+        std::shared_lock<std::shared_mutex> lock(_playerRefLock);
+        std::vector<ObjectGuid> guids;
+        guids.reserve(m_mapRefMgr.getSize());
+        for (MapRefMgr::const_iterator itr = m_mapRefMgr.begin(); itr != m_mapRefMgr.end(); ++itr)
+            if (Player* listed = itr->GetSource())
+                guids.push_back(listed->GetGUID());
+        return guids;
+    }
 
     void SendToPlayers(WorldPacket const* data) const;
 
@@ -331,8 +346,6 @@ public:
     void ScriptCommandStart(ScriptInfo const& script, uint32 delay, Object* source, Object* target);
 
     CreatureGroupHolderType CreatureGroupHolder;
-
-    void UpdateIteratorBack(Player* player);
 
     TempSummon* SummonCreature(uint32 entry, Position const& pos, SummonPropertiesEntry const* properties = nullptr, uint32 duration = 0, WorldObject* summoner = nullptr, uint32 spellId = 0, uint32 vehId = 0, bool visibleBySummonerOnly = false);
     GameObject* SummonGameObject(uint32 entry, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 respawnTime, bool checkTransport = true);
@@ -572,7 +585,6 @@ protected:
     time_t _instanceResetPeriod; // pussywizard
 
     MapRefMgr m_mapRefMgr;
-    MapRefMgr::iterator m_mapRefIter;
     // Guards m_mapRefMgr; never hold across player updates.
     mutable std::shared_mutex _playerRefLock;
 public:

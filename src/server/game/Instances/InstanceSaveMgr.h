@@ -133,32 +133,11 @@ public:
     void LoadInstanceSaves();
     void LoadCharacterBinds();
 
-    [[nodiscard]] time_t GetResetTimeFor(uint32 mapid, Difficulty d) const
-    {
-        ResetTimeByMapDifficultyMap::const_iterator itr  = m_resetTimeByMapDifficulty.find(MAKE_PAIR32(mapid, d));
-        return itr != m_resetTimeByMapDifficulty.end() ? itr->second : 0;
-    }
-
-    [[nodiscard]] time_t GetExtendedResetTimeFor(uint32 mapid, Difficulty d) const
-    {
-        ResetTimeByMapDifficultyMap::const_iterator itr  = m_resetExtendedTimeByMapDifficulty.find(MAKE_PAIR32(mapid, d));
-        return itr != m_resetExtendedTimeByMapDifficulty.end() ? itr->second : 0;
-    }
-
-    void SetResetTimeFor(uint32 mapid, Difficulty d, time_t t)
-    {
-        m_resetTimeByMapDifficulty[MAKE_PAIR32(mapid, d)] = t;
-    }
-
-    void SetExtendedResetTimeFor(uint32 mapid, Difficulty d, time_t t)
-    {
-        m_resetExtendedTimeByMapDifficulty[MAKE_PAIR32(mapid, d)] = t;
-    }
-
-    [[nodiscard]] ResetTimeByMapDifficultyMap const& GetResetTimeMap() const
-    {
-        return m_resetTimeByMapDifficulty;
-    }
+    [[nodiscard]] time_t GetResetTimeFor(uint32 mapid, Difficulty d) const;
+    [[nodiscard]] time_t GetExtendedResetTimeFor(uint32 mapid, Difficulty d) const;
+    void SetResetTimeFor(uint32 mapid, Difficulty d, time_t t);
+    void SetExtendedResetTimeFor(uint32 mapid, Difficulty d, time_t t);
+    [[nodiscard]] ResetTimeByMapDifficultyMap GetResetTimeMap() const;
 
     void ScheduleReset(time_t time, InstResetEvent event);
 
@@ -175,7 +154,7 @@ public:
     void PlayerUnbindInstanceNotExtended(ObjectGuid guid, uint32 mapid, Difficulty difficulty, Player* player = nullptr);
     InstancePlayerBind* PlayerGetBoundInstance(ObjectGuid guid, uint32 mapid, Difficulty difficulty);
     bool PlayerIsPermBoundToInstance(ObjectGuid guid, uint32 mapid, Difficulty difficulty);
-    BoundInstancesMap const& PlayerGetBoundInstances(ObjectGuid guid, Difficulty difficulty);
+    BoundInstancesMap PlayerGetBoundInstances(ObjectGuid guid, Difficulty difficulty);
     void PlayerCreateBoundInstancesMaps(ObjectGuid guid);
     InstanceSave* PlayerGetInstanceSave(ObjectGuid guid, uint32 mapid, Difficulty difficulty);
     uint32 PlayerGetDestinationInstanceId(Player* player, uint32 mapid, Difficulty difficulty);
