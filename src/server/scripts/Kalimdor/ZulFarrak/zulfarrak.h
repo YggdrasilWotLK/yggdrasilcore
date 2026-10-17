@@ -33,6 +33,8 @@ enum ZulFarrakCreatures
     NPC_SANDFURY_ZEALOT         = 8877,
     NPC_SHADOWPRIEST_SEZZZIZ    = 7275,
     NPC_NEKRUM_GUTCHEWER        = 7796,
+    NPC_WITCH_DOCTOR_ZUMRAH     = 7271,
+    NPC_ZULFARRAK_ZOMBIE        = 7286,
 
     NPC_BLY                     = 7604,
     NPC_RAVEN                   = 7605,
@@ -43,7 +45,15 @@ enum ZulFarrakCreatures
 
 enum ZulFarrakGameobjects
 {
-    GO_END_DOOR                 = 146084
+    GO_END_DOOR                 = 146084,
+    GO_SHALLOW_GRAVE            = 128308,
+    GO_SHALLOW_GRAVE_2          = 128403
+};
+
+enum ZulFarrakStairs
+{
+    ZF_STAIRS_SIDE_A            = 1,
+    ZF_STAIRS_SIDE_B            = 2
 };
 
 enum ZulFarrakData

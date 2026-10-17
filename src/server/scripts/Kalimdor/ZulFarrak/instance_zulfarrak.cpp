@@ -21,18 +21,21 @@
 #include "GridNotifiersImpl.h"
 #include "InstanceMapScript.h"
 #include "InstanceScript.h"
+#include "Random.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "TemporarySummon.h"
 #include "zulfarrak.h"
 
+#include <vector>
+
 enum Misc
 {
-    // Paths
-    PATH_ADDS           = 81553,
-
     SAY_BLY_FORWARD     = 2
 };
+
+static Position const stairsSideAStart = { 1898.0f, 1226.0f, 9.32f, 0.0f };
+static Position const stairsSideBStart = { 1878.0f, 1224.0f, 9.29f, 0.0f };
 
 struct PyramidEventData
 {
@@ -132,8 +135,6 @@ public:
         uint32 PyramidPhase;
         uint32 major_wave_Timer;
         uint32 minor_wave_Timer;
-        uint32 addGroupSize;
-        uint32 waypoint;
 
         void Initialize() override
         {
@@ -143,8 +144,6 @@ public:
             PyramidPhase = 0;
             major_wave_Timer = 0;
             minor_wave_Timer = 0;
-            addGroupSize = 0;
-            waypoint = 0;
         }
 
         void OnCreatureCreate(Creature* creature) override
@@ -279,7 +278,6 @@ public:
                     SetData(DATA_PYRAMID, PYRAMID_WAVE_1);
                     major_wave_Timer = 2 * MINUTE * IN_MILLISECONDS;
                     minor_wave_Timer = 0;
-                    addGroupSize = 2;
                     break;
                 case PYRAMID_WAVE_1:
                     if (IsWaveAllDead())
@@ -291,8 +289,8 @@ public:
                     {
                         if (minor_wave_Timer <= diff)
                         {
-                            SendAddsUpStairs(addGroupSize++);
-                            minor_wave_Timer = 10 * IN_MILLISECONDS;
+                            SendAddsUpStairs();
+                            minor_wave_Timer = urand(8, 11) * IN_MILLISECONDS;
                         }
                         else
                         {
@@ -307,7 +305,6 @@ public:
                         SpawnPyramidWave(2);
                         SetData(DATA_PYRAMID, PYRAMID_WAVE_2);
                         minor_wave_Timer = 0;
-                        addGroupSize = 2;
                     }
                     else
                     {
@@ -325,8 +322,8 @@ public:
                     {
                         if (minor_wave_Timer <= diff)
                         {
-                            SendAddsUpStairs(addGroupSize++);
-                            minor_wave_Timer = 10 * IN_MILLISECONDS;
+                            SendAddsUpStairs();
+                            minor_wave_Timer = urand(8, 11) * IN_MILLISECONDS;
                         }
                         else
                         {
@@ -436,18 +433,51 @@ public:
             return true;
         }
 
-        void SendAddsUpStairs(uint32 count)
+        void SendAddsUpStairs()
         {
-            //pop a add from list, send him up the stairs...
-            for (uint32 addCount = 0; addCount < count && !addsAtBase.empty(); addCount++)
-            {
-                if (Creature* add = instance->GetCreature(*addsAtBase.begin()))
-                {
-                    add->GetMotionMaster()->MovePath(PATH_ADDS, false);
-                    movedadds.push_back(add->GetGUID());
-                }
+            // Gather the mobs still waiting at the base.
+            std::vector<Creature*> pool;
+            for (ObjectGuid const& guid : addsAtBase)
+                if (Creature* add = instance->GetCreature(guid))
+                    if (add->IsAlive())
+                        pool.push_back(add);
 
-                addsAtBase.erase(addsAtBase.begin());
+            // Pick up to two random mobs from the pool.
+            std::vector<Creature*> selected;
+            while (selected.size() < 2 && !pool.empty())
+            {
+                uint32 index = urand(0, uint32(pool.size()) - 1);
+                selected.push_back(pool[index]);
+                pool.erase(pool.begin() + index);
+            }
+
+            for (Creature* add : selected)
+            {
+                addsAtBase.remove(add->GetGUID());
+                movedadds.push_back(add->GetGUID());
+            }
+
+            // Send one mob up each approach, choosing whichever side is closest to them.
+            if (selected.size() == 2)
+            {
+                Creature* first = selected[0];
+                Creature* second = selected[1];
+
+                if (stairsSideAStart.GetExactDist(first) + stairsSideBStart.GetExactDist(second) <= stairsSideAStart.GetExactDist(second) + stairsSideBStart.GetExactDist(first))
+                {
+                    first->AI()->DoAction(ZF_STAIRS_SIDE_A);
+                    second->AI()->DoAction(ZF_STAIRS_SIDE_B);
+                }
+                else
+                {
+                    first->AI()->DoAction(ZF_STAIRS_SIDE_B);
+                    second->AI()->DoAction(ZF_STAIRS_SIDE_A);
+                }
+            }
+            else if (selected.size() == 1)
+            {
+                Creature* add = selected[0];
+                add->AI()->DoAction(stairsSideAStart.GetExactDist(add) <= stairsSideBStart.GetExactDist(add) ? ZF_STAIRS_SIDE_A : ZF_STAIRS_SIDE_B);
             }
         }
 

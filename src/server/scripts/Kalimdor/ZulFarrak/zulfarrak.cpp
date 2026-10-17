@@ -16,6 +16,7 @@
  */
 
 #include "zulfarrak.h"
+#include "AreaTriggerScript.h"
 #include "Cell.h"
 #include "CellImpl.h"
 #include "CreatureScript.h"
@@ -949,8 +950,11 @@ public:
 };
 
 /*######
-## npc_zf_sandfury_wave (7787/7788/7789/8876/8877/7796)
-######*/
+ ## npc_zf_sandfury_wave (7787/7788/7789/8876/8877/7796)
+ ######*/
+
+static Position const sandfuryStairsA[2] = { { 1898.0f, 1226.0f, 9.32f, 0.0f }, { 1890.0f, 1262.0f, 41.4f, 0.0f } };
+static Position const sandfuryStairsB[2] = { { 1878.0f, 1224.0f, 9.29f, 0.0f }, { 1884.0f, 1262.0f, 41.55f, 0.0f } };
 
 class npc_zf_sandfury_wave : public CreatureScript
 {
@@ -962,6 +966,7 @@ public:
         npc_zf_sandfury_waveAI(Creature* creature) : ScriptedAI(creature) { }
 
         uint32 _t1 = 0, _t2 = 0, _t3 = 0, _t4 = 0;
+        Position const* _stairsPath = nullptr;
 
         void Reset() override
         {
@@ -996,9 +1001,51 @@ public:
         {
             me->SetHomePosition(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
             ScriptedAI::EnterEvadeMode(why);
-            me->ClearUnitState(UNIT_STATE_EVADE);
-            if (Unit* target = me->SelectNearestTarget(40.0f, false))
-                AttackStart(target);
+
+            Unit* target = nullptr;
+            float bestDist = 100.0f;
+
+            if (InstanceScript* instance = me->GetInstanceScript())
+            {
+                uint32 const crew[] = { NPC_BLY, NPC_RAVEN, NPC_ORO, NPC_WEEGLI };
+                for (uint32 entry : crew)
+                    if (Creature* member = ObjectAccessor::GetCreature(*me, instance->GetGuidData(entry)))
+                        if (member->IsAlive() && me->IsWithinDistInMap(member, bestDist))
+                        {
+                            bestDist = me->GetDistance(member);
+                            target = member;
+                        }
+            }
+
+            if (!target)
+                target = me->SelectNearestPlayer(40.0f);
+
+            if (target)
+                me->GetMotionMaster()->MovePoint(0, target->GetPositionX(), target->GetPositionY(), target->GetPositionZ());
+            else
+                me->GetMotionMaster()->MoveTargetedHome();
+        }
+
+        void MovementInform(uint32 type, uint32 id) override
+        {
+            if (type != POINT_MOTION_TYPE || !_stairsPath)
+                return;
+
+            if (id == 1)
+                me->GetMotionMaster()->MovePoint(2, _stairsPath[1]);
+        }
+
+        void DoAction(int32 action) override
+        {
+            if (action == ZF_STAIRS_SIDE_A)
+                _stairsPath = sandfuryStairsA;
+            else if (action == ZF_STAIRS_SIDE_B)
+                _stairsPath = sandfuryStairsB;
+            else
+                return;
+
+            me->SetSpeed(MOVE_RUN, 0.7f);
+            me->GetMotionMaster()->MovePoint(1, _stairsPath[0]);
         }
 
         void UpdateAI(uint32 diff) override
@@ -1041,12 +1088,222 @@ public:
     }
 };
 
+/*######
+ ## npc_witch_doctor_zumrah (7271)
+ ######*/
+
+enum WitchDoctorZumrah
+{
+    SPELL_SHADOW_BOLT_VOLLEY    = 15245,
+    SPELL_SHADOW_BOLT           = 12739,
+    SPELL_WARD_OF_ZUMRAH        = 11086,
+    SPELL_HEALING_WAVE          = 12491,
+
+    FACTION_HOSTILE_ZUMRAH      = 37,
+
+    TEXT_ZUMRAH_INTRO           = 0,
+    TEXT_ZUMRAH_KILL            = 1,
+    TEXT_ZUMRAH_AGGRO           = 2,
+    TEXT_ZUMRAH_SUMMON          = 3,
+
+    ZOMBIE_POP_INTERVAL         = 10 * IN_MILLISECONDS,
+    COME_TO_ME_INTERVAL         = 18 * IN_MILLISECONDS
+};
+
+float constexpr GRAVE_SEARCH_RANGE = 250.0f;
+
+class npc_witch_doctor_zumrah : public CreatureScript
+{
+public:
+    npc_witch_doctor_zumrah() : CreatureScript("npc_witch_doctor_zumrah") { }
+
+    struct npc_witch_doctor_zumrahAI : public ScriptedAI
+    {
+        npc_witch_doctor_zumrahAI(Creature* creature) : ScriptedAI(creature) { }
+
+        uint32 _shadowBoltVolleyTimer;
+        uint32 _shadowBoltTimer;
+        uint32 _wardOfZumrahTimer;
+        uint32 _healingWaveTimer;
+        uint32 _graveTimer;
+        uint32 _comeToMeTimer;
+        GuidList _zombies;
+
+        void Reset() override
+        {
+            me->RestoreFaction();
+            _shadowBoltVolleyTimer = urand(5000, 8000);
+            _shadowBoltTimer = 1000;
+            _wardOfZumrahTimer = urand(2000, 5000);
+            _healingWaveTimer = urand(10000, 20000);
+            _graveTimer = ZOMBIE_POP_INTERVAL;
+            _comeToMeTimer = COME_TO_ME_INTERVAL;
+        }
+
+        void JustEngagedWith(Unit* who) override
+        {
+            Talk(TEXT_ZUMRAH_AGGRO);
+            _graveTimer = 0;
+
+            for (ObjectGuid guid : _zombies)
+                if (Creature* zombie = ObjectAccessor::GetCreature(*me, guid))
+                    if (who && zombie->IsAlive() && !zombie->IsInCombat())
+                        zombie->AI()->AttackStart(who);
+        }
+
+        void KilledUnit(Unit* /*who*/) override
+        {
+            Talk(TEXT_ZUMRAH_KILL);
+        }
+
+        void EnterEvadeMode(EvadeReason why) override
+        {
+            for (ObjectGuid guid : _zombies)
+            {
+                Creature* zombie = ObjectAccessor::GetCreature(*me, guid);
+                if (!zombie || !zombie->IsAlive())
+                    continue;
+
+                Position pos = me->GetHomePosition();
+                pos.m_positionX += frand(-3.0f, 3.0f);
+                pos.m_positionY += frand(-3.0f, 3.0f);
+                zombie->SetHomePosition(pos);
+                zombie->GetMotionMaster()->MoveTargetedHome();
+            }
+
+            ScriptedAI::EnterEvadeMode(why);
+        }
+
+        void PopShallowGrave()
+        {
+            GameObject* grave = nullptr;
+            float bestDist = GRAVE_SEARCH_RANGE;
+
+            for (uint32 entry : { GO_SHALLOW_GRAVE, GO_SHALLOW_GRAVE_2 })
+            {
+                if (GameObject* go = me->FindNearestGameObject(entry, GRAVE_SEARCH_RANGE))
+                {
+                    float dist = me->GetDistance(go);
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        grave = go;
+                    }
+                }
+            }
+
+            if (!grave)
+                return;
+
+            float x = grave->GetPositionX();
+            float y = grave->GetPositionY();
+            float z = grave->GetPositionZ();
+            grave->DespawnOrUnsummon();
+
+            if (Creature* zombie = me->SummonCreature(NPC_ZULFARRAK_ZOMBIE, x, y, z, 0.0f, TEMPSUMMON_MANUAL_DESPAWN))
+            {
+                _zombies.push_back(zombie->GetGUID());
+                if (Player* target = zombie->SelectNearestPlayer(100.0f))
+                    zombie->AI()->AttackStart(target);
+            }
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (_graveTimer <= diff)
+            {
+                PopShallowGrave();
+                _graveTimer = ZOMBIE_POP_INTERVAL;
+            }
+            else
+                _graveTimer -= diff;
+
+            if (_comeToMeTimer <= diff)
+            {
+                Talk(TEXT_ZUMRAH_SUMMON);
+                _comeToMeTimer = COME_TO_ME_INTERVAL;
+            }
+            else
+                _comeToMeTimer -= diff;
+
+            if (_shadowBoltVolleyTimer <= diff)
+            {
+                DoCastSelf(SPELL_SHADOW_BOLT_VOLLEY);
+                _shadowBoltVolleyTimer = urand(12000, 16000);
+            }
+            else
+                _shadowBoltVolleyTimer -= diff;
+
+            if (_shadowBoltTimer <= diff)
+            {
+                DoCastVictim(SPELL_SHADOW_BOLT);
+                _shadowBoltTimer = urand(3000, 4000);
+            }
+            else
+                _shadowBoltTimer -= diff;
+
+            if (_wardOfZumrahTimer <= diff)
+            {
+                DoCastSelf(SPELL_WARD_OF_ZUMRAH);
+                _wardOfZumrahTimer = urand(30000, 36000);
+            }
+            else
+                _wardOfZumrahTimer -= diff;
+
+            if (_healingWaveTimer <= diff)
+            {
+                if (HealthBelowPct(70))
+                {
+                    DoCastSelf(SPELL_HEALING_WAVE);
+                    _healingWaveTimer = urand(10000, 20000);
+                }
+            }
+            else
+                _healingWaveTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetZulFarrakAI<npc_witch_doctor_zumrahAI>(creature);
+    }
+};
+
+/*######
+ ## at_zulfarrak_zumrah_sanctum (962)
+ ######*/
+
+class at_zulfarrak_zumrah_sanctum : public AreaTriggerScript
+{
+public:
+    at_zulfarrak_zumrah_sanctum() : AreaTriggerScript("at_zulfarrak_zumrah_sanctum") { }
+
+    bool OnTrigger(Player* player, AreaTrigger const* /*trigger*/) override
+    {
+        Creature* zumrah = player->FindNearestCreature(NPC_WITCH_DOCTOR_ZUMRAH, 50.0f);
+        if (zumrah && zumrah->IsAlive() && zumrah->GetFaction() != FACTION_HOSTILE_ZUMRAH)
+        {
+            zumrah->SetFaction(FACTION_HOSTILE_ZUMRAH);
+            zumrah->AI()->Talk(TEXT_ZUMRAH_INTRO);
+        }
+
+        return true;
+    }
+};
+
 void AddSC_zulfarrak()
 {
     new npc_sergeant_bly();
     new npc_weegli_blastfuse();
     new npc_shadowpriest_sezziz();
     new npc_zf_sandfury_wave();
+    new npc_witch_doctor_zumrah();
     new go_troll_cage();
     new go_shallow_grave();
+    new at_zulfarrak_zumrah_sanctum();
 }
