@@ -96,8 +96,12 @@ public:
 
         for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
         {
-            BoundInstancesMap const& m_boundInstances = sInstanceSaveMgr->PlayerGetBoundInstances(player->GetGUID(), Difficulty(i));
-            for (BoundInstancesMap::const_iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end();)
+            // PlayerGetBoundInstances() returns a snapshot copy (thread-safety
+            // sweep); iterate that copy and unbind by key. Do not restart the
+            // iterator from begin() after unbinding - the snapshot never
+            // changes, which made this loop spin forever on the first binding.
+            BoundInstancesMap m_boundInstances = sInstanceSaveMgr->PlayerGetBoundInstances(player->GetGUID(), Difficulty(i));
+            for (BoundInstancesMap::const_iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end(); ++itr)
             {
                 InstanceSave const* save = itr->second.save;
                 if (itr->first != player->GetMapId() && (!mapId || mapId == itr->first) && (!difficultyArg || difficultyArg == save->GetDifficulty()))
@@ -107,11 +111,8 @@ public:
                     std::string timeleft = secsToTimeString(ttr);
                     handler->PSendSysMessage("unbinding map: {}, inst: {}, perm: {}, diff: {}, canReset: {}, TTR: {}{}", itr->first, save->GetInstanceId(), itr->second.perm ? "yes" : "no", save->GetDifficulty(), save->CanReset() ? "yes" : "no", timeleft, (itr->second.extended ? " (extended)" : ""));
                     sInstanceSaveMgr->PlayerUnbindInstance(player->GetGUID(), itr->first, Difficulty(i), true, player);
-                    itr = m_boundInstances.begin();
                     counter++;
                 }
-                else
-                    ++itr;
             }
         }
 
