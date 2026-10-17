@@ -318,7 +318,9 @@ class WorldState
         void StopSunwellGatePhase();
         void BuffAdalsSongOfBattle();
         void DispelAdalsSongOfBattle();
-        uint32 _adalSongOfBattleTimer;
+        // Armed on the map thread (A'dal's script), count down on the world
+        // thread in Update(): atomic to avoid the data race between the two.
+        std::atomic<uint32> _adalSongOfBattleTimer;
         void BuffMagtheridonTeam(TeamId team);
         void DispelMagtheridonTeam(TeamId team);
         bool _isMagtheridonHeadSpawnedHorde;
