@@ -2936,7 +2936,9 @@ void AchievementGlobalMgr::LoadAchievementCriteriaData()
 
 void AchievementGlobalMgr::LoadCompletedAchievements()
 {
-    std::unique_lock<std::shared_mutex> lock(_achLock);
+    // _allCompletedAchievements is guarded by _realmCompletedLock (see
+    // IsRealmCompleted/SetRealmCompleted); _achLock does not cover it.
+    std::unique_lock<std::shared_mutex> lock(_realmCompletedLock);
     uint32 oldMSTime = getMSTime();
 
     QueryResult result = CharacterDatabase.Query("SELECT achievement FROM character_achievement GROUP BY achievement");
