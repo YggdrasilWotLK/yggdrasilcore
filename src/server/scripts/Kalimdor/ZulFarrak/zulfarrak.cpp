@@ -996,6 +996,7 @@ public:
         {
             me->SetHomePosition(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
             ScriptedAI::EnterEvadeMode(why);
+            me->ClearUnitState(UNIT_STATE_EVADE);
             if (Unit* target = me->SelectNearestTarget(40.0f, false))
                 AttackStart(target);
         }
