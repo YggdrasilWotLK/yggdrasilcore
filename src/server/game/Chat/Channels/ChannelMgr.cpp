@@ -143,22 +143,25 @@ Channel* ChannelMgr::GetChannel(std::string const& name, Player* player, bool pk
     Utf8toWStr(name, wname);
     wstrToLower(wname);
 
-    std::lock_guard<std::mutex> lock(_channelsLock);
-    ChannelMap::const_iterator i = channels.find(wname);
-
-    if (i == channels.end())
+    Channel* channel = nullptr;
     {
-        if (pkt)
-        {
-            WorldPacket data;
-            MakeNotOnPacket(&data, name);
-            player->GetSession()->SendPacket(&data);
-        }
-
-        return nullptr;
+        std::lock_guard<std::mutex> lock(_channelsLock);
+        ChannelMap::const_iterator i = channels.find(wname);
+        if (i != channels.end())
+            channel = i->second;
     }
 
-    return i->second;
+    // Send outside the lock: SendPacket dispatches the script packet hooks
+    // (e.g. Lua OnPacketSend), which may look the channel up again and
+    // self-deadlock on the non-recursive _channelsLock.
+    if (!channel && pkt)
+    {
+        WorldPacket data;
+        MakeNotOnPacket(&data, name);
+        player->GetSession()->SendPacket(&data);
+    }
+
+    return channel;
 }
 
 std::vector<Channel*> ChannelMgr::GetChannelsSnapshot() const

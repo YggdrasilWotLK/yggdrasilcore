@@ -35,7 +35,7 @@ WorldState* WorldState::instance()
     return &instance;
 }
 
-WorldState::WorldState() : _isMagtheridonHeadSpawnedHorde(false), _isMagtheridonHeadSpawnedAlliance(false)
+WorldState::WorldState() : _isMagtheridonHeadSpawnedHorde(false), _isMagtheridonHeadSpawnedAlliance(false), _adalSongOfBattleTimer(0)
 {
     _transportStates[WORLD_STATE_CONDITION_THE_IRON_EAGLE]      = WORLD_STATE_CONDITION_STATE_NONE;
     _transportStates[WORLD_STATE_CONDITION_THE_PURPLE_PRINCESS] = WORLD_STATE_CONDITION_STATE_NONE;
@@ -162,7 +162,7 @@ void WorldState::LoadWorldStates()
 // Setting a worldstate will save it to DB
 void WorldState::setWorldState(uint32 index, uint64 timeValue)
 {
-    std::lock_guard<std::mutex> guard(_mutex);
+    std::lock_guard<std::recursive_mutex> guard(_mutex);
     auto const& it = _worldstates.find(index);
     if (it != _worldstates.end())
     {
@@ -184,7 +184,7 @@ void WorldState::setWorldState(uint32 index, uint64 timeValue)
 
 uint64 WorldState::getWorldState(uint32 index) const
 {
-    std::lock_guard<std::mutex> guard(_mutex);
+    std::lock_guard<std::recursive_mutex> guard(_mutex);
     auto const& itr = _worldstates.find(index);
     return itr != _worldstates.end() ? itr->second : 0;
 }
@@ -232,7 +232,7 @@ bool WorldState::IsConditionFulfilled(uint32 conditionId, uint32 state) const
         case WORLD_STATE_CONDITION_THE_PURPLE_PRINCESS:
         case WORLD_STATE_CONDITION_THE_THUNDERCALLER:
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<std::recursive_mutex> lock(_mutex);
             auto itr = _transportStates.find(conditionId);
             return itr != _transportStates.end() && itr->second.load() == state;
         }
@@ -256,7 +256,7 @@ bool WorldState::IsConditionFulfilled(uint32 conditionId, uint32 state) const
 
 void WorldState::HandleConditionStateChange(WorldStateCondition conditionId, WorldStateConditionState state)
 {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     _transportStates[conditionId] = state;
 }
 
@@ -274,7 +274,7 @@ Map* WorldState::GetMap(uint32 mapId, Position const& invZone)
 
 void WorldState::HandleExternalEvent(WorldStateEvent eventId, uint32 param)
 {
-    std::lock_guard<std::mutex> guard(_mutex);
+    std::lock_guard<std::recursive_mutex> guard(_mutex);
     switch (eventId)
     {
         case WORLD_STATE_CUSTOM_EVENT_ON_ADALS_SONG_OF_BATTLE:
@@ -316,16 +316,20 @@ void WorldState::HandleExternalEvent(WorldStateEvent eventId, uint32 param)
 void WorldState::Update(uint32 diff)
 {
     std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
-    if (_adalSongOfBattleTimer)
+    // Armed on the map thread and count down here on the world thread, so
+    // snapshot once and compare_exchange the expiry instead of a plain RMW.
+    uint32 adalsSongTimer = _adalSongOfBattleTimer.load();
+    if (adalsSongTimer)
     {
-        if (_adalSongOfBattleTimer <= diff)
+        if (adalsSongTimer <= diff)
         {
-            _adalSongOfBattleTimer = 0;
-            DispelAdalsSongOfBattle();
+            // Only clear if still expired; A'dal may have re-armed it meanwhile.
+            if (_adalSongOfBattleTimer.compare_exchange_strong(adalsSongTimer, 0))
+                DispelAdalsSongOfBattle();
         }
         else
         {
-            _adalSongOfBattleTimer -= diff;
+            _adalSongOfBattleTimer.fetch_sub(diff);
         }
     }
 
@@ -358,7 +362,7 @@ void WorldState::Update(uint32 diff)
 
 void WorldState::HandlePlayerEnterZone(Player* player, AreaTableIDs zoneId)
 {
-    std::lock_guard<std::mutex> guard(_mutex);
+    std::lock_guard<std::recursive_mutex> guard(_mutex);
     switch (zoneId)
     {
         case AREA_SHATTRATH_CITY:
@@ -395,7 +399,7 @@ void WorldState::HandlePlayerEnterZone(Player* player, AreaTableIDs zoneId)
 };
 void WorldState::HandlePlayerLeaveZone(Player* player, AreaTableIDs zoneId)
 {
-    std::lock_guard<std::mutex> guard(_mutex);
+    std::lock_guard<std::recursive_mutex> guard(_mutex);
     switch (zoneId)
     {
         case AREA_SHATTRATH_CITY:

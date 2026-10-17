@@ -318,14 +318,21 @@ class WorldState
         void StopSunwellGatePhase();
         void BuffAdalsSongOfBattle();
         void DispelAdalsSongOfBattle();
-        uint32 _adalSongOfBattleTimer;
+        // Armed on the map thread (A'dal's script), count down on the world
+        // thread in Update(): atomic to avoid the data race between the two.
+        std::atomic<uint32> _adalSongOfBattleTimer;
         void BuffMagtheridonTeam(TeamId team);
         void DispelMagtheridonTeam(TeamId team);
         bool _isMagtheridonHeadSpawnedHorde;
         bool _isMagtheridonHeadSpawnedAlliance;
         SunsReachReclamationData m_sunsReachData;
         std::map<uint32, std::atomic<WorldStateConditionState>> _transportStates; // atomic to avoid having to lock
-        mutable std::mutex _mutex; // guards _worldstates; all operations take it
+        // Guards _worldstates, the transport-state map and the Magtheridon /
+        // Adal's Song flags. Recursive: HandleExternalEvent and the zone
+        // handlers cast/remove auras while holding it, and the resulting
+        // spell/aura/SmartAI scripts re-enter WorldState (setWorldState,
+        // getWorldState, HandleExternalEvent) on the same thread.
+        mutable std::recursive_mutex _mutex;
 
         // Scourge Invasion
     public:
