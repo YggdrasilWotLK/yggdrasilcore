@@ -116,6 +116,7 @@ void PointMovementGenerator<T>::DoInitialize(T* unit)
     }
 
     init.Launch();
+    i_launched = true;
 }
 
 template<class T>
@@ -187,6 +188,7 @@ bool PointMovementGenerator<T>::DoUpdate(T* unit, uint32 /*diff*/)
         }
 
         init.Launch();
+        i_launched = true;
     }
 
     return !unit->movespline->Finalized();
@@ -209,7 +211,10 @@ void PointMovementGenerator<T>::DoFinalize(T* unit)
         }
     }
 
-    if (unit->movespline->Finalized())
+    // only report arrival for a move that actually launched; a generator superseded before it
+    // ran (e.g. a deferred move replaced by a newer one during an interaction freeze) must not
+    // fire a spurious MovementInform
+    if (i_launched && unit->movespline->Finalized())
         MovementInform(unit);
 }
 
