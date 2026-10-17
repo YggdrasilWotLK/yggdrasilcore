@@ -427,7 +427,9 @@ public:
 
         static constexpr uint32 POINT_DOOR = 0;
         static constexpr uint32 POINT_GENERIC = 1;
-        static constexpr uint32 POINT_ESCAPE = 2;
+        static constexpr uint32 POINT_ESCAPE_1 = 2;
+        static constexpr uint32 POINT_ESCAPE_2 = 3;
+        static constexpr uint32 POINT_ESCAPE_3 = 4;
 
         // Door staging in front of GO_END_DOOR (1854.53, 1142.89, 16.08)
         static constexpr float DOOR_X = 1858.57f;
@@ -532,8 +534,7 @@ public:
                         case 1:
                             Talk(SAY_WEEGLI_OUT_OF_HERE);
                             me->GetMotionMaster()->Clear(false);
-                            me->GetMotionMaster()->MovePoint(POINT_ESCAPE, 1871.18f, 1100.f, 8.88f);
-                            me->DespawnOrUnsummon(8s);
+                            me->GetMotionMaster()->MovePoint(POINT_ESCAPE_1, 1853.0f, 1183.0f, 8.5f);
                             // Open the gate even if the barrel SmartScript proximity fails.
                             // Instance also opens it on PYRAMID_GATES_DESTROYED.
                             if (instance)
@@ -635,9 +636,19 @@ public:
                 return;
             }
 
-            if (id == POINT_ESCAPE)
+            switch (id)
             {
-                return;
+                case POINT_ESCAPE_1:
+                    me->GetMotionMaster()->MovePoint(POINT_ESCAPE_2, 1829.0f, 1183.0f, 8.99f);
+                    return;
+                case POINT_ESCAPE_2:
+                    me->GetMotionMaster()->MovePoint(POINT_ESCAPE_3, 1786.0f, 1142.0f, 8.99f);
+                    return;
+                case POINT_ESCAPE_3:
+                    me->DespawnOrUnsummon();
+                    return;
+                default:
+                    break;
             }
 
             if (instance->GetData(DATA_PYRAMID) == PYRAMID_CAGES_OPEN)
@@ -680,7 +691,7 @@ public:
             outroTimer = 2000;
             runTimer = RUN_TIMEOUT_MS;
             me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-            me->SetFaction(FACTION_FRIENDLY);
+            me->SetFaction(35);
             me->SetReactState(REACT_PASSIVE);
             me->SetImmuneToAll(true);
             me->CombatStop(true);
