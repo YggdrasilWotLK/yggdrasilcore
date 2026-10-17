@@ -410,7 +410,7 @@ public:
             destroyingDoor = false;
             doorRunStarted = false;
             bombPlaced = false;
-            outroTimer = 2000;
+            outroTimer = 0;
             outroStage = 0;
         }
 
@@ -472,7 +472,7 @@ public:
                             // SPELL_WEEGLIS_BARREL summons Weegli's Armed Barrel (141612)
                             // which explodes and opens GO_END_DOOR via SmartScript.
                             DoCastSelf(SPELL_WEEGLIS_BARREL);
-                            outroTimer = 4000;
+                            outroTimer = 2000;
                             ++outroStage;
                             break;
                         case 1:
@@ -568,8 +568,8 @@ public:
                     me->StopMoving();
                     bombPlaced = true;
                     destroyingDoor = true;
+                    outroTimer = 0;
                     outroStage = 0;
-                    outroTimer = 1500;
                 }
                 return;
             }
@@ -625,8 +625,8 @@ public:
             doorRunStarted = true;
             bombPlaced = false;
             destroyingDoor = false;
+            outroTimer = 0;
             outroStage = 0;
-            outroTimer = 2000;
             me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
             me->SetFaction(35);
             me->SetReactState(REACT_PASSIVE);
