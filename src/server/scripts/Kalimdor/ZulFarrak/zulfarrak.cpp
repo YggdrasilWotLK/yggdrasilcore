@@ -976,9 +976,15 @@ public:
         npc_zf_sandfury_waveAI(Creature* creature) : ScriptedAI(creature) { }
 
         uint32 _t1 = 0, _t2 = 0, _t3 = 0, _t4 = 0;
+        bool _selected = false;
+        bool _hasDest = false;
+        Position _dest;
 
         void Reset() override
         {
+            _selected = false;
+            _hasDest = false;
+
             switch (me->GetEntry())
             {
                 case 7789:
@@ -1035,19 +1041,59 @@ public:
                 me->GetMotionMaster()->MoveTargetedHome();
         }
 
-        void MovementInform(uint32 type, uint32 id) override
+        void DoAction(int32 action) override
         {
-            if (type != POINT_MOTION_TYPE || id != 1)
+            if (action == ZF_ACTION_ADD_SELECTED)
+                _selected = true;
+        }
+
+        void UpdateStairsMovement()
+        {
+            InstanceScript* instance = me->GetInstanceScript();
+            if (!instance)
                 return;
 
-            Position const* path = me->GetExactDist2d(&sandfuryStairsA[0]) <= me->GetExactDist2d(&sandfuryStairsB[0]) ? sandfuryStairsA : sandfuryStairsB;
+            Creature* closest = nullptr;
+            float closestDist = 0.0f;
 
-            me->GetMotionMaster()->MovePoint(2, path[1].GetPositionX(), path[1].GetPositionY(), path[1].GetPositionZ(),
+            uint32 const crew[] = { NPC_BLY, NPC_RAVEN, NPC_ORO, NPC_WEEGLI, NPC_MURTA };
+            for (uint32 entry : crew)
+            {
+                Creature* member = ObjectAccessor::GetCreature(*me, instance->GetGuidData(entry));
+                if (!member || !member->IsAlive())
+                    continue;
+
+                float dist = me->GetExactDist2d(member);
+                if (!closest || dist < closestDist)
+                {
+                    closest = member;
+                    closestDist = dist;
+                }
+            }
+
+            if (!closest)
+                return;
+
+            Position dest;
+            if (closestDist > 50.0f)
+                dest = me->GetExactDist2d(&sandfuryStairsA[0]) <= me->GetExactDist2d(&sandfuryStairsB[0]) ? sandfuryStairsA[0] : sandfuryStairsB[0];
+            else
+                dest = closest->GetPosition();
+
+            if (_hasDest && _dest.GetExactDist2d(&dest) <= 1.0f)
+                return;
+
+            _dest = dest;
+            _hasDest = true;
+            me->GetMotionMaster()->MovePoint(1, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ(),
                 FORCED_MOVEMENT_NONE, 0.0f, 0.0f, true, true, MOTION_SLOT_CONTROLLED);
         }
 
         void UpdateAI(uint32 diff) override
         {
+            if (_selected)
+                UpdateStairsMovement();
+
             if (!UpdateVictim())
                 return;
 

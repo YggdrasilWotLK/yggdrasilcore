@@ -34,9 +34,6 @@ enum Misc
     SAY_BLY_FORWARD     = 2
 };
 
-static Position const stairsSideAStart = { 1898.0f, 1226.0f, 9.32f, 0.0f };
-static Position const stairsSideBStart = { 1878.0f, 1224.0f, 9.29f, 0.0f };
-
 struct PyramidEventData
 {
     uint8 waveID = 0;
@@ -455,38 +452,8 @@ public:
             {
                 addsAtBase.remove(add->GetGUID());
                 movedadds.push_back(add->GetGUID());
+                add->AI()->DoAction(ZF_ACTION_ADD_SELECTED);
             }
-
-            // Send one mob up each approach, choosing whichever side is closest to them.
-            if (selected.size() == 2)
-            {
-                Creature* first = selected[0];
-                Creature* second = selected[1];
-
-                if (stairsSideAStart.GetExactDist(first) + stairsSideBStart.GetExactDist(second) <= stairsSideAStart.GetExactDist(second) + stairsSideBStart.GetExactDist(first))
-                {
-                    SendAddUpStairs(first, stairsSideAStart);
-                    SendAddUpStairs(second, stairsSideBStart);
-                }
-                else
-                {
-                    SendAddUpStairs(first, stairsSideBStart);
-                    SendAddUpStairs(second, stairsSideAStart);
-                }
-            }
-            else if (selected.size() == 1)
-            {
-                Creature* add = selected[0];
-                SendAddUpStairs(add, stairsSideAStart.GetExactDist(add) <= stairsSideBStart.GetExactDist(add) ? stairsSideAStart : stairsSideBStart);
-            }
-        }
-
-        void SendAddUpStairs(Creature* add, Position const& start)
-        {
-            add->SetSpeed(MOVE_RUN, 0.7f);
-            add->GetMotionMaster()->Clear(false);
-            add->GetMotionMaster()->MovePoint(1, start.GetPositionX(), start.GetPositionY(), start.GetPositionZ(),
-                FORCED_MOVEMENT_NONE, 0.0f, 0.0f, true, true, MOTION_SLOT_CONTROLLED);
         }
 
         void ReadSaveDataMore(std::istringstream& data) override

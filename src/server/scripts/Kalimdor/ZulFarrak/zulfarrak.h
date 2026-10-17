@@ -50,6 +50,11 @@ enum ZulFarrakGameobjects
     GO_SHALLOW_GRAVE_2          = 128403
 };
 
+enum ZulFarrakActions
+{
+    ZF_ACTION_ADD_SELECTED      = 1
+};
+
 enum ZulFarrakData
 {
     DATA_PYRAMID                = 0,
