@@ -465,20 +465,28 @@ public:
 
                 if (stairsSideAStart.GetExactDist(first) + stairsSideBStart.GetExactDist(second) <= stairsSideAStart.GetExactDist(second) + stairsSideBStart.GetExactDist(first))
                 {
-                    first->AI()->DoAction(ZF_STAIRS_SIDE_A);
-                    second->AI()->DoAction(ZF_STAIRS_SIDE_B);
+                    SendAddUpStairs(first, stairsSideAStart);
+                    SendAddUpStairs(second, stairsSideBStart);
                 }
                 else
                 {
-                    first->AI()->DoAction(ZF_STAIRS_SIDE_B);
-                    second->AI()->DoAction(ZF_STAIRS_SIDE_A);
+                    SendAddUpStairs(first, stairsSideBStart);
+                    SendAddUpStairs(second, stairsSideAStart);
                 }
             }
             else if (selected.size() == 1)
             {
                 Creature* add = selected[0];
-                add->AI()->DoAction(stairsSideAStart.GetExactDist(add) <= stairsSideBStart.GetExactDist(add) ? ZF_STAIRS_SIDE_A : ZF_STAIRS_SIDE_B);
+                SendAddUpStairs(add, stairsSideAStart.GetExactDist(add) <= stairsSideBStart.GetExactDist(add) ? stairsSideAStart : stairsSideBStart);
             }
+        }
+
+        void SendAddUpStairs(Creature* add, Position const& start)
+        {
+            add->SetSpeed(MOVE_RUN, 0.7f);
+            add->GetMotionMaster()->Clear(false);
+            add->GetMotionMaster()->MovePoint(1, start.GetPositionX(), start.GetPositionY(), start.GetPositionZ(),
+                FORCED_MOVEMENT_NONE, 0.0f, 0.0f, true, true, MOTION_SLOT_CONTROLLED);
         }
 
         void ReadSaveDataMore(std::istringstream& data) override

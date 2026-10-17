@@ -50,12 +50,6 @@ enum ZulFarrakGameobjects
     GO_SHALLOW_GRAVE_2          = 128403
 };
 
-enum ZulFarrakStairs
-{
-    ZF_STAIRS_SIDE_A            = 1,
-    ZF_STAIRS_SIDE_B            = 2
-};
-
 enum ZulFarrakData
 {
     DATA_PYRAMID                = 0,

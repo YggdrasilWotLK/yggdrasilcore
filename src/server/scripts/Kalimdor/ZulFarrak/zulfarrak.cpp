@@ -976,7 +976,6 @@ public:
         npc_zf_sandfury_waveAI(Creature* creature) : ScriptedAI(creature) { }
 
         uint32 _t1 = 0, _t2 = 0, _t3 = 0, _t4 = 0;
-        Position const* _stairsPath = nullptr;
 
         void Reset() override
         {
@@ -1038,26 +1037,12 @@ public:
 
         void MovementInform(uint32 type, uint32 id) override
         {
-            if (type != POINT_MOTION_TYPE || !_stairsPath)
+            if (type != POINT_MOTION_TYPE || id != 1)
                 return;
 
-            if (id == 1)
-                me->GetMotionMaster()->MovePoint(2, _stairsPath[1].GetPositionX(), _stairsPath[1].GetPositionY(), _stairsPath[1].GetPositionZ(),
-                    FORCED_MOVEMENT_NONE, 0.0f, 0.0f, true, true, MOTION_SLOT_CONTROLLED);
-        }
+            Position const* path = me->GetExactDist2d(&sandfuryStairsA[0]) <= me->GetExactDist2d(&sandfuryStairsB[0]) ? sandfuryStairsA : sandfuryStairsB;
 
-        void DoAction(int32 action) override
-        {
-            if (action == ZF_STAIRS_SIDE_A)
-                _stairsPath = sandfuryStairsA;
-            else if (action == ZF_STAIRS_SIDE_B)
-                _stairsPath = sandfuryStairsB;
-            else
-                return;
-
-            me->SetSpeed(MOVE_RUN, 0.7f);
-            me->GetMotionMaster()->Clear(false);
-            me->GetMotionMaster()->MovePoint(1, _stairsPath[0].GetPositionX(), _stairsPath[0].GetPositionY(), _stairsPath[0].GetPositionZ(),
+            me->GetMotionMaster()->MovePoint(2, path[1].GetPositionX(), path[1].GetPositionY(), path[1].GetPositionZ(),
                 FORCED_MOVEMENT_NONE, 0.0f, 0.0f, true, true, MOTION_SLOT_CONTROLLED);
         }
 
