@@ -1042,7 +1042,8 @@ public:
                 return;
 
             if (id == 1)
-                me->GetMotionMaster()->MovePoint(2, _stairsPath[1]);
+                me->GetMotionMaster()->MovePoint(2, _stairsPath[1].GetPositionX(), _stairsPath[1].GetPositionY(), _stairsPath[1].GetPositionZ(),
+                    FORCED_MOVEMENT_NONE, 0.0f, 0.0f, true, true, MOTION_SLOT_CONTROLLED);
         }
 
         void DoAction(int32 action) override
@@ -1055,7 +1056,9 @@ public:
                 return;
 
             me->SetSpeed(MOVE_RUN, 0.7f);
-            me->GetMotionMaster()->MovePoint(1, _stairsPath[0]);
+            me->GetMotionMaster()->Clear(false);
+            me->GetMotionMaster()->MovePoint(1, _stairsPath[0].GetPositionX(), _stairsPath[0].GetPositionY(), _stairsPath[0].GetPositionZ(),
+                FORCED_MOVEMENT_NONE, 0.0f, 0.0f, true, true, MOTION_SLOT_CONTROLLED);
         }
 
         void UpdateAI(uint32 diff) override
