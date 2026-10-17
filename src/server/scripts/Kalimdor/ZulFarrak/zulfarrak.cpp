@@ -1095,7 +1095,7 @@ public:
 enum WitchDoctorZumrah
 {
     SPELL_SHADOW_BOLT_VOLLEY    = 15245,
-    SPELL_SHADOW_BOLT           = 12739,
+    SPELL_SHADOW_BOLT_ZUMRAH    = 12739,
     SPELL_WARD_OF_ZUMRAH        = 11086,
     SPELL_HEALING_WAVE          = 12491,
 
@@ -1239,7 +1239,7 @@ public:
 
             if (_shadowBoltTimer <= diff)
             {
-                DoCastVictim(SPELL_SHADOW_BOLT);
+                DoCastVictim(SPELL_SHADOW_BOLT_ZUMRAH);
                 _shadowBoltTimer = urand(3000, 4000);
             }
             else
