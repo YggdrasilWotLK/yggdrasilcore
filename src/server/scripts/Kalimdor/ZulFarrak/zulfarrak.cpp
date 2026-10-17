@@ -16,7 +16,6 @@
  */
 
 #include "zulfarrak.h"
-#include "AreaTriggerScript.h"
 #include "Cell.h"
 #include "CellImpl.h"
 #include "CreatureScript.h"
@@ -1127,6 +1126,7 @@ public:
         uint32 _healingWaveTimer;
         uint32 _graveTimer;
         uint32 _comeToMeTimer;
+        bool _introDone;
         GuidList _zombies;
 
         void Reset() override
@@ -1138,6 +1138,19 @@ public:
             _healingWaveTimer = urand(10000, 20000);
             _graveTimer = ZOMBIE_POP_INTERVAL;
             _comeToMeTimer = COME_TO_ME_INTERVAL;
+            _introDone = false;
+        }
+
+        void MoveInLineOfSight(Unit* who) override
+        {
+            if (!_introDone && who->IsPlayer() && me->IsWithinDistInMap(who, 10.0f))
+            {
+                _introDone = true;
+                me->SetFaction(FACTION_HOSTILE_ZUMRAH);
+                Talk(TEXT_ZUMRAH_INTRO);
+            }
+
+            ScriptedAI::MoveInLineOfSight(who);
         }
 
         void JustEngagedWith(Unit* who) override
@@ -1181,7 +1194,7 @@ public:
 
             for (uint32 entry : { GO_SHALLOW_GRAVE, GO_SHALLOW_GRAVE_2 })
             {
-                if (GameObject* go = me->FindNearestGameObject(entry, GRAVE_SEARCH_RANGE))
+                if (GameObject* go = me->FindNearestGameObject(entry, GRAVE_SEARCH_RANGE, true))
                 {
                     float dist = me->GetDistance(go);
                     if (dist < bestDist)
@@ -1274,28 +1287,6 @@ public:
     }
 };
 
-/*######
- ## at_zulfarrak_zumrah_sanctum (962)
- ######*/
-
-class at_zulfarrak_zumrah_sanctum : public AreaTriggerScript
-{
-public:
-    at_zulfarrak_zumrah_sanctum() : AreaTriggerScript("at_zulfarrak_zumrah_sanctum") { }
-
-    bool OnTrigger(Player* player, AreaTrigger const* /*trigger*/) override
-    {
-        Creature* zumrah = player->FindNearestCreature(NPC_WITCH_DOCTOR_ZUMRAH, 50.0f);
-        if (zumrah && zumrah->IsAlive() && zumrah->GetFaction() != FACTION_HOSTILE_ZUMRAH)
-        {
-            zumrah->SetFaction(FACTION_HOSTILE_ZUMRAH);
-            zumrah->AI()->Talk(TEXT_ZUMRAH_INTRO);
-        }
-
-        return true;
-    }
-};
-
 void AddSC_zulfarrak()
 {
     new npc_sergeant_bly();
@@ -1305,5 +1296,4 @@ void AddSC_zulfarrak()
     new npc_witch_doctor_zumrah();
     new go_troll_cage();
     new go_shallow_grave();
-    new at_zulfarrak_zumrah_sanctum();
 }
