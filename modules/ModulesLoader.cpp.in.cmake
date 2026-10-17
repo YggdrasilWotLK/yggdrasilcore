@@ -21,13 +21,17 @@
 #cmakedefine ACORE_IS_DYNAMIC_SCRIPTLOADER
 
 #include "Define.h"
-#include <vector>
+#include "ModuleLoadOrder.h"
+#include <algorithm>
 #include <string>
+#include <vector>
 
 // Add deprecated api loaders include
 @AC_SCRIPTS_INCLUDES@
 // Includes list
 @ACORE_SCRIPTS_FORWARD_DECL@
+// Load-order accessors (weak default; a module's own loader may define a strong one)
+@ACORE_SCRIPTS_LOAD_ORDER_DEFS@
 #ifdef ACORE_IS_DYNAMIC_SCRIPTLOADER
 #  include "revision.h"
 #  define AC_MODULES_API AC_API_EXPORT
@@ -48,8 +52,19 @@ AC_MODULES_API char const* GetScriptModule()
 /// Exposed in script modules to register all scripts to the ScriptMgr.
 AC_MODULES_API void AddModulesScripts()
 {
-    // Modules
-@ACORE_SCRIPTS_INVOKE@
+    // Modules, ordered by declared load order then folder name
+    std::vector<ModuleLoadEntry> modules =
+    {
+@ACORE_SCRIPTS_INVOKE@    };
+    std::sort(modules.begin(), modules.end(),
+        [](ModuleLoadEntry const& a, ModuleLoadEntry const& b)
+        {
+            if (a.loadOrder != b.loadOrder)
+                return a.loadOrder < b.loadOrder;
+            return std::string(a.name) < std::string(b.name);
+        });
+    for (ModuleLoadEntry const& module : modules)
+        module.scripts();
     // Deprecated api modules
 @AC_SCRIPTS_LIST@}
 

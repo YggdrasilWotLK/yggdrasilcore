@@ -142,37 +142,48 @@ GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 # It is possible to expose multiple subdirectories from the same scriptloader through passing
 # it to the variable arguments
 function(ConfigureScriptLoader SCRIPTLOADER_NAME LOADER_OUT IS_DYNAMIC_SCRIPTLOADER)
-  # Deduces following variables which are referenced by thge template:
+  # Deduces following variables which are referenced by the template:
   # ACORE_IS_DYNAMIC_SCRIPTLOADER
   # ACORE_SCRIPTS_FORWARD_DECL
+  # ACORE_SCRIPTS_LOAD_ORDER_DEFS
   # ACORE_SCRIPTS_INVOKE
   # ACORE_CURRENT_SCRIPT_PROJECT
 
   # To generate export macros
   set(ACORE_IS_DYNAMIC_SCRIPTLOADER ${IS_DYNAMIC_SCRIPTLOADER})
 
-  # To generate forward declarations of the loading functions
+  # To generate forward declarations, weak load-order defaults and the module table
   unset(ACORE_SCRIPTS_FORWARD_DECL)
+  unset(ACORE_SCRIPTS_LOAD_ORDER_DEFS)
   unset(ACORE_SCRIPTS_INVOKE)
 
   # The current script project which is built in
   set(ACORE_CURRENT_SCRIPT_PROJECT ${SCRIPTLOADER_NAME})
 
-  foreach(LOCALE_SCRIPT_MODULE ${ARGN})
+  foreach(SCRIPT_MODULE_FOLDER ${ARGN})
 
-    # Replace bad words
-    string(REGEX REPLACE - "_" LOCALE_SCRIPT_MODULE ${LOCALE_SCRIPT_MODULE})
+    # Replace bad words for the generated identifiers
+    string(REGEX REPLACE - "_" SCRIPT_MODULE_IDENTIFIER ${SCRIPT_MODULE_FOLDER})
 
-    # Determine the loader function ("Add##${NameOfDirectory}##Scripts()")
+    # Determine the entry points ("Add##${NameOfDirectory}##Scripts()" and
+    # "Add##${NameOfDirectory}##LoadOrder()")
     set(LOADER_FUNCTION
-      "Add${LOCALE_SCRIPT_MODULE}Scripts()")
+      "Add${SCRIPT_MODULE_IDENTIFIER}Scripts")
+    set(LOAD_ORDER_FUNCTION
+      "Add${SCRIPT_MODULE_IDENTIFIER}LoadOrder")
 
-    # Generate the funciton call and the forward declarations
+    # Generate the forward declaration of the loading function
     set(ACORE_SCRIPTS_FORWARD_DECL
-      "${ACORE_SCRIPTS_FORWARD_DECL}void ${LOADER_FUNCTION};\n")
+      "${ACORE_SCRIPTS_FORWARD_DECL}void ${LOADER_FUNCTION}();\n")
 
+    # Generate the weak default load order, used unless the module's own loader
+    # defines a strong Add##${NameOfDirectory}##LoadOrder()
+    set(ACORE_SCRIPTS_LOAD_ORDER_DEFS
+      "${ACORE_SCRIPTS_LOAD_ORDER_DEFS}AC_MODULE_LOAD_ORDER_WEAK int ${LOAD_ORDER_FUNCTION}() { return AC_MODULE_DEFAULT_LOAD_ORDER; }\n")
+
+    # Generate the module table entry, ordered by (load order, folder name)
     set(ACORE_SCRIPTS_INVOKE
-      "${ACORE_SCRIPTS_INVOKE}    ${LOADER_FUNCTION};\n")
+      "${ACORE_SCRIPTS_INVOKE}        { ${LOAD_ORDER_FUNCTION}(), \"${SCRIPT_MODULE_FOLDER}\", &${LOADER_FUNCTION} },\n")
   endforeach()
 
   set(GENERATED_LOADER ${CMAKE_CURRENT_BINARY_DIR}/gen_scriptloader/${SCRIPTLOADER_NAME}/ModulesLoader.cpp)
@@ -284,6 +295,7 @@ if (MOD_ALE_FOUND)
 endif()
 
 add_library(modules STATIC
+    ModuleLoadOrder.h
     ModulesScriptLoader.h
     ${SCRIPT_MODULE_PRIVATE_SCRIPTLOADER}
     ${PRIVATE_SOURCES_MODULES})
