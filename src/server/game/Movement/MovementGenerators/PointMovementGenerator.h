@@ -28,7 +28,7 @@ class PointMovementGenerator : public MovementGeneratorMedium< T, PointMovementG
 public:
     PointMovementGenerator(uint32 _id, float _x, float _y, float _z, ForcedMovement forcedMovement, float _speed = 0.0f, float orientation = 0.0f, const Movement::PointsArray* _path = nullptr,
         bool generatePath = false, bool forceDestination = false, ObjectGuid chargeTargetGUID = ObjectGuid::Empty, bool reverseOrientation = false, ObjectGuid facingTargetGuid = ObjectGuid())
-        : id(_id), i_x(_x), i_y(_y), i_z(_z), speed(_speed), i_orientation(orientation), _generatePath(generatePath), _forceDestination(forceDestination), _reverseOrientation(reverseOrientation),
+        : id(_id), i_x(_x), i_y(_y), i_z(_z), speed(_speed), i_orientation(orientation), i_recalculateSpeed(false), i_deferred(false), i_launched(false), _generatePath(generatePath), _forceDestination(forceDestination), _reverseOrientation(reverseOrientation),
         _chargeTargetGUID(chargeTargetGUID), _forcedMovement(forcedMovement), _facingTargetGuid(facingTargetGuid)
     {
         if (_path)
@@ -60,6 +60,8 @@ private:
     float speed;
     float i_orientation;
     bool i_recalculateSpeed;
+    bool i_deferred;
+    bool i_launched;
     Movement::PointsArray m_precomputedPath;
     bool _generatePath;
     bool _forceDestination;
