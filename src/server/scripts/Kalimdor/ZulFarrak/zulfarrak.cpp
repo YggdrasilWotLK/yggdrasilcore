@@ -1045,18 +1045,7 @@ public:
         {
             if (action == ZF_ACTION_ADD_SELECTED)
             {
-                switch (me->GetEntry())
-                {
-                    case 8877:
-                    case 8876:
-                    case 7787:
-                    case 7788:
-                        me->SetSpeed(MOVE_RUN, 0.7f);
-                        break;
-                    default:
-                        break;
-                }
-
+                me->SetSpeed(MOVE_RUN, 0.7f);
                 _selected = true;
             }
         }
