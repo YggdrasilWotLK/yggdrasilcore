@@ -1105,8 +1105,7 @@ enum WitchDoctorZumrah
     TEXT_ZUMRAH_AGGRO           = 2,
     TEXT_ZUMRAH_SUMMON          = 3,
 
-    ZOMBIE_POP_INTERVAL         = 10 * IN_MILLISECONDS,
-    COME_TO_ME_INTERVAL         = 18 * IN_MILLISECONDS
+    ZOMBIE_POP_INTERVAL         = 10 * IN_MILLISECONDS
 };
 
 float constexpr GRAVE_SEARCH_RANGE = 250.0f;
@@ -1125,7 +1124,6 @@ public:
         uint32 _wardOfZumrahTimer;
         uint32 _healingWaveTimer;
         uint32 _graveTimer;
-        uint32 _comeToMeTimer;
         bool _introDone;
         GuidList _zombies;
 
@@ -1137,7 +1135,6 @@ public:
             _wardOfZumrahTimer = urand(2000, 5000);
             _healingWaveTimer = urand(10000, 20000);
             _graveTimer = ZOMBIE_POP_INTERVAL;
-            _comeToMeTimer = COME_TO_ME_INTERVAL;
             _introDone = false;
         }
 
@@ -1234,14 +1231,6 @@ public:
             else
                 _graveTimer -= diff;
 
-            if (_comeToMeTimer <= diff)
-            {
-                Talk(TEXT_ZUMRAH_SUMMON);
-                _comeToMeTimer = COME_TO_ME_INTERVAL;
-            }
-            else
-                _comeToMeTimer -= diff;
-
             if (_shadowBoltVolleyTimer <= diff)
             {
                 DoCastSelf(SPELL_SHADOW_BOLT_VOLLEY);
@@ -1260,6 +1249,7 @@ public:
 
             if (_wardOfZumrahTimer <= diff)
             {
+                Talk(TEXT_ZUMRAH_SUMMON);
                 DoCastSelf(SPELL_WARD_OF_ZUMRAH);
                 _wardOfZumrahTimer = urand(30000, 36000);
             }
