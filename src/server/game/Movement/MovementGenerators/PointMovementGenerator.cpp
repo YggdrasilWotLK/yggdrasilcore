@@ -32,9 +32,9 @@ void PointMovementGenerator<T>::DoInitialize(T* unit)
 {
     if (unit->HasUnitState(UNIT_STATE_NOT_MOVE) || unit->IsMovementPreventedByCasting())
     {
-        // the next line is to ensure that a new spline is created in DoUpdate() once the unit is no longer rooted/stunned
-        /// @todo: rename this flag to something more appropriate since it is set to true even without speed change now.
+        // defer the move instead of dropping it: DoUpdate() relaunches it once the unit can move again
         i_recalculateSpeed = true;
+        i_deferred = true;
         return;
     }
 
@@ -48,6 +48,7 @@ void PointMovementGenerator<T>::DoInitialize(T* unit)
     }
 
     i_recalculateSpeed = false;
+    i_deferred = false;
     Movement::MoveSplineInit init(unit);
     /// Added by mod-shadows
     if (_reverseOrientation)
@@ -140,6 +141,14 @@ bool PointMovementGenerator<T>::DoUpdate(T* unit, uint32 /*diff*/)
     }
 
     unit->AddUnitState(UNIT_STATE_ROAMING_MOVE);
+
+    // a move requested while the unit was rooted/stunned/casting was deferred in DoInitialize(),
+    // launch it now that the unit can move again
+    if (i_deferred)
+    {
+        DoInitialize(unit);
+        return i_deferred ? true : !unit->movespline->Finalized();
+    }
 
     if (id != EVENT_CHARGE_PREPATH && i_recalculateSpeed && !unit->movespline->Finalized())
     {
