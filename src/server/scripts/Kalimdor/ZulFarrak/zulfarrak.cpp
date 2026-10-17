@@ -642,15 +642,6 @@ public:
                 instance->SetData(DATA_PYRAMID, PYRAMID_DESTROY_GATES);
         }
 
-        void JustDied(Unit* /*killer*/) override
-        {
-            // Allow retry instead of soft-locking at DESTROY_GATES with a dead Weegli.
-            if (instance && instance->GetData(DATA_PYRAMID) == PYRAMID_DESTROY_GATES && !bombPlaced)
-            {
-                instance->SetData(DATA_PYRAMID, PYRAMID_MOVED_DOWNSTAIRS);
-            }
-        }
-
         void sGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
         {
             uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
