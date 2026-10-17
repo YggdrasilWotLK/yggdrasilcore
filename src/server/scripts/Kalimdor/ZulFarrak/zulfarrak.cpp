@@ -1012,7 +1012,7 @@ public:
                     if (_t2 <= diff) { DoCastVictim(14032); _t2 = urand(12000, 20000); } else _t2 -= diff;
                     break;
                 case 8876:
-                    if (HealthBelowPct(15)) { DoFleeToGetAssistance(); break; }
+                    if (HealthBelowPct(15)) { me->DoFleeToGetAssistance(); break; }
                     if (_t1 <= diff) { DoCastVictim(9613); _t1 = urand(3000, 4000); } else _t1 -= diff;
                     if (_t2 <= diff) { DoCastVictim(11981); _t2 = urand(13000, 24000); } else _t2 -= diff;
                     if (_t3 <= diff) { DoCastVictim(11639); _t3 = urand(12000, 20000); } else _t3 -= diff;
