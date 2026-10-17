@@ -412,13 +412,11 @@ public:
             bombPlaced = false;
             outroTimer = 2000;
             outroStage = 0;
-            runTimer = 0;
         }
 
         uint32 Bomb_Timer;
         uint32 LandMine_Timer;
         uint32 outroTimer;
-        uint32 runTimer;
         uint8 outroStage;
         bool destroyingDoor;
         bool doorRunStarted;
@@ -436,8 +434,6 @@ public:
         static constexpr float DOOR_Y = 1146.35f;
         static constexpr float DOOR_Z = 14.745f;
         static constexpr float DOOR_O = 3.85f;
-        static constexpr float DOOR_ARRIVE_DIST = 10.0f;
-        static constexpr uint32 RUN_TIMEOUT_MS = 20000;
 
         void InitializeAI() override
         {
@@ -458,58 +454,6 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            // Door run has priority over everything: keep moving to the gate
-            // and trigger the bomb by proximity, not only by MovementInform.
-            // MovementInform alone caused in-place bombs when the 56y path
-            // failed and fired immediately.
-            if (doorRunStarted && !bombPlaced)
-            {
-                if (me->IsInCombat())
-                {
-                    me->CombatStop(true);
-                    me->GetThreatMgr().ClearAllThreat();
-                }
-
-                float dist = me->GetDistance(DOOR_X, DOOR_Y, DOOR_Z);
-                if (dist <= DOOR_ARRIVE_DIST)
-                {
-                    me->GetMotionMaster()->Clear(false);
-                    me->StopMoving();
-                    bombPlaced = true;
-                    destroyingDoor = true;
-                    outroStage = 0;
-                    outroTimer = 1500;
-                }
-                else
-                {
-                    // Re-path if idle (covers failed MovePoint) so he really
-                    // walks towards the gate instead of standing still.
-                    if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() != POINT_MOTION_TYPE)
-                    {
-                        me->GetMotionMaster()->Clear(false);
-                        me->GetMotionMaster()->MovePoint(POINT_DOOR, { DOOR_X, DOOR_Y, DOOR_Z, DOOR_O });
-                    }
-
-                    if (runTimer <= diff)
-                    {
-                        // Failsafe: path blocked - teleport to the gate staging
-                        // so the bomb visual and SmartScript are at the gate,
-                        // then run the normal bomb -> escape -> open sequence.
-                        me->GetMotionMaster()->Clear(false);
-                        me->NearTeleportTo(DOOR_X, DOOR_Y, DOOR_Z, DOOR_O);
-                        bombPlaced = true;
-                        destroyingDoor = true;
-                        outroStage = 0;
-                        outroTimer = 1000;
-                    }
-                    else
-                    {
-                        runTimer -= diff;
-                    }
-                }
-                return;
-            }
-
             // Bomb sequence must finish even if something attacks him.
             if (destroyingDoor)
             {
@@ -617,21 +561,15 @@ public:
 
             if (id == POINT_DOOR)
             {
-                // Fast path; proximity check in UpdateAI covers the case
-                // where this fires without actually reaching the gate.
-                if (doorRunStarted && !bombPlaced && instance && instance->GetData(DATA_PYRAMID) == PYRAMID_DESTROY_GATES)
+                // Only act on an actual arrival at the gate staging point.
+                if (doorRunStarted && !bombPlaced)
                 {
-                    float dist = me->GetDistance(DOOR_X, DOOR_Y, DOOR_Z);
-                    if (dist <= DOOR_ARRIVE_DIST + 5.0f)
-                    {
-                        me->GetMotionMaster()->Clear(false);
-                        me->StopMoving();
-                        bombPlaced = true;
-                        destroyingDoor = true;
-                        outroStage = 0;
-                        outroTimer = 1500;
-                    }
-                    // else: ignore spurious arrival, UpdateAI keeps walking
+                    me->GetMotionMaster()->Clear(false);
+                    me->StopMoving();
+                    bombPlaced = true;
+                    destroyingDoor = true;
+                    outroStage = 0;
+                    outroTimer = 1500;
                 }
                 return;
             }
@@ -689,7 +627,6 @@ public:
             destroyingDoor = false;
             outroStage = 0;
             outroTimer = 2000;
-            runTimer = RUN_TIMEOUT_MS;
             me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
             me->SetFaction(35);
             me->SetReactState(REACT_PASSIVE);
