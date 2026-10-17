@@ -325,7 +325,12 @@ class WorldState
         bool _isMagtheridonHeadSpawnedAlliance;
         SunsReachReclamationData m_sunsReachData;
         std::map<uint32, std::atomic<WorldStateConditionState>> _transportStates; // atomic to avoid having to lock
-        mutable std::mutex _mutex; // guards _worldstates; all operations take it
+        // Guards _worldstates, the transport-state map and the Magtheridon /
+        // Adal's Song flags. Recursive: HandleExternalEvent and the zone
+        // handlers cast/remove auras while holding it, and the resulting
+        // spell/aura/SmartAI scripts re-enter WorldState (setWorldState,
+        // getWorldState, HandleExternalEvent) on the same thread.
+        mutable std::recursive_mutex _mutex;
 
         // Scourge Invasion
     public:
