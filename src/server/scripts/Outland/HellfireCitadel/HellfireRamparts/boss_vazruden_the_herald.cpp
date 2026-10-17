@@ -272,8 +272,15 @@ struct boss_vazruden : public ScriptedAI
             Talk(SAY_AGGRO);
         }).Schedule(4s, [this](TaskContext context)
         {
-            DoCastVictim(SPELL_REVENGE);
-            context.Repeat(6s);
+            if (me->HasAuraState(AURA_STATE_DEFENSE))
+            {
+                DoCastVictim(SPELL_REVENGE);
+                context.Repeat(6s);
+            }
+            else
+            {
+                context.Repeat(1s);
+            }
         });
     }
 
