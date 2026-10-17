@@ -35,7 +35,7 @@ WorldState* WorldState::instance()
     return &instance;
 }
 
-WorldState::WorldState() : _isMagtheridonHeadSpawnedHorde(false), _isMagtheridonHeadSpawnedAlliance(false)
+WorldState::WorldState() : _isMagtheridonHeadSpawnedHorde(false), _isMagtheridonHeadSpawnedAlliance(false), _adalSongOfBattleTimer(0)
 {
     _transportStates[WORLD_STATE_CONDITION_THE_IRON_EAGLE]      = WORLD_STATE_CONDITION_STATE_NONE;
     _transportStates[WORLD_STATE_CONDITION_THE_PURPLE_PRINCESS] = WORLD_STATE_CONDITION_STATE_NONE;
@@ -316,16 +316,20 @@ void WorldState::HandleExternalEvent(WorldStateEvent eventId, uint32 param)
 void WorldState::Update(uint32 diff)
 {
     std::lock_guard<std::recursive_mutex> siLock(m_siData.m_siMutex);
-    if (_adalSongOfBattleTimer)
+    // Armed on the map thread and count down here on the world thread, so
+    // snapshot once and compare_exchange the expiry instead of a plain RMW.
+    uint32 adalsSongTimer = _adalSongOfBattleTimer.load();
+    if (adalsSongTimer)
     {
-        if (_adalSongOfBattleTimer <= diff)
+        if (adalsSongTimer <= diff)
         {
-            _adalSongOfBattleTimer = 0;
-            DispelAdalsSongOfBattle();
+            // Only clear if still expired; A'dal may have re-armed it meanwhile.
+            if (_adalSongOfBattleTimer.compare_exchange_strong(adalsSongTimer, 0))
+                DispelAdalsSongOfBattle();
         }
         else
         {
-            _adalSongOfBattleTimer -= diff;
+            _adalSongOfBattleTimer.fetch_sub(diff);
         }
     }
 
