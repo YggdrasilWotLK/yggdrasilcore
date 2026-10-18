@@ -21,16 +21,16 @@
 #include "GridNotifiersImpl.h"
 #include "InstanceMapScript.h"
 #include "InstanceScript.h"
+#include "Random.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "TemporarySummon.h"
 #include "zulfarrak.h"
 
+#include <vector>
+
 enum Misc
 {
-    // Paths
-    PATH_ADDS           = 81553,
-
     SAY_BLY_FORWARD     = 2
 };
 
@@ -132,8 +132,6 @@ public:
         uint32 PyramidPhase;
         uint32 major_wave_Timer;
         uint32 minor_wave_Timer;
-        uint32 addGroupSize;
-        uint32 waypoint;
 
         void Initialize() override
         {
@@ -143,8 +141,6 @@ public:
             PyramidPhase = 0;
             major_wave_Timer = 0;
             minor_wave_Timer = 0;
-            addGroupSize = 0;
-            waypoint = 0;
         }
 
         void OnCreatureCreate(Creature* creature) override
@@ -185,7 +181,7 @@ public:
             {
                 case GO_END_DOOR:
                     EndDoorGUID = gameobject->GetGUID();
-                    if (PyramidPhase == PYRAMID_DONE)
+                    if (PyramidPhase >= PYRAMID_GATES_DESTROYED)
                     {
                         HandleGameObject(gameobject->GetGUID(), true, gameobject);
                     }
@@ -210,6 +206,12 @@ public:
             {
                 case DATA_PYRAMID:
                     PyramidPhase = data;
+                    if (data == PYRAMID_GATES_DESTROYED)
+                    {
+                        // Weegli's bomb went off: open the gate to the last boss.
+                        if (GameObject* door = instance->GetGameObject(EndDoorGUID))
+                            HandleGameObject(EndDoorGUID, true, door);
+                    }
                     break;
                 case DATA_GAHZRILLA:
                     GahzrillaSummoned = data;
@@ -273,7 +275,6 @@ public:
                     SetData(DATA_PYRAMID, PYRAMID_WAVE_1);
                     major_wave_Timer = 2 * MINUTE * IN_MILLISECONDS;
                     minor_wave_Timer = 0;
-                    addGroupSize = 2;
                     break;
                 case PYRAMID_WAVE_1:
                     if (IsWaveAllDead())
@@ -285,8 +286,8 @@ public:
                     {
                         if (minor_wave_Timer <= diff)
                         {
-                            SendAddsUpStairs(addGroupSize++);
-                            minor_wave_Timer = 10 * IN_MILLISECONDS;
+                            SendAddsUpStairs();
+                            minor_wave_Timer = urand(8, 11) * IN_MILLISECONDS;
                         }
                         else
                         {
@@ -301,7 +302,6 @@ public:
                         SpawnPyramidWave(2);
                         SetData(DATA_PYRAMID, PYRAMID_WAVE_2);
                         minor_wave_Timer = 0;
-                        addGroupSize = 2;
                     }
                     else
                     {
@@ -319,8 +319,8 @@ public:
                     {
                         if (minor_wave_Timer <= diff)
                         {
-                            SendAddsUpStairs(addGroupSize++);
-                            minor_wave_Timer = 10 * IN_MILLISECONDS;
+                            SendAddsUpStairs();
+                            minor_wave_Timer = urand(8, 11) * IN_MILLISECONDS;
                         }
                         else
                         {
@@ -430,18 +430,29 @@ public:
             return true;
         }
 
-        void SendAddsUpStairs(uint32 count)
+        void SendAddsUpStairs()
         {
-            //pop a add from list, send him up the stairs...
-            for (uint32 addCount = 0; addCount < count && !addsAtBase.empty(); addCount++)
-            {
-                if (Creature* add = instance->GetCreature(*addsAtBase.begin()))
-                {
-                    add->GetMotionMaster()->MovePath(PATH_ADDS, false);
-                    movedadds.push_back(add->GetGUID());
-                }
+            // Gather the mobs still waiting at the base.
+            std::vector<Creature*> pool;
+            for (ObjectGuid const& guid : addsAtBase)
+                if (Creature* add = instance->GetCreature(guid))
+                    if (add->IsAlive())
+                        pool.push_back(add);
 
-                addsAtBase.erase(addsAtBase.begin());
+            // Pick up to two random mobs from the pool.
+            std::vector<Creature*> selected;
+            while (selected.size() < 2 && !pool.empty())
+            {
+                uint32 index = urand(0, uint32(pool.size()) - 1);
+                selected.push_back(pool[index]);
+                pool.erase(pool.begin() + index);
+            }
+
+            for (Creature* add : selected)
+            {
+                addsAtBase.remove(add->GetGUID());
+                movedadds.push_back(add->GetGUID());
+                add->AI()->DoAction(ZF_ACTION_ADD_SELECTED);
             }
         }
 

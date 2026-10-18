@@ -48,7 +48,7 @@ enum blySays
 
 enum blySpells
 {
-    SPELL_BLYS_BAND_ESCAPE     = 11365,
+    SPELL_HEARTHSTONE            = 8690,
     SPELL_SHIELD_BASH          = 11972,
     SPELL_REVENGE              = 12170
 };
@@ -92,20 +92,20 @@ public:
         {
             ShieldBash_Timer = 5000;
             Revenge_Timer = 8000;
-            Porthome_Timer = 156000;
+            Porthome_Timer = 2 * MINUTE * IN_MILLISECONDS;
             ableToPortHome = false;
             startedFight = false;
         }
 
         void EnterEvadeMode(EvadeReason /*reason*/) override
         {
-            if (ableToPortHome)
+            if (ableToPortHome || startedFight)
                 return;
 
-            if (instance->GetData(DATA_PYRAMID) == PYRAMID_KILLED_ALL_TROLLS)
+            if (instance && instance->GetData(DATA_PYRAMID) == PYRAMID_GATES_DESTROYED)
             {
                 ableToPortHome = true;
-                Porthome_Timer = 156000;
+                Porthome_Timer = 2 * MINUTE * IN_MILLISECONDS;
             }
         }
 
@@ -152,7 +152,7 @@ public:
                             me->SetFaction(FACTION_MONSTER);
                             Player* target = ObjectAccessor::GetPlayer(*me, PlayerGUID);
 
-                            switchFactionIfAlive(NPC_WEEGLI, target);
+                            // Weegli doesn't fight - he runs to the gate (triggered via DoAction above)
                             switchFactionIfAlive(NPC_RAVEN, target);
                             switchFactionIfAlive(NPC_ORO, target);
                             switchFactionIfAlive(NPC_MURTA, target);
@@ -171,35 +171,25 @@ public:
                 }
             }
 
-            if (Porthome_Timer <= diff && ableToPortHome == true)
+            // Start 2 minute hearthstone timer once Weegli opened the door.
+            // If players don't challenge Bly via gossip in time, his crew hearths out.
+            if (!startedFight && !ableToPortHome && instance && instance->GetData(DATA_PYRAMID) == PYRAMID_GATES_DESTROYED)
             {
-                if (Creature* weegli = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_WEEGLI)))
-                {
-                    weegli->CastSpell(weegli, SPELL_BLYS_BAND_ESCAPE);
-                    weegli->DespawnOrUnsummon(10s);
-                }
-                if (Creature* raven = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_RAVEN)))
-                {
-                    raven->CastSpell(raven, SPELL_BLYS_BAND_ESCAPE);
-                    raven->DespawnOrUnsummon(10s);
-                }
-                if (Creature* oro = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_ORO)))
-                {
-                    oro->CastSpell(oro, SPELL_BLYS_BAND_ESCAPE);
-                    oro->DespawnOrUnsummon(10s);
-                }
-                if (Creature* murta = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_MURTA)))
-                {
-                    murta->CastSpell(murta, SPELL_BLYS_BAND_ESCAPE);
-                    murta->DespawnOrUnsummon(10s);
-                }
-                DoCastSelf(SPELL_BLYS_BAND_ESCAPE);
-                me->DespawnOrUnsummon(10s);
-                Porthome_Timer = 156000; //set timer back so that the event doesn't keep triggering
+                ableToPortHome = true;
+                Porthome_Timer = 2 * MINUTE * IN_MILLISECONDS;
             }
-            else
+
+            if (ableToPortHome)
             {
-                Porthome_Timer -= diff;
+                if (Porthome_Timer <= diff)
+                {
+                    SendCrewHome();
+                    ableToPortHome = false;
+                }
+                else
+                {
+                    Porthome_Timer -= diff;
+                }
             }
 
             if (!UpdateVictim())
@@ -238,6 +228,34 @@ public:
             ableToPortHome = false;
             postGossipStep = 1;
             Text_Timer = 0;
+        }
+
+        void MakeNonInteractiveAndHearth(Creature* crew)
+        {
+            if (!crew || !crew->IsAlive())
+                return;
+
+            // Make non interactive so the 10s hearthstone can't be interrupted via gossip/combat
+            crew->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+            crew->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+            crew->SetImmuneToPC(true);
+            crew->GetMotionMaster()->Clear();
+            crew->GetMotionMaster()->MoveIdle();
+            crew->CastSpell(crew, SPELL_HEARTHSTONE);
+            crew->DespawnOrUnsummon(11s);
+        }
+
+        void SendCrewHome()
+        {
+            // NOTE: Weegli is intentionally left out - he despawned after
+            // blowing the gate and is not part of the crew anymore.
+            if (Creature* raven = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_RAVEN)))
+                MakeNonInteractiveAndHearth(raven);
+            if (Creature* oro = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_ORO)))
+                MakeNonInteractiveAndHearth(oro);
+            if (Creature* murta = ObjectAccessor::GetCreature(*me, instance->GetGuidData(NPC_MURTA)))
+                MakeNonInteractiveAndHearth(murta);
+            MakeNonInteractiveAndHearth(me);
         }
 
         void switchFactionIfAlive(uint32 entry, Player* target)
@@ -393,7 +411,9 @@ public:
         {
             instance = creature->GetInstanceScript();
             destroyingDoor = false;
-            outroTimer = 2000;
+            doorRunStarted = false;
+            bombPlaced = false;
+            outroTimer = 0;
             outroStage = 0;
         }
 
@@ -402,7 +422,21 @@ public:
         uint32 outroTimer;
         uint8 outroStage;
         bool destroyingDoor;
+        bool doorRunStarted;
+        bool bombPlaced;
         InstanceScript* instance;
+
+        static constexpr uint32 POINT_DOOR = 0;
+        static constexpr uint32 POINT_GENERIC = 1;
+        static constexpr uint32 POINT_ESCAPE_1 = 2;
+        static constexpr uint32 POINT_ESCAPE_2 = 3;
+        static constexpr uint32 POINT_ESCAPE_3 = 4;
+
+        // Door staging in front of GO_END_DOOR (1854.53, 1142.89, 16.08)
+        static constexpr float DOOR_X = 1858.57f;
+        static constexpr float DOOR_Y = 1146.35f;
+        static constexpr float DOOR_Z = 14.745f;
+        static constexpr float DOOR_O = 3.85f;
 
         void InitializeAI() override
         {
@@ -423,34 +457,52 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            if (!UpdateVictim())
+            // Bomb sequence must finish even if something attacks him.
+            if (destroyingDoor)
             {
-                if (destroyingDoor)
+                if (me->IsInCombat())
                 {
-                    if (outroTimer <= diff)
-                    {
-                        switch (outroStage)
-                        {
-                            case 0:
-                                DoCastSelf(SPELL_WEEGLIS_BARREL);
-                                outroTimer = 2000;
-                                ++outroStage;
-                                break;
-                            case 1:
-                                me->GetMotionMaster()->MovePoint(2, 1871.18f, 1100.f, 8.88f);
-                                Talk(SAY_WEEGLI_OUT_OF_HERE);
-                                me->DespawnOrUnsummon(8s);
-                                instance->SetData(DATA_PYRAMID, PYRAMID_GATES_DESTROYED);
-                                destroyingDoor = false;
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        outroTimer -= diff;
-                    }
+                    me->CombatStop(true);
+                    me->GetThreatMgr().ClearAllThreat();
                 }
 
+                if (outroTimer <= diff)
+                {
+                    switch (outroStage)
+                    {
+                        case 0:
+                            // Place the bomb at the gate, not where gossip happened.
+                            // SPELL_WEEGLIS_BARREL summons Weegli's Armed Barrel (141612)
+                            // which explodes and opens GO_END_DOOR via SmartScript.
+                            DoCastSelf(SPELL_WEEGLIS_BARREL);
+                            outroTimer = 2000;
+                            ++outroStage;
+                            break;
+                        case 1:
+                            Talk(SAY_WEEGLI_OUT_OF_HERE);
+                            me->GetMotionMaster()->Clear(false);
+                            me->GetMotionMaster()->MovePoint(POINT_ESCAPE_1, 1853.0f, 1183.0f, 8.5f);
+                            // Open the gate even if the barrel SmartScript proximity fails.
+                            // Instance also opens it on PYRAMID_GATES_DESTROYED.
+                            if (instance)
+                            {
+                                instance->SetData(DATA_PYRAMID, PYRAMID_GATES_DESTROYED);
+                                if (GameObject* door = ObjectAccessor::GetGameObject(*me, instance->GetGuidData(GO_END_DOOR)))
+                                    door->UseDoorOrButton();
+                            }
+                            destroyingDoor = false;
+                            break;
+                    }
+                }
+                else
+                {
+                    outroTimer -= diff;
+                }
+                return;
+            }
+
+            if (!UpdateVictim())
+            {
                 return;
             }
 
@@ -498,17 +550,46 @@ public:
             {
                 instance->SetData(DATA_PYRAMID, PYRAMID_MOVED_DOWNSTAIRS);
             }
-            else if (instance->GetData(DATA_PYRAMID) == PYRAMID_DESTROY_GATES)
-            {
-                destroyingDoor = true;
-            }
+            // Do NOT start destroyingDoor here: bomb must only be placed
+            // after the dedicated MovePoint(POINT_DOOR) arrival in MovementInform.
+            // Starting it on any home arrival caused in-place bombs and a gate that never opens.
         }
 
-        void MovementInform(uint32 type, uint32 /*id*/) override
+        void MovementInform(uint32 type, uint32 id) override
         {
             if (type != POINT_MOTION_TYPE)
             {
                 return;
+            }
+
+            if (id == POINT_DOOR)
+            {
+                // Only act on an actual arrival at the gate staging point.
+                if (doorRunStarted && !bombPlaced)
+                {
+                    me->GetMotionMaster()->Clear(false);
+                    me->StopMoving();
+                    bombPlaced = true;
+                    destroyingDoor = true;
+                    outroTimer = 0;
+                    outroStage = 0;
+                }
+                return;
+            }
+
+            switch (id)
+            {
+                case POINT_ESCAPE_1:
+                    me->GetMotionMaster()->MovePoint(POINT_ESCAPE_2, 1829.0f, 1183.0f, 8.99f);
+                    return;
+                case POINT_ESCAPE_2:
+                    me->GetMotionMaster()->MovePoint(POINT_ESCAPE_3, 1786.0f, 1142.0f, 8.99f);
+                    return;
+                case POINT_ESCAPE_3:
+                    me->DespawnOrUnsummon();
+                    return;
+                default:
+                    break;
             }
 
             if (instance->GetData(DATA_PYRAMID) == PYRAMID_CAGES_OPEN)
@@ -521,23 +602,47 @@ public:
             {
                 instance->SetData(DATA_PYRAMID, PYRAMID_MOVED_DOWNSTAIRS);
             }
-            else if (instance->GetData(DATA_PYRAMID) == PYRAMID_DESTROY_GATES)
-            {
-                destroyingDoor = true;
-            }
+        }
+
+        void DoAction(int32 /*param*/) override
+        {
+            // Called by Sergeant Bly when his fight starts: Weegli doesn't fight,
+            // he runs to the gate and blows it up.
+            DestroyDoor();
         }
 
         void DestroyDoor()
         {
-            if (me->IsAlive())
+            if (!me->IsAlive() || doorRunStarted)
             {
-                me->SetFaction(FACTION_FRIENDLY);
-                me->SetWalk(false);
-                me->GetMotionMaster()->MovePoint(0, { 1858.57f, 1146.35f, 14.745f, 3.85f });
-                me->SetHomePosition(1858.57f, 1146.35f, 14.745f, 3.85f);
-                Talk(SAY_WEEGLI_OK_I_GO);
-                instance->SetData(DATA_PYRAMID, PYRAMID_DESTROY_GATES);
+                return;
             }
+
+            uint32 phase = instance ? instance->GetData(DATA_PYRAMID) : PYRAMID_NOT_STARTED;
+            // DESTROY_GATES allowed as retry after restart/evade when AI state was lost.
+            if (phase != PYRAMID_KILLED_ALL_TROLLS && phase != PYRAMID_MOVED_DOWNSTAIRS && phase != PYRAMID_DESTROY_GATES)
+            {
+                return;
+            }
+
+            doorRunStarted = true;
+            bombPlaced = false;
+            destroyingDoor = false;
+            outroTimer = 0;
+            outroStage = 0;
+            me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+            me->SetFaction(35);
+            me->SetReactState(REACT_PASSIVE);
+            me->SetImmuneToAll(true);
+            me->CombatStop(true);
+            me->GetThreatMgr().ClearAllThreat();
+            me->SetWalk(false);
+            me->GetMotionMaster()->Clear(false);
+            me->GetMotionMaster()->MovePoint(POINT_DOOR, { DOOR_X, DOOR_Y, DOOR_Z, DOOR_O });
+            me->SetHomePosition(DOOR_X, DOOR_Y, DOOR_Z, DOOR_O);
+            Talk(SAY_WEEGLI_OK_I_GO);
+            if (phase != PYRAMID_DESTROY_GATES)
+                instance->SetData(DATA_PYRAMID, PYRAMID_DESTROY_GATES);
         }
 
         void sGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
@@ -574,6 +679,68 @@ public:
     CreatureAI* GetAI(Creature* creature) const override
     {
         return GetZulFarrakAI<npc_weegli_blastfuseAI>(creature);
+    }
+};
+
+/*######
+## go_shallow_grave
+######*/
+
+enum ShallowGraveSpells
+{
+    SPELL_SUMMON_ZULFARRAK_ZOMBIES = 10247
+};
+
+class go_shallow_grave : public GameObjectScript
+{
+public:
+    go_shallow_grave() : GameObjectScript("go_shallow_grave") { }
+
+    struct go_shallow_graveAI : public GameObjectAI
+    {
+        go_shallow_graveAI(GameObject* go) : GameObjectAI(go) { }
+
+        void Reset() override
+        {
+            _casted = false;
+            _despawned = false;
+        }
+
+        bool GossipHello(Player* /*player*/, bool /*reportUse*/) override
+        {
+            // Cast 10247 once per grave on first click, but do not consume
+            // the interaction so the chest loot window still opens
+            if (!_casted)
+            {
+                _casted = true;
+
+                // Summon chances are handled by
+                // spell_zulfarrak_summon_zulfarrak_zombies in instance_zulfarrak.cpp
+                me->CastSpell(nullptr, SPELL_SUMMON_ZULFARRAK_ZOMBIES);
+            }
+
+            return false;
+        }
+
+        void OnStateChanged(uint32 state, Unit* /*unit*/) override
+        {
+            // Chest is consumable, so core despawns it once loot is taken.
+            // Enforce a long respawn here so it stays gone while the instance exists.
+            if (state == GO_JUST_DEACTIVATED && !_despawned)
+            {
+                _despawned = true;
+                me->DespawnOrUnsummon(1s, Seconds(WEEK));
+            }
+        }
+
+    private:
+        bool _casted = false;
+        bool _despawned = false;
+    };
+
+    GameObjectAI* GetAI(GameObject* go) const override
+    {
+        return GetZulFarrakAI<go_shallow_graveAI>(go);
     }
 };
 
@@ -723,10 +890,379 @@ public:
     }
 };
 
+/*######
+ ## npc_zf_sandfury_wave (7787/7788/7789/8876/8877/7796)
+ ######*/
+
+static Position const sandfuryStairsA[2] = { { 1898.0f, 1226.0f, 9.32f, 0.0f }, { 1890.0f, 1262.0f, 41.4f, 0.0f } };
+static Position const sandfuryStairsB[2] = { { 1878.0f, 1224.0f, 9.29f, 0.0f }, { 1884.0f, 1262.0f, 41.55f, 0.0f } };
+
+class npc_zf_sandfury_wave : public CreatureScript
+{
+public:
+    npc_zf_sandfury_wave() : CreatureScript("npc_zf_sandfury_wave") { }
+
+    struct npc_zf_sandfury_waveAI : public ScriptedAI
+    {
+        npc_zf_sandfury_waveAI(Creature* creature) : ScriptedAI(creature) { }
+
+        uint32 _t1 = 0, _t2 = 0, _t3 = 0, _t4 = 0;
+        bool _selected = false;
+        bool _hasDest = false;
+        Position _dest;
+
+        void Reset() override
+        {
+            _selected = false;
+            _hasDest = false;
+
+            switch (me->GetEntry())
+            {
+                case 7789:
+                    _t1 = urand(1000, 5000);
+                    _t2 = urand(8000, 12000);
+                    break;
+                case 8876:
+                    _t1 = urand(1000, 3000);
+                    _t2 = urand(11000, 13000);
+                    _t3 = urand(8000, 12000);
+                    _t4 = urand(22000, 32000);
+                    break;
+                case 7796:
+                    _t2 = urand(20000, 30000);
+                    _t3 = urand(12000, 16000);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        void JustEngagedWith(Unit* /*who*/) override
+        {
+            if (me->GetEntry() == 7796)
+                DoCastSelf(19471);
+        }
+
+        void EnterEvadeMode(EvadeReason why) override
+        {
+            me->SetHomePosition(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation());
+            ScriptedAI::EnterEvadeMode(why);
+
+            Unit* target = nullptr;
+            float bestDist = 100.0f;
+
+            if (InstanceScript* instance = me->GetInstanceScript())
+            {
+                uint32 const crew[] = { NPC_BLY, NPC_RAVEN, NPC_ORO, NPC_WEEGLI };
+                for (uint32 entry : crew)
+                    if (Creature* member = ObjectAccessor::GetCreature(*me, instance->GetGuidData(entry)))
+                        if (member->IsAlive() && me->IsWithinDistInMap(member, bestDist))
+                        {
+                            bestDist = me->GetDistance(member);
+                            target = member;
+                        }
+            }
+
+            if (!target)
+                target = me->SelectNearestPlayer(40.0f);
+
+            if (target)
+                me->GetMotionMaster()->MovePoint(0, target->GetPositionX(), target->GetPositionY(), target->GetPositionZ());
+            else
+                me->GetMotionMaster()->MoveTargetedHome();
+        }
+
+        void DoAction(int32 action) override
+        {
+            if (action == ZF_ACTION_ADD_SELECTED)
+            {
+                me->SetSpeed(MOVE_RUN, 0.7f);
+                _selected = true;
+            }
+        }
+
+        void UpdateStairsMovement()
+        {
+            InstanceScript* instance = me->GetInstanceScript();
+            if (!instance)
+                return;
+
+            Creature* closest = nullptr;
+            float closestDist = 0.0f;
+
+            uint32 const crew[] = { NPC_BLY, NPC_RAVEN, NPC_ORO, NPC_WEEGLI, NPC_MURTA };
+            for (uint32 entry : crew)
+            {
+                Creature* member = ObjectAccessor::GetCreature(*me, instance->GetGuidData(entry));
+                if (!member || !member->IsAlive())
+                    continue;
+
+                float dist = me->GetExactDist2d(member);
+                if (!closest || dist < closestDist)
+                {
+                    closest = member;
+                    closestDist = dist;
+                }
+            }
+
+            if (!closest)
+                return;
+
+            Position dest;
+            if (closestDist > 50.0f)
+                dest = me->GetExactDist2d(&sandfuryStairsA[0]) <= me->GetExactDist2d(&sandfuryStairsB[0]) ? sandfuryStairsA[0] : sandfuryStairsB[0];
+            else
+                dest = closest->GetPosition();
+
+            if (_hasDest && _dest.GetExactDist2d(&dest) <= 1.0f)
+                return;
+
+            _dest = dest;
+            _hasDest = true;
+            me->GetMotionMaster()->MovePoint(1, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ(),
+                FORCED_MOVEMENT_NONE, 0.0f, 0.0f, true, true, MOTION_SLOT_CONTROLLED);
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            if (_selected)
+                UpdateStairsMovement();
+
+            if (!UpdateVictim())
+                return;
+
+            switch (me->GetEntry())
+            {
+                case 7789:
+                    if (_t1 <= diff) { DoCastSelf(20798); _t1 = 1200000; } else _t1 -= diff;
+                    if (_t2 <= diff) { DoCastVictim(14032); _t2 = urand(12000, 20000); } else _t2 -= diff;
+                    break;
+                case 8876:
+                    if (HealthBelowPct(15)) { me->DoFleeToGetAssistance(); break; }
+                    if (_t1 <= diff) { DoCastVictim(9613); _t1 = urand(3000, 4000); } else _t1 -= diff;
+                    if (_t2 <= diff) { DoCastVictim(11981); _t2 = urand(13000, 24000); } else _t2 -= diff;
+                    if (_t3 <= diff) { DoCastVictim(11639); _t3 = urand(12000, 20000); } else _t3 -= diff;
+                    if (_t4 <= diff) { DoCastVictim(11980); _t4 = urand(32000, 50000); } else _t4 -= diff;
+                    break;
+                case 8877:
+                    if (HealthBelowPct(30) && !me->HasAura(8599))
+                        DoCastSelf(8599);
+                    break;
+                case 7796:
+                    if (_t2 <= diff) { DoCastVictim(8600); _t2 = urand(30000, 60000); } else _t2 -= diff;
+                    if (_t3 <= diff) { DoCastVictim(26141); _t3 = urand(12000, 20000); } else _t3 -= diff;
+                    break;
+                default:
+                    break;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetZulFarrakAI<npc_zf_sandfury_waveAI>(creature);
+    }
+};
+
+/*######
+ ## npc_witch_doctor_zumrah (7271)
+ ######*/
+
+enum WitchDoctorZumrah
+{
+    SPELL_SHADOW_BOLT_VOLLEY    = 15245,
+    SPELL_SHADOW_BOLT_ZUMRAH    = 12739,
+    SPELL_WARD_OF_ZUMRAH        = 11086,
+    SPELL_HEALING_WAVE          = 12491,
+
+    FACTION_HOSTILE_ZUMRAH      = 37,
+
+    TEXT_ZUMRAH_INTRO           = 0,
+    TEXT_ZUMRAH_KILL            = 1,
+    TEXT_ZUMRAH_AGGRO           = 2,
+    TEXT_ZUMRAH_SUMMON          = 3,
+
+    ZOMBIE_POP_INTERVAL         = 10 * IN_MILLISECONDS
+};
+
+float constexpr GRAVE_SEARCH_RANGE = 250.0f;
+
+class npc_witch_doctor_zumrah : public CreatureScript
+{
+public:
+    npc_witch_doctor_zumrah() : CreatureScript("npc_witch_doctor_zumrah") { }
+
+    struct npc_witch_doctor_zumrahAI : public ScriptedAI
+    {
+        npc_witch_doctor_zumrahAI(Creature* creature) : ScriptedAI(creature) { }
+
+        uint32 _shadowBoltVolleyTimer;
+        uint32 _shadowBoltTimer;
+        uint32 _wardOfZumrahTimer;
+        uint32 _healingWaveTimer;
+        uint32 _graveTimer;
+        bool _introDone;
+        GuidList _zombies;
+
+        void Reset() override
+        {
+            me->RestoreFaction();
+            _shadowBoltVolleyTimer = urand(5000, 8000);
+            _shadowBoltTimer = 1000;
+            _wardOfZumrahTimer = urand(2000, 5000);
+            _healingWaveTimer = urand(10000, 20000);
+            _graveTimer = ZOMBIE_POP_INTERVAL;
+            _introDone = false;
+        }
+
+        void MoveInLineOfSight(Unit* who) override
+        {
+            if (!_introDone && who->IsPlayer() && me->IsWithinDistInMap(who, 10.0f))
+            {
+                _introDone = true;
+                me->SetFaction(FACTION_HOSTILE_ZUMRAH);
+                Talk(TEXT_ZUMRAH_INTRO);
+            }
+
+            ScriptedAI::MoveInLineOfSight(who);
+        }
+
+        void JustEngagedWith(Unit* who) override
+        {
+            Talk(TEXT_ZUMRAH_AGGRO);
+            _graveTimer = 0;
+
+            for (ObjectGuid guid : _zombies)
+                if (Creature* zombie = ObjectAccessor::GetCreature(*me, guid))
+                    if (who && zombie->IsAlive() && !zombie->IsInCombat())
+                        zombie->AI()->AttackStart(who);
+        }
+
+        void KilledUnit(Unit* /*who*/) override
+        {
+            Talk(TEXT_ZUMRAH_KILL);
+        }
+
+        void EnterEvadeMode(EvadeReason why) override
+        {
+            for (ObjectGuid guid : _zombies)
+            {
+                Creature* zombie = ObjectAccessor::GetCreature(*me, guid);
+                if (!zombie || !zombie->IsAlive())
+                    continue;
+
+                Position pos = me->GetHomePosition();
+                pos.m_positionX += frand(-3.0f, 3.0f);
+                pos.m_positionY += frand(-3.0f, 3.0f);
+                zombie->SetHomePosition(pos);
+                zombie->GetMotionMaster()->MoveTargetedHome();
+            }
+
+            ScriptedAI::EnterEvadeMode(why);
+        }
+
+        void PopShallowGrave()
+        {
+            GameObject* grave = nullptr;
+            float bestDist = GRAVE_SEARCH_RANGE;
+
+            for (uint32 entry : { GO_SHALLOW_GRAVE, GO_SHALLOW_GRAVE_2 })
+            {
+                if (GameObject* go = me->FindNearestGameObject(entry, GRAVE_SEARCH_RANGE, true))
+                {
+                    float dist = me->GetDistance(go);
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        grave = go;
+                    }
+                }
+            }
+
+            if (!grave)
+                return;
+
+            float x = grave->GetPositionX();
+            float y = grave->GetPositionY();
+            float z = grave->GetPositionZ();
+            grave->DespawnOrUnsummon();
+
+            if (Creature* zombie = me->SummonCreature(NPC_ZULFARRAK_ZOMBIE, x, y, z, 0.0f, TEMPSUMMON_MANUAL_DESPAWN))
+            {
+                _zombies.push_back(zombie->GetGUID());
+                if (Player* target = zombie->SelectNearestPlayer(100.0f))
+                    zombie->AI()->AttackStart(target);
+            }
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (_graveTimer <= diff)
+            {
+                PopShallowGrave();
+                _graveTimer = ZOMBIE_POP_INTERVAL;
+            }
+            else
+                _graveTimer -= diff;
+
+            if (_shadowBoltVolleyTimer <= diff)
+            {
+                DoCastSelf(SPELL_SHADOW_BOLT_VOLLEY);
+                _shadowBoltVolleyTimer = urand(12000, 16000);
+            }
+            else
+                _shadowBoltVolleyTimer -= diff;
+
+            if (_shadowBoltTimer <= diff)
+            {
+                DoCastVictim(SPELL_SHADOW_BOLT_ZUMRAH);
+                _shadowBoltTimer = urand(3000, 4000);
+            }
+            else
+                _shadowBoltTimer -= diff;
+
+            if (_wardOfZumrahTimer <= diff)
+            {
+                Talk(TEXT_ZUMRAH_SUMMON);
+                DoCastSelf(SPELL_WARD_OF_ZUMRAH);
+                _wardOfZumrahTimer = urand(30000, 36000);
+            }
+            else
+                _wardOfZumrahTimer -= diff;
+
+            if (_healingWaveTimer <= diff)
+            {
+                if (HealthBelowPct(70))
+                {
+                    DoCastSelf(SPELL_HEALING_WAVE);
+                    _healingWaveTimer = urand(10000, 20000);
+                }
+            }
+            else
+                _healingWaveTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return GetZulFarrakAI<npc_witch_doctor_zumrahAI>(creature);
+    }
+};
+
 void AddSC_zulfarrak()
 {
     new npc_sergeant_bly();
     new npc_weegli_blastfuse();
     new npc_shadowpriest_sezziz();
+    new npc_zf_sandfury_wave();
+    new npc_witch_doctor_zumrah();
     new go_troll_cage();
+    new go_shallow_grave();
 }
