@@ -9539,10 +9539,12 @@ bool Unit::HandleProcTriggerSpell(Unit* victim, uint32 damage, AuraEffect* trigg
 				if (target)
 				{
 					if (Aura* aura = target->AddAura(trigger_spell_id, target))
+					{
 						if (AuraEffect* eff = aura->GetEffect(EFFECT_0))
 							eff->SetAmount(basepoints0); // Set the custom amount for the aura effect
-					else
-						return false;
+						else
+							return false;
+					}
 				}
 				else
 					return false;
@@ -21333,7 +21335,7 @@ Player const* Unit::GetClientControlling() const
     return nullptr;
 }
 
-void Unit::SetCannotReachTargetUnit(bool cannotReach, bool isChase)
+void Unit::SetCannotReachTargetUnit(bool cannotReach, bool isChase [[maybe_unused]])
 {
     if (cannotReach == m_cannotReachTarget)
     {

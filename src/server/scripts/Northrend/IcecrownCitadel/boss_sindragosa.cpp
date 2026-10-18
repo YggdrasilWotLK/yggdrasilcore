@@ -317,7 +317,7 @@ public:
             instance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ASPHYXIATION);
         }
 
-        void JustEngagedWith(Unit* who) override
+        void JustEngagedWith(Unit* who [[maybe_unused]]) override
         {
             if (!me->IsVisible()) // (!instance->CheckRequiredBosses(DATA_SINDRAGOSA, who->ToPlayer()) || !me->IsVisible())
             {
