@@ -84,7 +84,7 @@ public:
         uint32 postGossipStep;
         uint32 Text_Timer;
         uint32 ShieldBash_Timer;
-        uint32 Revenge_Timer; //this is wrong, spell should never be used unless me->GetVictim() dodge, parry or block attack. Trinity support required.
+        uint32 Revenge_Timer; // Revenge is only cast while me has AURA_STATE_DEFENSE (set on dodge, parry or block)
         uint32 Porthome_Timer;
         ObjectGuid PlayerGUID;
 
@@ -219,8 +219,11 @@ public:
 
             if (Revenge_Timer <= diff)
             {
-                DoCastVictim(SPELL_REVENGE);
-                Revenge_Timer = 10000;
+                if (me->HasAuraState(AURA_STATE_DEFENSE))
+                {
+                    DoCastVictim(SPELL_REVENGE);
+                    Revenge_Timer = 10000;
+                }
             }
             else
             {
