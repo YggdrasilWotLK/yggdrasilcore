@@ -8,15 +8,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Count cores for parallel execution
-if [[ -z "$ACORE_TEST_CORES" ]]; then
+if [[ -z "$YCORE_TEST_CORES" ]]; then
     if command -v nproc >/dev/null 2>&1; then
-        ACORE_TEST_CORES=$(nproc)
+        YCORE_TEST_CORES=$(nproc)
     elif command -v sysctl >/dev/null 2>&1; then
-        ACORE_TEST_CORES=$(sysctl -n hw.ncpu)
+        YCORE_TEST_CORES=$(sysctl -n hw.ncpu)
     else
-        ACORE_TEST_CORES=1  # Fallback to single core if detection fails
+        YCORE_TEST_CORES=1  # Fallback to single core if detection fails
     fi
-    export ACORE_TEST_CORES
+    export YCORE_TEST_CORES
 fi
 
 # Colors for output
@@ -40,7 +40,7 @@ show_help() {
     echo "  -c, --count     Show test count only"
     echo "  -d, --debug     Enable debug mode (shows output on failure)"
     echo "  -l, --list      List available test modules"
-    echo "  -j, --jobs <num>  Set number of parallel jobs (default: $ACORE_TEST_CORES)"
+    echo "  -j, --jobs <num>  Set number of parallel jobs (default: $YCORE_TEST_CORES)"
     echo "  --dir <path>    Run tests in specific directory"
     echo "  --all           Run all tests in all modules"
     echo ""
@@ -118,8 +118,8 @@ while [[ $# -gt 0 ]]; do
             ;;
         -j|--jobs)
             if [[ "$2" =~ ^[0-9]+$ ]]; then
-                ACORE_TEST_CORES="$2"
-                export ACORE_TEST_CORES
+                YCORE_TEST_CORES="$2"
+                export YCORE_TEST_CORES
                 shift 2
             else
                 echo -e "${RED}Error: Invalid number of jobs specified: $2${NC}"
@@ -258,7 +258,7 @@ if [[ "$COUNT_ONLY" == true ]]; then
 fi
 
 # Build BATS command
-BATS_CMD="bats --jobs $ACORE_TEST_CORES"
+BATS_CMD="bats --jobs $YCORE_TEST_CORES"
 
 # Set output format
 if [[ "$TAP" == true ]]; then
@@ -280,7 +280,7 @@ fi
 # Add test files
 BATS_CMD+=" ${TEST_FILES[*]}"
 
-echo -e "${BLUE}Running AzerothCore Tests with ${ACORE_TEST_CORES} jobs${NC}"
+echo -e "${BLUE}Running AzerothCore Tests with ${YCORE_TEST_CORES} jobs${NC}"
 echo -e "${YELLOW}Test directories: ${TEST_SEARCH_PATHS[*]}${NC}"
 echo -e "${YELLOW}Test files: ${#TEST_FILES[@]}${NC}"
 if [[ -n "$FILTER" ]]; then

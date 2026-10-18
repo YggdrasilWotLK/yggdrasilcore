@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,15 +15,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AC_ARGON2_H
-#define AC_ARGON2_H
+#ifndef YC_ARGON2_H
+#define YC_ARGON2_H
 
 #include "BigNumber.h"
 #include "Optional.h"
 
-namespace Acore::Crypto
+namespace Ycore::Crypto
 {
-    struct AC_COMMON_API Argon2
+    struct YC_COMMON_API Argon2
     {
         static constexpr uint32 HASH_LEN = 16;                    // 128 bits, in bytes
         static constexpr uint32 ENCODED_HASH_LEN = 100;           // in chars

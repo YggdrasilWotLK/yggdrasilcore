@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_MAPMANAGER_H
-#define ACORE_MAPMANAGER_H
+#ifndef YCORE_MAPMANAGER_H
+#define YCORE_MAPMANAGER_H
 
 #include "Common.h"
 #include "Define.h"
@@ -95,17 +95,17 @@ public:
 
     static bool IsValidMapCoord(uint32 mapid, float x, float y)
     {
-        return IsValidMAP(mapid, false) && Acore::IsValidMapCoord(x, y);
+        return IsValidMAP(mapid, false) && Ycore::IsValidMapCoord(x, y);
     }
 
     static bool IsValidMapCoord(uint32 mapid, float x, float y, float z)
     {
-        return IsValidMAP(mapid, false) && Acore::IsValidMapCoord(x, y, z);
+        return IsValidMAP(mapid, false) && Ycore::IsValidMapCoord(x, y, z);
     }
 
     static bool IsValidMapCoord(uint32 mapid, float x, float y, float z, float o)
     {
-        return IsValidMAP(mapid, false) && Acore::IsValidMapCoord(x, y, z, o);
+        return IsValidMAP(mapid, false) && Ycore::IsValidMapCoord(x, y, z, o);
     }
 
     static bool IsValidMapCoord(WorldLocation const& loc)

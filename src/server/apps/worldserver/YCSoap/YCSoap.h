@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -22,7 +22,7 @@
 #include <future>
 
 void process_message(struct soap* soap_message);
-void ACSoapThread(const std::string& host, uint16 port);
+void YCSoapThread(const std::string& host, uint16 port);
 
 class SOAPCommand
 {

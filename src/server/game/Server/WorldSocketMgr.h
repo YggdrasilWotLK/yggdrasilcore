@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -28,7 +28,7 @@
 class WorldSocket;
 
 /// Manages all sockets connected to peers and network threads
-class AC_GAME_API WorldSocketMgr : public SocketMgr<WorldSocket>
+class YC_GAME_API WorldSocketMgr : public SocketMgr<WorldSocket>
 {
     typedef SocketMgr<WorldSocket> BaseSocketMgr;
 
@@ -36,7 +36,7 @@ public:
     static WorldSocketMgr& Instance();
 
     /// Start network, listen at address:port .
-    bool StartWorldNetwork(Acore::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, int networkThreads);
+    bool StartWorldNetwork(Ycore::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, int networkThreads);
 
     /// Stops all network threads, It will wait for all running threads .
     void StopNetwork() override;

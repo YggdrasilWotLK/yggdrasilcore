@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1335,7 +1335,7 @@ void WorldState::StartScourgeInvasion(bool sendMail)
         randomIds.reserve(m_siData.m_activeInvasions.size());
         for (auto const& [zoneId, _] : m_siData.m_activeInvasions)
             randomIds.push_back(zoneId);
-        Acore::Containers::RandomShuffle(randomIds);
+        Ycore::Containers::RandomShuffle(randomIds);
         for (uint32 id : randomIds)
             OnEnable(m_siData.m_activeInvasions[id]);
 

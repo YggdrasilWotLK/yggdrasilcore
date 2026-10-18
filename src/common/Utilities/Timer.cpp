@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -20,7 +20,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace Acore::TimeDiff // in us
+namespace Ycore::TimeDiff // in us
 {
     constexpr uint64 MILLISECONDS = 1000;
     constexpr uint64 SECONDS = 1000 * MILLISECONDS;
@@ -30,7 +30,7 @@ namespace Acore::TimeDiff // in us
 }
 
 template<>
-AC_COMMON_API uint32 Acore::Time::TimeStringTo<Seconds>(std::string_view timestring)
+YC_COMMON_API uint32 Ycore::Time::TimeStringTo<Seconds>(std::string_view timestring)
 {
     uint32 secs = 0;
     uint32 buffer = 0;
@@ -73,7 +73,7 @@ AC_COMMON_API uint32 Acore::Time::TimeStringTo<Seconds>(std::string_view timestr
 }
 
 template<>
-AC_COMMON_API std::string Acore::Time::ToTimeString<Microseconds>(uint64 durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
+YC_COMMON_API std::string Ycore::Time::ToTimeString<Microseconds>(uint64 durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
 {
     uint64 microsecs = durationTime % 1000;
     uint64 millisecs = (durationTime / TimeDiff::MILLISECONDS) % 1000;
@@ -86,27 +86,27 @@ AC_COMMON_API std::string Acore::Time::ToTimeString<Microseconds>(uint64 duratio
     {
         if (days)
         {
-            return Acore::StringFormat("{}:{:02}:{:02}:{:02}:{:02}:{:02}", days, hours, minutes, secs, millisecs);
+            return Ycore::StringFormat("{}:{:02}:{:02}:{:02}:{:02}:{:02}", days, hours, minutes, secs, millisecs);
         }
         else if (hours)
         {
-            return Acore::StringFormat("{}:{:02}:{:02}:{:02}:{:02}", hours, minutes, secs, millisecs);
+            return Ycore::StringFormat("{}:{:02}:{:02}:{:02}:{:02}", hours, minutes, secs, millisecs);
         }
         else if (minutes)
         {
-            return Acore::StringFormat("{}:{:02}:{:02}:{:02}", minutes, secs, millisecs);
+            return Ycore::StringFormat("{}:{:02}:{:02}:{:02}", minutes, secs, millisecs);
         }
         else if (secs)
         {
-            return Acore::StringFormat("{}:{:02}:{:02}", secs, millisecs);
+            return Ycore::StringFormat("{}:{:02}:{:02}", secs, millisecs);
         }
         else if (millisecs)
         {
-            return Acore::StringFormat("{}:{:02}", millisecs);
+            return Ycore::StringFormat("{}:{:02}", millisecs);
         }
         else // microsecs
         {
-            return Acore::StringFormat("{}", microsecs);
+            return Ycore::StringFormat("{}", microsecs);
         }
     }
 
@@ -190,39 +190,39 @@ AC_COMMON_API std::string Acore::Time::ToTimeString<Microseconds>(uint64 duratio
         stringTime = ss.str();
     }
 
-    return Acore::String::TrimRightInPlace(stringTime);
+    return Ycore::String::TrimRightInPlace(stringTime);
 }
 
 template<>
-AC_COMMON_API std::string Acore::Time::ToTimeString<Milliseconds>(uint64 durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
+YC_COMMON_API std::string Ycore::Time::ToTimeString<Milliseconds>(uint64 durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
 {
     return ToTimeString<Microseconds>(durationTime * TimeDiff::MILLISECONDS, timeOutput, timeFormat);
 }
 
 template<>
-AC_COMMON_API std::string Acore::Time::ToTimeString<Seconds>(uint64 durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
+YC_COMMON_API std::string Ycore::Time::ToTimeString<Seconds>(uint64 durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
 {
     return ToTimeString<Microseconds>(durationTime * TimeDiff::SECONDS, timeOutput, timeFormat);
 }
 
 template<>
-AC_COMMON_API std::string Acore::Time::ToTimeString<Minutes>(uint64 durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
+YC_COMMON_API std::string Ycore::Time::ToTimeString<Minutes>(uint64 durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
 {
     return ToTimeString<Microseconds>(durationTime * TimeDiff::MINUTES, timeOutput, timeFormat);
 }
 
 template<>
-AC_COMMON_API std::string Acore::Time::ToTimeString<Seconds>(std::string_view durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
+YC_COMMON_API std::string Ycore::Time::ToTimeString<Seconds>(std::string_view durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
 {
     return ToTimeString<Seconds>(TimeStringTo<Seconds>(durationTime), timeOutput, timeFormat);
 }
 
-std::string Acore::Time::ToTimeString(Microseconds durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
+std::string Ycore::Time::ToTimeString(Microseconds durationTime, TimeOutput timeOutput /*= TimeOutput::Seconds*/, TimeFormat timeFormat /*= TimeFormat::ShortText*/)
 {
     return ToTimeString<Microseconds>(durationTime.count(), timeOutput, timeFormat);
 }
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
 struct tm* localtime_r(time_t const* time, struct tm* result)
 {
     localtime_s(result, time);
@@ -230,7 +230,7 @@ struct tm* localtime_r(time_t const* time, struct tm* result)
 }
 #endif
 
-std::tm Acore::Time::TimeBreakdown(time_t time /*= 0*/)
+std::tm Ycore::Time::TimeBreakdown(time_t time /*= 0*/)
 {
     if (!time)
     {
@@ -242,16 +242,16 @@ std::tm Acore::Time::TimeBreakdown(time_t time /*= 0*/)
     return timeLocal;
 }
 
-time_t Acore::Time::LocalTimeToUTCTime(time_t time)
+time_t Ycore::Time::LocalTimeToUTCTime(time_t time)
 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     return time + _timezone;
 #else
     return time + timezone;
 #endif
 }
 
-time_t Acore::Time::GetLocalHourTimestamp(time_t time, uint8 hour, bool onlyAfterTime)
+time_t Ycore::Time::GetLocalHourTimestamp(time_t time, uint8 hour, bool onlyAfterTime)
 {
     tm timeLocal = TimeBreakdown(time);
     timeLocal.tm_hour = 0;
@@ -269,7 +269,7 @@ time_t Acore::Time::GetLocalHourTimestamp(time_t time, uint8 hour, bool onlyAfte
     return hourLocal;
 }
 
-std::string Acore::Time::TimeToTimestampStr(Seconds time /*= 0s*/, std::string_view fmt /*= {}*/)
+std::string Ycore::Time::TimeToTimestampStr(Seconds time /*= 0s*/, std::string_view fmt /*= {}*/)
 {
     std::stringstream ss;
     std::string format{ fmt };
@@ -284,7 +284,7 @@ std::string Acore::Time::TimeToTimestampStr(Seconds time /*= 0s*/, std::string_v
     return ss.str();
 }
 
-std::string Acore::Time::TimeToHumanReadable(Seconds time /*= 0s*/, std::string_view fmt /*= {}*/)
+std::string Ycore::Time::TimeToHumanReadable(Seconds time /*= 0s*/, std::string_view fmt /*= {}*/)
 {
     std::stringstream ss;
     std::string format{ fmt };
@@ -299,7 +299,7 @@ std::string Acore::Time::TimeToHumanReadable(Seconds time /*= 0s*/, std::string_
     return ss.str();
 }
 
-time_t Acore::Time::GetNextTimeWithDayAndHour(int8 dayOfWeek, int8 hour)
+time_t Ycore::Time::GetNextTimeWithDayAndHour(int8 dayOfWeek, int8 hour)
 {
     if (hour < 0 || hour > 23)
     {
@@ -330,7 +330,7 @@ time_t Acore::Time::GetNextTimeWithDayAndHour(int8 dayOfWeek, int8 hour)
     return mktime(&localTm) + add;
 }
 
-time_t Acore::Time::GetNextTimeWithMonthAndHour(int8 month, int8 hour)
+time_t Ycore::Time::GetNextTimeWithMonthAndHour(int8 month, int8 hour)
 {
     if (hour < 0 || hour > 23)
     {
@@ -361,7 +361,7 @@ time_t Acore::Time::GetNextTimeWithMonthAndHour(int8 month, int8 hour)
     return mktime(&localTm);
 }
 
-uint32 Acore::Time::GetSeconds(Seconds time /*= 0s*/)
+uint32 Ycore::Time::GetSeconds(Seconds time /*= 0s*/)
 {
     if (time == 0s)
     {
@@ -371,7 +371,7 @@ uint32 Acore::Time::GetSeconds(Seconds time /*= 0s*/)
     return TimeBreakdown(time.count()).tm_sec;
 }
 
-uint32 Acore::Time::GetMinutes(Seconds time /*= 0s*/)
+uint32 Ycore::Time::GetMinutes(Seconds time /*= 0s*/)
 {
     if (time == 0s)
     {
@@ -381,7 +381,7 @@ uint32 Acore::Time::GetMinutes(Seconds time /*= 0s*/)
     return TimeBreakdown(time.count()).tm_min;
 }
 
-uint32 Acore::Time::GetHours(Seconds time /*= 0s*/)
+uint32 Ycore::Time::GetHours(Seconds time /*= 0s*/)
 {
     if (time == 0s)
     {
@@ -391,7 +391,7 @@ uint32 Acore::Time::GetHours(Seconds time /*= 0s*/)
     return TimeBreakdown(time.count()).tm_hour;
 }
 
-uint32 Acore::Time::GetDayInWeek(Seconds time /*= 0s*/)
+uint32 Ycore::Time::GetDayInWeek(Seconds time /*= 0s*/)
 {
     if (time == 0s)
     {
@@ -401,7 +401,7 @@ uint32 Acore::Time::GetDayInWeek(Seconds time /*= 0s*/)
     return TimeBreakdown(time.count()).tm_wday;
 }
 
-uint32 Acore::Time::GetDayInMonth(Seconds time /*= 0s*/)
+uint32 Ycore::Time::GetDayInMonth(Seconds time /*= 0s*/)
 {
     if (time == 0s)
     {
@@ -411,7 +411,7 @@ uint32 Acore::Time::GetDayInMonth(Seconds time /*= 0s*/)
     return TimeBreakdown(time.count()).tm_mday;
 }
 
-uint32 Acore::Time::GetDayInYear(Seconds time /*= 0s*/)
+uint32 Ycore::Time::GetDayInYear(Seconds time /*= 0s*/)
 {
     if (time == 0s)
     {
@@ -421,7 +421,7 @@ uint32 Acore::Time::GetDayInYear(Seconds time /*= 0s*/)
     return TimeBreakdown(time.count()).tm_yday;
 }
 
-uint32 Acore::Time::GetMonth(Seconds time /*= 0s*/)
+uint32 Ycore::Time::GetMonth(Seconds time /*= 0s*/)
 {
     if (time == 0s)
     {
@@ -431,7 +431,7 @@ uint32 Acore::Time::GetMonth(Seconds time /*= 0s*/)
     return TimeBreakdown(time.count()).tm_mon;
 }
 
-uint32 Acore::Time::GetYear(Seconds time /*= 0s*/)
+uint32 Ycore::Time::GetYear(Seconds time /*= 0s*/)
 {
     if (time == 0s)
     {

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -178,7 +178,7 @@ class spell_warr_improved_spell_reflection_trigger : public SpellScript
     void FilterTargets(std::list<WorldObject*>& unitList)
     {
         GetCaster()->RemoveAurasDueToSpell(SPELL_WARRIOR_SPELL_REFLECTION);
-        unitList.sort(Acore::ObjectDistanceOrderPred(GetCaster()));
+        unitList.sort(Ycore::ObjectDistanceOrderPred(GetCaster()));
         while (unitList.size() > GetSpellValue()->MaxAffectedTargets)
             unitList.pop_back();
     }

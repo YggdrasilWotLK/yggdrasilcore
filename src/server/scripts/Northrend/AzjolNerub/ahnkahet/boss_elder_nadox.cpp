@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -246,7 +246,7 @@ private:
             if (swarmEggs2.empty())
                 return;
 
-            previousSwarmEgg_GUID = Acore::Containers::SelectRandomContainerElement(swarmEggs2);
+            previousSwarmEgg_GUID = Ycore::Containers::SelectRandomContainerElement(swarmEggs2);
 
             if (Creature* egg = ObjectAccessor::GetCreature(*me, previousSwarmEgg_GUID))
                 egg->CastSpell(egg, SPELL_SUMMON_SWARMERS, true, nullptr, nullptr, me->GetGUID());
@@ -259,7 +259,7 @@ private:
             if (guardianEggs.empty())
                 return;
 
-            ObjectGuid const& guardianEggGUID = Acore::Containers::SelectRandomContainerElement(guardianEggs);
+            ObjectGuid const& guardianEggGUID = Ycore::Containers::SelectRandomContainerElement(guardianEggs);
             if (Creature* egg = ObjectAccessor::GetCreature(*me, guardianEggGUID))
                 egg->CastSpell(egg, SPELL_SUMMON_SWARM_GUARD, true, nullptr, nullptr, me->GetGUID());
 

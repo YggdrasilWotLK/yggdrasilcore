@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -17,14 +17,14 @@ if ((USE_COREPCH OR USE_SCRIPTPCH) AND (CMAKE_C_COMPILER_LAUNCHER STREQUAL "ccac
 endif()
 
 # Set build-directive (used in core to tell which buildtype we used)
-target_compile_definitions(acore-compile-option-interface
+target_compile_definitions(ycore-compile-option-interface
   INTERFACE
     -D_BUILD_DIRECTIVE="${CMAKE_BUILD_TYPE}")
 
 set(CLANG_EXPECTED_VERSION 10.0.0)
 
 if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS CLANG_EXPECTED_VERSION)
-  message(FATAL_ERROR "Clang: AzerothCore requires version ${CLANG_EXPECTED_VERSION} to build but found ${CMAKE_CXX_COMPILER_VERSION}")
+  message(FATAL_ERROR "Clang: YggdrasilCore requires version ${CLANG_EXPECTED_VERSION} to build but found ${CMAKE_CXX_COMPILER_VERSION}")
 else()
   message(STATUS "Clang: Minimum version required is ${CLANG_EXPECTED_VERSION}, found ${CMAKE_CXX_COMPILER_VERSION} - ok!")
 endif()
@@ -47,7 +47,7 @@ int main()
 " CLANG_HAVE_PROPER_CHARCONV)
 
 if(WITH_WARNINGS)
-  target_compile_options(acore-warning-interface
+  target_compile_options(ycore-warning-interface
     INTERFACE
       -W
       -Wall
@@ -60,14 +60,14 @@ if(WITH_WARNINGS)
 endif()
 
 if(WITH_COREDEBUG)
-  target_compile_options(acore-compile-option-interface
+  target_compile_options(ycore-compile-option-interface
     INTERFACE
       -g3)
   message(STATUS "Clang: Debug-flags set (-g3)")
 endif()
 
 if(MSAN)
-    target_compile_options(acore-compile-option-interface
+    target_compile_options(ycore-compile-option-interface
             INTERFACE
             -fno-omit-frame-pointer
             -fsanitize=memory
@@ -75,7 +75,7 @@ if(MSAN)
             -mllvm
             -msan-keep-going=1)
 
-    target_link_options(acore-compile-option-interface
+    target_link_options(ycore-compile-option-interface
             INTERFACE
             -fno-omit-frame-pointer
             -fsanitize=memory
@@ -85,12 +85,12 @@ if(MSAN)
 endif()
 
 if(UBSAN)
-    target_compile_options(acore-compile-option-interface
+    target_compile_options(ycore-compile-option-interface
             INTERFACE
             -fno-omit-frame-pointer
             -fsanitize=undefined)
 
-    target_link_options(acore-compile-option-interface
+    target_link_options(ycore-compile-option-interface
             INTERFACE
             -fno-omit-frame-pointer
             -fsanitize=undefined)
@@ -99,12 +99,12 @@ if(UBSAN)
 endif()
 
 if(TSAN)
-    target_compile_options(acore-compile-option-interface
+    target_compile_options(ycore-compile-option-interface
             INTERFACE
             -fno-omit-frame-pointer
             -fsanitize=thread)
 
-    target_link_options(acore-compile-option-interface
+    target_link_options(ycore-compile-option-interface
             INTERFACE
             -fno-omit-frame-pointer
             -fsanitize=thread)
@@ -114,7 +114,7 @@ endif()
 
 # -Wno-narrowing needed to suppress a warning in g3d
 # -Wno-deprecated-register is needed to suppress gsoap warnings on Unix systems.
-target_compile_options(acore-compile-option-interface
+target_compile_options(ycore-compile-option-interface
   INTERFACE
     -Wno-narrowing
     -Wno-deprecated-register)
@@ -122,16 +122,16 @@ target_compile_options(acore-compile-option-interface
 if(BUILD_SHARED_LIBS)
     # -fPIC is needed to allow static linking in shared libs.
     # -fvisibility=hidden sets the default visibility to hidden to prevent exporting of all symbols.
-    target_compile_options(acore-compile-option-interface
+    target_compile_options(ycore-compile-option-interface
       INTERFACE
         -fPIC)
 
-    target_compile_options(acore-hidden-symbols-interface
+    target_compile_options(ycore-hidden-symbols-interface
       INTERFACE
         -fvisibility=hidden)
 
     # --no-undefined to throw errors when there are undefined symbols
-    # (caused through missing ACORE_*_API macros).
+    # (caused through missing YCORE_*_API macros).
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --no-undefined")
 
     message(STATUS "Clang: Disallow undefined symbols")

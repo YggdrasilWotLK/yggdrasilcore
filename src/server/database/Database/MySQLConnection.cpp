@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -32,7 +32,7 @@
 
 MySQLConnectionInfo::MySQLConnectionInfo(std::string_view infoString)
 {
-    std::vector<std::string_view> tokens = Acore::Tokenize(infoString, ';', true);
+    std::vector<std::string_view> tokens = Ycore::Tokenize(infoString, ';', true);
 
     if (tokens.size() != 5 && tokens.size() != 6)
         return;
@@ -108,7 +108,7 @@ uint32 MySQLConnection::Open()
     }
     else                                                    // generic case
     {
-        port = *Acore::StringTo<uint32>(m_connectionInfo.port_or_socket);
+        port = *Ycore::StringTo<uint32>(m_connectionInfo.port_or_socket);
         unix_socket = 0;
     }
 #else
@@ -122,7 +122,7 @@ uint32 MySQLConnection::Open()
     }
     else                                                    // generic case
     {
-        port = *Acore::StringTo<uint32>(m_connectionInfo.port_or_socket);
+        port = *Ycore::StringTo<uint32>(m_connectionInfo.port_or_socket);
         unix_socket = nullptr;
     }
 #endif

@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -78,7 +78,7 @@ endif ()
 set_target_properties(sfmt PROPERTIES LINKER_LANGUAGE CXX)
 
 # inherit generic build options (e.g. fPIC)
-target_link_libraries(sfmt PRIVATE acore-dependency-interface)
+target_link_libraries(sfmt PRIVATE ycore-dependency-interface)
 
 set_target_properties(sfmt
   PROPERTIES

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -968,7 +968,7 @@ class spell_kiljaeden_sinister_reflection : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT));
     }
 
     void HandleScriptEffect(SpellEffIndex effIndex)
@@ -1003,7 +1003,7 @@ class spell_kiljaeden_sinister_reflection_clone : public SpellScript
         if (targets.empty())
             return;
 
-        targets.sort(Acore::ObjectDistanceOrderPred(GetCaster()));
+        targets.sort(Ycore::ObjectDistanceOrderPred(GetCaster()));
         WorldObject* target = targets.front();
 
         targets.clear();
@@ -1168,7 +1168,7 @@ class spell_kiljaeden_dragon_breath : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT));
     }
 
     void HandleHit(SpellEffIndex /*effindex*/)

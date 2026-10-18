@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -29,26 +29,26 @@ else()
 endif()
 
 # Add support old api modules
-CU_GET_GLOBAL("AC_ADD_SCRIPTS_LIST")
-CU_GET_GLOBAL("AC_ADD_SCRIPTS_INCLUDE")
+CU_GET_GLOBAL("YC_ADD_SCRIPTS_LIST")
+CU_GET_GLOBAL("YC_ADD_SCRIPTS_INCLUDE")
 
-set("AC_SCRIPTS_INCLUDES" "")
-set("AC_MODULE_LIST" "")
-set("AC_SCRIPTS_LIST" "")
+set("YC_SCRIPTS_INCLUDES" "")
+set("YC_MODULE_LIST" "")
+set("YC_SCRIPTS_LIST" "")
 set(MOD_ALE_FOUND 0)
 set(MOD_ALE_PATH "")
 set(MOD_SHADOWS_FOUND 0)
 
-foreach(include ${AC_ADD_SCRIPTS_INCLUDE})
-  set("AC_SCRIPTS_INCLUDES" "#include \"${include}\"\n${AC_SCRIPTS_INCLUDES}")
+foreach(include ${YC_ADD_SCRIPTS_INCLUDE})
+  set("YC_SCRIPTS_INCLUDES" "#include \"${include}\"\n${YC_SCRIPTS_INCLUDES}")
 endforeach()
 
-foreach(void ${AC_ADD_SCRIPTS_LIST})
-  set("AC_MODULE_LIST" "void ${void};\n${AC_MODULE_LIST}")
+foreach(void ${YC_ADD_SCRIPTS_LIST})
+  set("YC_MODULE_LIST" "void ${void};\n${YC_MODULE_LIST}")
 endforeach()
 
-foreach(scriptName ${AC_ADD_SCRIPTS_LIST})
-  set("AC_SCRIPTS_LIST" "    ${scriptName};\n${AC_SCRIPTS_LIST}")
+foreach(scriptName ${YC_ADD_SCRIPTS_LIST})
+  set("YC_SCRIPTS_LIST" "    ${scriptName};\n${YC_SCRIPTS_LIST}")
 endforeach()
 
 function(ConfigureALEModule moduleName)
@@ -59,7 +59,7 @@ function(ConfigureALEModule moduleName)
   # Define ALE compile options
   target_compile_options(game-interface
     INTERFACE
-      -DAZEROTHCORE
+      -DYGGDRASILCORE
       -DWOTLK)
 endfunction()
 
@@ -73,7 +73,7 @@ foreach(SOURCE_MODULE ${MODULES_MODULE_LIST})
   endif()
 
   # Use only static for deprecated api loaders
-  if (AC_SCRIPTS_INCLUDES MATCHES "${SOURCE_MODULE}")
+  if (YC_SCRIPTS_INCLUDES MATCHES "${SOURCE_MODULE}")
     set(${MODULE_MODULE_VARIABLE} "static")
   endif()
 
@@ -143,22 +143,22 @@ GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 # it to the variable arguments
 function(ConfigureScriptLoader SCRIPTLOADER_NAME LOADER_OUT IS_DYNAMIC_SCRIPTLOADER)
   # Deduces following variables which are referenced by the template:
-  # ACORE_IS_DYNAMIC_SCRIPTLOADER
-  # ACORE_SCRIPTS_FORWARD_DECL
-  # ACORE_SCRIPTS_LOAD_ORDER_DEFS
-  # ACORE_SCRIPTS_INVOKE
-  # ACORE_CURRENT_SCRIPT_PROJECT
+  # YCORE_IS_DYNAMIC_SCRIPTLOADER
+  # YCORE_SCRIPTS_FORWARD_DECL
+  # YCORE_SCRIPTS_LOAD_ORDER_DEFS
+  # YCORE_SCRIPTS_INVOKE
+  # YCORE_CURRENT_SCRIPT_PROJECT
 
   # To generate export macros
-  set(ACORE_IS_DYNAMIC_SCRIPTLOADER ${IS_DYNAMIC_SCRIPTLOADER})
+  set(YCORE_IS_DYNAMIC_SCRIPTLOADER ${IS_DYNAMIC_SCRIPTLOADER})
 
   # To generate forward declarations, weak load-order defaults and the module table
-  unset(ACORE_SCRIPTS_FORWARD_DECL)
-  unset(ACORE_SCRIPTS_LOAD_ORDER_DEFS)
-  unset(ACORE_SCRIPTS_INVOKE)
+  unset(YCORE_SCRIPTS_FORWARD_DECL)
+  unset(YCORE_SCRIPTS_LOAD_ORDER_DEFS)
+  unset(YCORE_SCRIPTS_INVOKE)
 
   # The current script project which is built in
-  set(ACORE_CURRENT_SCRIPT_PROJECT ${SCRIPTLOADER_NAME})
+  set(YCORE_CURRENT_SCRIPT_PROJECT ${SCRIPTLOADER_NAME})
 
   foreach(SCRIPT_MODULE_FOLDER ${ARGN})
 
@@ -173,17 +173,17 @@ function(ConfigureScriptLoader SCRIPTLOADER_NAME LOADER_OUT IS_DYNAMIC_SCRIPTLOA
       "Add${SCRIPT_MODULE_IDENTIFIER}LoadOrder")
 
     # Generate the forward declaration of the loading function
-    set(ACORE_SCRIPTS_FORWARD_DECL
-      "${ACORE_SCRIPTS_FORWARD_DECL}void ${LOADER_FUNCTION}();\n")
+    set(YCORE_SCRIPTS_FORWARD_DECL
+      "${YCORE_SCRIPTS_FORWARD_DECL}void ${LOADER_FUNCTION}();\n")
 
     # Generate the weak default load order, used unless the module's own loader
     # defines a strong Add##${NameOfDirectory}##LoadOrder()
-    set(ACORE_SCRIPTS_LOAD_ORDER_DEFS
-      "${ACORE_SCRIPTS_LOAD_ORDER_DEFS}AC_MODULE_LOAD_ORDER_WEAK int ${LOAD_ORDER_FUNCTION}() { return AC_MODULE_DEFAULT_LOAD_ORDER; }\n")
+    set(YCORE_SCRIPTS_LOAD_ORDER_DEFS
+      "${YCORE_SCRIPTS_LOAD_ORDER_DEFS}YC_MODULE_LOAD_ORDER_WEAK int ${LOAD_ORDER_FUNCTION}() { return YC_MODULE_DEFAULT_LOAD_ORDER; }\n")
 
     # Generate the module table entry, ordered by (load order, folder name)
-    set(ACORE_SCRIPTS_INVOKE
-      "${ACORE_SCRIPTS_INVOKE}        { ${LOAD_ORDER_FUNCTION}(), \"${SCRIPT_MODULE_FOLDER}\", &${LOADER_FUNCTION} },\n")
+    set(YCORE_SCRIPTS_INVOKE
+      "${YCORE_SCRIPTS_INVOKE}        { ${LOAD_ORDER_FUNCTION}(), \"${SCRIPT_MODULE_FOLDER}\", &${LOADER_FUNCTION} },\n")
   endforeach()
 
   set(GENERATED_LOADER ${CMAKE_CURRENT_BINARY_DIR}/gen_scriptloader/${SCRIPTLOADER_NAME}/ModulesLoader.cpp)
@@ -217,7 +217,7 @@ foreach(SOURCE_MODULE ${MODULES_MODULE_LIST})
       CollectIncludeDirectories(${MODULE_SOURCE_PATH} PUBLIC_INCLUDES)
 
       # Skip deprecated api loaders
-      if (AC_SCRIPTS_INCLUDES MATCHES "${SOURCE_MODULE}")
+      if (YC_SCRIPTS_INCLUDES MATCHES "${SOURCE_MODULE}")
         message("> Module (${SOURCE_MODULE}) using deprecated loader api")
         continue()
       endif()
@@ -248,7 +248,7 @@ foreach(SOURCE_MODULE ${MODULES_MODULE_LIST})
 
     target_link_libraries(${MODULE_SOURCE_PROJECT_NAME}
       PRIVATE
-        acore-core-interface
+        ycore-core-interface
       PUBLIC
         game)
 
@@ -306,7 +306,7 @@ endif()
 
 target_link_libraries(modules
   PRIVATE
-    acore-core-interface
+    ycore-core-interface
     mysql
   PUBLIC
     game-interface)
@@ -375,7 +375,7 @@ endforeach()
 # Define modules list
 target_compile_options(modules
   INTERFACE
-    -DAC_MODULES_LIST=$<1:"${MODULE_LIST}">)
+    -DYC_MODULES_LIST=$<1:"${MODULE_LIST}">)
 
 # Define modules config list
 target_compile_options(modules

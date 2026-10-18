@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -30,11 +30,11 @@
 #include "TOTP.h"
 #include <unordered_map>
 
-#if AC_COMPILER == AC_COMPILER_GNU
+#if YC_COMPILER == YC_COMPILER_GNU
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class account_commandscript : public CommandScript
 {
@@ -99,7 +99,7 @@ public:
             return false;
         }
 
-        auto token = Acore::StringTo<uint32>(args);
+        auto token = Ycore::StringTo<uint32>(args);
 
         auto const& masterKey = sSecretMgr->GetSecret(SECRET_TOTP_MASTER_KEY);
         if (!masterKey.IsAvailable())
@@ -130,18 +130,18 @@ public:
         }
 
         // store random suggested secrets
-        static std::unordered_map<uint32, Acore::Crypto::TOTP::Secret> suggestions;
-        auto pair = suggestions.emplace(std::piecewise_construct, std::make_tuple(accountId), std::make_tuple(Acore::Crypto::TOTP::RECOMMENDED_SECRET_LENGTH)); // std::vector 1-argument std::size_t constructor invokes resize
+        static std::unordered_map<uint32, Ycore::Crypto::TOTP::Secret> suggestions;
+        auto pair = suggestions.emplace(std::piecewise_construct, std::make_tuple(accountId), std::make_tuple(Ycore::Crypto::TOTP::RECOMMENDED_SECRET_LENGTH)); // std::vector 1-argument std::size_t constructor invokes resize
 
         if (pair.second) // no suggestion yet, generate random secret
-            Acore::Crypto::GetRandomBytes(pair.first->second);
+            Ycore::Crypto::GetRandomBytes(pair.first->second);
 
         if (!pair.second && token) // suggestion already existed and token specified - validate
         {
-            if (Acore::Crypto::TOTP::ValidateToken(pair.first->second, *token))
+            if (Ycore::Crypto::TOTP::ValidateToken(pair.first->second, *token))
             {
                 if (masterKey)
-                    Acore::Crypto::AEEncryptWithRandomIV<Acore::Crypto::AES>(pair.first->second, *masterKey);
+                    Ycore::Crypto::AEEncryptWithRandomIV<Ycore::Crypto::AES>(pair.first->second, *masterKey);
 
                 auto* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_ACCOUNT_TOTP_SECRET);
                 stmt->SetData(0, pair.first->second);
@@ -157,7 +157,7 @@ public:
         }
 
         // new suggestion, or no token specified, output TOTP parameters
-        handler->SendErrorMessage(LANG_2FA_SECRET_SUGGESTION, Acore::Encoding::Base32::Encode(pair.first->second).c_str());
+        handler->SendErrorMessage(LANG_2FA_SECRET_SUGGESTION, Ycore::Encoding::Base32::Encode(pair.first->second).c_str());
         return false;
     }
 
@@ -169,7 +169,7 @@ public:
             return false;
         }
 
-        auto token = Acore::StringTo<uint32>(args);
+        auto token = Ycore::StringTo<uint32>(args);
 
         auto const& masterKey = sSecretMgr->GetSecret(SECRET_TOTP_MASTER_KEY);
         if (!masterKey.IsAvailable())
@@ -179,7 +179,7 @@ public:
         }
 
         uint32 const accountId = handler->GetSession()->GetAccountId();
-        Acore::Crypto::TOTP::Secret secret;
+        Ycore::Crypto::TOTP::Secret secret;
         { // get current TOTP secret
             auto* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_TOTP_SECRET);
             stmt->SetData(0, accountId);
@@ -206,7 +206,7 @@ public:
         {
             if (masterKey)
             {
-                bool success = Acore::Crypto::AEDecrypt<Acore::Crypto::AES>(secret, *masterKey);
+                bool success = Ycore::Crypto::AEDecrypt<Ycore::Crypto::AES>(secret, *masterKey);
                 if (!success)
                 {
                     LOG_ERROR("misc", "Account {} has invalid ciphertext in TOTP token.", accountId);
@@ -215,7 +215,7 @@ public:
                 }
             }
 
-            if (Acore::Crypto::TOTP::ValidateToken(secret, *token))
+            if (Ycore::Crypto::TOTP::ValidateToken(secret, *token))
             {
                 auto* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_ACCOUNT_TOTP_SECRET);
                 stmt->SetData(0);
@@ -244,7 +244,7 @@ public:
 
         uint32 accountId = handler->GetSession()->GetAccountId();
 
-        auto expansion = Acore::StringTo<uint8>(exp); //get int anyway (0 if error)
+        auto expansion = Ycore::StringTo<uint8>(exp); //get int anyway (0 if error)
         if (!expansion || *expansion > sWorld->getIntConfig(CONFIG_EXPANSION))
         {
             handler->SendErrorMessage(LANG_IMPROPER_VALUE);
@@ -629,21 +629,21 @@ public:
             return false;
         }
 
-        Optional<std::vector<uint8>> decoded = Acore::Encoding::Base32::Decode(secret);
+        Optional<std::vector<uint8>> decoded = Ycore::Encoding::Base32::Decode(secret);
         if (!decoded)
         {
             handler->SendErrorMessage(LANG_2FA_SECRET_INVALID);
             return false;
         }
 
-        if (128 < (decoded->size() + Acore::Crypto::AES::IV_SIZE_BYTES + Acore::Crypto::AES::TAG_SIZE_BYTES))
+        if (128 < (decoded->size() + Ycore::Crypto::AES::IV_SIZE_BYTES + Ycore::Crypto::AES::TAG_SIZE_BYTES))
         {
             handler->SendErrorMessage(LANG_2FA_SECRET_TOO_LONG);
             return false;
         }
 
         if (masterKey)
-            Acore::Crypto::AEEncryptWithRandomIV<Acore::Crypto::AES>(*decoded, *masterKey);
+            Ycore::Crypto::AEEncryptWithRandomIV<Ycore::Crypto::AES>(*decoded, *masterKey);
 
         auto* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_ACCOUNT_TOTP_SECRET);
         stmt->SetData(0, *decoded);
@@ -708,7 +708,7 @@ public:
                 handler->HasLowerSecurityAccount(nullptr, accountId, true))
             return false;
 
-        auto expansion = Acore::StringTo<uint8>(exp); //get int anyway (0 if error)
+        auto expansion = Ycore::StringTo<uint8>(exp); //get int anyway (0 if error)
         if (!expansion || *expansion > sWorld->getIntConfig(CONFIG_EXPANSION))
             return false;
 
@@ -760,7 +760,7 @@ public:
         }
 
         // Check for invalid specified GM level.
-        gm = (isAccountNameGiven) ? Acore::StringTo<int32>(arg2).value_or(0) : Acore::StringTo<int32>(arg1).value_or(0);
+        gm = (isAccountNameGiven) ? Ycore::StringTo<int32>(arg2).value_or(0) : Ycore::StringTo<int32>(arg1).value_or(0);
         if (gm > SEC_CONSOLE)
         {
             handler->SendErrorMessage(LANG_BAD_VALUE);
@@ -769,7 +769,7 @@ public:
 
         // handler->getSession() == nullptr only for console
         targetAccountId = (isAccountNameGiven) ? AccountMgr::GetId(targetAccountName) : handler->getSelectedPlayer()->GetSession()->GetAccountId();
-        int32 gmRealmID = (isAccountNameGiven) ? Acore::StringTo<int32>(arg3).value_or(0) : Acore::StringTo<int32>(arg2).value_or(0);
+        int32 gmRealmID = (isAccountNameGiven) ? Ycore::StringTo<int32>(arg3).value_or(0) : Ycore::StringTo<int32>(arg2).value_or(0);
         uint32 playerSecurity;
         if (handler->GetSession())
             playerSecurity = AccountMgr::GetSecurity(handler->GetSession()->GetAccountId(), gmRealmID);

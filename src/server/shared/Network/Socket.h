@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -32,7 +32,7 @@ using boost::asio::ip::tcp;
 
 #define READ_BLOCK_SIZE 4096
 #ifdef BOOST_ASIO_HAS_IOCP
-#define AC_SOCKET_USE_IOCP
+#define YC_SOCKET_USE_IOCP
 #endif
 
 enum ProxyHeaderReadingState {
@@ -74,7 +74,7 @@ public:
             return false;
         }
 
-#ifndef AC_SOCKET_USE_IOCP
+#ifndef YC_SOCKET_USE_IOCP
         if (_isWritingAsync || (_writeQueue.empty() && !_closing))
         {
             return true;
@@ -143,7 +143,7 @@ public:
     {
         _writeQueue.push(std::move(buffer));
 
-#ifdef AC_SOCKET_USE_IOCP
+#ifdef YC_SOCKET_USE_IOCP
         AsyncProcessQueue();
 #endif
     }
@@ -183,7 +183,7 @@ protected:
 
         _isWritingAsync = true;
 
-#ifdef AC_SOCKET_USE_IOCP
+#ifdef YC_SOCKET_USE_IOCP
         MessageBuffer& buffer = _writeQueue.front();
         _socket.async_write_some(boost::asio::buffer(buffer.GetReadPointer(), buffer.GetActiveSize()), std::bind(&Socket<T>::WriteHandler,
             this->shared_from_this(), std::placeholders::_1, std::placeholders::_2));
@@ -329,7 +329,7 @@ private:
         _proxyHeaderReadingState = PROXY_HEADER_READING_STATE_FINISHED;
     }
 
-#ifdef AC_SOCKET_USE_IOCP
+#ifdef YC_SOCKET_USE_IOCP
     void WriteHandler(boost::system::error_code error, std::size_t transferedBytes)
     {
         if (!error)

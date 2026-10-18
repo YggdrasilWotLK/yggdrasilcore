@@ -40,7 +40,7 @@ target_include_directories(Recast
 
 target_link_libraries(Recast
   PRIVATE
-    acore-dependency-interface
+    ycore-dependency-interface
   PUBLIC
     zlib)
 

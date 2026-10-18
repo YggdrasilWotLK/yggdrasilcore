@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_TYPECONTAINER_H
-#define ACORE_TYPECONTAINER_H
+#ifndef YCORE_TYPECONTAINER_H
+#define YCORE_TYPECONTAINER_H
 
 /*
  * Here, you'll find a series of containers that allow you to hold multiple
@@ -117,13 +117,13 @@ template<class OBJECT_TYPES>
 class TypeMapContainer
 {
 public:
-    template<class SPECIFIC_TYPE> [[nodiscard]] std::size_t Count() const { return Acore::Count(i_elements, (SPECIFIC_TYPE*)nullptr); }
+    template<class SPECIFIC_TYPE> [[nodiscard]] std::size_t Count() const { return Ycore::Count(i_elements, (SPECIFIC_TYPE*)nullptr); }
 
     /// inserts a specific object into the container
     template<class SPECIFIC_TYPE>
     bool insert(SPECIFIC_TYPE* obj)
     {
-        SPECIFIC_TYPE* t = Acore::Insert(i_elements, obj);
+        SPECIFIC_TYPE* t = Ycore::Insert(i_elements, obj);
         return (t != nullptr);
     }
 
@@ -131,7 +131,7 @@ public:
     //template<class SPECIFIC_TYPE>
     // bool remove(SPECIFIC_TYPE* obj)
     //{
-    //    SPECIFIC_TYPE* t = Acore::Remove(i_elements, obj);
+    //    SPECIFIC_TYPE* t = Ycore::Remove(i_elements, obj);
     //    return (t != nullptr);
     //}
 
@@ -146,19 +146,19 @@ template<class OBJECT_TYPES>
 class TypeVectorContainer
 {
 public:
-    template<class SPECIFIC_TYPE> [[nodiscard]] std::size_t Count() const { return Acore::Count(i_elements, (SPECIFIC_TYPE*)nullptr); }
+    template<class SPECIFIC_TYPE> [[nodiscard]] std::size_t Count() const { return Ycore::Count(i_elements, (SPECIFIC_TYPE*)nullptr); }
 
     template<class SPECIFIC_TYPE>
     bool Insert(SPECIFIC_TYPE* obj)
     {
-        SPECIFIC_TYPE* t = Acore::Insert(i_elements, obj);
+        SPECIFIC_TYPE* t = Ycore::Insert(i_elements, obj);
         return (t != nullptr);
     }
 
     template<class SPECIFIC_TYPE>
     bool Remove(SPECIFIC_TYPE* obj)
     {
-        SPECIFIC_TYPE* t = Acore::Remove(i_elements, obj);
+        SPECIFIC_TYPE* t = Ycore::Remove(i_elements, obj);
         return (t != nullptr);
     }
 
@@ -176,26 +176,26 @@ public:
     template<class SPECIFIC_TYPE>
     bool Insert(KEY_TYPE const& handle, SPECIFIC_TYPE* obj)
     {
-        return Acore::Insert(_elements, handle, obj);
+        return Ycore::Insert(_elements, handle, obj);
     }
 
     template<class SPECIFIC_TYPE>
     bool Remove(KEY_TYPE const& handle)
     {
-        return Acore::Remove(_elements, handle, (SPECIFIC_TYPE*)nullptr);
+        return Ycore::Remove(_elements, handle, (SPECIFIC_TYPE*)nullptr);
     }
 
     template<class SPECIFIC_TYPE>
     SPECIFIC_TYPE* Find(KEY_TYPE const& handle)
     {
-        return Acore::Find(_elements, handle, (SPECIFIC_TYPE*)nullptr);
+        return Ycore::Find(_elements, handle, (SPECIFIC_TYPE*)nullptr);
     }
 
     template<class SPECIFIC_TYPE>
     [[nodiscard]] std::size_t Size() const
     {
         std::size_t size = 0;
-        Acore::Size(_elements, &size, (SPECIFIC_TYPE*)nullptr);
+        Ycore::Size(_elements, &size, (SPECIFIC_TYPE*)nullptr);
         return size;
     }
 

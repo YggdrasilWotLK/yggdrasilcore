@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -28,7 +28,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Acore::Asio
+namespace Ycore::Asio
 {
     class IoContext;
 }
@@ -56,7 +56,7 @@ struct MetricData
     std::string Text;
 };
 
-class AC_COMMON_API Metric
+class YC_COMMON_API Metric
 {
 private:
     std::iostream& GetDataStream() { return *_dataStream; }
@@ -105,7 +105,7 @@ public:
 
     static Metric* instance();
 
-    void Initialize(std::string const& realmName, Acore::Asio::IoContext& ioContext, std::function<void()> overallStatusLogger);
+    void Initialize(std::string const& realmName, Ycore::Asio::IoContext& ioContext, std::function<void()> overallStatusLogger);
     void LoadFromConfigs();
     void Update();
     bool ShouldLog(std::string const& category, int64 value) const;
@@ -174,7 +174,7 @@ MetricStopWatch<LoggerType> MakeMetricStopWatch(LoggerType&& loggerFunc)
 #define METRIC_DETAILED_TIMER(category, ...) ((void)0)
 #define METRIC_DETAILED_NO_THRESHOLD_TIMER(category, ...) ((void)0)
 #else
-#if AC_PLATFORM != AC_PLATFORM_WINDOWS
+#if YC_PLATFORM != YC_PLATFORM_WINDOWS
 #define METRIC_EVENT(category, title, description)                  \
         do {                                                           \
             if (sMetric->IsEnabled())                                  \

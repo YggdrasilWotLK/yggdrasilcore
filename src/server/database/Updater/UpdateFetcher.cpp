@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -156,7 +156,7 @@ UpdateFetcher::DirectoryStorage UpdateFetcher::ReceiveIncludedDirectories() cons
 
         std::vector<std::string> moduleList;
 
-        for (auto const& itr : Acore::Tokenize(_modulesList, ',', true))
+        for (auto const& itr : Ycore::Tokenize(_modulesList, ',', true))
             moduleList.emplace_back(itr);
 
         // data/sql
@@ -282,7 +282,7 @@ UpdateResult UpdateFetcher::Update(bool const redundancyChecks,
             }
         }
 
-        std::string const hash = ByteArrayToHexStr(Acore::Crypto::SHA1::GetDigestOf(ReadSQLUpdate(filePath)));
+        std::string const hash = ByteArrayToHexStr(Ycore::Crypto::SHA1::GetDigestOf(ReadSQLUpdate(filePath)));
 
         UpdateMode mode = MODE_APPLY;
 

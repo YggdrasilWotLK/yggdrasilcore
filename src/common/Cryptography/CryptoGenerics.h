@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_CRYPTO_GENERICS_HPP
-#define AZEROTHCORE_CRYPTO_GENERICS_HPP
+#ifndef YGGDRASILCORE_CRYPTO_GENERICS_HPP
+#define YGGDRASILCORE_CRYPTO_GENERICS_HPP
 
 #include "BigNumber.h"
 #include "CryptoRandom.h"
@@ -25,7 +25,7 @@
 #include <iterator>
 #include <vector>
 
-namespace Acore::Impl
+namespace Ycore::Impl
 {
     struct CryptoGenericsImpl
     {
@@ -33,7 +33,7 @@ namespace Acore::Impl
         static typename Cipher::IV GenerateRandomIV()
         {
             typename Cipher::IV iv;
-            Acore::Crypto::GetRandomBytes(iv);
+            Ycore::Crypto::GetRandomBytes(iv);
             return iv;
         }
 
@@ -56,7 +56,7 @@ namespace Acore::Impl
     };
 }
 
-namespace Acore::Crypto
+namespace Ycore::Crypto
 {
     template <typename Cipher>
     void AEEncryptWithRandomIV(std::vector<uint8>& data, typename Cipher::Key const& key)
@@ -64,7 +64,7 @@ namespace Acore::Crypto
         using IV = typename Cipher::IV;
         using Tag = typename Cipher::Tag;
         // select random IV
-        IV iv = Acore::Impl::CryptoGenericsImpl::GenerateRandomIV<Cipher>();
+        IV iv = Ycore::Impl::CryptoGenericsImpl::GenerateRandomIV<Cipher>();
         Tag tag;
 
         // encrypt data
@@ -74,8 +74,8 @@ namespace Acore::Crypto
         ASSERT(success);
 
         // append trailing IV and tag
-        Acore::Impl::CryptoGenericsImpl::AppendToBack(data, iv);
-        Acore::Impl::CryptoGenericsImpl::AppendToBack(data, tag);
+        Ycore::Impl::CryptoGenericsImpl::AppendToBack(data, iv);
+        Ycore::Impl::CryptoGenericsImpl::AppendToBack(data, tag);
     }
 
     template <typename Cipher>
@@ -93,8 +93,8 @@ namespace Acore::Crypto
         // extract trailing IV and tag
         IV iv;
         Tag tag;
-        Acore::Impl::CryptoGenericsImpl::SplitFromBack(data, tag);
-        Acore::Impl::CryptoGenericsImpl::SplitFromBack(data, iv);
+        Ycore::Impl::CryptoGenericsImpl::SplitFromBack(data, tag);
+        Ycore::Impl::CryptoGenericsImpl::SplitFromBack(data, iv);
 
         // decrypt data
         Cipher cipher(false);

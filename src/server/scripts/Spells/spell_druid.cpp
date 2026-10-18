@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -938,7 +938,7 @@ class spell_dru_starfall_dummy : public SpellScript
           });
 
         // Take 2 random targets from remaining within line of sight targets
-        Acore::Containers::RandomResize(targets, 2);
+        Ycore::Containers::RandomResize(targets, 2);
     }
 
     void HandleDummy(SpellEffIndex /*effIndex*/)
@@ -1104,7 +1104,7 @@ class spell_dru_t10_restoration_4p_bonus : public SpellScript
                 return;
             }
 
-            tempTargets.sort(Acore::HealthPctOrderPred());
+            tempTargets.sort(Ycore::HealthPctOrderPred());
             targets.clear();
             targets.push_back(tempTargets.front());
         }
@@ -1130,13 +1130,13 @@ class spell_dru_wild_growth : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::RaidCheck(GetCaster(), false));
+        targets.remove_if(Ycore::RaidCheck(GetCaster(), false));
 
         uint32 const maxTargets = GetCaster()->HasAura(SPELL_DRUID_GLYPH_OF_WILD_GROWTH) ? 6 : 5;
 
         if (targets.size() > maxTargets)
         {
-            targets.sort(Acore::HealthPctOrderPred());
+            targets.sort(Ycore::HealthPctOrderPred());
             targets.resize(maxTargets);
         }
 

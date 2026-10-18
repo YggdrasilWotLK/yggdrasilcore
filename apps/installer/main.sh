@@ -26,7 +26,7 @@
 
 CURRENT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$CURRENT_PATH/includes/includes.sh"
-source "$AC_PATH_APPS/bash_shared/menu_system.sh"
+source "$YC_PATH_APPS/bash_shared/menu_system.sh"
 
 # Menu: single ordered source of truth (no functions in strings)
 # Format: "key|short|description"
@@ -71,10 +71,10 @@ function handle_menu_command() {
             inst_dbCreate
             ;;
         "compiler")
-            bash "$AC_PATH_APPS/compiler/compiler.sh" "$@"
+            bash "$YC_PATH_APPS/compiler/compiler.sh" "$@"
             ;;
         "module")
-            bash "$AC_PATH_APPS/installer/includes/modules-manager/module-main.sh" "$@"
+            bash "$YC_PATH_APPS/installer/includes/modules-manager/module-main.sh" "$@"
             ;;
         "client-data")
             inst_download_client_data
@@ -86,18 +86,18 @@ function handle_menu_command() {
             inst_simple_restarter authserver
             ;;
         "test")
-            bash "$AC_PATH_APPS/test-framework/test-main.sh" "$@"
+            bash "$YC_PATH_APPS/test-framework/test-main.sh" "$@"
             ;;
         "docker")
-            DOCKER=1 bash "$AC_PATH_ROOT/apps/docker/docker-cmd.sh" "$@"
+            DOCKER=1 bash "$YC_PATH_ROOT/apps/docker/docker-cmd.sh" "$@"
             exit
             ;;
         "version")
-            printf "AzerothCore Rev. %s\n" "$ACORE_VERSION"
+            printf "AzerothCore Rev. %s\n" "$YCORE_VERSION"
             exit
             ;;
         "service-manager")
-            bash "$AC_PATH_APPS/startup-scripts/src/service-manager.sh" "$@"
+            bash "$YC_PATH_APPS/startup-scripts/src/service-manager.sh" "$@"
             exit
             ;;
         "quit")

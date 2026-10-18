@@ -479,7 +479,7 @@ float GridTerrainData::getMinHeight(float x, float y) const
     if (!_loadedHeightData || !_loadedHeightData->minHeightPlanes)
         return MIN_HEIGHT;
 
-    GridCoord gridCoord = Acore::ComputeGridCoordSimple(x, y);
+    GridCoord gridCoord = Ycore::ComputeGridCoordSimple(x, y);
 
     int32 doubleGridX = int32(std::floor(-(x - MAP_HALFSIZE) / CENTER_GRID_OFFSET));
     int32 doubleGridY = int32(std::floor(-(y - MAP_HALFSIZE) / CENTER_GRID_OFFSET));

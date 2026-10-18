@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_GRIDDEFINES_H
-#define ACORE_GRIDDEFINES_H
+#ifndef YCORE_GRIDDEFINES_H
+#define YCORE_GRIDDEFINES_H
 
 #include "Common.h"
 #include "MapDefines.h"
@@ -171,7 +171,7 @@ bool operator!=(const CoordPair<LIMIT>& p1, const CoordPair<LIMIT>& p2)
 typedef CoordPair<MAX_NUMBER_OF_GRIDS> GridCoord;
 typedef CoordPair<TOTAL_NUMBER_OF_CELLS_PER_MAP> CellCoord;
 
-namespace Acore
+namespace Ycore
 {
     template<class RET_TYPE, int CENTER_VAL>
     inline RET_TYPE Compute(float x, float y, float size)

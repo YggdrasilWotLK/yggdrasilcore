@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_SHAREDDEFINES_H
-#define ACORE_SHAREDDEFINES_H
+#ifndef YCORE_SHAREDDEFINES_H
+#define YCORE_SHAREDDEFINES_H
 
 #include "DBCEnums.h"
 #include "Define.h"
@@ -4021,15 +4021,15 @@ enum class LoginFailureReason : uint8
     UsingRemote        = 8, // You cannot log in while using World of Warcraft Remote.
 };
 
-namespace Acore::Impl
+namespace Ycore::Impl
 {
-    struct AC_SHARED_API CurrentServerProcessHolder
+    struct YC_SHARED_API CurrentServerProcessHolder
     {
         static ServerProcessTypes type() { return _type; }
         static ServerProcessTypes _type;
     };
 }
 
-#define THIS_SERVER_PROCESS (Acore::Impl::CurrentServerProcessHolder::type())
+#define THIS_SERVER_PROCESS (Ycore::Impl::CurrentServerProcessHolder::type())
 
 #endif

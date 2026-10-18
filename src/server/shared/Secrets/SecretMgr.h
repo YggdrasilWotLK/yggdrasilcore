@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __ACORE_SECRETMGR_H__
-#define __ACORE_SECRETMGR_H__
+#ifndef __YCORE_SECRETMGR_H__
+#define __YCORE_SECRETMGR_H__
 
 #include "BigNumber.h"
 #include "Log.h"
@@ -33,7 +33,7 @@ enum Secrets : uint32
     NUM_SECRETS
 };
 
-class AC_SHARED_API SecretMgr
+class YC_SHARED_API SecretMgr
 {
 private:
     SecretMgr() = default;

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -86,7 +86,7 @@ static DoorData const doorData[]
     { GO_MAEXXNA_GATE,           BOSS_FAERLINA,   DOOR_TYPE_PASSAGE },
     { GO_MAEXXNA_GATE,           BOSS_MAEXXNA,    DOOR_TYPE_ROOM    },
     { GO_SPIDER_EYE_PORTAL,      BOSS_MAEXXNA,    DOOR_TYPE_PASSAGE },
-    { GO_ARAC_EYE_RAMP_BOSS,     BOSS_MAEXXNA,    DOOR_TYPE_PASSAGE },
+    { GO_ARYC_EYE_RAMP_BOSS,     BOSS_MAEXXNA,    DOOR_TYPE_PASSAGE },
     { GO_THADDIUS_GATE,          BOSS_THADDIUS,   DOOR_TYPE_ROOM    },
     { GO_ABOM_EYE_PORTAL,        BOSS_THADDIUS,   DOOR_TYPE_PASSAGE },
     { GO_CONS_EYE_RAMP_BOSS,     BOSS_THADDIUS,   DOOR_TYPE_PASSAGE },

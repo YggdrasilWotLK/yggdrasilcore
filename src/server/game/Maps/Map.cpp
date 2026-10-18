@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -228,7 +228,7 @@ void Map::LoadGridsInRange(Position const& center, float radius)
     float const x = center.GetPositionX();
     float const y = center.GetPositionY();
 
-    CellCoord cellCoord(Acore::ComputeCellCoord(x, y));
+    CellCoord cellCoord(Ycore::ComputeCellCoord(x, y));
     if (!cellCoord.IsCoordValid())
         return;
 
@@ -252,7 +252,7 @@ void Map::LoadGridsInRange(Position const& center, float radius)
 
 bool Map::AddPlayerToMap(Player* player)
 {
-    CellCoord cellCoord = Acore::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
+    CellCoord cellCoord = Ycore::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
     if (!cellCoord.IsCoordValid())
     {
         LOG_ERROR("maps", "Map::Add: Player ({}) has invalid coordinates X:{} Y:{} grid cell [{}:{}]",
@@ -309,7 +309,7 @@ bool Map::AddToMap(T* obj, bool checkTransport)
         return true;
     }
 
-    CellCoord cellCoord = Acore::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
+    CellCoord cellCoord = Ycore::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
     //It will create many problems (including crashes) if an object is not added to grid after creation
     //The correct way to fix it is to make AddToMap return false and delete the object if it is not added to grid
     //But now AddToMap is used in too many places, I will just see how many ASSERT failures it will cause
@@ -359,7 +359,7 @@ bool Map::AddToMap(Transport* obj, bool /*checkTransport*/)
     if (obj->IsInWorld())
         return true;
 
-    CellCoord cellCoord = Acore::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
+    CellCoord cellCoord = Ycore::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
     if (!cellCoord.IsCoordValid())
     {
         LOG_ERROR("maps", "Map::Add: Object {} has invalid coordinates X:{} Y:{} grid cell [{}:{}]",
@@ -1171,7 +1171,7 @@ GridTerrainData* Map::GetGridTerrainData(GridCoord const& gridCoord)
 
 GridTerrainData* Map::GetGridTerrainData(float x, float y)
 {
-    GridCoord const gridCoord = Acore::ComputeGridCoord(x, y);
+    GridCoord const gridCoord = Ycore::ComputeGridCoord(x, y);
     return GetGridTerrainData(gridCoord);
 }
 
@@ -2847,7 +2847,7 @@ void Map::AddCorpse(Corpse* corpse)
 {
     corpse->SetMap(this);
 
-    GridCoord const gridCoord = Acore::ComputeGridCoord(corpse->GetPositionX(), corpse->GetPositionY());
+    GridCoord const gridCoord = Ycore::ComputeGridCoord(corpse->GetPositionX(), corpse->GetPositionY());
     std::lock_guard<std::recursive_mutex> lock(*GetStoreLock());
     _corpsesByGrid[gridCoord.GetId()].insert(corpse);
     if (corpse->GetType() != CORPSE_BONES)
@@ -2859,7 +2859,7 @@ void Map::AddCorpse(Corpse* corpse)
 void Map::RemoveCorpse(Corpse* corpse)
 {
     ASSERT(corpse);
-    GridCoord const gridCoord = Acore::ComputeGridCoord(corpse->GetPositionX(), corpse->GetPositionY());
+    GridCoord const gridCoord = Ycore::ComputeGridCoord(corpse->GetPositionX(), corpse->GetPositionY());
 
     corpse->DestroyForVisiblePlayers();
     if (corpse->IsInGrid())
@@ -3244,7 +3244,7 @@ bool Map::CanReachPositionAndGetValidCoords(WorldObject const* source, float sta
 bool Map::CheckCollisionAndGetValidCoords(WorldObject const* source, float startX, float startY, float startZ, float &destX, float &destY, float &destZ, bool failOnCollision) const
 {
     // Prevent invalid coordinates here, position is unchanged
-    if (!Acore::IsValidMapCoord(startX, startY, startZ) || !Acore::IsValidMapCoord(destX, destY, destZ))
+    if (!Ycore::IsValidMapCoord(startX, startY, startZ) || !Ycore::IsValidMapCoord(destX, destY, destZ))
     {
         LOG_FATAL("maps", "Map::CheckCollisionAndGetValidCoords invalid coordinates startX: {}, startY: {}, startZ: {}, destX: {}, destY: {}, destZ: {}", startX, startY, startZ, destX, destY, destZ);
         return false;

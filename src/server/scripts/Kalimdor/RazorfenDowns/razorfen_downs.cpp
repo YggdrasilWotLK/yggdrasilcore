@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -196,8 +196,8 @@ public:
                             DoCast(me, SPELL_IDOM_ROOM_CAMERA_SHAKE);
                             me->SummonGameObject(GO_BELNISTRASZS_BRAZIER, 2577.196f, 947.0781f, 53.16757f, 2.356195f, 0, 0, 0.9238796f, 0.3826832f, 3600);
                             std::list<WorldObject*> ClusterList;
-                            Acore::AllWorldObjectsInRange objects(me, 50.0f);
-                            Acore::WorldObjectListSearcher<Acore::AllWorldObjectsInRange> searcher(me, ClusterList, objects);
+                            Ycore::AllWorldObjectsInRange objects(me, 50.0f);
+                            Ycore::WorldObjectListSearcher<Ycore::AllWorldObjectsInRange> searcher(me, ClusterList, objects);
                             Cell::VisitObjects(me, searcher, 50.0f);
                             for (std::list<WorldObject*>::const_iterator itr = ClusterList.begin(); itr != ClusterList.end(); ++itr)
                             {

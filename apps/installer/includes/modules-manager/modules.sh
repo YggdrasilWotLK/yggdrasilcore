@@ -26,7 +26,7 @@ CURRENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" || exit ; pwd )
 
 source "$CURRENT_PATH/../../../bash_shared/includes.sh"
 source "$CURRENT_PATH/../includes.sh"
-source "$AC_PATH_APPS/bash_shared/menu_system.sh"
+source "$YC_PATH_APPS/bash_shared/menu_system.sh"
 
 # -----------------------------------------------------------------------------
 # Color support (disabled when not a TTY or NO_COLOR is set)
@@ -438,7 +438,7 @@ function inst_extract_owner_name {
 
 # Returns path to modules list file (configurable via MODULES_LIST_FILE).
 function inst_modules_list_path() {
-    local path="${MODULES_LIST_FILE:-"$AC_PATH_ROOT/conf/modules.list"}"
+    local path="${MODULES_LIST_FILE:-"$YC_PATH_ROOT/conf/modules.list"}"
     echo "$path"
 }
 
@@ -668,14 +668,14 @@ function inst_getVersionBranch() {
     local MODULE_MINOR=0
     local MODULE_PATCH=0
     local MODULE_SPECIAL=0;
-    local ACV_MAJOR=0
-    local ACV_MINOR=0
-    local ACV_PATCH=0
-    local ACV_SPECIAL=0;
+    local YCV_MAJOR=0
+    local YCV_MINOR=0
+    local YCV_PATCH=0
+    local YCV_SPECIAL=0;
     local curldata=$(curl -f --silent -H 'Cache-Control: no-cache' "$1" || echo "{}")
-    local parsed=$(echo "$curldata" | "$AC_PATH_DEPS/jsonpath/JSONPath.sh" -b '$.compatibility.*.[version,branch]')
+    local parsed=$(echo "$curldata" | "$YC_PATH_DEPS/jsonpath/JSONPath.sh" -b '$.compatibility.*.[version,branch]')
 
-    semverParseInto "$ACORE_VERSION" ACV_MAJOR ACV_MINOR ACV_PATCH ACV_SPECIAL
+    semverParseInto "$YCORE_VERSION" YCV_MAJOR YCV_MINOR YCV_PATCH YCV_SPECIAL
 
     if [[ ! -z "$parsed" ]]; then
         readarray -t vers < <(echo "$parsed")
@@ -685,7 +685,7 @@ function inst_getVersionBranch() {
         # array, we've to simulate the association with length/2 trick
         for idx in $(seq 0 $((${#vers[*]}/2-1))); do
             semverParseInto "${vers[idx*2]}" MODULE_MAJOR MODULE_MINOR MODULE_PATCH MODULE_SPECIAL
-            if [[ $MODULE_MAJOR -eq $ACV_MAJOR && $MODULE_MINOR -le $ACV_MINOR ]]; then
+            if [[ $MODULE_MAJOR -eq $YCV_MAJOR && $MODULE_MINOR -le $YCV_MINOR ]]; then
                 res="${vers[idx*2+1]}"
                 v="${vers[idx*2]}"
             fi
@@ -765,9 +765,9 @@ function inst_module_search {
         read v b < <(inst_getVersionBranch "https://raw.githubusercontent.com/${mod_full}/master/acore-module.json")
 
         if [[ "$b" != "none" ]]; then
-            printf "%b -> %b (tested with AC version: %s)%b\n" "" "${C_GREEN}${mod}${C_RESET}" "$v" ""
+            printf "%b -> %b (tested with YC version: %s)%b\n" "" "${C_GREEN}${mod}${C_RESET}" "$v" ""
         else
-            printf "%b -> %b %b(NOTE: The module latest tested AC revision is Unknown)%b\n" "" "${C_GREEN}${mod}${C_RESET}" "${C_YELLOW}" "${C_RESET}"
+            printf "%b -> %b %b(NOTE: The module latest tested YC revision is Unknown)%b\n" "" "${C_GREEN}${mod}${C_RESET}" "${C_YELLOW}" "${C_RESET}"
         fi
     done
 

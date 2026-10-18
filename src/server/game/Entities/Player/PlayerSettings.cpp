@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -30,13 +30,13 @@ namespace PlayerSettingsStore
     PlayerSettingVector ParseSettingsData(std::string const& data)
     {
         PlayerSettingVector result;
-        std::vector<std::string_view> tokens = Acore::Tokenize(data, ' ', false);
+        std::vector<std::string_view> tokens = Ycore::Tokenize(data, ' ', false);
         result.reserve(tokens.size());
         for (auto const& token : tokens)
         {
             if (token.empty())
                 continue;
-            if (auto parsed = Acore::StringTo<uint32>(token))
+            if (auto parsed = Ycore::StringTo<uint32>(token))
                 result.emplace_back(*parsed);
         }
         return result;

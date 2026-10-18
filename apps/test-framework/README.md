@@ -11,8 +11,8 @@ apps/test-framework/
 ├── run-core-tests.sh      # AzerothCore unit test runner
 ├── README.md              # This documentation
 ├── bats_libs/             # Custom BATS libraries
-│   ├── acore-support.bash # Test setup and helpers
-│   └── acore-assert.bash  # Custom assertions
+│   ├── ycore-support.bash # Test setup and helpers
+│   └── ycore-assert.bash  # Custom assertions
 └── helpers/               # Test utilities
     └── test_common.sh     # Common test functions and setup
 ```
@@ -134,11 +134,11 @@ The test framework provides a unified entry point through `test-main.sh` which p
 #!/usr/bin/env bats
 
 # Load the AzerothCore test framework
-load '../../test-framework/bats_libs/acore-support'
-load '../../test-framework/bats_libs/acore-assert'
+load '../../test-framework/bats_libs/ycore-support'
+load '../../test-framework/bats_libs/ycore-assert'
 
 setup() {
-    acore_test_setup    # Standard setup
+    ycore_test_setup    # Standard setup
     # or
     startup_scripts_setup  # For startup scripts
     # or
@@ -148,7 +148,7 @@ setup() {
 }
 
 teardown() {
-    acore_test_teardown
+    ycore_test_teardown
 }
 
 @test "my test description" {
@@ -160,7 +160,7 @@ teardown() {
 
 ### Available Setup Functions
 
-- `acore_test_setup` - Basic setup for all tests
+- `ycore_test_setup` - Basic setup for all tests
 - `startup_scripts_setup` - Setup for startup script tests
 - `compiler_setup` - Setup for compiler tests
 - `docker_setup` - Setup for docker tests
@@ -173,7 +173,7 @@ teardown() {
 assert_binary_exists "$TEST_DIR/bin/authserver"
 
 # Assert server started correctly
-assert_acore_server_started "$output" "authserver"
+assert_ycore_server_started "$output" "authserver"
 
 # Assert config was loaded
 assert_config_loaded "$output" "authserver.conf"
@@ -193,8 +193,8 @@ assert_log_contains "$log_file" "Server started"
 When using the framework, these variables are automatically set:
 
 - `$TEST_DIR` - Temporary test directory
-- `$AC_TEST_ROOT` - Project root directory
-- `$AC_TEST_APPS` - Apps directory
+- `$YC_TEST_ROOT` - Project root directory
+- `$YC_TEST_APPS` - Apps directory
 - `$BUILDPATH` - Build directory path
 - `$SRCPATH` - Source directory path
 - `$BINPATH` - Binary directory path
@@ -210,8 +210,8 @@ create_test_binary "authserver" 0 2 "Server started"
 create_test_config "authserver.conf" "Database.Info = \"127.0.0.1;3306;root;pass;db\""
 
 # Create AzerothCore specific binaries and configs
-create_acore_binaries
-create_acore_configs
+create_ycore_binaries
+create_ycore_configs
 
 # Run command with timeout
 run_with_timeout 5s my_command
@@ -411,6 +411,6 @@ sudo pacman -S bats
 When adding new test utilities:
 
 1. Add common functions to `helpers/test_common.sh`
-2. Add BATS-specific helpers to `bats_libs/acore-support.bash`
-3. Add custom assertions to `bats_libs/acore-assert.bash`
+2. Add BATS-specific helpers to `bats_libs/ycore-support.bash`
+3. Add custom assertions to `bats_libs/ycore-assert.bash`
 4. Update this README with new functionality

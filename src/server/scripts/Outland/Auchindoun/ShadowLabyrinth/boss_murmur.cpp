@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -200,8 +200,8 @@ class spell_murmur_thundering_storm : public SpellScript
 
     void SelectTarget(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::AllWorldObjectsInExactRange(GetCaster(), 100.0f, true));
-        targets.remove_if(Acore::AllWorldObjectsInExactRange(GetCaster(), 25.0f, false));
+        targets.remove_if(Ycore::AllWorldObjectsInExactRange(GetCaster(), 100.0f, true));
+        targets.remove_if(Ycore::AllWorldObjectsInExactRange(GetCaster(), 25.0f, false));
     }
 
     void Register() override

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -22,7 +22,7 @@
 #include "Language.h"
 #include "Timer.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 using EventEntry = Variant<Hyperlink<gameevent>, uint16>;
 
@@ -54,7 +54,7 @@ public:
         GameEventMgr::GameEventDataMap const& events = sGameEventMgr->GetEventMap();
         GameEventMgr::ActiveEvents const& activeEvents = sGameEventMgr->GetActiveEventList();
 
-        std::string active = handler->GetAcoreString(LANG_ACTIVE);
+        std::string active = handler->GetYcoreString(LANG_ACTIVE);
 
         for (uint16 eventId : activeEvents)
         {
@@ -93,14 +93,14 @@ public:
 
         GameEventMgr::ActiveEvents const& activeEvents = sGameEventMgr->GetActiveEventList();
         bool active = activeEvents.find(eventId) != activeEvents.end();
-        std::string activeStr = active ? handler->GetAcoreString(LANG_ACTIVE) : "";
+        std::string activeStr = active ? handler->GetYcoreString(LANG_ACTIVE) : "";
 
-        std::string startTimeStr = Acore::Time::TimeToTimestampStr(Seconds(eventData.Start));
-        std::string endTimeStr = Acore::Time::TimeToTimestampStr(Seconds(eventData.End));
+        std::string startTimeStr = Ycore::Time::TimeToTimestampStr(Seconds(eventData.Start));
+        std::string endTimeStr = Ycore::Time::TimeToTimestampStr(Seconds(eventData.End));
 
         uint32 delay = sGameEventMgr->NextCheck(eventId);
         time_t nextTime = GameTime::GetGameTime().count() + delay;
-        std::string nextStr = nextTime >= eventData.Start && nextTime < eventData.End ? Acore::Time::TimeToTimestampStr(Seconds(nextTime)) : "-";
+        std::string nextStr = nextTime >= eventData.Start && nextTime < eventData.End ? Ycore::Time::TimeToTimestampStr(Seconds(nextTime)) : "-";
 
         std::string occurenceStr = secsToTimeString(eventData.Occurence * MINUTE, true);
         std::string lengthStr = secsToTimeString(eventData.Length * MINUTE, true);

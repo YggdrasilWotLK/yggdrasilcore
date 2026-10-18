@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -18,13 +18,13 @@
 #include "ChatCommandHelpers.h"
 #include "Chat.h"
 
-void Acore::Impl::ChatCommands::SendErrorMessageToHandler(ChatHandler* handler, std::string_view str)
+void Ycore::Impl::ChatCommands::SendErrorMessageToHandler(ChatHandler* handler, std::string_view str)
 {
     handler->SendSysMessage(str);
     handler->SetSentErrorMessage(true);
 }
 
-std::string Acore::Impl::ChatCommands::GetAcoreString(ChatHandler const* handler, AcoreStrings which)
+std::string Ycore::Impl::ChatCommands::GetYcoreString(ChatHandler const* handler, YcoreStrings which)
 {
-    return handler->GetAcoreString(which);
+    return handler->GetYcoreString(which);
 }

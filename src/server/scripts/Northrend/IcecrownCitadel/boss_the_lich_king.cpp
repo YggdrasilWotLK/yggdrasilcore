@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -671,7 +671,7 @@ public:
 
             // Reset The Frozen Throne gameobjects
             FrozenThroneResetWorker reset;
-            Acore::GameObjectWorker<FrozenThroneResetWorker> worker(me, reset);
+            Ycore::GameObjectWorker<FrozenThroneResetWorker> worker(me, reset);
             Cell::VisitObjects(me, worker, 333.0f);
 
             me->AddAura(SPELL_EMOTE_SIT_NO_SHEATH, me);
@@ -1944,7 +1944,7 @@ class spell_the_lich_king_necrotic_plague_jump : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.sort(Acore::ObjectDistanceOrderPred(GetCaster()));
+        targets.sort(Ycore::ObjectDistanceOrderPred(GetCaster()));
         if (targets.size() <= 1)
             return;
 
@@ -2376,9 +2376,9 @@ class spell_the_lich_king_defile : public SpellScript
     void CorrectRange(std::list<WorldObject*>& targets)
     {
         targets.remove_if(VehicleCheck());
-        targets.remove_if(Acore::AllWorldObjectsInExactRange(GetCaster(), 10.0f * GetCaster()->GetFloatValue(OBJECT_FIELD_SCALE_X), true));
+        targets.remove_if(Ycore::AllWorldObjectsInExactRange(GetCaster(), 10.0f * GetCaster()->GetFloatValue(OBJECT_FIELD_SCALE_X), true));
         uint32 strangulatedAura[4] = {68980, 74325, 74296, 74297};
-        targets.remove_if(Acore::UnitAuraCheck(true, strangulatedAura[GetCaster()->GetMap()->GetDifficulty()]));
+        targets.remove_if(Ycore::UnitAuraCheck(true, strangulatedAura[GetCaster()->GetMap()->GetDifficulty()]));
     }
 
     void ChangeDamageAndGrow()
@@ -2521,7 +2521,7 @@ public:
                                     if (!triggers.empty())
                                     {
                                         valid = true;
-                                        triggers.sort(Acore::ObjectDistanceOrderPred(me));
+                                        triggers.sort(Ycore::ObjectDistanceOrderPred(me));
 
                                         target->GetMotionMaster()->Clear();
                                         target->UpdatePosition(*me, true);
@@ -2751,9 +2751,9 @@ class spell_the_lich_king_valkyr_target_search : public SpellScript
             targets.clear();
             return;
         }
-        targets.remove_if(Acore::UnitAuraCheck(true, GetSpellInfo()->Id));
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_BOSS_HITTIN_YA_AURA)); // done in dbc, but just to be sure xd
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_HARVEST_SOUL_VALKYR));
+        targets.remove_if(Ycore::UnitAuraCheck(true, GetSpellInfo()->Id));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_BOSS_HITTIN_YA_AURA)); // done in dbc, but just to be sure xd
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_HARVEST_SOUL_VALKYR));
         if (InstanceScript* _instance = caster->GetInstanceScript())
             if (Creature* lichKing = ObjectAccessor::GetCreature(*caster, _instance->GetGuidData(DATA_THE_LICH_KING)))
                 if (Spell* s = lichKing->GetCurrentSpell(CURRENT_GENERIC_SPELL))
@@ -2763,7 +2763,7 @@ class spell_the_lich_king_valkyr_target_search : public SpellScript
         if (targets.empty())
             return;
 
-        _target = Acore::Containers::SelectRandomContainerElement(targets);
+        _target = Ycore::Containers::SelectRandomContainerElement(targets);
         targets.clear();
         targets.push_back(_target);
         if (Creature* caster = GetCaster()->ToCreature())
@@ -2886,7 +2886,7 @@ class spell_the_lich_king_vile_spirit_move_target_search : public SpellScript
         if (targets.empty())
             return;
 
-        _target = Acore::Containers::SelectRandomContainerElement(targets);
+        _target = Ycore::Containers::SelectRandomContainerElement(targets);
     }
 
     void HandleScript(SpellEffIndex effIndex)

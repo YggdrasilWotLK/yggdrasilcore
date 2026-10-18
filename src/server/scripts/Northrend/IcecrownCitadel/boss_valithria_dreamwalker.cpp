@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -223,7 +223,7 @@ public:
 
     bool Execute(uint64 /*currTime*/, uint32 /*diff*/) override
     {
-        Acore::CreatureWorker<ValithriaDespawner> worker(_creature, *this);
+        Ycore::CreatureWorker<ValithriaDespawner> worker(_creature, *this);
         Cell::VisitObjects(_creature, worker, 333.0f);
         _creature->AI()->Reset();
         _creature->setActive(false);
@@ -573,7 +573,7 @@ public:
 
             std::list<Creature*> archmages;
             RisenArchmageCheck check;
-            Acore::CreatureListSearcher<RisenArchmageCheck> searcher(me, archmages, check);
+            Ycore::CreatureListSearcher<RisenArchmageCheck> searcher(me, archmages, check);
             Cell::VisitObjects(me, searcher, 100.0f);
             for (std::list<Creature*>::iterator itr = archmages.begin(); itr != archmages.end(); ++itr)
                 (*itr)->AI()->DoAction(ACTION_ENTER_COMBAT);
@@ -1420,9 +1420,9 @@ class spell_dreamwalker_summoner : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::AllWorldObjectsInExactRange(GetCaster(), 250.0f, true));
+        targets.remove_if(Ycore::AllWorldObjectsInExactRange(GetCaster(), 250.0f, true));
         std::list<WorldObject*> list_copy = targets;
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_RECENTLY_SPAWNED));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_RECENTLY_SPAWNED));
         if (targets.empty())
         {
             if (list_copy.empty())
@@ -1430,7 +1430,7 @@ class spell_dreamwalker_summoner : public SpellScript
             targets = list_copy;
         }
 
-        WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+        WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
         targets.clear();
         targets.push_back(target);
     }
@@ -1470,14 +1470,14 @@ class spell_dreamwalker_summon_suppresser_aura : public AuraScript
         std::list<Creature*> summoners;
         caster->GetCreaturesWithEntryInRange(summoners, 200.0f, NPC_WORLD_TRIGGER);
         std::list<Creature*> list_copy = summoners;
-        summoners.remove_if(Acore::UnitAuraCheck(true, SPELL_RECENTLY_SPAWNED));
+        summoners.remove_if(Ycore::UnitAuraCheck(true, SPELL_RECENTLY_SPAWNED));
         if (summoners.empty())
         {
             if (list_copy.empty())
                 return;
             summoners = list_copy;
         }
-        Acore::Containers::RandomResize(summoners, 2);
+        Ycore::Containers::RandomResize(summoners, 2);
 
         for (uint32 i = 0; i < 3; ++i)
             caster->CastSpell(summoners.front(), SPELL_SUMMON_SUPPRESSER, true);

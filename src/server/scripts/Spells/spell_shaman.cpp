@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -371,7 +371,7 @@ class spell_sha_ancestral_awakening_proc : public SpellScript
         if (targets.size() < 2)
             return;
 
-        targets.sort(Acore::HealthPctOrderPred());
+        targets.sort(Ycore::HealthPctOrderPred());
 
         WorldObject* target = targets.front();
         targets.clear();
@@ -437,8 +437,8 @@ class spell_sha_bloodlust : public SpellScript
 
     void RemoveInvalidTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_SATED));
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_EXHAUSTION));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_SHAMAN_SATED));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_SHAMAN_EXHAUSTION));
     }
 
     void ApplyDebuff()
@@ -827,8 +827,8 @@ class spell_sha_heroism : public SpellScript
 
     void RemoveInvalidTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_EXHAUSTION));
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_SHAMAN_SATED));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_SHAMAN_EXHAUSTION));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_SHAMAN_SATED));
     }
 
     void ApplyDebuff()

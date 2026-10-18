@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -37,13 +37,13 @@ class HyperlinkDataTokenizer
 
             if (std::size_t off = _str.find(HYPERLINK_DATA_DELIMITER); off != std::string_view::npos)
             {
-                if (!Acore::Hyperlinks::LinkTags::base_tag::StoreTo(val, _str.substr(0, off)))
+                if (!Ycore::Hyperlinks::LinkTags::base_tag::StoreTo(val, _str.substr(0, off)))
                     return false;
                 _str = _str.substr(off+1);
             }
             else
             {
-                if (!Acore::Hyperlinks::LinkTags::base_tag::StoreTo(val, _str))
+                if (!Ycore::Hyperlinks::LinkTags::base_tag::StoreTo(val, _str))
                     return false;
                 _str = std::string_view();
             }
@@ -57,7 +57,7 @@ class HyperlinkDataTokenizer
         std::string_view _str;
 };
 
-bool Acore::Hyperlinks::LinkTags::achievement::StoreTo(AchievementLinkData& val, std::string_view text)
+bool Ycore::Hyperlinks::LinkTags::achievement::StoreTo(AchievementLinkData& val, std::string_view text)
 {
     HyperlinkDataTokenizer t(text);
     uint32 achievementId;
@@ -90,7 +90,7 @@ bool Acore::Hyperlinks::LinkTags::achievement::StoreTo(AchievementLinkData& val,
     return (t.TryConsumeTo(val.Criteria[0]) && t.TryConsumeTo(val.Criteria[1]) && t.TryConsumeTo(val.Criteria[2]) && t.TryConsumeTo(val.Criteria[3]) && t.IsEmpty());
 }
 
-bool Acore::Hyperlinks::LinkTags::enchant::StoreTo(SpellInfo const*& val, std::string_view text)
+bool Ycore::Hyperlinks::LinkTags::enchant::StoreTo(SpellInfo const*& val, std::string_view text)
 {
     HyperlinkDataTokenizer t(text);
     uint32 spellId;
@@ -101,7 +101,7 @@ bool Acore::Hyperlinks::LinkTags::enchant::StoreTo(SpellInfo const*& val, std::s
     return (val = sSpellMgr->GetSpellInfo(spellId)) && val->HasAttribute(SPELL_ATTR0_IS_TRADESKILL);
 }
 
-bool Acore::Hyperlinks::LinkTags::glyph::StoreTo(GlyphLinkData& val, std::string_view text)
+bool Ycore::Hyperlinks::LinkTags::glyph::StoreTo(GlyphLinkData& val, std::string_view text)
 {
     HyperlinkDataTokenizer t(text);
     uint32 slot, prop;
@@ -118,7 +118,7 @@ bool Acore::Hyperlinks::LinkTags::glyph::StoreTo(GlyphLinkData& val, std::string
     return true;
 }
 
-bool Acore::Hyperlinks::LinkTags::item::StoreTo(ItemLinkData& val, std::string_view text)
+bool Ycore::Hyperlinks::LinkTags::item::StoreTo(ItemLinkData& val, std::string_view text)
 {
     HyperlinkDataTokenizer t(text);
     uint32 itemId, dummy;
@@ -187,7 +187,7 @@ bool Acore::Hyperlinks::LinkTags::item::StoreTo(ItemLinkData& val, std::string_v
     return true;
 }
 
-bool Acore::Hyperlinks::LinkTags::quest::StoreTo(QuestLinkData& val, std::string_view text)
+bool Ycore::Hyperlinks::LinkTags::quest::StoreTo(QuestLinkData& val, std::string_view text)
 {
     HyperlinkDataTokenizer t(text);
     uint32 questId;
@@ -198,7 +198,7 @@ bool Acore::Hyperlinks::LinkTags::quest::StoreTo(QuestLinkData& val, std::string
     return (val.Quest = sObjectMgr->GetQuestTemplate(questId)) && t.TryConsumeTo(val.QuestLevel) && (val.QuestLevel >= -1) && t.IsEmpty();
 }
 
-bool Acore::Hyperlinks::LinkTags::spell::StoreTo(SpellInfo const*& val, std::string_view text)
+bool Ycore::Hyperlinks::LinkTags::spell::StoreTo(SpellInfo const*& val, std::string_view text)
 {
     HyperlinkDataTokenizer t(text);
     uint32 spellId;
@@ -209,7 +209,7 @@ bool Acore::Hyperlinks::LinkTags::spell::StoreTo(SpellInfo const*& val, std::str
     return (val = sSpellMgr->GetSpellInfo(spellId));
 }
 
-bool Acore::Hyperlinks::LinkTags::talent::StoreTo(TalentLinkData& val, std::string_view text)
+bool Ycore::Hyperlinks::LinkTags::talent::StoreTo(TalentLinkData& val, std::string_view text)
 {
     HyperlinkDataTokenizer t(text);
     uint32 talentId;
@@ -246,7 +246,7 @@ bool Acore::Hyperlinks::LinkTags::talent::StoreTo(TalentLinkData& val, std::stri
     return true;
 }
 
-bool Acore::Hyperlinks::LinkTags::trade::StoreTo(TradeskillLinkData& val, std::string_view text)
+bool Ycore::Hyperlinks::LinkTags::trade::StoreTo(TradeskillLinkData& val, std::string_view text)
 {
     HyperlinkDataTokenizer t(text);
     uint32 spellId;

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -84,7 +84,7 @@ public:
             // Select the 2 breaths that we are going to use until despawned so we don't end up casting 2 of the same breath.
             _breathSpells = { SPELL_INCINERATE, SPELL_TIMELAPSE,  SPELL_CORROSIVEACID, SPELL_IGNITEFLESH, SPELL_FROSTBURN };
 
-            Acore::Containers::RandomResize(_breathSpells, 2);
+            Ycore::Containers::RandomResize(_breathSpells, 2);
 
             // Hack fix: This is here to prevent him from being pulled from the floor underneath, remove it once maps are fixed.
             creature->SetImmuneToAll(true);
@@ -184,7 +184,7 @@ public:
 
                             if (playerTargets.size() > 12)
                             {
-                                Acore::Containers::RandomResize(playerTargets, 12);
+                                Ycore::Containers::RandomResize(playerTargets, 12);
                             }
 
                             for (Player* player : playerTargets)

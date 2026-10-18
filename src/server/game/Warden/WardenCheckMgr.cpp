@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -138,7 +138,7 @@ void WardenCheckMgr::LoadWardenChecks()
                     continue;
                 }
 
-                std::string str2 = Acore::StringFormat("{:04}", id);
+                std::string str2 = Ycore::StringFormat("{:04}", id);
                 ASSERT(str2.size() == 4);
                 std::copy(str2.begin(), str2.end(), wardenCheck.IdStr.begin());
 

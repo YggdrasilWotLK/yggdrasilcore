@@ -22,7 +22,7 @@ assert_binary_exists() {
 }
 
 # Assert that output contains specific AzerothCore patterns
-assert_acore_server_started() {
+assert_ycore_server_started() {
     local output="$1"
     local server_type="$2"
     local message="${3:-Server should show startup message}"

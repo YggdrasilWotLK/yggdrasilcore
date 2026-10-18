@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,17 +15,17 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_SRP6_H
-#define AZEROTHCORE_SRP6_H
+#ifndef YGGDRASILCORE_SRP6_H
+#define YGGDRASILCORE_SRP6_H
 
 #include "AuthDefines.h"
 #include "BigNumber.h"
 #include "CryptoHash.h"
 #include <optional>
 
-namespace Acore::Crypto
+namespace Ycore::Crypto
 {
-    class AC_COMMON_API SRP6
+    class YC_COMMON_API SRP6
     {
     public:
         static constexpr std::size_t SALT_LENGTH = 32;

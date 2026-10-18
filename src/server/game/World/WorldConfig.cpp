@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -438,8 +438,8 @@ void WorldConfig::BuildConfigCache()
 
     SetConfigValue<uint32>(CONFIG_BATTLEGROUND_WARSONG_FLAGS, "Battleground.Warsong.Flags", 3);
     SetConfigValue<uint32>(CONFIG_BATTLEGROUND_ARATHI_CAPTUREPOINTS, "Battleground.Arathi.CapturePoints", 1600);
-    SetConfigValue<uint32>(CONFIG_BATTLEGROUND_ALTERAC_REINFORCEMENTS, "Battleground.Alterac.Reinforcements", 600);
-    SetConfigValue<uint32>(CONFIG_BATTLEGROUND_ALTERAC_REP_ONBOSSDEATH, "Battleground.Alterac.ReputationOnBossDeath", 350);
+    SetConfigValue<uint32>(CONFIG_BATTLEGROUND_ALTERYC_REINFORCEMENTS, "Battleground.Alterac.Reinforcements", 600);
+    SetConfigValue<uint32>(CONFIG_BATTLEGROUND_ALTERYC_REP_ONBOSSDEATH, "Battleground.Alterac.ReputationOnBossDeath", 350);
     SetConfigValue<uint32>(CONFIG_BATTLEGROUND_EYEOFTHESTORM_CAPTUREPOINTS, "Battleground.EyeOfTheStorm.CapturePoints", 1600);
 
     SetConfigValue<uint32>(CONFIG_ARENA_PREP_TIME, "Arena.PrepTime", 60);

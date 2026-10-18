@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -94,7 +94,7 @@ struct boss_mor_grayhoof : public BossAI
         switch (phase)
         {
             case PHASE_HUMAN:
-                spell = Acore::Containers::SelectRandomContainerElement(humanSpells);
+                spell = Ycore::Containers::SelectRandomContainerElement(humanSpells);
                 if (spell == SPELL_REJUVENATION || spell == SPELL_HEALING_TOUCH)
                 {
                     DoCastSelf(spell);
@@ -105,15 +105,15 @@ struct boss_mor_grayhoof : public BossAI
                 }
                 break;
             case PHASE_BEAR:
-                spell = Acore::Containers::SelectRandomContainerElement(bearSpells);
+                spell = Ycore::Containers::SelectRandomContainerElement(bearSpells);
                 DoCastVictim(spell);
                 break;
             case PHASE_CAT:
-                spell = Acore::Containers::SelectRandomContainerElement(catSpells);
+                spell = Ycore::Containers::SelectRandomContainerElement(catSpells);
                 DoCastVictim(spell);
                 break;
             case PHASE_FAERIE:
-                spell = Acore::Containers::SelectRandomContainerElement(faerieSpells);
+                spell = Ycore::Containers::SelectRandomContainerElement(faerieSpells);
                 if (spell == SPELL_SLEEP)
                 {
                     if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 50.f, true))

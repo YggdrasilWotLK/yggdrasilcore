@@ -9,8 +9,8 @@ fi
 # Tests the functionality of the compiler scripts using the unified test framework
 
 # Load the AzerothCore test framework
-load '../../test-framework/bats_libs/acore-support'
-load '../../test-framework/bats_libs/acore-assert'
+load '../../test-framework/bats_libs/ycore-support'
+load '../../test-framework/bats_libs/ycore-assert'
 
 # Setup that runs before each test
 setup() {
@@ -21,7 +21,7 @@ setup() {
 
 # Cleanup that runs after each test
 teardown() {
-    acore_test_teardown
+    ycore_test_teardown
 }
 
 # ===== COMPILER SCRIPT TESTS =====
@@ -112,7 +112,7 @@ teardown() {
 
 @test "functions: comp_ccacheShowStats should run without errors when ccache enabled" {
     run bash -c "
-        export AC_CCACHE=true
+        export YC_CCACHE=true
         source '$SCRIPT_DIR/includes/functions.sh'
         comp_ccacheShowStats
     "
@@ -121,7 +121,7 @@ teardown() {
 
 @test "functions: comp_ccacheShowStats should do nothing when ccache disabled" {
     run bash -c "
-        export AC_CCACHE=false
+        export YC_CCACHE=false
         source '$SCRIPT_DIR/includes/functions.sh'
         comp_ccacheShowStats
     "
@@ -131,7 +131,7 @@ teardown() {
 
 @test "functions: comp_ccacheClean should handle disabled ccache" {
     run bash -c "
-        export AC_CCACHE=false
+        export YC_CCACHE=false
         source '$SCRIPT_DIR/includes/functions.sh'
         comp_ccacheClean
     "
@@ -143,7 +143,7 @@ teardown() {
     # Only run if ccache is actually available
     if command -v ccache >/dev/null 2>&1; then
         run bash -c "
-            export AC_CCACHE=true
+            export YC_CCACHE=true
             source '$SCRIPT_DIR/includes/functions.sh'
             comp_ccacheClean
         "
@@ -157,7 +157,7 @@ teardown() {
 @test "functions: comp_ccacheEnable should set environment variables" {
     # Call the function in a subshell to capture environment changes
     run bash -c "
-        export AC_CCACHE=true
+        export YC_CCACHE=true
         source '$SCRIPT_DIR/includes/functions.sh'
         comp_ccacheEnable
         env | grep CCACHE | head -5
@@ -170,7 +170,7 @@ teardown() {
 @test "functions: comp_ccacheEnable should not set variables when ccache disabled" {
     # Call the function and verify it returns early when ccache is disabled
     run bash -c "
-        export AC_CCACHE=false
+        export YC_CCACHE=false
         source '$SCRIPT_DIR/includes/functions.sh'
         comp_ccacheEnable
         # The function should return early, so we check if it completed successfully
@@ -231,7 +231,7 @@ teardown() {
         export BUILDPATH='/tmp'
         export MTHREADS=0
         export CTYPE='Release'
-        export AC_BINPATH_FULL='/tmp'
+        export YC_BINPATH_FULL='/tmp'
         
         # Source the functions
         source '$SCRIPT_DIR/includes/functions.sh'

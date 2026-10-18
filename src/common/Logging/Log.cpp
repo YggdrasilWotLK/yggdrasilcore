@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -71,7 +71,7 @@ void Log::CreateAppenderFromConfig(std::string const& appenderName)
     // if type = Console. optional1 = Color
     std::string options = sConfigMgr->GetOption<std::string>(appenderName, "");
 
-    std::vector<std::string_view> tokens = Acore::Tokenize(options, ',', true);
+    std::vector<std::string_view> tokens = Ycore::Tokenize(options, ',', true);
 
     std::size_t const size = tokens.size();
     std::string name = appenderName.substr(9);
@@ -83,8 +83,8 @@ void Log::CreateAppenderFromConfig(std::string const& appenderName)
     }
 
     AppenderFlags flags = APPENDER_FLAGS_NONE;
-    AppenderType type = AppenderType(Acore::StringTo<uint8>(tokens[0]).value_or(APPENDER_INVALID));
-    LogLevel level = LogLevel(Acore::StringTo<uint8>(tokens[1]).value_or(LOG_LEVEL_INVALID));
+    AppenderType type = AppenderType(Ycore::StringTo<uint8>(tokens[0]).value_or(APPENDER_INVALID));
+    LogLevel level = LogLevel(Ycore::StringTo<uint8>(tokens[1]).value_or(LOG_LEVEL_INVALID));
 
     auto factoryFunction = appenderFactory.find(type);
     if (factoryFunction == appenderFactory.end())
@@ -101,7 +101,7 @@ void Log::CreateAppenderFromConfig(std::string const& appenderName)
 
     if (size > 2)
     {
-        if (Optional<uint8> flagsVal = Acore::StringTo<uint8>(tokens[2]))
+        if (Optional<uint8> flagsVal = Ycore::StringTo<uint8>(tokens[2]))
         {
             flags = AppenderFlags(*flagsVal);
         }
@@ -141,7 +141,7 @@ void Log::CreateLoggerFromConfig(std::string const& appenderName)
         return;
     }
 
-    std::vector<std::string_view> tokens = Acore::Tokenize(options, ',', true);
+    std::vector<std::string_view> tokens = Ycore::Tokenize(options, ',', true);
 
     if (tokens.size() != 2)
     {
@@ -156,7 +156,7 @@ void Log::CreateLoggerFromConfig(std::string const& appenderName)
         return;
     }
 
-    level = LogLevel(Acore::StringTo<uint8>(tokens[0]).value_or(LOG_LEVEL_INVALID));
+    level = LogLevel(Ycore::StringTo<uint8>(tokens[0]).value_or(LOG_LEVEL_INVALID));
     if (level > NUM_ENABLED_LOG_LEVELS)
     {
         fmt::print(stderr, "Log::CreateLoggerFromConfig: Wrong Log Level '{}' for logger {}\n", tokens[0], name);
@@ -170,7 +170,7 @@ void Log::CreateLoggerFromConfig(std::string const& appenderName)
 
     logger = std::make_unique<Logger>(name, level);
 
-    for (std::string_view appendName : Acore::Tokenize(tokens[1], ' ', false))
+    for (std::string_view appendName : Ycore::Tokenize(tokens[1], ' ', false))
     {
         if (Appender* appender = GetAppenderByName(appendName))
         {
@@ -245,7 +245,7 @@ void Log::write(std::unique_ptr<LogMessage>&& msg) const
     if (_ioContext)
     {
         std::shared_ptr<LogOperation> logOperation = std::make_shared<LogOperation>(logger, std::move(msg));
-        Acore::Asio::post(*_ioContext, Acore::Asio::bind_executor(*_strand, [logOperation]() { logOperation->call(); }));
+        Ycore::Asio::post(*_ioContext, Ycore::Asio::bind_executor(*_strand, [logOperation]() { logOperation->call(); }));
     }
     else
         logger->write(msg.get());
@@ -276,7 +276,7 @@ Logger const* Log::GetLoggerByType(std::string const& type) const
 
 std::string Log::GetTimestampStr()
 {
-    return Acore::Time::TimeToTimestampStr(GetEpochTime(), "%Y-%m-%d_%H_%M_%S");
+    return Ycore::Time::TimeToTimestampStr(GetEpochTime(), "%Y-%m-%d_%H_%M_%S");
 }
 
 bool Log::SetLogLevel(std::string const& name, int32 newLeveli, bool isLogger /* = true */)
@@ -364,12 +364,12 @@ Log* Log::instance()
     return &instance;
 }
 
-void Log::Initialize(Acore::Asio::IoContext* ioContext)
+void Log::Initialize(Ycore::Asio::IoContext* ioContext)
 {
     if (ioContext)
     {
         _ioContext = ioContext;
-        _strand = std::make_unique<Acore::Asio::Strand>(*ioContext);
+        _strand = std::make_unique<Ycore::Asio::Strand>(*ioContext);
     }
 
     LoadFromConfig();

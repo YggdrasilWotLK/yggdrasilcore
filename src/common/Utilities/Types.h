@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -18,7 +18,7 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-namespace Acore
+namespace Ycore
 {
     // end "iterator" tag for find_type_if
     struct find_type_end;
@@ -45,11 +45,11 @@ namespace Acore
         template<typename... Ts>
         struct Example
         {
-            using TupleArg = Acore::find_type_if_t<Acore::is_tuple, Ts...>;
+            using TupleArg = Ycore::find_type_if_t<Ycore::is_tuple, Ts...>;
 
             bool HasTuple()
             {
-                return !std::is_same_v<TupleArg, Acore::find_type_end>;
+                return !std::is_same_v<TupleArg, Ycore::find_type_end>;
             }
         };
 
@@ -57,7 +57,7 @@ namespace Acore
         example.HasTuple() == true; // TupleArg is std::tuple<int, int, int>
 
         Example<int, std::string, char> example2;
-        example2.HasTuple() == false; // TupleArg is Acore::find_type_end
+        example2.HasTuple() == false; // TupleArg is Ycore::find_type_end
     */
 
     template<template<typename...> typename Check, typename... Ts>

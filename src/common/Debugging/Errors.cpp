@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -32,16 +32,16 @@
     terminates the application.
  */
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
 #include <Windows.h>
 #define Crash(message) \
     ULONG_PTR execeptionArgs[] = { reinterpret_cast<ULONG_PTR>(strdup(message)), reinterpret_cast<ULONG_PTR>(_ReturnAddress()) }; \
     RaiseException(EXCEPTION_ASSERTION_FAILURE, 0, 2, execeptionArgs);
 #else
 // should be easily accessible in gdb
-extern "C" { char const* AcoreAssertionFailedMessage = nullptr; }
+extern "C" { char const* YcoreAssertionFailedMessage = nullptr; }
 #define Crash(message) \
-    AcoreAssertionFailedMessage = strdup(message); \
+    YcoreAssertionFailedMessage = strdup(message); \
     *((volatile int*)nullptr) = 0; \
     exit(1);
 #endif
@@ -62,19 +62,19 @@ namespace
     inline std::string MakeMessage(std::string_view messageType, std::string_view file, uint32 line, std::string_view function,
         std::string_view message, std::string_view fmtMessage = {}, std::string_view debugInfo = {})
     {
-        std::string msg = Acore::StringFormat("\n>> {}\n\n# Location: {}:{}\n# Function: {}\n# Condition: {}\n", messageType, file, line, function, message);
+        std::string msg = Ycore::StringFormat("\n>> {}\n\n# Location: {}:{}\n# Function: {}\n# Condition: {}\n", messageType, file, line, function, message);
 
         if (!fmtMessage.empty())
         {
-            msg.append(Acore::StringFormat("# Message: {}\n", fmtMessage));
+            msg.append(Ycore::StringFormat("# Message: {}\n", fmtMessage));
         }
 
         if (!debugInfo.empty())
         {
-            msg.append(Acore::StringFormat("\n# Debug info: {}\n", debugInfo));
+            msg.append(Ycore::StringFormat("\n# Debug info: {}\n", debugInfo));
         }
 
-        return Acore::StringFormat(
+        return Ycore::StringFormat(
             "#{0:-^{2}}#\n"
             " {1: ^{2}} \n"
             "#{0:-^{2}}#\n", "", msg, 70);
@@ -90,21 +90,21 @@ namespace
     */
     inline std::string MakeAbortMessage(std::string_view file, uint32 line, std::string_view function, std::string_view fmtMessage = {})
     {
-        std::string msg = Acore::StringFormat("\n>> ABORTED\n\n# Location '{}:{}'\n# Function '{}'\n", file, line, function);
+        std::string msg = Ycore::StringFormat("\n>> ABORTED\n\n# Location '{}:{}'\n# Function '{}'\n", file, line, function);
 
         if (!fmtMessage.empty())
         {
-            msg.append(Acore::StringFormat("# Message '{}'\n", fmtMessage));
+            msg.append(Ycore::StringFormat("# Message '{}'\n", fmtMessage));
         }
 
-        return Acore::StringFormat(
+        return Ycore::StringFormat(
             "\n#{0:-^{2}}#\n"
             " {1: ^{2}} \n"
             "#{0:-^{2}}#\n", "", msg, 70);
     }
 }
 
-void Acore::Assert(std::string_view file, uint32 line, std::string_view function, std::string_view debugInfo, std::string_view message, std::string_view fmtMessage /*= {}*/)
+void Ycore::Assert(std::string_view file, uint32 line, std::string_view function, std::string_view debugInfo, std::string_view message, std::string_view fmtMessage /*= {}*/)
 {
     std::string formattedMessage = MakeMessage("ASSERTION FAILED", file, line, function, message, fmtMessage, debugInfo);
     fmt::print(stderr, "{}", formattedMessage);
@@ -112,7 +112,7 @@ void Acore::Assert(std::string_view file, uint32 line, std::string_view function
     Crash(formattedMessage.c_str());
 }
 
-void Acore::Fatal(std::string_view file, uint32 line, std::string_view function, std::string_view message, std::string_view fmtMessage /*= {}*/)
+void Ycore::Fatal(std::string_view file, uint32 line, std::string_view function, std::string_view message, std::string_view fmtMessage /*= {}*/)
 {
     std::string formattedMessage = MakeMessage("FATAL ERROR", file, line, function, message, fmtMessage);
     fmt::print(stderr, "{}", formattedMessage);
@@ -121,7 +121,7 @@ void Acore::Fatal(std::string_view file, uint32 line, std::string_view function,
     Crash(formattedMessage.c_str());
 }
 
-void Acore::Error(std::string_view file, uint32 line, std::string_view function, std::string_view message)
+void Ycore::Error(std::string_view file, uint32 line, std::string_view function, std::string_view message)
 {
     std::string formattedMessage = MakeMessage("ERROR", file, line, function, message);
     fmt::print(stderr, "{}", formattedMessage);
@@ -130,13 +130,13 @@ void Acore::Error(std::string_view file, uint32 line, std::string_view function,
     Crash(formattedMessage.c_str());
 }
 
-void Acore::Warning(std::string_view file, uint32 line, std::string_view function, std::string_view message)
+void Ycore::Warning(std::string_view file, uint32 line, std::string_view function, std::string_view message)
 {
     std::string formattedMessage = MakeMessage("WARNING", file, line, function, message);
     fmt::print(stderr, "{}", formattedMessage);
 }
 
-void Acore::Abort(std::string_view file, uint32 line, std::string_view function, std::string_view fmtMessage /*= {}*/)
+void Ycore::Abort(std::string_view file, uint32 line, std::string_view function, std::string_view fmtMessage /*= {}*/)
 {
     std::string formattedMessage = MakeAbortMessage(file, line, function, fmtMessage);
     fmt::print(stderr, "{}", formattedMessage);
@@ -145,7 +145,7 @@ void Acore::Abort(std::string_view file, uint32 line, std::string_view function,
     Crash(formattedMessage.c_str());
 }
 
-void Acore::AbortHandler(int sigval)
+void Ycore::AbortHandler(int sigval)
 {
     // nothing useful to log here, no way to pass args
     std::string formattedMessage = StringFormat("Caught signal {}\n", sigval);

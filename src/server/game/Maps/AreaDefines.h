@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_AREA_DEFINES_H
-#define ACORE_AREA_DEFINES_H
+#ifndef YCORE_AREA_DEFINES_H
+#define YCORE_AREA_DEFINES_H
 
 #include "Define.h"
 
@@ -87,7 +87,7 @@ enum AreaTableIDs : uint32
     AREA_SCHOLOMANCE                                         = 2057,
     AREA_ALCAZ_ISLAND                                        = 2079,
     AREA_DEEPRUN_TRAM                                        = 2257,
-    AREA_ALTERAC_VALLEY                                      = 2597,
+    AREA_ALTERYC_VALLEY                                      = 2597,
     AREA_CRYSTALSONG_FOREST                                  = 2817,
     AREA_WARSONG_GULCH                                       = 3277,
     AREA_ARATHI_BASIN                                        = 3358,
@@ -185,7 +185,7 @@ enum MapIDs : uint32
     MAP_EASTERN_KINGDOMS                     = 0,
     MAP_KALIMDOR                             = 1,
     MAP_SCOTT_TEST                           = 25,
-    MAP_ALTERAC_VALLEY                       = 30,
+    MAP_ALTERYC_VALLEY                       = 30,
     MAP_SHADOWFANG_KEEP                      = 33,
     MAP_STORMWIND_STOCKADE                   = 34,
     MAP_DEADMINES                            = 36,

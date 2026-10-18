@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -43,7 +43,7 @@
 #include "WaypointMgr.h"
 #include "WorldGlobals.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class reload_commandscript : public CommandScript
 {
@@ -164,7 +164,7 @@ public:
             { "spell_group_stack_rules",       HandleReloadSpellGroupStackRulesCommand,       SEC_ADMINISTRATOR, Console::Yes },
             { "player_loot_template",          HandleReloadLootTemplatesPlayerCommand,        SEC_ADMINISTRATOR, Console::Yes },
             { "module_string",                 HandleReloadModuleStringCommand,               SEC_ADMINISTRATOR, Console::Yes },
-            { "acore_string",                  HandleReloadAcoreStringCommand,                SEC_ADMINISTRATOR, Console::Yes },
+            { "acore_string",                  HandleReloadYcoreStringCommand,                SEC_ADMINISTRATOR, Console::Yes },
             { "warden_action",                 HandleReloadWardenactionCommand,               SEC_ADMINISTRATOR, Console::Yes },
             { "waypoint_scripts",              HandleReloadWpScriptsCommand,                  SEC_ADMINISTRATOR, Console::Yes },
             { "waypoint_data",                 HandleReloadWpCommand,                         SEC_ADMINISTRATOR, Console::Yes },
@@ -205,7 +205,7 @@ public:
         HandleReloadCommandCommand(handler);
         HandleReloadReservedNameCommand(handler);
         HandleReloadProfanityNameCommand(handler);
-        HandleReloadAcoreStringCommand(handler);
+        HandleReloadYcoreStringCommand(handler);
         HandleReloadGameTeleCommand(handler);
         HandleReloadCreatureMovementOverrideCommand(handler);
 
@@ -432,7 +432,7 @@ public:
     static bool HandleReloadCommandCommand(ChatHandler* handler)
     {
         LOG_INFO("server.loading", "Reloading .command information...");
-        Acore::ChatCommands::LoadCommandMap();
+        Ycore::ChatCommands::LoadCommandMap();
         handler->SendGlobalGMSysMessage("DB table `command` reloaded.");
 
         // do not log this invocation, otherwise we might crash (the command table we used to get here is no longer valid!)
@@ -453,9 +453,9 @@ public:
         if (args.empty())
             return false;
 
-        for (std::string_view entryStr : Acore::Tokenize(args, ' ', false))
+        for (std::string_view entryStr : Ycore::Tokenize(args, ' ', false))
         {
-            uint32 entry = Acore::StringTo<uint32>(entryStr).value_or(0);
+            uint32 entry = Ycore::StringTo<uint32>(entryStr).value_or(0);
 
             WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_CREATURE_TEMPLATE);
             stmt->SetData(0, entry);
@@ -724,10 +724,10 @@ public:
         return true;
     }
 
-    static bool HandleReloadAcoreStringCommand(ChatHandler* handler)
+    static bool HandleReloadYcoreStringCommand(ChatHandler* handler)
     {
         LOG_INFO("server.loading", "Reloading acore_string Table!");
-        sObjectMgr->LoadAcoreStrings();
+        sObjectMgr->LoadYcoreStrings();
         handler->SendGlobalGMSysMessage("DB table `acore_string` reloaded.");
         return true;
     }

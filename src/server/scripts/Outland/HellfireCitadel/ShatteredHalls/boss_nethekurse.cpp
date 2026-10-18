@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -180,7 +180,7 @@ struct boss_grand_warlock_nethekurse : public BossAI
 
             scheduler.Schedule(2500ms, GROUP_RP, [this](TaskContext /*context*/)
             {
-                PeonRoleplay roleplayData = Acore::Containers::SelectRandomContainerElement(PeonRoleplayData);
+                PeonRoleplay roleplayData = Ycore::Containers::SelectRandomContainerElement(PeonRoleplayData);
                 DoCast(me, roleplayData.spellId);
                 Talk(roleplayData.textId);
                 me->GetMotionMaster()->Initialize();

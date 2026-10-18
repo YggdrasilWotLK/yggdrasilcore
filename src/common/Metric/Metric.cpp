@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -38,7 +38,7 @@ Metric* Metric::instance()
     return &instance;
 }
 
-void Metric::Initialize(std::string const& realmName, Acore::Asio::IoContext& ioContext, std::function<void()> overallStatusLogger)
+void Metric::Initialize(std::string const& realmName, Ycore::Asio::IoContext& ioContext, std::function<void()> overallStatusLogger)
 {
     _dataStream = std::make_unique<boost::asio::ip::tcp::iostream>();
     _realmName = FormatInfluxDBTagValue(realmName);
@@ -106,7 +106,7 @@ void Metric::LoadFromConfigs()
             return;
         }
 
-        std::vector<std::string_view> tokens = Acore::Tokenize(connectionInfo, ';', true);
+        std::vector<std::string_view> tokens = Ycore::Tokenize(connectionInfo, ';', true);
         _useV2 = sConfigMgr->GetOption<bool>("Metric.InfluxDB.v2", false);
         if (_useV2)
         {
@@ -281,7 +281,7 @@ void Metric::ScheduleSend()
 {
     if (_enabled)
     {
-        _batchTimer->expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(_updateInterval));
+        _batchTimer->expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(_updateInterval));
         _batchTimer->async_wait(std::bind(&Metric::SendBatch, this));
     }
     else
@@ -300,7 +300,7 @@ void Metric::ScheduleSend()
 void Metric::Unload()
 {
     // Send what's queued only if IoContext is stopped (so only on shutdown)
-    if (_enabled && Acore::Asio::get_io_context(*_batchTimer).stopped())
+    if (_enabled && Ycore::Asio::get_io_context(*_batchTimer).stopped())
     {
         _enabled = false;
         SendBatch();
@@ -314,7 +314,7 @@ void Metric::ScheduleOverallStatusLog()
 {
     if (_enabled)
     {
-        _overallStatusTimer->expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(_overallStatusTimerInterval));
+        _overallStatusTimer->expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(_overallStatusTimerInterval));
         _overallStatusTimer->async_wait([this](const boost::system::error_code&)
         {
             _overallStatusTimerTriggered = true;
@@ -365,11 +365,11 @@ std::string Metric::FormatInfluxDBValue(std::chrono::nanoseconds value)
     return FormatInfluxDBValue(std::chrono::duration_cast<Milliseconds>(value).count());
 }
 
-template AC_COMMON_API std::string Metric::FormatInfluxDBValue(int8);
-template AC_COMMON_API std::string Metric::FormatInfluxDBValue(uint8);
-template AC_COMMON_API std::string Metric::FormatInfluxDBValue(int16);
-template AC_COMMON_API std::string Metric::FormatInfluxDBValue(uint16);
-template AC_COMMON_API std::string Metric::FormatInfluxDBValue(int32);
-template AC_COMMON_API std::string Metric::FormatInfluxDBValue(uint32);
-template AC_COMMON_API std::string Metric::FormatInfluxDBValue(int64);
-template AC_COMMON_API std::string Metric::FormatInfluxDBValue(uint64);
+template YC_COMMON_API std::string Metric::FormatInfluxDBValue(int8);
+template YC_COMMON_API std::string Metric::FormatInfluxDBValue(uint8);
+template YC_COMMON_API std::string Metric::FormatInfluxDBValue(int16);
+template YC_COMMON_API std::string Metric::FormatInfluxDBValue(uint16);
+template YC_COMMON_API std::string Metric::FormatInfluxDBValue(int32);
+template YC_COMMON_API std::string Metric::FormatInfluxDBValue(uint32);
+template YC_COMMON_API std::string Metric::FormatInfluxDBValue(int64);
+template YC_COMMON_API std::string Metric::FormatInfluxDBValue(uint64);

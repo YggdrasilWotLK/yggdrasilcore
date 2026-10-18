@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -89,11 +89,11 @@ void PlayerTaxi::InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 level
 bool PlayerTaxi::LoadTaxiMask(std::string_view data)
 {
     bool warn = false;
-    std::vector<std::string_view> tokens = Acore::Tokenize(data, ' ', false);
+    std::vector<std::string_view> tokens = Ycore::Tokenize(data, ' ', false);
 
     for (uint8 index = 0; (index < TaxiMaskSize) && (index < tokens.size()); ++index)
     {
-        if (Optional<uint32> mask = Acore::StringTo<uint32>(tokens[index]))
+        if (Optional<uint32> mask = Ycore::StringTo<uint32>(tokens[index]))
         {
             // load and set bits only for existing taxi nodes
             m_taximask[index] = sTaxiNodesMask[index] & *mask;
@@ -131,11 +131,11 @@ bool PlayerTaxi::LoadTaxiDestinationsFromString(const std::string& values, TeamI
 {
     ClearTaxiDestinations();
 
-    std::vector<std::string_view> tokens = Acore::Tokenize(values, ' ', false);
+    std::vector<std::string_view> tokens = Ycore::Tokenize(values, ' ', false);
     auto itr = tokens.begin();
     if (itr != tokens.end())
     {
-        if (Optional<uint32> faction = Acore::StringTo<uint32>(*itr))
+        if (Optional<uint32> faction = Ycore::StringTo<uint32>(*itr))
         {
             m_flightMasterFactionId = *faction;
         }
@@ -149,7 +149,7 @@ bool PlayerTaxi::LoadTaxiDestinationsFromString(const std::string& values, TeamI
 
     while ((++itr) != tokens.end())
     {
-        if (Optional<uint32> node = Acore::StringTo<uint32>(*itr))
+        if (Optional<uint32> node = Ycore::StringTo<uint32>(*itr))
         {
             AddTaxiDestination(*node);
         }

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -190,7 +190,7 @@ struct npc_forest_frog : public ScriptedAI
             NPC_CHRISTIAN, NPC_BRENNAN, NPC_HOLLEE
         };
 
-        uint32 cEntry = Acore::Containers::SelectRandomContainerElement(entries);
+        uint32 cEntry = Ycore::Containers::SelectRandomContainerElement(entries);
 
         if (!instance->GetData(TYPE_RAND_VENDOR_1) && roll_chance_i(10))
         {
@@ -756,7 +756,7 @@ struct npc_amanishi_scout : public ScriptedAI
         std::list<Creature*> triggers;
         GetCreatureListWithEntryInGrid(triggers, me, NPC_WORLD_TRIGGER, 50.0f);
         triggers.remove_if([](Creature* trigger) {return !IsDrum(trigger);});
-        triggers.sort(Acore::ObjectDistanceOrderPred(me));
+        triggers.sort(Ycore::ObjectDistanceOrderPred(me));
         if (triggers.empty())
         {
             ScheduleCombat();
@@ -872,7 +872,7 @@ class spell_summon_amanishi_sentries : public SpellScript
         triggers.remove_if([](Creature* trigger) {return !IsHut(trigger);});
         if (triggers.empty())
             return;
-        Creature* trigger = Acore::Containers::SelectRandomContainerElement(triggers);
+        Creature* trigger = Ycore::Containers::SelectRandomContainerElement(triggers);
         uint8 index_1 = urand(0, 3);
         uint8 index_2 = (index_1 + 1) % 4;
         trigger->CastSpell(trigger, spells[index_1], true);

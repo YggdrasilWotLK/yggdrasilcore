@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -34,15 +34,15 @@
 #include "Transaction.h"
 
 /// Accessor to the world database
-AC_DATABASE_API extern DatabaseWorkerPool<WorldDatabaseConnection> WorldDatabase;
+YC_DATABASE_API extern DatabaseWorkerPool<WorldDatabaseConnection> WorldDatabase;
 /// Accessor to the character database
-AC_DATABASE_API extern DatabaseWorkerPool<CharacterDatabaseConnection> CharacterDatabase;
+YC_DATABASE_API extern DatabaseWorkerPool<CharacterDatabaseConnection> CharacterDatabase;
 /// Accessor to the realm/login database
-AC_DATABASE_API extern DatabaseWorkerPool<LoginDatabaseConnection> LoginDatabase;
+YC_DATABASE_API extern DatabaseWorkerPool<LoginDatabaseConnection> LoginDatabase;
 
 #ifdef MOD_SHADOWS
 /// Accessor to the shadows database
-AC_DATABASE_API extern DatabaseWorkerPool<ShadowsDatabaseConnection> ShadowsDatabase;
+YC_DATABASE_API extern DatabaseWorkerPool<ShadowsDatabaseConnection> ShadowsDatabase;
 #endif
 
 #endif

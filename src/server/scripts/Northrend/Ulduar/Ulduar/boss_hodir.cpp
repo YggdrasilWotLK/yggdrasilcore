@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -459,9 +459,9 @@ public:
                                 continue;
                             targets.push_back(p);
                         }
-                        targets.remove_if(Acore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
-                        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_FLASH_FREEZE_TRAPPED_PLAYER));
-                        Acore::Containers::RandomResize(targets, (RAID_MODE(2,3)));
+                        targets.remove_if(Ycore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
+                        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_FLASH_FREEZE_TRAPPED_PLAYER));
+                        Ycore::Containers::RandomResize(targets, (RAID_MODE(2,3)));
                         for (std::list<Unit*>::const_iterator itr = targets.begin(); itr != targets.end(); ++itr)
                         {
                             float prevZ = (*itr)->GetPositionZ();
@@ -1313,9 +1313,9 @@ class spell_hodir_periodic_icicle : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_FLASH_FREEZE_TRAPPED_PLAYER));
-        Acore::Containers::RandomResize(targets, 1);
+        targets.remove_if(Ycore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_FLASH_FREEZE_TRAPPED_PLAYER));
+        Ycore::Containers::RandomResize(targets, 1);
     }
 
     void Register() override

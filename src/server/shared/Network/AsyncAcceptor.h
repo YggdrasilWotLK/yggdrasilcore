@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -26,15 +26,15 @@
 
 using boost::asio::ip::tcp;
 
-constexpr auto ACORE_MAX_LISTEN_CONNECTIONS = boost::asio::socket_base::max_listen_connections;
+constexpr auto YCORE_MAX_LISTEN_CONNECTIONS = boost::asio::socket_base::max_listen_connections;
 
 class AsyncAcceptor
 {
 public:
     typedef void(*AcceptCallback)(tcp::socket&& newSocket, uint32 threadIndex);
 
-    AsyncAcceptor(Acore::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port) :
-        _acceptor(ioContext), _endpoint(Acore::Net::make_address(bindIp), port),
+    AsyncAcceptor(Ycore::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port) :
+        _acceptor(ioContext), _endpoint(Ycore::Net::make_address(bindIp), port),
         _socket(ioContext), _closed(false), _socketFactory([this](){ return DefaultSocketFactory(); })
     {
     }
@@ -79,7 +79,7 @@ public:
             return false;
         }
 
-#if AC_PLATFORM != AC_PLATFORM_WINDOWS
+#if YC_PLATFORM != YC_PLATFORM_WINDOWS
         _acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true), errorCode);
         if (errorCode)
         {
@@ -95,7 +95,7 @@ public:
             return false;
         }
 
-        _acceptor.listen(ACORE_MAX_LISTEN_CONNECTIONS, errorCode);
+        _acceptor.listen(YCORE_MAX_LISTEN_CONNECTIONS, errorCode);
         if (errorCode)
         {
             LOG_INFO("network", "Failed to start listening on {}:{} {}", _endpoint.address().to_string(), _endpoint.port(), errorCode.message());

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -213,14 +213,14 @@ bool DatabaseLoader::Process(std::queue<Predicate>& queue)
     return true;
 }
 
-template AC_DATABASE_API
+template YC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<LoginDatabaseConnection>(DatabaseWorkerPool<LoginDatabaseConnection>&, std::string const&);
-template AC_DATABASE_API
+template YC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<CharacterDatabaseConnection>(DatabaseWorkerPool<CharacterDatabaseConnection>&, std::string const&);
-template AC_DATABASE_API
+template YC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<WorldDatabaseConnection>(DatabaseWorkerPool<WorldDatabaseConnection>&, std::string const&);
 
 #ifdef MOD_SHADOWS
-template AC_DATABASE_API
+template YC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<ShadowsDatabaseConnection>(DatabaseWorkerPool<ShadowsDatabaseConnection>&, std::string const&);
 #endif

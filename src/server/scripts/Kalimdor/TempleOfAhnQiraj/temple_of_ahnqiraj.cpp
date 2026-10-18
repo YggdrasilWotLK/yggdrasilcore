@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -251,7 +251,7 @@ struct npc_obsidian_eradicator : public ScriptedAI
                     }
                 });
 
-                Acore::Containers::RandomResize(_targetGUIDs, 10);
+                Ycore::Containers::RandomResize(_targetGUIDs, 10);
             }
 
             for (ObjectGuid guid : _targetGUIDs)
@@ -375,7 +375,7 @@ struct npc_obsidian_nullifier : public ScriptedAI
                     }
                 });
 
-                Acore::Containers::RandomResize(_targetGUIDs, 11);
+                Ycore::Containers::RandomResize(_targetGUIDs, 11);
             }
 
             for (ObjectGuid guid : _targetGUIDs)

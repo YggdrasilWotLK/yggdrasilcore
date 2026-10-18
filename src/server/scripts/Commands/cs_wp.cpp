@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -20,11 +20,11 @@
 #include "Player.h"
 #include "WaypointMgr.h"
 
-#if AC_COMPILER == AC_COMPILER_GNU
+#if YC_COMPILER == YC_COMPILER_GNU
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class wp_commandscript : public CommandScript
 {

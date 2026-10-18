@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -63,25 +63,25 @@ char const* GitRevision::GetMySQLExecutable()
     return _MYSQL_EXECUTABLE;
 }
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
 #  ifdef _WIN64
 #    define AZEROTH_PLATFORM_STR "Win64"
 #  else
 #    define AZEROTH_PLATFORM_STR "Win32"
 #  endif
-#else // AC_PLATFORM
+#else // YC_PLATFORM
 #  define AZEROTH_PLATFORM_STR "Unix"
 #endif
 
-#ifndef ACORE_API_USE_DYNAMIC_LINKING
-#  define ACORE_LINKAGE_TYPE_STR "Static"
+#ifndef YCORE_API_USE_DYNAMIC_LINKING
+#  define YCORE_LINKAGE_TYPE_STR "Static"
 #else
-#  define ACORE_LINKAGE_TYPE_STR "Dynamic"
+#  define YCORE_LINKAGE_TYPE_STR "Dynamic"
 #endif
 
 char const* GitRevision::GetFullVersion()
 {
-    return VER_COMPANYNAME_STR " rev. " VER_PRODUCTVERSION_STR " (" AZEROTH_PLATFORM_STR ", " _BUILD_DIRECTIVE ", " ACORE_LINKAGE_TYPE_STR ")"; // cppcheck-suppress unknownMacro
+    return VER_COMPANYNAME_STR " rev. " VER_PRODUCTVERSION_STR " (" AZEROTH_PLATFORM_STR ", " _BUILD_DIRECTIVE ", " YCORE_LINKAGE_TYPE_STR ")"; // cppcheck-suppress unknownMacro
 }
 
 char const* GitRevision::GetCompanyNameStr()

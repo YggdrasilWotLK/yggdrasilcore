@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -125,7 +125,7 @@ foreach(APPLICATION_NAME ${APPLICATIONS_BUILD_LIST})
 
   target_link_libraries(${APP_PROJECT_NAME}
     PRIVATE
-      acore-core-interface)
+      ycore-core-interface)
 
   if (${APP_PROJECT_NAME} MATCHES "authserver")
     target_link_libraries(${APP_PROJECT_NAME}

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_MAP_H
-#define ACORE_MAP_H
+#ifndef YCORE_MAP_H
+#define YCORE_MAP_H
 
 #include "Cell.h"
 #include "DBCStructure.h"
@@ -74,7 +74,7 @@ namespace VMAP
     enum class ModelIgnoreFlags : uint32;
 }
 
-namespace Acore
+namespace Ycore
 {
     struct ObjectUpdater;
     struct LargeObjectUpdater;
@@ -212,12 +212,12 @@ public:
     bool IsGridLoaded(GridCoord const& gridCoord) const;
     bool IsGridLoaded(float x, float y) const
     {
-        return IsGridLoaded(Acore::ComputeGridCoord(x, y));
+        return IsGridLoaded(Ycore::ComputeGridCoord(x, y));
     }
     bool IsGridCreated(GridCoord const& gridCoord) const;
     bool IsGridCreated(float x, float y) const
     {
-        return IsGridCreated(Acore::ComputeGridCoord(x, y));
+        return IsGridCreated(Ycore::ComputeGridCoord(x, y));
     }
 
     void LoadGrid(float x, float y);

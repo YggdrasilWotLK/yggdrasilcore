@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -122,7 +122,7 @@ void SecretMgr::AttemptLoad(Secrets i, LogLevel errorLevel, std::unique_lock<std
     // verify digest
     if (
         ((!oldDigest) != (!currentValue)) || // there is an old digest, but no current secret (or vice versa)
-        (oldDigest && !Acore::Crypto::Argon2::Verify(currentValue->AsHexStr(), *oldDigest)) // there is an old digest, and the current secret does not match it
+        (oldDigest && !Ycore::Crypto::Argon2::Verify(currentValue->AsHexStr(), *oldDigest)) // there is an old digest, and the current secret does not match it
         )
     {
         if (info.owner != THIS_SERVER_PROCESS)
@@ -139,7 +139,7 @@ void SecretMgr::AttemptLoad(Secrets i, LogLevel errorLevel, std::unique_lock<std
         if (oldDigest && info.oldKey) // there is an old digest, so there might be an old secret (if possible)
         {
             oldSecret = GetHexFromConfig(info.oldKey, info.bits);
-            if (oldSecret && !Acore::Crypto::Argon2::Verify(oldSecret->AsHexStr(), *oldDigest))
+            if (oldSecret && !Ycore::Crypto::Argon2::Verify(oldSecret->AsHexStr(), *oldDigest))
             {
                 LOG_MESSAGE_BODY("server.loading", errorLevel, "Invalid value for '{}' specified - this is not actually the secret previously used in your auth DB.", info.oldKey);
                 _secrets[i].state = Secret::LOAD_FAILED;
@@ -189,15 +189,15 @@ Optional<std::string> SecretMgr::AttemptTransition(Secrets i, Optional<BigNumber
                 if (hadOldSecret)
                 {
                     if (!oldSecret)
-                        return Acore::StringFormat("Cannot decrypt old TOTP tokens - add config key '{}' to authserver.conf!", secret_info[i].oldKey);
+                        return Ycore::StringFormat("Cannot decrypt old TOTP tokens - add config key '{}' to authserver.conf!", secret_info[i].oldKey);
 
-                    bool success = Acore::Crypto::AEDecrypt<Acore::Crypto::AES>(totpSecret, oldSecret->ToByteArray<Acore::Crypto::AES::KEY_SIZE_BYTES>());
+                    bool success = Ycore::Crypto::AEDecrypt<Ycore::Crypto::AES>(totpSecret, oldSecret->ToByteArray<Ycore::Crypto::AES::KEY_SIZE_BYTES>());
                     if (!success)
-                        return Acore::StringFormat("Cannot decrypt old TOTP tokens - value of '{}' is incorrect for some users!", secret_info[i].oldKey);
+                        return Ycore::StringFormat("Cannot decrypt old TOTP tokens - value of '{}' is incorrect for some users!", secret_info[i].oldKey);
                 }
 
                 if (newSecret)
-                    Acore::Crypto::AEEncryptWithRandomIV<Acore::Crypto::AES>(totpSecret, newSecret->ToByteArray<Acore::Crypto::AES::KEY_SIZE_BYTES>());
+                    Ycore::Crypto::AEEncryptWithRandomIV<Ycore::Crypto::AES>(totpSecret, newSecret->ToByteArray<Ycore::Crypto::AES::KEY_SIZE_BYTES>());
 
                 auto* updateStmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_ACCOUNT_TOTP_SECRET);
                 updateStmt->SetData(0, totpSecret);
@@ -222,7 +222,7 @@ Optional<std::string> SecretMgr::AttemptTransition(Secrets i, Optional<BigNumber
     {
         BigNumber salt;
         salt.SetRand(128);
-        Optional<std::string> hash = Acore::Crypto::Argon2::Hash(newSecret->AsHexStr(), salt);
+        Optional<std::string> hash = Ycore::Crypto::Argon2::Hash(newSecret->AsHexStr(), salt);
         if (!hash)
             return std::string("Failed to hash new secret");
 

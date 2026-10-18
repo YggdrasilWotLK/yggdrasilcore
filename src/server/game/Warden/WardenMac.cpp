@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -38,7 +38,7 @@ void WardenMac::Init(WorldSession* pClient, SessionKey const& K)
 {
     _session = pClient;
     // Generate Warden Key
-    SessionKeyGenerator<Acore::Crypto::SHA1> WK(K);
+    SessionKeyGenerator<Ycore::Crypto::SHA1> WK(K);
     WK.Generate(_inputKey, 16);
     WK.Generate(_outputKey, 16);
     /*
@@ -56,9 +56,9 @@ void WardenMac::Init(WorldSession* pClient, SessionKey const& K)
     _outputCrypto.Init(_outputKey);
 
     LOG_DEBUG("warden", "Server side warden for client {} initializing...", pClient->GetAccountId());
-    LOG_DEBUG("warden", "C->S Key: {}", Acore::Impl::ByteArrayToHexStr(_inputKey, 16));
-    LOG_DEBUG("warden", "S->C Key: {}", Acore::Impl::ByteArrayToHexStr(_outputKey, 16 ));
-    LOG_DEBUG("warden", "  Seed: {}", Acore::Impl::ByteArrayToHexStr(_seed, 16));
+    LOG_DEBUG("warden", "C->S Key: {}", Ycore::Impl::ByteArrayToHexStr(_inputKey, 16));
+    LOG_DEBUG("warden", "S->C Key: {}", Ycore::Impl::ByteArrayToHexStr(_outputKey, 16 ));
+    LOG_DEBUG("warden", "  Seed: {}", Ycore::Impl::ByteArrayToHexStr(_seed, 16));
     LOG_DEBUG("warden", "Loading Module...");
 
     _module = GetModuleForClient();
@@ -77,7 +77,7 @@ ClientWardenModule* WardenMac::GetModuleForClient()
     mod->CompressedData = Module_0DBBF209A27B1E279A9FEC5C168A15F7_Data.data();
 
     // md5 hash
-    mod->Id = Acore::Crypto::MD5::GetDigestOf(mod->CompressedData, mod->CompressedSize);
+    mod->Id = Ycore::Crypto::MD5::GetDigestOf(mod->CompressedData, mod->CompressedSize);
     return mod;
 }
 
@@ -147,7 +147,7 @@ void WardenMac::HandleHashResult(ByteBuffer& buff)
 
     buff.rpos(buff.wpos());
 
-    Acore::Crypto::SHA1 sha1;
+    Ycore::Crypto::SHA1 sha1;
     sha1.UpdateData((uint8*)keyIn, 16);
     sha1.Finalize();
 
@@ -227,13 +227,13 @@ void WardenMac::HandleData(ByteBuffer& buff)
 
     std::string str = "Test string!";
 
-    Acore::Crypto::SHA1 sha1;
+    Ycore::Crypto::SHA1 sha1;
     sha1.UpdateData(str);
     uint32 magic = 0xFEEDFACE;                              // unsure
     sha1.UpdateData((uint8*)&magic, 4);
     sha1.Finalize();
 
-    Acore::Crypto::SHA1::Digest sha1Hash{};
+    Ycore::Crypto::SHA1::Digest sha1Hash{};
     buff.read(sha1Hash.data(), sha1Hash.size());
 
     if (sha1Hash != sha1.GetDigest())
@@ -242,8 +242,8 @@ void WardenMac::HandleData(ByteBuffer& buff)
         //found = true;
     }
 
-    auto ourMD5Hash = Acore::Crypto::MD5::GetDigestOf(str);
-    Acore::Crypto::MD5::Digest theirsMD5Hash{};
+    auto ourMD5Hash = Ycore::Crypto::MD5::GetDigestOf(str);
+    Ycore::Crypto::MD5::Digest theirsMD5Hash{};
     buff.read(theirsMD5Hash);
 
     if (ourMD5Hash != theirsMD5Hash)

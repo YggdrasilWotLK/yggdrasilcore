@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -276,8 +276,8 @@ enum ServerConfigs
     CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_LIMIT_MIN_PLAYERS,
     CONFIG_BATTLEGROUND_WARSONG_FLAGS,
     CONFIG_BATTLEGROUND_ARATHI_CAPTUREPOINTS,
-    CONFIG_BATTLEGROUND_ALTERAC_REINFORCEMENTS,
-    CONFIG_BATTLEGROUND_ALTERAC_REP_ONBOSSDEATH,
+    CONFIG_BATTLEGROUND_ALTERYC_REINFORCEMENTS,
+    CONFIG_BATTLEGROUND_ALTERYC_REP_ONBOSSDEATH,
     CONFIG_BATTLEGROUND_EYEOFTHESTORM_CAPTUREPOINTS,
     CONFIG_WINTERGRASP_ENABLE,
     CONFIG_ARENA_PREP_TIME,

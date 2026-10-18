@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -334,8 +334,8 @@ bool OPvPCapturePoint::Update(uint32 diff)
     }
 
     std::list<Player*> players;
-    Acore::AnyPlayerInObjectRangeCheck checker(_capturePoint, radius);
-    Acore::PlayerListSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(_capturePoint, players, checker);
+    Ycore::AnyPlayerInObjectRangeCheck checker(_capturePoint, radius);
+    Ycore::PlayerListSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(_capturePoint, players, checker);
     Cell::VisitObjects(_capturePoint, searcher, radius);
 
     for (auto& itr : players)

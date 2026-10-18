@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -981,41 +981,41 @@ class spell_q12243_fire_upon_the_waters_aura : public AuraScript
 enum eSandC
 {
     QUEST_THE_SACRED_AND_THE_CORRUPT = 24545,
-    NPC_SAC_LICH_KING = 37857,
-    NPC_SAC_LIGHTS_VENGEANCE = 37826,
-    NPC_SAC_LIGHTS_VENGEANCE_VEH_1 = 37827,
-    NPC_SAC_LIGHTS_VENGEANCE_VEH_2 = 37952,
-    NPC_SAC_LIGHTS_VENGEANCE_BUNNY = 38001,
-    NPC_SAC_WRETCHED_GHOUL = 37881,
-    NPC_SAC_VEGARD_1 = 37893,
-    GO_SAC_LIGHTS_VENGEANCE_1 = 201844,
-    GO_SAC_LIGHTS_VENGEANCE_2 = 201922,
-    GO_SAC_LIGHTS_VENGEANCE_3 = 201937,
-    SPELL_SAC_STUN = 70583,
-    SPELL_SAC_REPEL_HAMMER = 70590,
-    SPELL_SAC_HOLY_ZONE_AURA = 70571,
-    SPELL_SAC_THROW_HAMMER = 70595,
-    SPELL_SAC_SUMMON_GO_1 = 70603,
-    SPELL_SAC_SUMMON_GHOULS_AURA = 70612,
-    SPELL_SAC_EMERGE = 50142,
-    SPELL_SAC_SHIELD_OF_THE_LICH_KING = 70692,
-    SPELL_SAC_ZAP_PLAYER = 70653,
-    SPELL_SAC_LK_DESPAWN_ANIM = 70673,
-    SPELL_SAC_VEGARD_SUMMON_GHOULS_AURA = 70737,
-    SPELL_SAC_GHOUL_AREA_AURA = 70782,
-    SPELL_SAC_HOLY_BOMB_VISUAL = 70785,
-    SPELL_SAC_HOLY_BOMB_EXPLOSION = 70786,
-    SPELL_SAC_ZAP_GHOULS_AURA = 70789,
-    SPELL_SAC_GHOUL_EXPLODE = 70787,
-    SPELL_SAC_KILL_VEGARD = 70792,
-    SPELL_SAC_SUMMON_GO_2 = 70894,
-    SPELL_SAC_SUMMON_VEGARD_SKELETON = 70862,
-    SPELL_SAC_HAMMER_SHIELD = 70970,
-    SPELL_SAC_SUMMON_GO_3 = 70967,
+    NPC_SYC_LICH_KING = 37857,
+    NPC_SYC_LIGHTS_VENGEANCE = 37826,
+    NPC_SYC_LIGHTS_VENGEANCE_VEH_1 = 37827,
+    NPC_SYC_LIGHTS_VENGEANCE_VEH_2 = 37952,
+    NPC_SYC_LIGHTS_VENGEANCE_BUNNY = 38001,
+    NPC_SYC_WRETCHED_GHOUL = 37881,
+    NPC_SYC_VEGARD_1 = 37893,
+    GO_SYC_LIGHTS_VENGEANCE_1 = 201844,
+    GO_SYC_LIGHTS_VENGEANCE_2 = 201922,
+    GO_SYC_LIGHTS_VENGEANCE_3 = 201937,
+    SPELL_SYC_STUN = 70583,
+    SPELL_SYC_REPEL_HAMMER = 70590,
+    SPELL_SYC_HOLY_ZONE_AURA = 70571,
+    SPELL_SYC_THROW_HAMMER = 70595,
+    SPELL_SYC_SUMMON_GO_1 = 70603,
+    SPELL_SYC_SUMMON_GHOULS_AURA = 70612,
+    SPELL_SYC_EMERGE = 50142,
+    SPELL_SYC_SHIELD_OF_THE_LICH_KING = 70692,
+    SPELL_SYC_ZAP_PLAYER = 70653,
+    SPELL_SYC_LK_DESPAWN_ANIM = 70673,
+    SPELL_SYC_VEGARD_SUMMON_GHOULS_AURA = 70737,
+    SPELL_SYC_GHOUL_AREA_AURA = 70782,
+    SPELL_SYC_HOLY_BOMB_VISUAL = 70785,
+    SPELL_SYC_HOLY_BOMB_EXPLOSION = 70786,
+    SPELL_SYC_ZAP_GHOULS_AURA = 70789,
+    SPELL_SYC_GHOUL_EXPLODE = 70787,
+    SPELL_SYC_KILL_VEGARD = 70792,
+    SPELL_SYC_SUMMON_GO_2 = 70894,
+    SPELL_SYC_SUMMON_VEGARD_SKELETON = 70862,
+    SPELL_SYC_HAMMER_SHIELD = 70970,
+    SPELL_SYC_SUMMON_GO_3 = 70967,
 
     // Xinef:
-    SPELL_SAC_BLUE_EXPLOSION = 70509,
-    SPELL_SAC_VEHICLE_CONTROL_AURA = 70510,
+    SPELL_SYC_BLUE_EXPLOSION = 70509,
+    SPELL_SYC_VEHICLE_CONTROL_AURA = 70510,
 };
 
 class WretchedGhoulCleaner
@@ -1023,7 +1023,7 @@ class WretchedGhoulCleaner
 public:
     void operator()(Creature* creature)
     {
-        if (creature->GetEntry() == NPC_SAC_WRETCHED_GHOUL && creature->GetDisplayId() != 11686 && creature->IsAlive())
+        if (creature->GetEntry() == NPC_SYC_WRETCHED_GHOUL && creature->GetDisplayId() != 11686 && creature->IsAlive())
             Unit::Kill(creature, creature);
     }
 };
@@ -1050,23 +1050,23 @@ public:
 
         void CleanAll(bool fromReset = true)
         {
-            if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_BUNNY, 150.0f, true))
+            if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_BUNNY, 150.0f, true))
                 c->RemoveAllAuras();
             if (fromReset)
             {
-                if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE, 150.0f, true))
+                if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE, 150.0f, true))
                     c->DespawnOrUnsummon(1ms);
-                if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
+                if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
                     c->RemoveAllAuras();
             }
-            if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_VEH_2, 150.0f, true))
+            if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_VEH_2, 150.0f, true))
                 c->DespawnOrUnsummon(1ms);
-            if (GameObject* go = me->FindNearestGameObject(GO_SAC_LIGHTS_VENGEANCE_1, 150.0f))
+            if (GameObject* go = me->FindNearestGameObject(GO_SYC_LIGHTS_VENGEANCE_1, 150.0f))
                 go->Delete();
-            if (GameObject* go = me->FindNearestGameObject(GO_SAC_LIGHTS_VENGEANCE_2, 150.0f))
+            if (GameObject* go = me->FindNearestGameObject(GO_SYC_LIGHTS_VENGEANCE_2, 150.0f))
                 go->Delete();
             WretchedGhoulCleaner cleaner;
-            Acore::CreatureWorker<WretchedGhoulCleaner> worker(me, cleaner);
+            Ycore::CreatureWorker<WretchedGhoulCleaner> worker(me, cleaner);
             Cell::VisitObjects(me, worker, 150.0f);
         }
 
@@ -1112,12 +1112,12 @@ public:
                 events.ScheduleEvent(15, 0ms);
             else if (data == 2)
             {
-                if (GameObject* go = me->FindNearestGameObject(GO_SAC_LIGHTS_VENGEANCE_2, 150.0f))
+                if (GameObject* go = me->FindNearestGameObject(GO_SYC_LIGHTS_VENGEANCE_2, 150.0f))
                     go->Delete();
-                if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
+                if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
                 {
-                    c->CastSpell(c, SPELL_SAC_HAMMER_SHIELD, true);
-                    c->CastSpell(c, SPELL_SAC_SUMMON_GO_3, true);
+                    c->CastSpell(c, SPELL_SYC_HAMMER_SHIELD, true);
+                    c->CastSpell(c, SPELL_SYC_SUMMON_GO_3, true);
                     if (Player* p = ObjectAccessor::GetPlayer(*me, playerGUID))
                         p->KnockbackFrom(c->GetPositionX(), c->GetPositionY(), 5.0f, 3.0f);
                 }
@@ -1125,11 +1125,11 @@ public:
             }
             else if (data == 3)
             {
-                if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
+                if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
                 {
                     c->RemoveAllAuras();
-                    c->CastSpell(c, SPELL_SAC_HOLY_ZONE_AURA, true);
-                    if (GameObject* go = me->FindNearestGameObject(GO_SAC_LIGHTS_VENGEANCE_3, 150.0f))
+                    c->CastSpell(c, SPELL_SYC_HOLY_ZONE_AURA, true);
+                    if (GameObject* go = me->FindNearestGameObject(GO_SYC_LIGHTS_VENGEANCE_3, 150.0f))
                         go->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                     playerGUID.Clear();
                     events.RescheduleEvent(2, 1min);
@@ -1148,11 +1148,11 @@ public:
                     CleanAll(false);
                     break;
                 case 999: // apply holy aura
-                    if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
-                        if (Creature* l = me->SummonCreature(NPC_SAC_LIGHTS_VENGEANCE, *c, TEMPSUMMON_MANUAL_DESPAWN))
+                    if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
+                        if (Creature* l = me->SummonCreature(NPC_SYC_LIGHTS_VENGEANCE, *c, TEMPSUMMON_MANUAL_DESPAWN))
                         {
-                            l->CastSpell(c, SPELL_SAC_VEHICLE_CONTROL_AURA, true);
-                            c->CastSpell(c, SPELL_SAC_HOLY_ZONE_AURA, true);
+                            l->CastSpell(c, SPELL_SYC_VEHICLE_CONTROL_AURA, true);
+                            c->CastSpell(c, SPELL_SYC_HOLY_ZONE_AURA, true);
                         }
                     break;
                 case 1: // check player
@@ -1176,7 +1176,7 @@ public:
                 case 3: // start event
                     if (Player* p = ObjectAccessor::GetPlayer(*me, playerGUID))
                     {
-                        me->CastSpell(p, SPELL_SAC_STUN, true);
+                        me->CastSpell(p, SPELL_SYC_STUN, true);
                         me->SetVisible(true);
                         Movement::PointsArray path;
                         path.push_back(G3D::Vector3(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ()));
@@ -1196,17 +1196,17 @@ public:
                     events.ScheduleEvent(7, 11s);
                     break;
                 case 6: // repel hammer
-                    me->CastSpell((Unit*)nullptr, SPELL_SAC_REPEL_HAMMER, false);
-                    if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
-                        c->CastSpell(c, SPELL_SAC_BLUE_EXPLOSION, true);
+                    me->CastSpell((Unit*)nullptr, SPELL_SYC_REPEL_HAMMER, false);
+                    if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
+                        c->CastSpell(c, SPELL_SYC_BLUE_EXPLOSION, true);
 
                     events.ScheduleEvent(65, 3500ms);
                     break;
                 case 65: // spawn hammer go
-                    if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_BUNNY, 150.0f, true))
+                    if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_BUNNY, 150.0f, true))
                     {
-                        c->CastSpell(c, SPELL_SAC_HOLY_ZONE_AURA, true);
-                        c->CastSpell(c, SPELL_SAC_SUMMON_GO_1, true);
+                        c->CastSpell(c, SPELL_SYC_HOLY_ZONE_AURA, true);
+                        c->CastSpell(c, SPELL_SYC_SUMMON_GO_1, true);
                     }
                     break;
                 case 7: // talk 2
@@ -1215,48 +1215,48 @@ public:
                     events.ScheduleEvent(9, 11s + 500ms);
                     break;
                 case 8: // summon ghouls
-                    me->CastSpell((Unit*)nullptr, SPELL_SAC_SUMMON_GHOULS_AURA, false);
+                    me->CastSpell((Unit*)nullptr, SPELL_SYC_SUMMON_GHOULS_AURA, false);
                     break;
                 case 9: // talk 3
                     Talk(3);
                     events.ScheduleEvent(10, 10s);
                     break;
                 case 10: // summon vegard
-                    me->SummonCreature(NPC_SAC_VEGARD_1, 4812.12f, -586.08f, 162.49f, 3.14f, TEMPSUMMON_MANUAL_DESPAWN);
+                    me->SummonCreature(NPC_SYC_VEGARD_1, 4812.12f, -586.08f, 162.49f, 3.14f, TEMPSUMMON_MANUAL_DESPAWN);
                     events.ScheduleEvent(11, 4s);
                     events.ScheduleEvent(12, 5s);
                     break;
                 case 11: // vagard shield
-                    if (Creature* c = me->FindNearestCreature(NPC_SAC_VEGARD_1, 50.0f, true))
-                        c->CastSpell(c, SPELL_SAC_SHIELD_OF_THE_LICH_KING, false);
+                    if (Creature* c = me->FindNearestCreature(NPC_SYC_VEGARD_1, 50.0f, true))
+                        c->CastSpell(c, SPELL_SYC_SHIELD_OF_THE_LICH_KING, false);
                     break;
                 case 12: // talk 4
                     Talk(4);
                     if (Player* p = ObjectAccessor::GetPlayer(*me, playerGUID))
-                        me->CastSpell(p, SPELL_SAC_ZAP_PLAYER, false);
+                        me->CastSpell(p, SPELL_SYC_ZAP_PLAYER, false);
                     events.ScheduleEvent(13, 3500ms);
                     events.ScheduleEvent(14, 6s);
                     break;
                 case 13: // despawn
-                    me->CastSpell(me, SPELL_SAC_LK_DESPAWN_ANIM, false);
+                    me->CastSpell(me, SPELL_SYC_LK_DESPAWN_ANIM, false);
                     break;
                 case 14: // vagard talk 0
                     me->SetVisible(false);
                     me->RemoveAllAuras();
-                    if (Creature* c = me->FindNearestCreature(NPC_SAC_VEGARD_1, 50.0f, true))
+                    if (Creature* c = me->FindNearestCreature(NPC_SYC_VEGARD_1, 50.0f, true))
                     {
                         c->AI()->Talk(0);
-                        c->CastSpell(c, SPELL_SAC_VEGARD_SUMMON_GHOULS_AURA, false);
+                        c->CastSpell(c, SPELL_SYC_VEGARD_SUMMON_GHOULS_AURA, false);
                     }
-                    if (GameObject* go = me->FindNearestGameObject(GO_SAC_LIGHTS_VENGEANCE_1, 150.0f))
+                    if (GameObject* go = me->FindNearestGameObject(GO_SYC_LIGHTS_VENGEANCE_1, 150.0f))
                         go->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                     break;
                 case 15: // remove light
-                    if (Creature* x = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_VEH_2, 150.0f, true))
-                        if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_BUNNY, 150.0f, true))
+                    if (Creature* x = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_VEH_2, 150.0f, true))
+                        if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_BUNNY, 150.0f, true))
                         {
-                            c->RemoveAurasDueToSpell(SPELL_SAC_HOLY_ZONE_AURA);
-                            if (Creature* l = me->SummonCreature(NPC_SAC_LIGHTS_VENGEANCE, *c, TEMPSUMMON_MANUAL_DESPAWN))
+                            c->RemoveAurasDueToSpell(SPELL_SYC_HOLY_ZONE_AURA);
+                            if (Creature* l = me->SummonCreature(NPC_SYC_LIGHTS_VENGEANCE, *c, TEMPSUMMON_MANUAL_DESPAWN))
                             {
                                 x->SetCanFly(true);
                                 x->SetDisableGravity(true);
@@ -1264,34 +1264,34 @@ public:
                                 x->NearTeleportTo(4812.09f, -585.55f, 172.03f, 3.75f);
                                 l->EnterVehicle(x, 1);
                                 //l->ClearUnitState(UNIT_STATE_ONVEHICLE);
-                                l->CastSpell(l, SPELL_SAC_HOLY_BOMB_VISUAL, false);
-                                l->AddAura(SPELL_SAC_HOLY_BOMB_VISUAL, l);
+                                l->CastSpell(l, SPELL_SYC_HOLY_BOMB_VISUAL, false);
+                                l->AddAura(SPELL_SYC_HOLY_BOMB_VISUAL, l);
                                 events.ScheduleEvent(16, 5s);
                             }
                         }
                     break;
                 case 16: // add aura to kill ghouls
-                    if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE, 150.0f, true))
-                        c->CastSpell(c, SPELL_SAC_ZAP_GHOULS_AURA, true);
-                    if (Creature* c = me->FindNearestCreature(NPC_SAC_VEGARD_1, 50.0f, true))
-                        c->RemoveAurasDueToSpell(SPELL_SAC_VEGARD_SUMMON_GHOULS_AURA);
+                    if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE, 150.0f, true))
+                        c->CastSpell(c, SPELL_SYC_ZAP_GHOULS_AURA, true);
+                    if (Creature* c = me->FindNearestCreature(NPC_SYC_VEGARD_1, 50.0f, true))
+                        c->RemoveAurasDueToSpell(SPELL_SYC_VEGARD_SUMMON_GHOULS_AURA);
                     events.ScheduleEvent(17, 12s);
                     break;
                 case 17: // kill vegard
                     {
                         WretchedGhoulCleaner cleaner;
-                        Acore::CreatureWorker<WretchedGhoulCleaner> worker(me, cleaner);
+                        Ycore::CreatureWorker<WretchedGhoulCleaner> worker(me, cleaner);
                         Cell::VisitObjects(me, worker, 150.0f);
 
-                        if (Creature* c = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE, 150.0f, true))
-                            if (Creature* v = me->FindNearestCreature(NPC_SAC_VEGARD_1, 50.0f, true))
-                                if (Creature* b = me->FindNearestCreature(NPC_SAC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
+                        if (Creature* c = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE, 150.0f, true))
+                            if (Creature* v = me->FindNearestCreature(NPC_SYC_VEGARD_1, 50.0f, true))
+                                if (Creature* b = me->FindNearestCreature(NPC_SYC_LIGHTS_VENGEANCE_VEH_1, 150.0f, true))
                                 {
-                                    c->CastSpell(v, SPELL_SAC_KILL_VEGARD, true);
+                                    c->CastSpell(v, SPELL_SYC_KILL_VEGARD, true);
                                     v->SetDisplayId(11686);
                                     v->DespawnOrUnsummon(1s);
-                                    b->CastSpell(b, SPELL_SAC_HOLY_BOMB_EXPLOSION, true);
-                                    b->CastSpell(b, SPELL_SAC_SUMMON_GO_2, true);
+                                    b->CastSpell(b, SPELL_SYC_HOLY_BOMB_EXPLOSION, true);
+                                    b->CastSpell(b, SPELL_SYC_SUMMON_GO_2, true);
                                     if (Unit* vb = c->GetVehicleBase())
                                     {
                                         if (Unit* pass = vb->GetVehicleKit()->GetPassenger(0))
@@ -1305,7 +1305,7 @@ public:
                     }
                     break;
                 case 18: // summon vegard
-                    me->CastSpell(me, SPELL_SAC_SUMMON_VEGARD_SKELETON, true);
+                    me->CastSpell(me, SPELL_SYC_SUMMON_VEGARD_SKELETON, true);
                     break;
             }
         }
@@ -1322,12 +1322,12 @@ public:
 
         void SpellHitTarget(Unit* target, SpellInfo const* spell) override
         {
-            if (spell->Id == SPELL_SAC_REPEL_HAMMER && target->IsCreature())
+            if (spell->Id == SPELL_SYC_REPEL_HAMMER && target->IsCreature())
             {
-                target->CastSpell((Unit*)nullptr, SPELL_SAC_THROW_HAMMER, true);
+                target->CastSpell((Unit*)nullptr, SPELL_SYC_THROW_HAMMER, true);
                 target->ToCreature()->DespawnOrUnsummon(1ms);
                 if (Unit* c = target->GetVehicleBase())
-                    c->RemoveAurasDueToSpell(SPELL_SAC_HOLY_ZONE_AURA);
+                    c->RemoveAurasDueToSpell(SPELL_SYC_HOLY_ZONE_AURA);
             }
         }
     };
@@ -1341,7 +1341,7 @@ public:
     bool OnTrigger(Player* player, AreaTrigger const* /*areaTrigger*/) override
     {
         if (player->GetPhaseMask() & 2)
-            if (Creature* c = player->FindNearestCreature(NPC_SAC_LICH_KING, 60.0f, true))
+            if (Creature* c = player->FindNearestCreature(NPC_SYC_LICH_KING, 60.0f, true))
                 c->AI()->SetGUID(player->GetGUID());
 
         return true;
@@ -1360,7 +1360,7 @@ public:
         _owner->GetMotionMaster()->MoveRandom(5.0f);
         _owner->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         _owner->SetReactState(REACT_AGGRESSIVE);
-        _owner->CastSpell(_owner, SPELL_SAC_GHOUL_AREA_AURA, true);
+        _owner->CastSpell(_owner, SPELL_SYC_GHOUL_AREA_AURA, true);
         return true;
     }
 
@@ -1413,7 +1413,7 @@ public:
                 Activate();
             else if (a == -2)
             {
-                me->CastSpell(me, SPELL_SAC_GHOUL_EXPLODE, true);
+                me->CastSpell(me, SPELL_SYC_GHOUL_EXPLODE, true);
                 me->KillSelf();
                 me->m_Events.KillAllEvents(true);
                 Deactivate();
@@ -1438,7 +1438,7 @@ public:
         void Activate()
         {
             me->SetDisplayId(me->GetNativeDisplayId());
-            me->CastSpell(me, SPELL_SAC_EMERGE, true);
+            me->CastSpell(me, SPELL_SYC_EMERGE, true);
             me->m_Events.AddEventAtOffset(new SACActivateEvent(me), 4s);
         }
 
@@ -1451,7 +1451,7 @@ public:
 
         void JustDied(Unit* /*killer*/) override
         {
-            me->RemoveAurasDueToSpell(SPELL_SAC_GHOUL_AREA_AURA);
+            me->RemoveAurasDueToSpell(SPELL_SYC_GHOUL_AREA_AURA);
             me->m_Events.AddEventAtOffset(new SACDeactivateEvent(me), 4s);
         }
 
@@ -1481,7 +1481,7 @@ class spell_q24545_aod_special : public SpellScript
     void FilterTargets(std::list<WorldObject*>& targets)
     {
         targets.remove_if(GhoulTargetCheck(GetSpellInfo()->Id == 70790));
-        Acore::Containers::RandomResize(targets, 2);
+        Ycore::Containers::RandomResize(targets, 2);
     }
 
     void HandleScript(SpellEffIndex effIndex)
@@ -1523,7 +1523,7 @@ public:
             if (!done)
             {
                 done = true;
-                me->CastSpell(me, SPELL_SAC_EMERGE, true);
+                me->CastSpell(me, SPELL_SYC_EMERGE, true);
             }
         }
     };
@@ -1560,7 +1560,7 @@ public:
         {
             Talk(1);
             me->DespawnOrUnsummon(10s);
-            if (Creature* c = me->FindNearestCreature(NPC_SAC_LICH_KING, 200.0f, true))
+            if (Creature* c = me->FindNearestCreature(NPC_SYC_LICH_KING, 200.0f, true))
                 c->AI()->SetData(3, 3);
         }
 
@@ -1607,7 +1607,7 @@ public:
                     break;
                 case 6:
                     Talk(0);
-                    me->CastSpell(me, SPELL_SAC_EMERGE, true);
+                    me->CastSpell(me, SPELL_SYC_EMERGE, true);
                     break;
             }
             DoMeleeAttackIfReady();
@@ -2259,7 +2259,7 @@ class spell_dragonblight_flame_fury : public AuraScript
     {
         if (Unit* owner = GetUnitOwner())
             if (GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_EXPIRE && !owner->IsAlive())
-                owner->CastSpell(owner, Acore::Containers::SelectRandomContainerElement(spellIds), true);
+                owner->CastSpell(owner, Ycore::Containers::SelectRandomContainerElement(spellIds), true);
     }
 
 private:

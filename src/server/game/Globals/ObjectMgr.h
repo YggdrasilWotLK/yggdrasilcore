@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -484,21 +484,21 @@ struct CellObjectGuids
 typedef std::unordered_map<uint32/*cell_id*/, CellObjectGuids> CellObjectGuidsMap;
 typedef std::unordered_map<uint32/*(mapid, spawnMode) pair*/, CellObjectGuidsMap> MapObjectGuids;
 
-// Acore string ranges
-#define MIN_ACORE_STRING_ID           1                    // 'acore_string'
-#define MAX_ACORE_STRING_ID           2000000000
+// Ycore string ranges
+#define MIN_YCORE_STRING_ID           1                    // 'acore_string'
+#define MAX_YCORE_STRING_ID           2000000000
 #define MIN_CREATURE_AI_TEXT_STRING_ID (-1)                 // 'creature_ai_texts'
 #define MAX_CREATURE_AI_TEXT_STRING_ID (-1000000)
 
-// Acore Trainer Reference start range
-#define ACORE_TRAINER_START_REF      200000
+// Ycore Trainer Reference start range
+#define YCORE_TRAINER_START_REF      200000
 
 struct ModuleString
 {
     std::vector<std::string> Content;
 };
 
-struct AcoreString
+struct YcoreString
 {
     std::vector<std::string> Content;
 };
@@ -517,7 +517,7 @@ typedef std::unordered_map<uint32, QuestRequestItemsLocale> QuestRequestItemsLoc
 typedef std::unordered_map<uint32, NpcTextLocale> NpcTextLocaleContainer;
 typedef std::unordered_map<uint32, PageTextLocale> PageTextLocaleContainer;
 typedef std::map<std::pair<std::string, uint32>, ModuleString> ModuleStringContainer;
-typedef std::unordered_map<int32, AcoreString> AcoreStringContainer;
+typedef std::unordered_map<int32, YcoreString> YcoreStringContainer;
 typedef std::unordered_map<uint32, GossipMenuItemsLocale> GossipMenuItemsLocaleContainer;
 typedef std::unordered_map<uint32, PointOfInterestLocale> PointOfInterestLocaleContainer;
 typedef std::unordered_map<uint32, VehicleSeatAddon> VehicleSeatAddonContainer;
@@ -1028,7 +1028,7 @@ public:
 
     bool LoadModuleStrings();
     bool LoadModuleStringsLocale();
-    bool LoadAcoreStrings();
+    bool LoadYcoreStrings();
     void LoadBroadcastTexts();
     void LoadBroadcastTextLocales();
     void LoadCreatureClassLevelStats();
@@ -1321,16 +1321,16 @@ public:
     }
     [[nodiscard]] std::string const* GetModuleString(std::string module, uint32 id, LocaleConstant locale) const;
 
-    [[nodiscard]] AcoreString const* GetAcoreString(uint32 entry) const
+    [[nodiscard]] YcoreString const* GetYcoreString(uint32 entry) const
     {
-        AcoreStringContainer::const_iterator itr = _acoreStringStore.find(entry);
-        if (itr == _acoreStringStore.end())
+        YcoreStringContainer::const_iterator itr = _ycoreStringStore.find(entry);
+        if (itr == _ycoreStringStore.end())
             return nullptr;
 
         return &itr->second;
     }
-    [[nodiscard]] std::string GetAcoreString(uint32 entry, LocaleConstant locale) const;
-    [[nodiscard]] std::string GetAcoreStringForDBCLocale(uint32 entry) const { return GetAcoreString(entry, DBCLocaleIndex); }
+    [[nodiscard]] std::string GetYcoreString(uint32 entry, LocaleConstant locale) const;
+    [[nodiscard]] std::string GetYcoreStringForDBCLocale(uint32 entry) const { return GetYcoreString(entry, DBCLocaleIndex); }
     [[nodiscard]] LocaleConstant GetDBCLocaleIndex() const { return DBCLocaleIndex; }
     void SetDBCLocaleIndex(LocaleConstant locale) { DBCLocaleIndex = locale; }
 
@@ -1624,7 +1624,7 @@ private:
     NpcTextLocaleContainer _npcTextLocaleStore;
     PageTextLocaleContainer _pageTextLocaleStore;
     ModuleStringContainer _moduleStringStore;
-    AcoreStringContainer _acoreStringStore;
+    YcoreStringContainer _ycoreStringStore;
     GossipMenuItemsLocaleContainer _gossipMenuItemsLocaleStore;
     PointOfInterestLocaleContainer _pointOfInterestLocaleStore;
 

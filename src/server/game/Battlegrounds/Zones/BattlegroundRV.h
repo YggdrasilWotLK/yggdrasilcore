@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -78,7 +78,7 @@ enum BattlegroundRVData
     BG_RV_STATE_CLOSE_FIRE,
 };
 
-class AC_GAME_API BattlegroundRV : public Arena
+class YC_GAME_API BattlegroundRV : public Arena
 {
 public:
     BattlegroundRV();

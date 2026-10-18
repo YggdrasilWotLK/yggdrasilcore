@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -604,14 +604,14 @@ bool Object::_LoadIntoDataField(std::string const& data, uint32 startOffset, uin
     if (data.empty())
         return false;
 
-    std::vector<std::string_view> tokens = Acore::Tokenize(data, ' ', false);
+    std::vector<std::string_view> tokens = Ycore::Tokenize(data, ' ', false);
 
     if (tokens.size() != count)
         return false;
 
     for (uint32 index = 0; index < count; ++index)
     {
-        Optional<uint32> val = Acore::StringTo<uint32>(tokens[index]);
+        Optional<uint32> val = Ycore::StringTo<uint32>(tokens[index]);
         if (!val)
         {
             return false;
@@ -1550,8 +1550,8 @@ void WorldObject::GetRandomPoint(const Position& pos, float distance, float& ran
     rand_y = pos.m_positionY + new_dist * std::sin(angle);
     rand_z = pos.m_positionZ;
 
-    Acore::NormalizeMapCoord(rand_x);
-    Acore::NormalizeMapCoord(rand_y);
+    Ycore::NormalizeMapCoord(rand_x);
+    Ycore::NormalizeMapCoord(rand_y);
     UpdateGroundPositionZ(rand_x, rand_y, rand_z);            // update to LOS height if available
 }
 
@@ -2097,13 +2097,13 @@ void WorldObject::SendMessageToSet(WorldPacket const* data, bool self) const
 
 void WorldObject::SendMessageToSetInRange(WorldPacket const* data, float dist, bool /*self*/) const
 {
-    Acore::MessageDistDeliverer notifier(this, data, dist);
+    Ycore::MessageDistDeliverer notifier(this, data, dist);
     notifier.Visit(GetObjectVisibilityContainer().GetVisiblePlayersMap());
 }
 
 void WorldObject::SendMessageToSet(WorldPacket const* data, Player const* skipped_rcvr) const
 {
-    Acore::MessageDistDeliverer notifier(this, data, 0.0f, false, skipped_rcvr);
+    Ycore::MessageDistDeliverer notifier(this, data, 0.0f, false, skipped_rcvr);
     notifier.Visit(GetObjectVisibilityContainer().GetVisiblePlayersMap());
 }
 
@@ -2268,7 +2268,7 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
     summon->InitSummon();
 
     // call MoveInLineOfSight for nearby creatures
-    Acore::AIRelocationNotifier notifier(*summon);
+    Ycore::AIRelocationNotifier notifier(*summon);
     Cell::VisitObjects(summon, notifier, GetVisibilityRange());
 
     return summon;
@@ -2452,8 +2452,8 @@ void WorldObject::SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list 
 Creature* WorldObject::FindNearestCreature(uint32 entry, float range, bool alive) const
 {
     Creature* creature = nullptr;
-    Acore::NearestCreatureEntryWithLiveStateInObjectRangeCheck checker(*this, entry, alive, range);
-    Acore::CreatureLastSearcher<Acore::NearestCreatureEntryWithLiveStateInObjectRangeCheck> searcher(this, creature, checker);
+    Ycore::NearestCreatureEntryWithLiveStateInObjectRangeCheck checker(*this, entry, alive, range);
+    Ycore::CreatureLastSearcher<Ycore::NearestCreatureEntryWithLiveStateInObjectRangeCheck> searcher(this, creature, checker);
     Cell::VisitObjects(this, searcher, range);
     return creature;
 }
@@ -2461,8 +2461,8 @@ Creature* WorldObject::FindNearestCreature(uint32 entry, float range, bool alive
 GameObject* WorldObject::FindNearestGameObject(uint32 entry, float range, bool onlySpawned /*= false*/) const
 {
     GameObject* go = nullptr;
-    Acore::NearestGameObjectEntryInObjectRangeCheck checker(*this, entry, range, onlySpawned);
-    Acore::GameObjectLastSearcher<Acore::NearestGameObjectEntryInObjectRangeCheck> searcher(this, go, checker);
+    Ycore::NearestGameObjectEntryInObjectRangeCheck checker(*this, entry, range, onlySpawned);
+    Ycore::GameObjectLastSearcher<Ycore::NearestGameObjectEntryInObjectRangeCheck> searcher(this, go, checker);
     Cell::VisitObjects(this, searcher, range);
     return go;
 }
@@ -2470,8 +2470,8 @@ GameObject* WorldObject::FindNearestGameObject(uint32 entry, float range, bool o
 GameObject* WorldObject::FindNearestGameObjectOfType(GameobjectTypes type, float range) const
 {
     GameObject* go = nullptr;
-    Acore::NearestGameObjectTypeInObjectRangeCheck checker(*this, type, range);
-    Acore::GameObjectLastSearcher<Acore::NearestGameObjectTypeInObjectRangeCheck> searcher(this, go, checker);
+    Ycore::NearestGameObjectTypeInObjectRangeCheck checker(*this, type, range);
+    Ycore::GameObjectLastSearcher<Ycore::NearestGameObjectTypeInObjectRangeCheck> searcher(this, go, checker);
     Cell::VisitObjects(this, searcher, range);
     return go;
 }
@@ -2480,8 +2480,8 @@ Player* WorldObject::SelectNearestPlayer(float distance) const
 {
     Player* target = nullptr;
 
-    Acore::NearestPlayerInObjectRangeCheck checker(this, distance);
-    Acore::PlayerLastSearcher<Acore::NearestPlayerInObjectRangeCheck> searcher(this, target, checker);
+    Ycore::NearestPlayerInObjectRangeCheck checker(this, distance);
+    Ycore::PlayerLastSearcher<Ycore::NearestPlayerInObjectRangeCheck> searcher(this, target, checker);
     Cell::VisitObjects(this, searcher, distance);
 
     return target;
@@ -2498,41 +2498,41 @@ std::string WorldObject::GetDebugInfo() const
 
 void WorldObject::GetGameObjectListWithEntryInGrid(std::list<GameObject*>& gameobjectList, uint32 entry, float maxSearchRange) const
 {
-    Acore::AllGameObjectsWithEntryInRange check(this, entry, maxSearchRange);
-    Acore::GameObjectListSearcher<Acore::AllGameObjectsWithEntryInRange> searcher(this, gameobjectList, check);
+    Ycore::AllGameObjectsWithEntryInRange check(this, entry, maxSearchRange);
+    Ycore::GameObjectListSearcher<Ycore::AllGameObjectsWithEntryInRange> searcher(this, gameobjectList, check);
     Cell::VisitObjects(this, searcher, maxSearchRange);
 }
 
 void WorldObject::GetGameObjectListWithEntryInGrid(std::list<GameObject*>& gameobjectList, std::vector<uint32> const& entries, float maxSearchRange) const
 {
-    Acore::AllGameObjectsMatchingOneEntryInRange check(this, entries, maxSearchRange);
-    Acore::GameObjectListSearcher searcher(this, gameobjectList, check);
+    Ycore::AllGameObjectsMatchingOneEntryInRange check(this, entries, maxSearchRange);
+    Ycore::GameObjectListSearcher searcher(this, gameobjectList, check);
     Cell::VisitObjects(this, searcher, maxSearchRange);
 }
 
 void WorldObject::GetCreatureListWithEntryInGrid(std::list<Creature*>& creatureList, uint32 entry, float maxSearchRange) const
 {
-    Acore::AllCreaturesOfEntryInRange check(this, entry, maxSearchRange);
-    Acore::CreatureListSearcher<Acore::AllCreaturesOfEntryInRange> searcher(this, creatureList, check);
+    Ycore::AllCreaturesOfEntryInRange check(this, entry, maxSearchRange);
+    Ycore::CreatureListSearcher<Ycore::AllCreaturesOfEntryInRange> searcher(this, creatureList, check);
     Cell::VisitObjects(this, searcher, maxSearchRange);
 }
 
 void WorldObject::GetCreatureListWithEntryInGrid(std::list<Creature*>& creatureList, std::vector<uint32> const& entries, float maxSearchRange) const
 {
-    Acore::AllCreaturesMatchingOneEntryInRange check(this, entries, maxSearchRange);
-    Acore::CreatureListSearcher searcher(this, creatureList, check);
+    Ycore::AllCreaturesMatchingOneEntryInRange check(this, entries, maxSearchRange);
+    Ycore::CreatureListSearcher searcher(this, creatureList, check);
     Cell::VisitObjects(this, searcher, maxSearchRange);
 }
 
 void WorldObject::GetDeadCreatureListInGrid(std::list<Creature*>& creaturedeadList, float maxSearchRange, bool alive /*= false*/) const
 {
-    Acore::AllDeadCreaturesInRange check(this, maxSearchRange, alive);
-    Acore::CreatureListSearcher<Acore::AllDeadCreaturesInRange> searcher(this, creaturedeadList, check);
+    Ycore::AllDeadCreaturesInRange check(this, maxSearchRange, alive);
+    Ycore::CreatureListSearcher<Ycore::AllDeadCreaturesInRange> searcher(this, creaturedeadList, check);
     Cell::VisitObjects(this, searcher, maxSearchRange);
 }
 
 /*
-namespace Acore
+namespace Ycore
 {
     class NearUsedPosDo
     {
@@ -2601,7 +2601,7 @@ namespace Acore
             float              i_angle;
             ObjectPosSelector& i_selector;
     };
-}                                                           // namespace Acore
+}                                                           // namespace Ycore
 */
 
 //===================================================================================================
@@ -2634,8 +2634,8 @@ void WorldObject::GetNearPoint2D(WorldObject const* searcher, float& x, float& y
     x = positionX + (effectiveReach + distance2d) * std::cos(absAngle);
     y = positionY + (effectiveReach + distance2d) * std::sin(absAngle);
 
-    Acore::NormalizeMapCoord(x);
-    Acore::NormalizeMapCoord(y);
+    Ycore::NormalizeMapCoord(x);
+    Ycore::NormalizeMapCoord(y);
 }
 
 void WorldObject::GetNearPoint2D(float& x, float& y, float distance2d, float absAngle, Position const* startPos) const
@@ -2801,7 +2801,7 @@ void WorldObject::MovePosition(Position& pos, float dist, float angle)
     desty = pos.m_positionY + dist * std::sin(angle);
 
     // Prevent invalid coordinates here, position is unchanged
-    if (!Acore::IsValidMapCoord(destx, desty))
+    if (!Ycore::IsValidMapCoord(destx, desty))
     {
         LOG_FATAL("entities.object", "WorldObject::MovePosition invalid coordinates X: {} and Y: {} were passed!", destx, desty);
         return;
@@ -2832,8 +2832,8 @@ void WorldObject::MovePosition(Position& pos, float dist, float angle)
         }
     }
 
-    Acore::NormalizeMapCoord(pos.m_positionX);
-    Acore::NormalizeMapCoord(pos.m_positionY);
+    Ycore::NormalizeMapCoord(pos.m_positionX);
+    Ycore::NormalizeMapCoord(pos.m_positionY);
     UpdateGroundPositionZ(pos.m_positionX, pos.m_positionY, pos.m_positionZ);
     pos.SetOrientation(GetOrientation());
 }
@@ -2918,8 +2918,8 @@ void WorldObject::PlayDirectSound(uint32 sound_id, Player* target /*= nullptr*/)
 void WorldObject::PlayRadiusSound(uint32 sound_id, float radius)
 {
     std::vector<Player*> targets;
-    Acore::AnyPlayerInObjectRangeCheck check(this, radius, false);
-    Acore::PlayerListSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(this, targets, check);
+    Ycore::AnyPlayerInObjectRangeCheck check(this, radius, false);
+    Ycore::PlayerListSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(this, targets, check);
     Cell::VisitObjects(this, searcher, radius);
 
     for (Player* player : targets)
@@ -2937,8 +2937,8 @@ void WorldObject::PlayDirectMusic(uint32 music_id, Player* target /*= nullptr*/)
 void WorldObject::PlayRadiusMusic(uint32 music_id, float radius)
 {
     std::vector<Player*> targets;
-    Acore::AnyPlayerInObjectRangeCheck check(this, radius, false);
-    Acore::PlayerListSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(this, targets, check);
+    Ycore::AnyPlayerInObjectRangeCheck check(this, radius, false);
+    Ycore::PlayerListSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(this, targets, check);
     Cell::VisitObjects(this, searcher, radius);
 
     for (Player* player : targets)
@@ -2966,7 +2966,7 @@ void WorldObject::DestroyForVisiblePlayers()
 void WorldObject::UpdateObjectVisibility(bool /*forced*/, bool /*fromUpdate*/)
 {
     //updates object's visibility for nearby players
-    Acore::VisibleChangesNotifier notifier(*this);
+    Ycore::VisibleChangesNotifier notifier(*this);
     Cell::VisitObjects(this, notifier, GetVisibilityRange());
 }
 
@@ -3013,8 +3013,8 @@ void WorldObject::BuildUpdate(UpdateDataMapType& data_map)
 
 void WorldObject::GetCreaturesWithEntryInRange(std::list<Creature*>& creatureList, float radius, uint32 entry)
 {
-    Acore::AllCreaturesOfEntryInRange check(this, entry, radius);
-    Acore::CreatureListSearcher<Acore::AllCreaturesOfEntryInRange> searcher(this, creatureList, check);
+    Ycore::AllCreaturesOfEntryInRange check(this, entry, radius);
+    Ycore::CreatureListSearcher<Ycore::AllCreaturesOfEntryInRange> searcher(this, creatureList, check);
     Cell::VisitObjects(this, searcher, radius);
 }
 

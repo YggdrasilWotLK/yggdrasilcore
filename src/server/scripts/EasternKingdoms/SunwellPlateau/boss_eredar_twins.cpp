@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -30,11 +30,11 @@
 enum Quotes
 {
     YELL_INTRO_SAC              = 0,
-    YELL_SAC_DEAD               = 4,
+    YELL_SYC_DEAD               = 4,
     EMOTE_SHADOW_NOVA           = 5,
     YELL_ENRAGE                 = 6,
     YELL_SISTER_ALYTHESS_DEAD   = 7,
-    YELL_SAC_KILL               = 8,
+    YELL_SYC_KILL               = 8,
     YELL_SHADOW_NOVA            = 9,
 
     YELL_INTRO_ALY              = 0,
@@ -161,7 +161,7 @@ struct boss_sacrolash : public BossAI
                 std::list<Unit*> targets;
                 alythess->AI()->SelectTargetList(targets, 6, SelectTargetMethod::MaxThreat, 0, 100.0f, true, false);
                 if (!targets.empty())
-                    target = Acore::Containers::SelectRandomContainerElement(targets);
+                    target = Ycore::Containers::SelectRandomContainerElement(targets);
             }
             if (!target)
                 target = me->GetVictim();
@@ -175,7 +175,7 @@ struct boss_sacrolash : public BossAI
     void KilledUnit(Unit* victim) override
     {
         if (victim->IsPlayer() && urand(0, 1))
-            Talk(YELL_SAC_KILL);
+            Talk(YELL_SYC_KILL);
     }
 
     void JustDied(Unit* /*killer*/) override
@@ -184,7 +184,7 @@ struct boss_sacrolash : public BossAI
 
         if (_isSisterDead)
         {
-            Talk(YELL_SAC_DEAD);
+            Talk(YELL_SYC_DEAD);
             instance->SetBossState(DATA_EREDAR_TWINS, DONE);
         }
         else if (Creature* alythess = instance->GetCreature(DATA_ALYTHESS))
@@ -295,7 +295,7 @@ struct boss_alythess : public BossAI
                 std::list<Unit*> targets;
                 sacrolash->AI()->SelectTargetList(targets, 6, SelectTargetMethod::MaxThreat, 0, 100.0f, true, false);
                 if (!targets.empty())
-                    target = Acore::Containers::SelectRandomContainerElement(targets);
+                    target = Ycore::Containers::SelectRandomContainerElement(targets);
             }
             if (!target)
                 target = me->GetVictim();
@@ -309,7 +309,7 @@ struct boss_alythess : public BossAI
     void KilledUnit(Unit* victim) override
     {
         if (victim->IsPlayer() && urand(0, 1))
-            Talk(YELL_SAC_KILL);
+            Talk(YELL_SYC_KILL);
     }
 
     void JustDied(Unit* /*killer*/) override
@@ -318,7 +318,7 @@ struct boss_alythess : public BossAI
 
         if (_isSisterDead)
         {
-            Talk(YELL_SAC_DEAD);
+            Talk(YELL_SYC_DEAD);
             instance->SetBossState(DATA_EREDAR_TWINS, DONE);
         }
         else if (Creature* sacrolash = instance->GetCreature(DATA_SACROLASH))
@@ -403,7 +403,7 @@ class spell_eredar_twins_flame_sear : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        Acore::Containers::RandomResize(targets,5);
+        Ycore::Containers::RandomResize(targets,5);
         targets.remove(GetCaster()->GetVictim());
     }
 

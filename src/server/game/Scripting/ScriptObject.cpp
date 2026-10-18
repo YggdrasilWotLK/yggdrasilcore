@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -38,6 +38,6 @@ void MapScript<TMap>::checkMap()
         LOG_ERROR("maps.script", "Invalid MapScript for {}; no such map ID.", _mapId);
 }
 
-template class AC_GAME_API MapScript<Map>;
-template class AC_GAME_API MapScript<InstanceMap>;
-template class AC_GAME_API MapScript<BattlegroundMap>;
+template class YC_GAME_API MapScript<Map>;
+template class YC_GAME_API MapScript<InstanceMap>;
+template class YC_GAME_API MapScript<BattlegroundMap>;

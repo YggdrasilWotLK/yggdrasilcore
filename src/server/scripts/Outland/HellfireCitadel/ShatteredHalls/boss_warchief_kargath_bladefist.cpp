@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -285,14 +285,14 @@ class spell_blade_dance_targeting : public SpellScript
                 return true;
             });
 
-        Acore::Containers::RandomResize(targets2, 1);
+        Ycore::Containers::RandomResize(targets2, 1);
 
         if (urand(0, 2))
         {
             if (targets.empty())
                 targets = targets2;
             else
-                Acore::Containers::RandomResize(targets, 1);
+                Ycore::Containers::RandomResize(targets, 1);
         }
         else
             targets = targets2;

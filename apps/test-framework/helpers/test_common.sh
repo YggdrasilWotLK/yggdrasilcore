@@ -3,17 +3,17 @@
 # AzerothCore Test Common Utilities
 # Shared functions and setup for all BATS tests
 
-export AC_TEST_FRAMEWORK_VERSION="1.0.0"
+export YC_TEST_FRAMEWORK_VERSION="1.0.0"
 
 # Get paths
-AC_TEST_FRAMEWORK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-AC_PROJECT_ROOT="$(cd "$AC_TEST_FRAMEWORK_DIR/../.." && pwd)"
+YC_TEST_FRAMEWORK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+YC_PROJECT_ROOT="$(cd "$YC_TEST_FRAMEWORK_DIR/../.." && pwd)"
 
 # Common test environment setup
 setup_test_env() {
     export TEST_DIR="$(mktemp -d)"
-    export AC_TEST_ROOT="$AC_PROJECT_ROOT"
-    export AC_TEST_APPS="$AC_TEST_ROOT/apps"
+    export YC_TEST_ROOT="$YC_PROJECT_ROOT"
+    export YC_TEST_APPS="$YC_TEST_ROOT/apps"
     
     # Create standard test directory structure
     mkdir -p "$TEST_DIR"/{bin,etc,logs,data,crashes,build}
@@ -24,7 +24,7 @@ setup_test_env() {
     
     # Common environment variables for AzerothCore
     export BUILDPATH="$TEST_DIR/build"
-    export SRCPATH="$AC_TEST_ROOT"
+    export SRCPATH="$YC_TEST_ROOT"
     export BINPATH="$TEST_DIR/bin"
     export LOGS_PATH="$TEST_DIR/logs"
 }
@@ -72,7 +72,7 @@ EOF
 }
 
 # Create AzerothCore specific test binaries
-create_acore_binaries() {
+create_ycore_binaries() {
     create_test_binary "authserver" 0 1 "AuthServer initialized"
     create_test_binary "worldserver" 0 2 "WorldServer initialized"
     create_test_binary "cmake" 0 1 "CMake configured"
@@ -84,16 +84,16 @@ create_acore_binaries() {
 }
 
 # Create AzerothCore specific test configs
-create_acore_configs() {
-    create_test_config "authserver.conf" 'Database.Info = "127.0.0.1;3306;acore;acore;acore_auth"
-LoginDatabaseInfo = "127.0.0.1;3306;acore;acore;acore_auth"'
+create_ycore_configs() {
+    create_test_config "authserver.conf" 'Database.Info = "127.0.0.1;3306;acore;acore;ycore_auth"
+LoginDatabaseInfo = "127.0.0.1;3306;acore;acore;ycore_auth"'
     
-    create_test_config "worldserver.conf" 'Database.Info = "127.0.0.1;3306;acore;acore;acore_world"
-LoginDatabaseInfo = "127.0.0.1;3306;acore;acore;acore_auth"
-CharacterDatabaseInfo = "127.0.0.1;3306;acore;acore;acore_characters"'
+    create_test_config "worldserver.conf" 'Database.Info = "127.0.0.1;3306;acore;acore;ycore_world"
+LoginDatabaseInfo = "127.0.0.1;3306;acore;acore;ycore_auth"
+CharacterDatabaseInfo = "127.0.0.1;3306;acore;acore;ycore_characters"'
     
     create_test_config "config.sh" "export BUILDPATH=\"$TEST_DIR/build\"
-export SRCPATH=\"$AC_TEST_ROOT\"
+export SRCPATH=\"$YC_TEST_ROOT\"
 export BINPATH=\"$TEST_DIR/bin\"
 export LOGS_PATH=\"$TEST_DIR/logs\""
 }
@@ -109,7 +109,7 @@ export SERVERBIN="$binary_name"
 export CONFIG="$TEST_DIR/etc/$binary_name.conf"
 export LOGS_PATH="$TEST_DIR/logs"
 export LOG_PREFIX_NAME="$script_name"
-export SCREEN_NAME="AC-$script_name"
+export SCREEN_NAME="YC-$script_name"
 export GDB_ENABLED=0
 export WITH_CONSOLE=1
 EOF
@@ -132,8 +132,8 @@ debug_on_failure() {
 print_test_env() {
     echo "Test Environment:" >&3
     echo "  TEST_DIR: $TEST_DIR" >&3
-    echo "  AC_TEST_ROOT: $AC_TEST_ROOT" >&3
-    echo "  AC_TEST_APPS: $AC_TEST_APPS" >&3
+    echo "  YC_TEST_ROOT: $YC_TEST_ROOT" >&3
+    echo "  YC_TEST_APPS: $YC_TEST_APPS" >&3
     echo "  PATH: $PATH" >&3
 }
 

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,15 +15,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_BANNER_H
-#define AZEROTHCORE_BANNER_H
+#ifndef YGGDRASILCORE_BANNER_H
+#define YGGDRASILCORE_BANNER_H
 
 #include "Define.h"
 #include <string_view>
 
-namespace Acore::Banner
+namespace Ycore::Banner
 {
-    AC_COMMON_API void Show(std::string_view applicationName, void(*log)(std::string_view text), void(*logExtraInfo)());
+    YC_COMMON_API void Show(std::string_view applicationName, void(*log)(std::string_view text), void(*logExtraInfo)());
 }
 
-#endif // AZEROTHCORE_BANNER_H
+#endif // YGGDRASILCORE_BANNER_H

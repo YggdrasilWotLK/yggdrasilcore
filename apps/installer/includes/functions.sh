@@ -11,7 +11,7 @@ function inst_configureOS() {
     echo "Platform: $OSTYPE"
     case "$OSTYPE" in
         solaris*) echo "Solaris is not supported yet" ;;
-        darwin*)  source "$AC_PATH_INSTALLER/includes/os_configs/osx.sh" ;;
+        darwin*)  source "$YC_PATH_INSTALLER/includes/os_configs/osx.sh" ;;
         linux*)
             # If $OSDISTRO is set, use this value (from config.sh)
             if [ ! -z "$OSDISTRO" ]; then
@@ -46,10 +46,10 @@ function inst_configureOS() {
             echo "Distro: $DISTRO"
 
             # TODO: implement different configurations by distro
-            source "$AC_PATH_INSTALLER/includes/os_configs/$DISTRO.sh"
+            source "$YC_PATH_INSTALLER/includes/os_configs/$DISTRO.sh"
         ;;
         *bsd*)     echo "BSD is not supported yet" ;;
-        msys*)    source "$AC_PATH_INSTALLER/includes/os_configs/windows.sh" ;;
+        msys*)    source "$YC_PATH_INSTALLER/includes/os_configs/windows.sh" ;;
         *)        echo "This platform is not supported" ;;
     esac
 }
@@ -60,7 +60,7 @@ function inst_dbCreate() {
 
     # Attempt to connect with MYSQL_ROOT_PASSWORD
     if [ ! -z "$MYSQL_ROOT_PASSWORD" ]; then
-        if $SUDO mysql -u root -p"$MYSQL_ROOT_PASSWORD" < "$AC_PATH_ROOT/data/sql/create/create_mysql.sql" 2>/dev/null; then
+        if $SUDO mysql -u root -p"$MYSQL_ROOT_PASSWORD" < "$YC_PATH_ROOT/data/sql/create/create_mysql.sql" 2>/dev/null; then
             echo "Database created successfully."
             return 0
         else
@@ -72,7 +72,7 @@ function inst_dbCreate() {
     if [[ "$CONTINUOUS_INTEGRATION" == "true" ]]; then
         echo "CI environment detected, attempting connection without password..."
 
-        if $SUDO mysql -u root < "$AC_PATH_ROOT/data/sql/create/create_mysql.sql" 2>/dev/null; then
+        if $SUDO mysql -u root < "$YC_PATH_ROOT/data/sql/create/create_mysql.sql" 2>/dev/null; then
             echo "Database created successfully."
             return 0
         else
@@ -82,7 +82,7 @@ function inst_dbCreate() {
 
     # Try with password (interactive mode)
     echo "Please enter your sudo and your MySQL root password if prompted."
-    $SUDO mysql -u root -p < "$AC_PATH_ROOT/data/sql/create/create_mysql.sql"
+    $SUDO mysql -u root -p < "$YC_PATH_ROOT/data/sql/create/create_mysql.sql"
     if [ $? -ne 0 ]; then
         echo "Database creation failed. Please check your MySQL server and credentials."
         exit 1
@@ -91,7 +91,7 @@ function inst_dbCreate() {
 }
 
 function inst_updateRepo() {
-    cd "$AC_PATH_ROOT"
+    cd "$YC_PATH_ROOT"
     if [ ! -z $INSTALLER_PULL_FROM ]; then
         git pull "$ORIGIN_REMOTE" "$INSTALLER_PULL_FROM"
     else
@@ -100,7 +100,7 @@ function inst_updateRepo() {
 }
 
 function inst_resetRepo() {
-    cd "$AC_PATH_ROOT"
+    cd "$YC_PATH_ROOT"
     git reset --hard $(git rev-parse --abbrev-ref HEAD)
     git clean -f
 }
@@ -132,7 +132,7 @@ function inst_get_default_branch() {
     local repo="$1"
     local def
     def=$(curl --silent "https://api.github.com/repos/azerothcore/${repo}" \
-        | "$AC_PATH_DEPS/jsonpath/JSONPath.sh" -b '$.default_branch')
+        | "$YC_PATH_DEPS/jsonpath/JSONPath.sh" -b '$.default_branch')
     if [ -z "$def" ]; then
         def="master"
     fi
@@ -143,11 +143,11 @@ function inst_get_default_branch() {
 # Module Management System
 # =============================================================================
 # Load the module manager functions from the dedicated modules-manager directory
-source "$AC_PATH_INSTALLER/includes/modules-manager/modules.sh"
+source "$YC_PATH_INSTALLER/includes/modules-manager/modules.sh"
 
 function inst_simple_restarter {
     echo "Running $1 ..."
-    bash "$AC_PATH_APPS/startup-scripts/src/simple-restarter" "$AC_BINPATH_FULL" "$1"
+    bash "$YC_PATH_APPS/startup-scripts/src/simple-restarter" "$YC_BINPATH_FULL" "$1"
     echo
     #disown -a
     #jobs -l
@@ -162,7 +162,7 @@ function inst_download_client_data {
     echo "#######################"
 
     # first check if it's defined in env, otherwise use the default
-    local path="${DATAPATH:-$AC_BINPATH_FULL}"
+    local path="${DATAPATH:-$YC_BINPATH_FULL}"
     local zipPath="${DATAPATH_ZIP:-"$path/data.zip"}"
 
     dataVersionFile="$path/data-version"

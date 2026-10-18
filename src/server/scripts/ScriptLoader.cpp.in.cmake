@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -18,49 +18,49 @@
 // This file was created automatically from your script configuration!
 // Use CMake to reconfigure this file, never change it on your own!
 
-#cmakedefine ACORE_IS_DYNAMIC_SCRIPTLOADER
+#cmakedefine YCORE_IS_DYNAMIC_SCRIPTLOADER
 
 #include "Define.h"
 #include <vector>
 #include <string>
 
 // Add default scripts include
-@ACORE_SCRIPTS_FORWARD_DECL@
-#ifdef ACORE_IS_DYNAMIC_SCRIPTLOADER
+@YCORE_SCRIPTS_FORWARD_DECL@
+#ifdef YCORE_IS_DYNAMIC_SCRIPTLOADER
 #  include "revision.h"
-#  define AC_SCRIPT_API AC_API_EXPORT
+#  define YC_SCRIPT_API YC_API_EXPORT
 extern "C" {
 
 /// Exposed in script modules to return the script module revision hash.
-AC_SCRIPT_API char const* GetScriptModuleRevisionHash()
+YC_SCRIPT_API char const* GetScriptModuleRevisionHash()
 {
     return _HASH;
 }
 
 /// Exposed in script module to return the name of the script module
 /// contained in this shared library.
-AC_SCRIPT_API char const* GetScriptModule()
+YC_SCRIPT_API char const* GetScriptModule()
 {
-    return "@ACORE_CURRENT_SCRIPT_PROJECT@";
+    return "@YCORE_CURRENT_SCRIPT_PROJECT@";
 }
 
 #else
 #  include "ScriptLoader.h"
-#  define AC_SCRIPT_API
+#  define YC_SCRIPT_API
 #endif
 
 /// Exposed in script modules to register all scripts to the ScriptMgr.
-AC_SCRIPT_API void AddScripts()
+YC_SCRIPT_API void AddScripts()
 {
     // Default scripts
-@ACORE_SCRIPTS_INVOKE@}
+@YCORE_SCRIPTS_INVOKE@}
 
 /// Exposed in script modules to get the build directive of the module.
-AC_SCRIPT_API char const* GetBuildDirective()
+YC_SCRIPT_API char const* GetBuildDirective()
 {
     return _BUILD_DIRECTIVE;
 }
 
-#ifdef ACORE_IS_DYNAMIC_SCRIPTLOADER
+#ifdef YCORE_IS_DYNAMIC_SCRIPTLOADER
 } // extern "C"
 #endif

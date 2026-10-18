@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -52,7 +52,7 @@ target_include_directories(game
 
 target_link_libraries(game
   PRIVATE
-    acore-core-interface
+    ycore-core-interface
   PUBLIC
     game-interface)
 

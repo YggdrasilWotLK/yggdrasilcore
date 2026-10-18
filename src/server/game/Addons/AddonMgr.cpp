@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -78,8 +78,8 @@ namespace AddonMgr
                 Field* fields = result->Fetch();
 
                 uint32 Id = fields[0].Get<uint32>() + offset;
-                std::array<uint8, 16> NameMD5 = Acore::Crypto::MD5::GetDigestOf(fields[1].Get<std::string>());
-                std::array<uint8, 16> VersionMD5 = Acore::Crypto::MD5::GetDigestOf(fields[2].Get<std::string>());
+                std::array<uint8, 16> NameMD5 = Ycore::Crypto::MD5::GetDigestOf(fields[1].Get<std::string>());
+                std::array<uint8, 16> VersionMD5 = Ycore::Crypto::MD5::GetDigestOf(fields[2].Get<std::string>());
                 uint32 Timestamp = uint32(fields[3].Get<uint64>());
 
                 m_bannedAddons.emplace_back(Id, NameMD5, VersionMD5, Timestamp);

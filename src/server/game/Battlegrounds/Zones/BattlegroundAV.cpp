@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1287,7 +1287,7 @@ bool BattlegroundAV::SetupBattleground()
         _reputationTower = uint32(12 * _avReputationRate);
         _reputationCaptain = uint32(125 * _avReputationRate);
         // Special case: This value comes from another config setting, but we still apply our multiplier
-        _reputationBoss = uint32(sWorld->getIntConfig(CONFIG_BATTLEGROUND_ALTERAC_REP_ONBOSSDEATH) * _avReputationRate);
+        _reputationBoss = uint32(sWorld->getIntConfig(CONFIG_BATTLEGROUND_ALTERYC_REP_ONBOSSDEATH) * _avReputationRate);
         _reputationPerOwnedGraveyard = uint32(12 * _avReputationRate);
         _reputationSurvivingCaptain = uint32(125 * _avReputationRate);
         _reputationSurvivingTower = uint32(12 * _avReputationRate);

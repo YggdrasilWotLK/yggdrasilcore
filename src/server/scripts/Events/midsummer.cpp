@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -698,7 +698,7 @@ struct npc_midsummer_ribbon_pole_target : public ScriptedAI
         {
             if (!_dancerList.empty())
             {
-                Acore::Containers::RandomShuffle(_dancerList);
+                Ycore::Containers::RandomShuffle(_dancerList);
 
                 for (uint8 i = 0; (i < MAX_COUNT_SPEW_LAVA_TARGETS) && (i < _dancerList.size()); i++)
                 {
@@ -907,7 +907,7 @@ class spell_torch_target_picker : public SpellScript
             return;
 
         // keep single random element only
-        WorldObject* const bunny = Acore::Containers::SelectRandomContainerElement(targets);
+        WorldObject* const bunny = Ycore::Containers::SelectRandomContainerElement(targets);
         targets.clear();
         targets.push_back(bunny);
     }

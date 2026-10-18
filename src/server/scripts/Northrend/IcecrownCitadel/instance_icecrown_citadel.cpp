@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1613,7 +1613,7 @@ public:
                     if (stalkers.empty())
                         return;
 
-                    stalkers.sort(Acore::ObjectDistanceOrderPred(teleporter));
+                    stalkers.sort(Ycore::ObjectDistanceOrderPred(teleporter));
                     stalkers.front()->CastSpell((Unit*)nullptr, SPELL_ARTHAS_TELEPORTER_CEREMONY, false);
                     stalkers.pop_front();
                     for (std::list<Creature*>::iterator itr = stalkers.begin(); itr != stalkers.end(); ++itr)
@@ -1846,7 +1846,7 @@ public:
                         GetCreatureListWithEntryInGrid(triggers, terenas, NPC_WORLD_TRIGGER_INFINITE_AOI, 100.0f);
                         if (!triggers.empty())
                         {
-                            triggers.sort(Acore::ObjectDistanceOrderPred(terenas, false));
+                            triggers.sort(Ycore::ObjectDistanceOrderPred(terenas, false));
                             Unit* visual = triggers.front();
                             visual->CastSpell(visual, SPELL_FROSTMOURNE_TELEPORT_VISUAL, true);
                         }
@@ -1923,7 +1923,7 @@ public:
                     return;
             }
 
-            go->Relocate(Acore::Containers::SelectRandomContainerElement(trapPositions));
+            go->Relocate(Ycore::Containers::SelectRandomContainerElement(trapPositions));
         }
 
     protected:

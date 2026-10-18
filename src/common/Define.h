@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,83 +15,83 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_DEFINE_H
-#define ACORE_DEFINE_H
+#ifndef YCORE_DEFINE_H
+#define YCORE_DEFINE_H
 
 #include "CompilerDefs.h"
 #include <cinttypes>
 #include <climits>
 
-#define ACORE_LITTLEENDIAN 0
-#define ACORE_BIGENDIAN    1
+#define YCORE_LITTLEENDIAN 0
+#define YCORE_BIGENDIAN    1
 
-#if !defined(ACORE_ENDIAN)
+#if !defined(YCORE_ENDIAN)
 #  if defined (BOOST_BIG_ENDIAN)
-#    define ACORE_ENDIAN ACORE_BIGENDIAN
+#    define YCORE_ENDIAN YCORE_BIGENDIAN
 #  else
-#    define ACORE_ENDIAN ACORE_LITTLEENDIAN
+#    define YCORE_ENDIAN YCORE_LITTLEENDIAN
 #  endif
 #endif
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
-#  define ACORE_PATH_MAX MAX_PATH
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
+#  define YCORE_PATH_MAX MAX_PATH
 #  define _USE_MATH_DEFINES
-#else //AC_PLATFORM != AC_PLATFORM_WINDOWS
-#  define ACORE_PATH_MAX PATH_MAX
-#endif //AC_PLATFORM
+#else //YC_PLATFORM != YC_PLATFORM_WINDOWS
+#  define YCORE_PATH_MAX PATH_MAX
+#endif //YC_PLATFORM
 
 #if !defined(COREDEBUG)
-#  define ACORE_INLINE inline
+#  define YCORE_INLINE inline
 #else //COREDEBUG
-#  if !defined(ACORE_DEBUG)
-#    define ACORE_DEBUG
-#  endif //ACORE_DEBUG
-#  define ACORE_INLINE
+#  if !defined(YCORE_DEBUG)
+#    define YCORE_DEBUG
+#  endif //YCORE_DEBUG
+#  define YCORE_INLINE
 #endif //!COREDEBUG
 
-#if AC_COMPILER == AC_COMPILER_GNU
+#if YC_COMPILER == YC_COMPILER_GNU
 #  define ATTR_PRINTF(F, V) __attribute__ ((format (printf, F, V)))
-#else //AC_COMPILER != AC_COMPILER_GNU
+#else //YC_COMPILER != YC_COMPILER_GNU
 #  define ATTR_PRINTF(F, V)
-#endif //AC_COMPILER == AC_COMPILER_GNU
+#endif //YC_COMPILER == YC_COMPILER_GNU
 
-#ifdef ACORE_API_USE_DYNAMIC_LINKING
-#  if AC_COMPILER == AC_COMPILER_MICROSOFT
-#    define AC_API_EXPORT __declspec(dllexport)
-#    define AC_API_IMPORT __declspec(dllimport)
-#  elif AC_COMPILER == AC_COMPILER_GNU
-#    define AC_API_EXPORT __attribute__((visibility("default")))
-#    define AC_API_IMPORT
+#ifdef YCORE_API_USE_DYNAMIC_LINKING
+#  if YC_COMPILER == YC_COMPILER_MICROSOFT
+#    define YC_API_EXPORT __declspec(dllexport)
+#    define YC_API_IMPORT __declspec(dllimport)
+#  elif YC_COMPILER == YC_COMPILER_GNU
+#    define YC_API_EXPORT __attribute__((visibility("default")))
+#    define YC_API_IMPORT
 #  else
 #    error compiler not supported!
 #  endif
 #else
-#  define AC_API_EXPORT
-#  define AC_API_IMPORT
+#  define YC_API_EXPORT
+#  define YC_API_IMPORT
 #endif
 
-#ifdef ACORE_API_EXPORT_COMMON
-#  define AC_COMMON_API AC_API_EXPORT
+#ifdef YCORE_API_EXPORT_COMMON
+#  define YC_COMMON_API YC_API_EXPORT
 #else
-#  define AC_COMMON_API AC_API_IMPORT
+#  define YC_COMMON_API YC_API_IMPORT
 #endif
 
-#ifdef ACORE_API_EXPORT_DATABASE
-#  define AC_DATABASE_API AC_API_EXPORT
+#ifdef YCORE_API_EXPORT_DATABASE
+#  define YC_DATABASE_API YC_API_EXPORT
 #else
-#  define AC_DATABASE_API AC_API_IMPORT
+#  define YC_DATABASE_API YC_API_IMPORT
 #endif
 
-#ifdef ACORE_API_EXPORT_SHARED
-#  define AC_SHARED_API AC_API_EXPORT
+#ifdef YCORE_API_EXPORT_SHARED
+#  define YC_SHARED_API YC_API_EXPORT
 #else
-#  define AC_SHARED_API AC_API_IMPORT
+#  define YC_SHARED_API YC_API_IMPORT
 #endif
 
-#ifdef ACORE_API_EXPORT_GAME
-#  define AC_GAME_API AC_API_EXPORT
+#ifdef YCORE_API_EXPORT_GAME
+#  define YC_GAME_API YC_API_EXPORT
 #else
-#  define AC_GAME_API AC_API_IMPORT
+#  define YC_GAME_API YC_API_IMPORT
 #endif
 
 #define UI64LIT(N) UINT64_C(N)
@@ -108,4 +108,4 @@ typedef std::uint32_t uint32;
 typedef std::uint16_t uint16;
 typedef std::uint8_t uint8;
 
-#endif //ACORE_DEFINE_H
+#endif //YCORE_DEFINE_H

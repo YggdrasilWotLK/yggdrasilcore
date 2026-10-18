@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -50,8 +50,8 @@
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 
-#ifndef _ACORE_REALM_CONFIG
-#define _ACORE_REALM_CONFIG "authserver.conf"
+#ifndef _YCORE_REALM_CONFIG
+#define _YCORE_REALM_CONFIG "authserver.conf"
 #endif
 
 using boost::asio::ip::tcp;
@@ -60,7 +60,7 @@ namespace fs = std::filesystem;
 
 bool StartDB();
 void StopDB();
-void SignalHandler(std::weak_ptr<Acore::Asio::IoContext> ioContextRef, boost::system::error_code const& error, int signalNumber);
+void SignalHandler(std::weak_ptr<Ycore::Asio::IoContext> ioContextRef, boost::system::error_code const& error, int signalNumber);
 void KeepDatabaseAliveHandler(std::weak_ptr<boost::asio::steady_timer> dbPingTimerRef, int32 dbPingInterval, boost::system::error_code const& error);
 void BanExpiryHandler(std::weak_ptr<boost::asio::steady_timer> banExpiryCheckTimerRef, int32 banExpiryCheckInterval, boost::system::error_code const& error);
 variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile);
@@ -68,11 +68,11 @@ variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile);
 /// Launch the auth server
 int main(int argc, char** argv)
 {
-    Acore::Impl::CurrentServerProcessHolder::_type = SERVER_PROCESS_AUTHSERVER;
-    signal(SIGABRT, &Acore::AbortHandler);
+    Ycore::Impl::CurrentServerProcessHolder::_type = SERVER_PROCESS_AUTHSERVER;
+    signal(SIGABRT, &Ycore::AbortHandler);
 
     // Command line parsing
-    auto configFile = fs::path(sConfigMgr->GetConfigPath() + std::string(_ACORE_REALM_CONFIG));
+    auto configFile = fs::path(sConfigMgr->GetConfigPath() + std::string(_YCORE_REALM_CONFIG));
     auto vm = GetConsoleArguments(argc, argv, configFile);
 
     // exit if help or version is enabled
@@ -89,7 +89,7 @@ int main(int argc, char** argv)
     sLog->RegisterAppender<AppenderDB>();
     sLog->Initialize(nullptr);
 
-    Acore::Banner::Show("authserver",
+    Ycore::Banner::Show("authserver",
         [](std::string_view text)
         {
             LOG_INFO("server.authserver", text);
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 
     std::shared_ptr<void> dbHandle(nullptr, [](void*) { StopDB(); });
 
-    std::shared_ptr<Acore::Asio::IoContext> ioContext = std::make_shared<Acore::Asio::IoContext>();
+    std::shared_ptr<Ycore::Asio::IoContext> ioContext = std::make_shared<Ycore::Asio::IoContext>();
 
     // Get the list of realms for the server
     sRealmList->Initialize(*ioContext, sConfigMgr->GetOption<int32>("RealmsStateUpdateDelay", 20));
@@ -169,10 +169,10 @@ int main(int argc, char** argv)
 
     // Set signal handlers
     boost::asio::signal_set signals(*ioContext, SIGINT, SIGTERM);
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     signals.add(SIGBREAK);
 #endif
-    signals.async_wait(std::bind(&SignalHandler, std::weak_ptr<Acore::Asio::IoContext>(ioContext), std::placeholders::_1, std::placeholders::_2));
+    signals.async_wait(std::bind(&SignalHandler, std::weak_ptr<Ycore::Asio::IoContext>(ioContext), std::placeholders::_1, std::placeholders::_2));
 
     // Set process priority according to configuration settings
     SetProcessPriority("server.authserver", sConfigMgr->GetOption<int32>(CONFIG_PROCESSOR_AFFINITY, 0), sConfigMgr->GetOption<bool>(CONFIG_HIGH_PRIORITY, false));
@@ -181,13 +181,13 @@ int main(int argc, char** argv)
     int32 dbPingInterval = sConfigMgr->GetOption<int32>("MaxPingTime", 30);
     std::shared_ptr<boost::asio::steady_timer> dbPingTimer = std::make_shared<boost::asio::steady_timer>(*ioContext);
 
-    dbPingTimer->expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(dbPingInterval * MINUTE));
+    dbPingTimer->expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(dbPingInterval * MINUTE));
     dbPingTimer->async_wait(std::bind(&KeepDatabaseAliveHandler, std::weak_ptr<boost::asio::steady_timer>(dbPingTimer), dbPingInterval, std::placeholders::_1));
 
     int32 banExpiryCheckInterval = sConfigMgr->GetOption<int32>("BanExpiryCheckInterval", 60);
     std::shared_ptr<boost::asio::steady_timer> banExpiryCheckTimer = std::make_shared<boost::asio::steady_timer>(*ioContext);
 
-    banExpiryCheckTimer->expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(banExpiryCheckInterval));
+    banExpiryCheckTimer->expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(banExpiryCheckInterval));
     banExpiryCheckTimer->async_wait(std::bind(&BanExpiryHandler, std::weak_ptr<boost::asio::steady_timer>(banExpiryCheckTimer), banExpiryCheckInterval, std::placeholders::_1));
 
     // Start the io service worker loop
@@ -230,11 +230,11 @@ void StopDB()
     MySQL::Library_End();
 }
 
-void SignalHandler(std::weak_ptr<Acore::Asio::IoContext> ioContextRef, boost::system::error_code const& error, int /*signalNumber*/)
+void SignalHandler(std::weak_ptr<Ycore::Asio::IoContext> ioContextRef, boost::system::error_code const& error, int /*signalNumber*/)
 {
     if (!error)
     {
-        if (std::shared_ptr<Acore::Asio::IoContext> ioContext = ioContextRef.lock())
+        if (std::shared_ptr<Ycore::Asio::IoContext> ioContext = ioContextRef.lock())
         {
             ioContext->stop();
         }
@@ -250,7 +250,7 @@ void KeepDatabaseAliveHandler(std::weak_ptr<boost::asio::steady_timer> dbPingTim
             LOG_DEBUG("sql.driver", "Ping MySQL to keep connection alive");
             LoginDatabase.KeepAlive();
 
-            dbPingTimer->expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(dbPingInterval));
+            dbPingTimer->expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(dbPingInterval));
             dbPingTimer->async_wait(std::bind(&KeepDatabaseAliveHandler, dbPingTimerRef, dbPingInterval, std::placeholders::_1));
         }
     }
@@ -265,7 +265,7 @@ void BanExpiryHandler(std::weak_ptr<boost::asio::steady_timer> banExpiryCheckTim
             LoginDatabase.Execute(LoginDatabase.GetPreparedStatement(LOGIN_DEL_EXPIRED_IP_BANS));
             LoginDatabase.Execute(LoginDatabase.GetPreparedStatement(LOGIN_UPD_EXPIRED_ACCOUNT_BANS));
 
-            banExpiryCheckTimer->expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(banExpiryCheckInterval));
+            banExpiryCheckTimer->expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(banExpiryCheckInterval));
             banExpiryCheckTimer->async_wait(std::bind(&BanExpiryHandler, banExpiryCheckTimerRef, banExpiryCheckInterval, std::placeholders::_1));
         }
     }
@@ -278,7 +278,7 @@ variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile)
         ("help,h", "print usage message")
         ("version,v", "print version build info")
         ("dry-run,d", "Dry run")
-        ("config,c", value<fs::path>(&configFile)->default_value(fs::path(sConfigMgr->GetConfigPath() + std::string(_ACORE_REALM_CONFIG))), "use <arg> as configuration file");
+        ("config,c", value<fs::path>(&configFile)->default_value(fs::path(sConfigMgr->GetConfigPath() + std::string(_YCORE_REALM_CONFIG))), "use <arg> as configuration file");
 
     variables_map variablesMap;
 

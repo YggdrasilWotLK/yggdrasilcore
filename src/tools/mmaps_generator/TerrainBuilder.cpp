@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -143,7 +143,7 @@ namespace MMAP
     /**************************************************************************/
     bool TerrainBuilder::loadMap(uint32 mapID, uint32 tileX, uint32 tileY, MeshData& meshData, Spot portion)
     {
-        const std::string mapFileName = Acore::StringFormat(
+        const std::string mapFileName = Ycore::StringFormat(
             MAP_FILE_NAME_FORMAT,
             m_mapsPath,
             mapID, tileY, tileX

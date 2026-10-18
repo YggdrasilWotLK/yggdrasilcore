@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -204,9 +204,9 @@ void ChannelMgr::LoadChannelRights()
 
         if (!moderatorList.empty())
         {
-            for (auto const& itr : Acore::Tokenize(moderatorList, ' ', false))
+            for (auto const& itr : Ycore::Tokenize(moderatorList, ' ', false))
             {
-                uint64 moderator_acc = Acore::StringTo<uint64>(itr).value_or(0);
+                uint64 moderator_acc = Ycore::StringTo<uint64>(itr).value_or(0);
 
                 if (moderator_acc && ((uint32)moderator_acc) == moderator_acc)
                 {

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -697,8 +697,8 @@ public:
             me->SetObjectScale(large ? 2.0f : 1.0f);
 
             std::list<WorldObject*> ClusterList;
-            Acore::AllWorldObjectsInRange objects(me, searchDistance);
-            Acore::WorldObjectListSearcher<Acore::AllWorldObjectsInRange> searcher(me, ClusterList, objects);
+            Ycore::AllWorldObjectsInRange objects(me, searchDistance);
+            Ycore::WorldObjectListSearcher<Ycore::AllWorldObjectsInRange> searcher(me, ClusterList, objects);
             Cell::VisitObjects(me, searcher, searchDistance);
 
             for (std::list<WorldObject*>::const_iterator i = ClusterList.begin(); i != ClusterList.end(); ++i)

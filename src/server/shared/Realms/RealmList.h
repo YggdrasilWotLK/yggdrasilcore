@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -26,7 +26,7 @@
 #include <memory> // NOTE: this import is NEEDED (even though some IDEs report it as unused)
 #include <vector>
 
-namespace Acore::Asio
+namespace Ycore::Asio
 {
     class IoContext;
 }
@@ -48,14 +48,14 @@ struct RealmBuildInfo
 };
 
 /// Storage object for the list of realms on the server
-class AC_SHARED_API RealmList
+class YC_SHARED_API RealmList
 {
 public:
     typedef std::map<RealmHandle, Realm> RealmMap;
 
     static RealmList* Instance();
 
-    void Initialize(Acore::Asio::IoContext& ioContext, uint32 updateInterval);
+    void Initialize(Ycore::Asio::IoContext& ioContext, uint32 updateInterval);
     void Close();
 
     [[nodiscard]] RealmMap const& GetRealms() const { return _realms; }
@@ -77,7 +77,7 @@ private:
     RealmMap _realms;
     uint32 _updateInterval{0};
     std::unique_ptr<boost::asio::steady_timer> _updateTimer;
-    std::unique_ptr<Acore::Asio::Resolver> _resolver;
+    std::unique_ptr<Ycore::Asio::Resolver> _resolver;
 };
 
 #define sRealmList RealmList::Instance()

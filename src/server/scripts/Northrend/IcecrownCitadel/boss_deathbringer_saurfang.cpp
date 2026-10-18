@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -622,7 +622,7 @@ public:
                         if (_guardList.empty())
                         {
                             GetCreatureListWithEntryInGrid(_guardList, me, NPC_SE_KOR_KRON_REAVER, 20.0f);
-                            _guardList.sort(Acore::ObjectDistanceOrderPred(me));
+                            _guardList.sort(Ycore::ObjectDistanceOrderPred(me));
                         }
                         uint32 x = 1;
                         for (std::list<Creature*>::iterator itr = _guardList.begin(); itr != _guardList.end(); ++itr)
@@ -883,7 +883,7 @@ public:
                         if (_guardList.empty())
                         {
                             GetCreatureListWithEntryInGrid(_guardList, me, NPC_SE_SKYBREAKER_MARINE, 20.0f);
-                            _guardList.sort(Acore::ObjectDistanceOrderPred(me));
+                            _guardList.sort(Ycore::ObjectDistanceOrderPred(me));
                         }
                         uint32 x = 1;
                         for (std::list<Creature*>::iterator itr = _guardList.begin(); itr != _guardList.end(); ++itr)
@@ -1280,7 +1280,7 @@ class spell_deathbringer_blood_nova_targeting : public SpellScript
         // select one random target, with preference of ranged targets
         uint32 targetsAtRange = 0;
         uint32 const minTargets = uint32(GetCaster()->GetMap()->GetSpawnMode() & 1 ? 10 : 4);
-        targets.sort(Acore::ObjectDistanceOrderPred(GetCaster(), false));
+        targets.sort(Ycore::ObjectDistanceOrderPred(GetCaster(), false));
 
         // get target count at range
         for (std::list<WorldObject*>::iterator itr = targets.begin(); itr != targets.end(); ++itr, ++targetsAtRange)
@@ -1338,12 +1338,12 @@ class spell_deathbringer_boiling_blood : public SpellScript
 
         if (GetSpellInfo()->Id == 72385 || GetSpellInfo()->Id == 72442) // 10n, 10h
         {
-            WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+            WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
             targets.clear();
             targets.push_back(target);
         }
         else
-            Acore::Containers::RandomResize(targets, 3);
+            Ycore::Containers::RandomResize(targets, 3);
     }
 
     void Register() override

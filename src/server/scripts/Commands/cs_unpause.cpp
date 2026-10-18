@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -17,7 +17,7 @@
 #include "Player.h"
 #include "PlayerScript.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 // Released by the UnpauseOnInteract client addon when an interaction
 // window closes: ".unpause <creature guid>". Only removes the stop aura

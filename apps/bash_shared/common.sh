@@ -1,11 +1,11 @@
-function registerHooks() { acore_event_registerHooks "$@"; }
-function runHooks() { acore_event_runHooks "$@"; }
+function registerHooks() { ycore_event_registerHooks "$@"; }
+function runHooks() { ycore_event_runHooks "$@"; }
 
 #shellcheck source=../../conf/dist/config.sh
-source "$AC_PATH_CONF/dist/config.sh" # include dist to avoid missing conf variables
+source "$YC_PATH_CONF/dist/config.sh" # include dist to avoid missing conf variables
 
 # first check if it's defined in env, otherwise use the default
-USER_CONF_PATH=${USER_CONF_PATH:-"$AC_PATH_CONF/config.sh"}
+USER_CONF_PATH=${USER_CONF_PATH:-"$YC_PATH_CONF/config.sh"}
 
 if [ -f  "$USER_CONF_PATH" ]; then
     source "$USER_CONF_PATH" # should overwrite previous
@@ -17,11 +17,11 @@ fi
 # Load modules
 #
 
-for entry in "$AC_PATH_MODULES/"*/include.sh
+for entry in "$YC_PATH_MODULES/"*/include.sh
 do
     if [ -e "$entry" ]; then
         source "$entry"
     fi
 done
 
-ACORE_VERSION=$("$AC_PATH_DEPS/jsonpath/JSONPath.sh" -f "$AC_PATH_ROOT/acore.json" -b '$.version')
+YCORE_VERSION=$("$YC_PATH_DEPS/jsonpath/JSONPath.sh" -f "$YC_PATH_ROOT/acore.json" -b '$.version')

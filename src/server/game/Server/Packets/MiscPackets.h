@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -28,7 +28,7 @@ namespace WorldPackets
 {
     namespace Misc
     {
-        class AC_GAME_API Weather final : public ServerPacket
+        class YC_GAME_API Weather final : public ServerPacket
         {
         public:
             Weather();
@@ -54,7 +54,7 @@ namespace WorldPackets
             std::array<uint32, MAX_STATS> StatDelta = { };
         };
 
-        class AC_GAME_API PlayMusic final : public ServerPacket
+        class YC_GAME_API PlayMusic final : public ServerPacket
         {
         public:
             // cppcheck-suppress missingReturn
@@ -66,7 +66,7 @@ namespace WorldPackets
             uint32 SoundKitID = 0;
         };
 
-        class AC_GAME_API PlayObjectSound final : public ServerPacket
+        class YC_GAME_API PlayObjectSound final : public ServerPacket
         {
         public:
             // cppcheck-suppress missingReturn
@@ -81,7 +81,7 @@ namespace WorldPackets
 
         };
 
-        class AC_GAME_API Playsound final : public ServerPacket
+        class YC_GAME_API Playsound final : public ServerPacket
         {
         public:
             // cppcheck-suppress missingReturn

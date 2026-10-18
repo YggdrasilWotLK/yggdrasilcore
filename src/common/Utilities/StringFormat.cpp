@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -19,7 +19,7 @@
 #include "Define.h"
 
 template<class Str>
-AC_COMMON_API Str Acore::String::Trim(const Str& s, const std::locale& loc /*= std::locale()*/)
+YC_COMMON_API Str Ycore::String::Trim(const Str& s, const std::locale& loc /*= std::locale()*/)
 {
     typename Str::const_iterator first = s.begin();
     typename Str::const_iterator end = s.end();
@@ -49,7 +49,7 @@ AC_COMMON_API Str Acore::String::Trim(const Str& s, const std::locale& loc /*= s
     return s;
 }
 
-std::string Acore::String::TrimRightInPlace(std::string& str)
+std::string Ycore::String::TrimRightInPlace(std::string& str)
 {
     int pos = int(str.size()) - 1;
 
@@ -70,7 +70,7 @@ std::string Acore::String::TrimRightInPlace(std::string& str)
  * @param suffix Character to add at the end of the str
  * @return std::string Suffixed string
  */
-std::string Acore::String::AddSuffixIfNotExists(std::string str, const char suffix) {
+std::string Ycore::String::AddSuffixIfNotExists(std::string str, const char suffix) {
     if (str.empty() || (str.at(str.length() - 1) != suffix))
         str.push_back(suffix);
 
@@ -78,4 +78,4 @@ std::string Acore::String::AddSuffixIfNotExists(std::string str, const char suff
 }
 
 // Template Trim
-template AC_COMMON_API std::string Acore::String::Trim<std::string>(const std::string& s, const std::locale& loc /*= std::locale()*/);
+template YC_COMMON_API std::string Ycore::String::Trim<std::string>(const std::string& s, const std::locale& loc /*= std::locale()*/);

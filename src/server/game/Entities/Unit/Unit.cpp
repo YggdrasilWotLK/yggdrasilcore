@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -2280,7 +2280,7 @@ void Unit::CalcAbsorbResist(DamageInfo& dmgInfo, bool Splited)
     // We're going to call functions which can modify content of the list during iteration over it's elements
     // Let's copy the list so we can prevent iterator invalidation
     AuraEffectList vSchoolAbsorbCopy(victim->GetAuraEffectsByType(SPELL_AURA_SCHOOL_ABSORB));
-    std::sort(vSchoolAbsorbCopy.begin(), vSchoolAbsorbCopy.end(), Acore::AbsorbAuraOrderPred());
+    std::sort(vSchoolAbsorbCopy.begin(), vSchoolAbsorbCopy.end(), Ycore::AbsorbAuraOrderPred());
 
     // absorb without mana cost
     for (AuraEffectList::iterator itr = vSchoolAbsorbCopy.begin(); (itr != vSchoolAbsorbCopy.end()) && (dmgInfo.GetDamage() > 0); ++itr)
@@ -17031,8 +17031,8 @@ void Unit::UpdateReactives(uint32 p_time)
 Unit* Unit::SelectNearbyTarget(Unit* exclude, float dist) const
 {
     std::list<Unit*> targets;
-    Acore::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, this, dist);
-    Acore::UnitListSearcher<Acore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(this, targets, u_check);
+    Ycore::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, this, dist);
+    Ycore::UnitListSearcher<Ycore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(this, targets, u_check);
     Cell::VisitObjects(this, searcher, dist);
 
     // remove current target
@@ -17060,14 +17060,14 @@ Unit* Unit::SelectNearbyTarget(Unit* exclude, float dist) const
         return nullptr;
 
     // select random
-    return Acore::Containers::SelectRandomContainerElement(targets);
+    return Ycore::Containers::SelectRandomContainerElement(targets);
 }
 
 Unit* Unit::SelectNearbyNoTotemTarget(Unit* exclude, float dist) const
 {
     std::list<Unit*> targets;
-    Acore::AnyUnfriendlyNoTotemUnitInObjectRangeCheck u_check(this, this, dist);
-    Acore::UnitListSearcher<Acore::AnyUnfriendlyNoTotemUnitInObjectRangeCheck> searcher(this, targets, u_check);
+    Ycore::AnyUnfriendlyNoTotemUnitInObjectRangeCheck u_check(this, this, dist);
+    Ycore::UnitListSearcher<Ycore::AnyUnfriendlyNoTotemUnitInObjectRangeCheck> searcher(this, targets, u_check);
     Cell::VisitObjects(this, searcher, dist);
 
     // remove current target
@@ -17095,7 +17095,7 @@ Unit* Unit::SelectNearbyNoTotemTarget(Unit* exclude, float dist) const
         return nullptr;
 
     // select random
-    return Acore::Containers::SelectRandomContainerElement(targets);
+    return Ycore::Containers::SelectRandomContainerElement(targets);
 }
 
 void Unit::ApplyAttackTimePercentMod(WeaponAttackType att, float val, bool apply)
@@ -17303,8 +17303,8 @@ void Unit::SetContestedPvP(Player* attackedPlayer, bool lookForNearContestedGuar
     if (lookForNearContestedGuards)
     {
         std::list<Unit*> targets;
-        Acore::NearestVisibleDetectableContestedGuardUnitCheck u_check(this);
-        Acore::UnitListSearcher<Acore::NearestVisibleDetectableContestedGuardUnitCheck> searcher(this, targets, u_check);
+        Ycore::NearestVisibleDetectableContestedGuardUnitCheck u_check(this);
+        Ycore::UnitListSearcher<Ycore::NearestVisibleDetectableContestedGuardUnitCheck> searcher(this, targets, u_check);
         Cell::VisitObjects(this, searcher, MAX_AGGRO_RADIUS);
 
         // return if there are no contested guards found
@@ -17696,7 +17696,7 @@ bool Unit::HandleAuraRaidProcFromChargeWithValue(AuraEffect* triggeredByAura)
 
                 if (!nearMembers.empty())
                 {
-                    nearMembers.sort(Acore::HealthPctOrderPred());
+                    nearMembers.sort(Ycore::HealthPctOrderPred());
                     if (Unit* target = nearMembers.front())
                     {
                         CastSpell(target, 41637 /*Dummy visual effect triggered by main spell cast*/, true);
@@ -19215,7 +19215,7 @@ void Unit::UpdateObjectVisibility(bool forced, bool /*fromUpdate*/)
     else
     {
         WorldObject::UpdateObjectVisibility(true);
-        Acore::AIRelocationNotifier notifier(*this);
+        Ycore::AIRelocationNotifier notifier(*this);
         float radius = 60.0f;
         Cell::VisitObjects(this, notifier, radius);
     }
@@ -19843,7 +19843,7 @@ void Unit::SendTeleportPacket(Position& pos)
 
 bool Unit::UpdatePosition(float x, float y, float z, float orientation, bool teleport)
 {
-    if (!Acore::IsValidMapCoord(x, y, z, orientation))
+    if (!Ycore::IsValidMapCoord(x, y, z, orientation))
         return false;
 
     float old_orientation = GetOrientation();
@@ -20254,7 +20254,7 @@ void Unit::ExecuteDelayedUnitRelocationEvent()
                     //active->m_last_notify_position.Relocate(active->GetPositionX(), active->GetPositionY(), active->GetPositionZ());
                 }
 
-                Acore::PlayerRelocationNotifier notifier(*player);
+                Ycore::PlayerRelocationNotifier notifier(*player);
                 Cell::VisitObjects(viewPoint, notifier, player->GetSightRange());
                 Cell::VisitFarVisibleObjects(viewPoint, notifier, VISIBILITY_DISTANCE_GIGANTIC);
                 notifier.SendToSelf();
@@ -20291,7 +20291,7 @@ void Unit::ExecuteDelayedUnitRelocationEvent()
 
         GetMap()->LoadGridsInRange(*player, MAX_VISIBILITY_DISTANCE);
 
-        Acore::PlayerRelocationNotifier notifier(*player);
+        Ycore::PlayerRelocationNotifier notifier(*player);
         Cell::VisitObjects(viewPoint, notifier, player->GetSightRange());
         Cell::VisitFarVisibleObjects(viewPoint, notifier, VISIBILITY_DISTANCE_GIGANTIC);
         notifier.SendToSelf();
@@ -20313,7 +20313,7 @@ void Unit::ExecuteDelayedUnitRelocationEvent()
 
         unit->m_last_notify_position.Relocate(unit->GetPositionX(), unit->GetPositionY(), unit->GetPositionZ());
 
-        Acore::CreatureRelocationNotifier relocate(*unit);
+        Ycore::CreatureRelocationNotifier relocate(*unit);
         Cell::VisitObjects(unit, relocate, unit->GetVisibilityRange());
 
         this->AddToNotify(NOTIFY_AI_RELOCATION);
@@ -20326,7 +20326,7 @@ void Unit::ExecuteDelayedUnitAINotifyEvent()
     if (!this->IsInWorld() || this->IsDuringRemoveFromWorld())
         return;
 
-    Acore::AIRelocationNotifier notifier(*this);
+    Ycore::AIRelocationNotifier notifier(*this);
     float radius = 60.0f;
     Cell::VisitObjects(this, notifier, radius);
 }
@@ -21066,9 +21066,9 @@ float Unit::GetCollisionHeight() const
 
 void Unit::Talk(std::string_view text, ChatMsg msgType, Language language, float textRange, WorldObject const* target)
 {
-    Acore::CustomChatTextBuilder builder(this, msgType, text, language, target);
-    Acore::LocalizedPacketDo<Acore::CustomChatTextBuilder> localizer(builder);
-    Acore::PlayerDistWorker<Acore::LocalizedPacketDo<Acore::CustomChatTextBuilder> > worker(this, textRange, localizer);
+    Ycore::CustomChatTextBuilder builder(this, msgType, text, language, target);
+    Ycore::LocalizedPacketDo<Ycore::CustomChatTextBuilder> localizer(builder);
+    Ycore::PlayerDistWorker<Ycore::LocalizedPacketDo<Ycore::CustomChatTextBuilder> > worker(this, textRange, localizer);
     Cell::VisitObjects(this, worker, textRange);
 }
 
@@ -21124,9 +21124,9 @@ void Unit::Talk(uint32 textId, ChatMsg msgType, float textRange, WorldObject con
         return;
     }
 
-    Acore::BroadcastTextBuilder builder(this, msgType, textId, getGender(), target);
-    Acore::LocalizedPacketDo<Acore::BroadcastTextBuilder> localizer(builder);
-    Acore::PlayerDistWorker<Acore::LocalizedPacketDo<Acore::BroadcastTextBuilder> > worker(this, textRange, localizer);
+    Ycore::BroadcastTextBuilder builder(this, msgType, textId, getGender(), target);
+    Ycore::LocalizedPacketDo<Ycore::BroadcastTextBuilder> localizer(builder);
+    Ycore::PlayerDistWorker<Ycore::LocalizedPacketDo<Ycore::BroadcastTextBuilder> > worker(this, textRange, localizer);
     Cell::VisitObjects(this, worker, textRange);
 }
 

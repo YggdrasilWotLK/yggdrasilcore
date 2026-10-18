@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -86,7 +86,7 @@ void WorldSession::HandleTrainerListOpcode(WorldPacket& recvData)
 
 void WorldSession::SendTrainerList(ObjectGuid guid)
 {
-    std::string str = GetAcoreString(LANG_NPC_TAINER_HELLO);
+    std::string str = GetYcoreString(LANG_NPC_TAINER_HELLO);
     SendTrainerList(guid, str);
 }
 

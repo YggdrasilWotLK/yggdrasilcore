@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -26,7 +26,7 @@
 #include <unordered_map>
 #include <vector>
 
-struct AC_DATABASE_API UpdateResult
+struct YC_DATABASE_API UpdateResult
 {
     UpdateResult()
         : updated(0), recent(0), archived(0) { }
@@ -39,7 +39,7 @@ struct AC_DATABASE_API UpdateResult
     std::size_t archived;
 };
 
-class AC_DATABASE_API UpdateFetcher
+class YC_DATABASE_API UpdateFetcher
 {
     typedef std::filesystem::path Path;
 

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _AC_OPENSSL_CRYPTO_H
-#define _AC_OPENSSL_CRYPTO_H
+#ifndef _YC_OPENSSL_CRYPTO_H
+#define _YC_OPENSSL_CRYPTO_H
 
 #include "Define.h"
 
@@ -27,10 +27,10 @@
 namespace OpenSSLCrypto
 {
     /// Needs to be called before threads using openssl are spawned
-    AC_COMMON_API void threadsSetup();
+    YC_COMMON_API void threadsSetup();
 
     /// Needs to be called after threads using openssl are despawned
-    AC_COMMON_API void threadsCleanup();
+    YC_COMMON_API void threadsCleanup();
 }
 
 #endif

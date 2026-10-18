@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -30,7 +30,7 @@ PreparedStatementBase::~PreparedStatementBase() { }
 
 //- Bind to buffer
 template<typename T>
-Acore::Types::is_non_string_view_v<T> PreparedStatementBase::SetValidData(const uint8 index, T const& value)
+Ycore::Types::is_non_string_view_v<T> PreparedStatementBase::SetValidData(const uint8 index, T const& value)
 {
     ASSERT(index < statement_data.size());
     statement_data[index].data.emplace<T>(value);
@@ -103,7 +103,7 @@ bool PreparedStatementTask::Execute()
 template<typename T>
 std::string PreparedStatementData::ToString(T value)
 {
-    return Acore::StringFormat("{}", value);
+    return Ycore::StringFormat("{}", value);
 }
 
 template<>

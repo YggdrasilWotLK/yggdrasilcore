@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -30,7 +30,7 @@
 
 struct GameTele;
 
-namespace Acore::Impl::ChatCommands
+namespace Ycore::Impl::ChatCommands
 {
 
     /************************** ARGUMENT HANDLERS *******************************************\
@@ -46,7 +46,7 @@ namespace Acore::Impl::ChatCommands
     |*                                                                                      *|
     \****************************************************************************************/
     template <typename T, typename = void>
-    struct ArgInfo { static_assert(Acore::dependant_false_v<T>, "Invalid command parameter type - see ChatCommandArgs.h for possible types"); };
+    struct ArgInfo { static_assert(Ycore::dependant_false_v<T>, "Invalid command parameter type - see ChatCommandArgs.h for possible types"); };
 
     // catch-all for number types
     template <typename T>
@@ -61,12 +61,12 @@ namespace Acore::Impl::ChatCommands
             if (Optional<T> v = StringTo<T>(token, 0))
                 val = *v;
             else
-                return FormatAcoreString(handler, LANG_CMDPARSER_STRING_VALUE_INVALID, token, GetTypeName<T>());
+                return FormatYcoreString(handler, LANG_CMDPARSER_STRING_VALUE_INVALID, token, GetTypeName<T>());
 
             if constexpr (std::is_floating_point_v<T>)
             {
                 if (!std::isfinite(val))
-                    return FormatAcoreString(handler, LANG_CMDPARSER_STRING_VALUE_INVALID, token, GetTypeName<T>());
+                    return FormatYcoreString(handler, LANG_CMDPARSER_STRING_VALUE_INVALID, token, GetTypeName<T>());
             }
 
             return tail;
@@ -115,7 +115,7 @@ namespace Acore::Impl::ChatCommands
                 if (Utf8toWStr(utf8view, val))
                     return next;
                 else
-                    return GetAcoreString(handler, LANG_CMDPARSER_INVALID_UTF8);
+                    return GetYcoreString(handler, LANG_CMDPARSER_INVALID_UTF8);
             }
             else
                 return std::nullopt;
@@ -199,7 +199,7 @@ namespace Acore::Impl::ChatCommands
             }
 
             if (next1)
-                return FormatAcoreString(handler, LANG_CMDPARSER_STRING_VALUE_INVALID, strVal, GetTypeName<T>());
+                return FormatYcoreString(handler, LANG_CMDPARSER_STRING_VALUE_INVALID, strVal, GetTypeName<T>());
             else
                 return next1;
         }
@@ -251,13 +251,13 @@ namespace Acore::Impl::ChatCommands
 
     // variant
     template <typename... Ts>
-    struct ArgInfo<Acore::ChatCommands::Variant<Ts...>>
+    struct ArgInfo<Ycore::ChatCommands::Variant<Ts...>>
     {
         using V = std::variant<Ts...>;
         static constexpr std::size_t N = std::variant_size_v<V>;
 
         template <std::size_t I>
-        static ChatCommandResult TryAtIndex([[maybe_unused]] Acore::ChatCommands::Variant<Ts...>& val, [[maybe_unused]] ChatHandler const* handler, [[maybe_unused]] std::string_view args)
+        static ChatCommandResult TryAtIndex([[maybe_unused]] Ycore::ChatCommands::Variant<Ts...>& val, [[maybe_unused]] ChatHandler const* handler, [[maybe_unused]] std::string_view args)
         {
             if constexpr (I < N)
             {
@@ -272,55 +272,55 @@ namespace Acore::Impl::ChatCommands
                     if (!nestedResult.HasErrorMessage())
                         return thisResult;
                     if (StringStartsWith(nestedResult.GetErrorMessage(), "\""))
-                        return Acore::StringFormat("\"{}\"\n{} {}", thisResult.GetErrorMessage(), GetAcoreString(handler, LANG_CMDPARSER_OR), nestedResult.GetErrorMessage());
+                        return Ycore::StringFormat("\"{}\"\n{} {}", thisResult.GetErrorMessage(), GetYcoreString(handler, LANG_CMDPARSER_OR), nestedResult.GetErrorMessage());
                     else
-                        return Acore::StringFormat("\"{}\"\n{} \"{}\"", thisResult.GetErrorMessage(), GetAcoreString(handler, LANG_CMDPARSER_OR), nestedResult.GetErrorMessage());
+                        return Ycore::StringFormat("\"{}\"\n{} \"{}\"", thisResult.GetErrorMessage(), GetYcoreString(handler, LANG_CMDPARSER_OR), nestedResult.GetErrorMessage());
                 }
             }
             else
                 return std::nullopt;
         }
 
-        static ChatCommandResult TryConsume(Acore::ChatCommands::Variant<Ts...>& val, ChatHandler const* handler, std::string_view args)
+        static ChatCommandResult TryConsume(Ycore::ChatCommands::Variant<Ts...>& val, ChatHandler const* handler, std::string_view args)
         {
             ChatCommandResult result = TryAtIndex<0>(val, handler, args);
             if (result.HasErrorMessage() && (result.GetErrorMessage().find('\n') != std::string::npos))
-                return Acore::StringFormat("{} {}", GetAcoreString(handler, LANG_CMDPARSER_EITHER), result.GetErrorMessage());
+                return Ycore::StringFormat("{} {}", GetYcoreString(handler, LANG_CMDPARSER_EITHER), result.GetErrorMessage());
             return result;
         }
     };
 
     // AchievementEntry* from numeric id or link
     template <>
-    struct AC_GAME_API ArgInfo<AchievementEntry const*>
+    struct YC_GAME_API ArgInfo<AchievementEntry const*>
     {
         static ChatCommandResult TryConsume(AchievementEntry const*&, ChatHandler const*, std::string_view);
     };
 
     // GameTele* from string name or link
     template <>
-    struct AC_GAME_API ArgInfo<GameTele const*>
+    struct YC_GAME_API ArgInfo<GameTele const*>
     {
         static ChatCommandResult TryConsume(GameTele const*&, ChatHandler const*, std::string_view);
     };
 
     // ItemTemplate* from numeric id or link
     template <>
-    struct AC_GAME_API ArgInfo<ItemTemplate const*>
+    struct YC_GAME_API ArgInfo<ItemTemplate const*>
     {
         static ChatCommandResult TryConsume(ItemTemplate const*&, ChatHandler const*, std::string_view);
     };
 
     // SpellInfo const* from spell id or link
     template <>
-    struct AC_GAME_API ArgInfo<SpellInfo const*>
+    struct YC_GAME_API ArgInfo<SpellInfo const*>
     {
         static ChatCommandResult TryConsume(SpellInfo const*&, ChatHandler const*, std::string_view);
     };
 
     // Quest const* from quest id or link
     template <>
-    struct AC_GAME_API ArgInfo<Quest const*>
+    struct YC_GAME_API ArgInfo<Quest const*>
     {
         static ChatCommandResult TryConsume(Quest const*&, ChatHandler const*, std::string_view);
     };

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -236,7 +236,7 @@ std::string WorldSession::GetPlayerInfo() const
 
 void WorldSession::SendAreaTriggerMessage(std::string_view str)
 {
-    std::vector<std::string_view> lines = Acore::Tokenize(str, '\n', true);
+    std::vector<std::string_view> lines = Ycore::Tokenize(str, '\n', true);
     for (std::string_view line : lines)
     {
         uint32 length = line.size() + 1;
@@ -267,7 +267,7 @@ void WorldSession::SendPacket(WorldPacket const* packet)
     if (!m_Socket)
         return;
 
-#if defined(ACORE_DEBUG)
+#if defined(YCORE_DEBUG)
     // Code for network use statistic
     static uint64 sendPacketCount = 0;
     static uint64 sendPacketBytes = 0;
@@ -301,7 +301,7 @@ void WorldSession::SendPacket(WorldPacket const* packet)
         sendLastPacketCount = 1;
         sendLastPacketBytes = packet->wpos();               // wpos is real written size
     }
-#endif                                                      // !ACORE_DEBUG
+#endif                                                      // !YCORE_DEBUG
 
     if (!sScriptMgr->CanPacketSend(this, *packet))
     {
@@ -837,7 +837,7 @@ void WorldSession::KickPlayer(std::string const& reason, bool setKicked)
 
 bool WorldSession::ValidateHyperlinksAndMaybeKick(std::string_view str)
 {
-    if (Acore::Hyperlinks::CheckAllLinks(str))
+    if (Ycore::Hyperlinks::CheckAllLinks(str))
         return true;
 
     LOG_ERROR("network", "Player {} {} sent a message with an invalid link:\n{}", GetPlayer()->GetName(),
@@ -863,9 +863,9 @@ bool WorldSession::DisallowHyperlinksAndMaybeKick(std::string_view str)
     return false;
 }
 
-std::string WorldSession::GetAcoreString(uint32 entry) const
+std::string WorldSession::GetYcoreString(uint32 entry) const
 {
-    return sObjectMgr->GetAcoreString(entry, GetSessionDbLocaleIndex());
+    return sObjectMgr->GetYcoreString(entry, GetSessionDbLocaleIndex());
 }
 
 std::string const* WorldSession::GetModuleString(std::string module, uint32 id) const
@@ -1066,7 +1066,7 @@ void WorldSession::ReadMovementInfo(WorldPacket& data, MovementInfo* mi)
 
     //! Anti-cheat checks. Please keep them in seperate if () blocks to maintain a clear overview.
     //! Might be subject to latency, so just remove improper flags.
-#ifdef ACORE_DEBUG
+#ifdef YCORE_DEBUG
 #define REMOVE_VIOLATING_FLAGS(check, maskToRemove) \
     { \
         if (check) \

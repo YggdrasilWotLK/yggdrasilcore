@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -133,7 +133,7 @@ enum NaxxramasGameObject
     GO_ABOM_EYE_PORTAL              = 181213,
 
     // "Glow" effect on boss-side portal
-    GO_ARAC_EYE_RAMP_BOSS           = 181233,
+    GO_ARYC_EYE_RAMP_BOSS           = 181233,
     GO_PLAG_EYE_RAMP_BOSS           = 181231,
     GO_MILI_EYE_RAMP_BOSS           = 181230,
     GO_CONS_EYE_RAMP_BOSS           = 181232

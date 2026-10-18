@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -207,7 +207,7 @@ std::unordered_map<uint32, uint32> spawnerSpells =
     { NPC_RED_SPAWNER,    SPELL_SPAWN_RED_DRAKONID }
 };
 
-struct ClassCallSelector : public Acore::unary_function<Unit*, bool>
+struct ClassCallSelector : public Ycore::unary_function<Unit*, bool>
 {
     ClassCallSelector(Unit const* unit, uint8 targetClass) : _me(unit), _targetClass(targetClass) { }
 
@@ -250,7 +250,7 @@ public:
                 // Victor Nefarius weekly mechanic drakonid spawn
                 // Pick 2 drakonids and keep them for the whole save duration (the drakonids can't be repeated).
                 std::vector<uint32> nefarianDrakonidSpawners = { NPC_BLACK_SPAWNER, NPC_BLUE_SPAWNER, NPC_BRONZE_SPAWNER, NPC_GREEN_SPAWNER, NPC_RED_SPAWNER };
-                Acore::Containers::RandomResize(nefarianDrakonidSpawners, 2);
+                Ycore::Containers::RandomResize(nefarianDrakonidSpawners, 2);
 
                 _nefarianRightTunnel = nefarianDrakonidSpawners[0];
                 _nefarianLeftTunnel = nefarianDrakonidSpawners[1];
@@ -681,7 +681,7 @@ struct boss_nefarian : public BossAI
                         }
                     }
 
-                    uint8 targetClass = Acore::Containers::SelectRandomContainerElement(classesPresent);
+                    uint8 targetClass = Ycore::Containers::SelectRandomContainerElement(classesPresent);
 
                     classesPresent.erase(targetClass);
 
@@ -1120,7 +1120,7 @@ class spell_class_call_polymorph : public SpellScript
 
         if (!targets.empty())
         {
-            Acore::Containers::RandomResize(targets, 1);
+            Ycore::Containers::RandomResize(targets, 1);
             targetList.clear();
             targetList = targets;
         }
@@ -1158,7 +1158,7 @@ class spell_corrupted_totems : public SpellScript
         }
 
         std::list<uint32> spellList = { SPELL_CORRUPTED_FIRE_NOVA_TOTEM, SPELL_CORRUPTED_HEALING_TOTEM, SPELL_CORRUPTED_STONESKIN_TOTEM, SPELL_CORRUPTED_WINDFURY_TOTEM };
-        uint32 spellId = Acore::Containers::SelectRandomContainerElement(spellList);
+        uint32 spellId = Ycore::Containers::SelectRandomContainerElement(spellList);
         GetCaster()->CastSpell(GetCaster(), spellId);
     }
 
@@ -1227,7 +1227,7 @@ class spell_shadowblink : public SpellScript
         }
 
         // Selected target is not near any known position, randomize
-        auto spellId = Acore::Containers::SelectRandomContainerElement(spellPos);
+        auto spellId = Ycore::Containers::SelectRandomContainerElement(spellPos);
         caster->CastSpell(caster, spellId.first, true);
     }
 

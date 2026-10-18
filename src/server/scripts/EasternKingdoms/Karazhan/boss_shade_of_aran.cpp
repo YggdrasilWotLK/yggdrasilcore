@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -277,7 +277,7 @@ struct boss_shade_of_aran : public BossAI
                 if (!normalSpells.empty())
                 {
                     // If we are able to cast spells, cast them.
-                    _currentNormalSpell = Acore::Containers::SelectRandomContainerElement(normalSpells);
+                    _currentNormalSpell = Ycore::Containers::SelectRandomContainerElement(normalSpells);
 
                     DoCastRandomTarget(_currentNormalSpell, 0, 100.0f);
                     if (me->GetVictim())
@@ -327,7 +327,7 @@ struct boss_shade_of_aran : public BossAI
                 //  Sample results:
                 //       Selected Super Spell: 3722304989
                 //       superSpells elements : 29969 29973 30004
-                //  _lastSuperSpell = Acore::Containers::SelectRandomContainerElementIf(superSpells, [&](uint32 superSpell) -> bool { return superSpell != _lastSuperSpell; });
+                //  _lastSuperSpell = Ycore::Containers::SelectRandomContainerElementIf(superSpells, [&](uint32 superSpell) -> bool { return superSpell != _lastSuperSpell; });
 
                 me->InterruptNonMeleeSpells(true); // Super spell should have prio over normal spells
 
@@ -412,7 +412,7 @@ class spell_flamewreath : public SpellScript
 
         if (targets.size() > maxSize)
         {
-            Acore::Containers::RandomResize(targets, maxSize);
+            Ycore::Containers::RandomResize(targets, maxSize);
         }
 
         _targets = targets;

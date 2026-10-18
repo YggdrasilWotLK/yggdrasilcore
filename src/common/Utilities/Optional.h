@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef ACORE_OPTIONAL_H
-#define ACORE_OPTIONAL_H
+#ifndef YCORE_OPTIONAL_H
+#define YCORE_OPTIONAL_H
 
 #include <optional>
 
@@ -23,4 +23,4 @@
 template <class T>
 using Optional = std::optional<T>;
 
-#endif // ACORE_OPTIONAL_H
+#endif // YCORE_OPTIONAL_H

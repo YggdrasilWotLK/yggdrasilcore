@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -41,7 +41,7 @@ bool DBUpdaterUtil::CheckExecutable()
     std::filesystem::path exe(GetCorrectedMySQLExecutable());
     if (!is_regular_file(exe))
     {
-        exe = Acore::SearchExecutableInPath("mysql");
+        exe = Ycore::SearchExecutableInPath("mysql");
         if (!exe.empty() && is_regular_file(exe))
         {
             // Correct the path to the cli
@@ -229,7 +229,7 @@ bool DBUpdater<T>::Create(DatabaseWorkerPool<T>& pool)
 {
     LOG_WARN("sql.updates", "Database \"{}\" does not exist", pool.GetConnectionInfo()->database);
 
-    const char* disableInteractive = std::getenv("AC_DISABLE_INTERACTIVE");
+    const char* disableInteractive = std::getenv("YC_DISABLE_INTERACTIVE");
 
     if (!sConfigMgr->isDryRun() && (disableInteractive == nullptr || std::strcmp(disableInteractive, "1") != 0))
     {
@@ -293,7 +293,7 @@ bool DBUpdater<T>::Update(DatabaseWorkerPool<T>& pool, std::string_view modulesL
 
     auto CheckUpdateTable = [&](std::string const& tableName)
     {
-        auto checkTable = DBUpdater<T>::Retrieve(pool, Acore::StringFormat("SHOW TABLES LIKE '{}'", tableName));
+        auto checkTable = DBUpdater<T>::Retrieve(pool, Ycore::StringFormat("SHOW TABLES LIKE '{}'", tableName));
         if (!checkTable)
         {
             LOG_WARN("sql.updates", "> Table '{}' not exist! Try add based table", tableName);
@@ -337,7 +337,7 @@ bool DBUpdater<T>::Update(DatabaseWorkerPool<T>& pool, std::string_view modulesL
         return false;
     }
 
-    std::string const info = Acore::StringFormat("Containing {} new and {} archived updates.", result.recent, result.archived);
+    std::string const info = Ycore::StringFormat("Containing {} new and {} archived updates.", result.recent, result.archived);
 
     if (!result.updated)
         LOG_INFO("sql.updates", ">> {} database is up-to-date! {}", DBUpdater<T>::GetTableName(), info);
@@ -365,7 +365,7 @@ bool DBUpdater<T>::Update(DatabaseWorkerPool<T>& pool, std::vector<std::string> 
 
     auto CheckUpdateTable = [&](std::string const& tableName)
     {
-        auto checkTable = DBUpdater<T>::Retrieve(pool, Acore::StringFormat("SHOW TABLES LIKE '{}'", tableName));
+        auto checkTable = DBUpdater<T>::Retrieve(pool, Ycore::StringFormat("SHOW TABLES LIKE '{}'", tableName));
         if (!checkTable)
         {
             Path const temp(GetBaseFilesDirectory() + tableName + ".sql");
@@ -503,7 +503,7 @@ void DBUpdater<T>::ApplyFile(DatabaseWorkerPool<T>& pool, std::string const& hos
 
     auto tempDir = configTempDir.empty() ? std::filesystem::temp_directory_path().string() : configTempDir;
 
-    tempDir = Acore::String::AddSuffixIfNotExists(tempDir, std::filesystem::path::preferred_separator);
+    tempDir = Ycore::String::AddSuffixIfNotExists(tempDir, std::filesystem::path::preferred_separator);
 
     std::string confFileName = "mysql_ac.conf";
 
@@ -559,7 +559,7 @@ void DBUpdater<T>::ApplyFile(DatabaseWorkerPool<T>& pool, std::string const& hos
         args.emplace_back(database);
 
     // Invokes a mysql process which doesn't leak credentials to logs
-    int const ret = Acore::StartProcess(DBUpdaterUtil::GetCorrectedMySQLExecutable(), args,
+    int const ret = Ycore::StartProcess(DBUpdaterUtil::GetCorrectedMySQLExecutable(), args,
         "sql.updates", path.generic_string(), true);
 
     if (ret != EXIT_SUCCESS)
@@ -581,10 +581,10 @@ void DBUpdater<T>::ApplyFile(DatabaseWorkerPool<T>& pool, std::string const& hos
     }
 }
 
-template class AC_DATABASE_API DBUpdater<LoginDatabaseConnection>;
-template class AC_DATABASE_API DBUpdater<WorldDatabaseConnection>;
-template class AC_DATABASE_API DBUpdater<CharacterDatabaseConnection>;
+template class YC_DATABASE_API DBUpdater<LoginDatabaseConnection>;
+template class YC_DATABASE_API DBUpdater<WorldDatabaseConnection>;
+template class YC_DATABASE_API DBUpdater<CharacterDatabaseConnection>;
 
 #ifdef MOD_SHADOWS
-template class AC_DATABASE_API DBUpdater<ShadowsDatabaseConnection>;
+template class YC_DATABASE_API DBUpdater<ShadowsDatabaseConnection>;
 #endif

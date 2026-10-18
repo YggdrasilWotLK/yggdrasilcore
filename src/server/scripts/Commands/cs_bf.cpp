@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -19,7 +19,7 @@
 #include "Chat.h"
 #include "CommandScript.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class bf_commandscript : public CommandScript
 {
@@ -117,7 +117,7 @@ public:
             return false;
         }
 
-        if (Acore::StringTo<int32>(timeStr).value_or(0) < 0)
+        if (Ycore::StringTo<int32>(timeStr).value_or(0) < 0)
         {
             handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
@@ -126,7 +126,7 @@ public:
         int32 time = TimeStringToSecs(timeStr);
         if (time <= 0)
         {
-            time = Acore::StringTo<int32>(timeStr).value_or(0);
+            time = Ycore::StringTo<int32>(timeStr).value_or(0);
         }
 
         if (time <= 0)

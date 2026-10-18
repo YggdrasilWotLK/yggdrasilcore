@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -49,7 +49,7 @@ static constexpr uint8 GetCheckPacketBaseSize(uint8 type)
     case LUA_EVAL_CHECK: return 1 + sizeof(_luaEvalPrefix) - 1 + sizeof(_luaEvalMidfix) - 1 + 4 + sizeof(_luaEvalPostfix) - 1;
     case PAGE_CHECK_A: return (4 + 1);
     case PAGE_CHECK_B: return (4 + 1);
-    case MODULE_CHECK: return (4 + Acore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES);
+    case MODULE_CHECK: return (4 + Ycore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES);
     case MEM_CHECK: return (1 + 4 + 1);
     default: return 0;
     }
@@ -180,7 +180,7 @@ void WardenWin::Init(WorldSession* session, SessionKey const& k)
 {
     _session = session;
     // Generate Warden Key
-    SessionKeyGenerator<Acore::Crypto::SHA1> WK(k);
+    SessionKeyGenerator<Ycore::Crypto::SHA1> WK(k);
     WK.Generate(_inputKey, 16);
     WK.Generate(_outputKey, 16);
 
@@ -189,9 +189,9 @@ void WardenWin::Init(WorldSession* session, SessionKey const& k)
     _inputCrypto.Init(_inputKey);
     _outputCrypto.Init(_outputKey);
     LOG_DEBUG("warden", "Server side warden for client {} initializing...", session->GetAccountId());
-    LOG_DEBUG("warden", "C->S Key: {}", Acore::Impl::ByteArrayToHexStr(_inputKey, 16));
-    LOG_DEBUG("warden", "S->C Key: {}", Acore::Impl::ByteArrayToHexStr(_outputKey,16));
-    LOG_DEBUG("warden", "  Seed: {}", Acore::Impl::ByteArrayToHexStr(_seed, 16));
+    LOG_DEBUG("warden", "C->S Key: {}", Ycore::Impl::ByteArrayToHexStr(_inputKey, 16));
+    LOG_DEBUG("warden", "S->C Key: {}", Ycore::Impl::ByteArrayToHexStr(_outputKey,16));
+    LOG_DEBUG("warden", "  Seed: {}", Ycore::Impl::ByteArrayToHexStr(_seed, 16));
     LOG_DEBUG("warden", "Loading Module...");
 
     _module = GetModuleForClient();
@@ -214,7 +214,7 @@ ClientWardenModule* WardenWin::GetModuleForClient()
     memcpy(mod->Key.data(), Module.ModuleKey, 16);
 
     // md5 hash
-    mod->Id = Acore::Crypto::MD5::GetDigestOf(mod->CompressedData, mod->CompressedSize);
+    mod->Id = Ycore::Crypto::MD5::GetDigestOf(mod->CompressedData, mod->CompressedSize);
 
     return mod;
 }
@@ -235,7 +235,7 @@ void WardenWin::InitializeModule()
     Request.Function1[1] = 0x000218C0;                      // 0x00400000 + 0x000218C0 SFileGetFileSize
     Request.Function1[2] = 0x00022530;                      // 0x00400000 + 0x00022530 SFileReadFile
     Request.Function1[3] = 0x00022910;                      // 0x00400000 + 0x00022910 SFileCloseFile
-    Request.CheckSumm1 = BuildChecksum(&Request.Unk1, Acore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES);
+    Request.CheckSumm1 = BuildChecksum(&Request.Unk1, Ycore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES);
 
     Request.Command2 = WARDEN_SMSG_MODULE_INITIALIZE;
     Request.Size2 = 8;
@@ -298,7 +298,7 @@ void WardenWin::HandleHashResult(ByteBuffer& buff)
     buff.rpos(buff.wpos());
 
     // Verify key using constant-time comparison
-    if (CRYPTO_memcmp(buff.contents() + 1, Module.ClientKeySeedHash, Acore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES) != 0)
+    if (CRYPTO_memcmp(buff.contents() + 1, Module.ClientKeySeedHash, Ycore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES) != 0)
     {
         LOG_DEBUG("warden", "Request hash reply: failed");
         ApplyPenalty(0, "Request hash reply: failed");
@@ -357,7 +357,7 @@ void WardenWin::RequestChecks()
     _CurrentChecks.clear();
 
     // Erase any nullptrs.
-    Acore::Containers::EraseIf(_PendingChecks,
+    Ycore::Containers::EraseIf(_PendingChecks,
         [this](uint16 id)
         {
             WardenCheck const* check = sWardenCheckMgr->GetWardenDataById(id);
@@ -468,7 +468,7 @@ void WardenWin::RequestChecks()
     // Filtered checks will get passed in next checks
     uint16 expectedSize = 4;
     _PendingChecks.clear();
-    Acore::Containers::EraseIf(_CurrentChecks,
+    Ycore::Containers::EraseIf(_CurrentChecks,
         [this, &expectedSize](uint16 id)
         {
             WardenCheck const* check = sWardenCheckMgr->GetWardenDataById(id);
@@ -588,9 +588,9 @@ void WardenWin::RequestChecks()
             }
             case MODULE_CHECK:
             {
-                std::array<uint8, 4> seed = Acore::Crypto::GetRandomBytes<4>();
+                std::array<uint8, 4> seed = Ycore::Crypto::GetRandomBytes<4>();
                 buff.append(seed);
-                buff.append(Acore::Crypto::HMAC_SHA1::GetDigestOf(seed, check->Str));
+                buff.append(Ycore::Crypto::HMYC_SHA1::GetDigestOf(seed, check->Str));
                 break;
             }
             /*case PROC_CHECK:
@@ -802,15 +802,15 @@ void WardenWin::HandleData(ByteBuffer& buff)
             }
 
             WardenCheckResult const* rs = sWardenCheckMgr->GetWardenResultById(checkId);
-            if (CRYPTO_memcmp(buff.contents() + buff.rpos(), rs->Result.ToByteArray<20>(false).data(), Acore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES) != 0)
+            if (CRYPTO_memcmp(buff.contents() + buff.rpos(), rs->Result.ToByteArray<20>(false).data(), Ycore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES) != 0)
             {
                 LOG_DEBUG("warden", "RESULT MPQ_CHECK fail, CheckId {} account Id {}", checkId, _session->GetAccountId());
                 checkFailed = checkId;
-                buff.rpos(buff.rpos() + Acore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES);            // 20 bytes SHA1
+                buff.rpos(buff.rpos() + Ycore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES);            // 20 bytes SHA1
                 continue;
             }
 
-            buff.rpos(buff.rpos() + Acore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES);                // 20 bytes SHA1
+            buff.rpos(buff.rpos() + Ycore::Crypto::Constants::SHA1_DIGEST_LENGTH_BYTES);                // 20 bytes SHA1
             LOG_DEBUG("warden", "RESULT MPQ_CHECK passed, CheckId {} account Id {}", checkId, _session->GetAccountId());
             break;
         }

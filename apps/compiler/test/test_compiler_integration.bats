@@ -4,8 +4,8 @@
 # Tests edge cases and integration scenarios for the compiler module
 
 # Load the AzerothCore test framework
-load '../../test-framework/bats_libs/acore-support'
-load '../../test-framework/bats_libs/acore-assert'
+load '../../test-framework/bats_libs/ycore-support'
+load '../../test-framework/bats_libs/ycore-assert'
 
 # Setup that runs before each test
 setup() {
@@ -15,7 +15,7 @@ setup() {
 
 # Cleanup that runs after each test
 teardown() {
-    acore_test_teardown
+    ycore_test_teardown
 }
 
 # ===== INTEGRATION TESTS =====

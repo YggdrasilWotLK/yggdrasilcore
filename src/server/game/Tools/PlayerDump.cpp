@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -304,7 +304,7 @@ void PlayerDump::InitializeTables()
             // item0 - item18
             for (uint32 j = 0; j < EQUIPMENT_SLOT_END; ++j)
             {
-                std::string itColumn = Acore::StringFormat("item{}", j);
+                std::string itColumn = Ycore::StringFormat("item{}", j);
                 MarkDependentColumn(t, itColumn, GUID_TYPE_ITEM);
             }
             break;
@@ -504,7 +504,7 @@ inline T RegisterNewGuid(T oldGuid, MapType<T, T, Rest...>& guidMap, T guidOffse
 template <typename T, template<class, class, class...> class MapType, class... Rest>
 inline bool ChangeGuid(TableStruct const& ts, std::string& str, std::string const& column, MapType<T, T, Rest...>& guidMap, T guidOffset, bool allowZero = false)
 {
-    T oldGuid(*Acore::StringTo<uint64>(GetColumn(ts, str, column)));
+    T oldGuid(*Ycore::StringTo<uint64>(GetColumn(ts, str, column)));
     if (allowZero && !oldGuid)
         return true;                                        // not an error
 
@@ -916,14 +916,14 @@ DumpReturn PlayerDumpReader::LoadDump(std::istream& input, uint32 account, std::
         {
         case DTT_CHARACTER:
         {
-            race = *Acore::StringTo<uint32>(GetColumn(ts, line, "race"));
-            playerClass = *Acore::StringTo<uint32>(GetColumn(ts, line, "class"));
-            gender = *Acore::StringTo<uint32>(GetColumn(ts, line, "gender"));
-            level = *Acore::StringTo<uint32>(GetColumn(ts, line, "level"));
+            race = *Ycore::StringTo<uint32>(GetColumn(ts, line, "race"));
+            playerClass = *Ycore::StringTo<uint32>(GetColumn(ts, line, "class"));
+            gender = *Ycore::StringTo<uint32>(GetColumn(ts, line, "gender"));
+            level = *Ycore::StringTo<uint32>(GetColumn(ts, line, "level"));
             if (name.empty())
             {
                 // generate a temporary name
-                std::string guidPart = Acore::StringFormat("{:X}", guid);
+                std::string guidPart = Ycore::StringFormat("{:X}", guid);
                 std::size_t maxCharsFromOriginalName = MAX_PLAYER_NAME - guidPart.length();
 
                 name = GetColumn(ts, line, "name").substr(0, maxCharsFromOriginalName) + guidPart;

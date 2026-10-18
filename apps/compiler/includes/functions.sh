@@ -3,7 +3,7 @@
 # Set SUDO variable - one liner
 SUDO=""
 
-IS_SUDO_ENABLED=${AC_ENABLE_ROOT_CMAKE_INSTALL:-0}
+IS_SUDO_ENABLED=${YC_ENABLE_ROOT_CMAKE_INSTALL:-0}
 
 # Allow callers to opt-out from privilege escalation during install/perms adjustments
 if [[ $IS_SUDO_ENABLED == 1 ]]; then
@@ -20,7 +20,7 @@ function comp_clean() {
 }
 
 function comp_ccacheEnable() {
-    [ "$AC_CCACHE" != true ] && return
+    [ "$YC_CCACHE" != true ] && return
 
     export CCACHE_MAXSIZE=${CCACHE_MAXSIZE:-'1000MB'}
     #export CCACHE_DEPEND=true
@@ -36,7 +36,7 @@ function comp_ccacheEnable() {
 }
 
 function comp_ccacheClean() {
-    [ "$AC_CCACHE" != true ] && echo "ccache is disabled" && return
+    [ "$YC_CCACHE" != true ] && echo "ccache is disabled" && return
 
     echo "Cleaning ccache"
     ccache -C
@@ -44,13 +44,13 @@ function comp_ccacheClean() {
 }
 
 function comp_ccacheResetStats() {
-    [ "$AC_CCACHE" != true ] && return
+    [ "$YC_CCACHE" != true ] && return
 
     ccache -zc
 }
 
 function comp_ccacheShowStats() {
-    [ "$AC_CCACHE" != true ] && return
+    [ "$YC_CCACHE" != true ] && return
 
     ccache -s
 }
@@ -63,13 +63,13 @@ function comp_configure() {
   echo "Build path: $BUILDPATH"
   echo "DEBUG info: $CDEBUG"
   echo "Compilation type: $CTYPE"
-  echo "CCache: $AC_CCACHE"
+  echo "CCache: $YC_CCACHE"
   # -DCMAKE_BUILD_TYPE=$CCTYPE disable optimization "slow and huge amount of ram"
   # -DWITH_COREDEBUG=$CDEBUG compiled with debug information
 
   #-DSCRIPTS_COMMANDS=$CSCRIPTS -DSCRIPTS_CUSTOM=$CSCRIPTS -DSCRIPTS_EASTERNKINGDOMS=$CSCRIPTS -DSCRIPTS_EVENTS=$CSCRIPTS -DSCRIPTS_KALIMDOR=$CSCRIPTS \
   #-DSCRIPTS_NORTHREND=$CSCRIPTS -DSCRIPTS_OUTDOORPVP=$CSCRIPTS -DSCRIPTS_OUTLAND=$CSCRIPTS -DSCRIPTS_PET=$CSCRIPTS -DSCRIPTS_SPELLS=$CSCRIPTS -DSCRIPTS_WORLD=$CSCRIPTS \
-  #-DAC_WITH_UNIT_TEST=$CAC_UNIT_TEST -DAC_WITH_PLUGINS=$CAC_PLG \
+  #-DYC_WITH_UNIT_TEST=$CYC_UNIT_TEST -DYC_WITH_PLUGINS=$CYC_PLG \
 
   local DCONF=""
   if [ ! -z "$CONFDIR" ]; then
@@ -135,12 +135,12 @@ function comp_compile() {
       echo "Done"
       ;;
     linux*|darwin*)
-      local confDir=${CONFDIR:-"$AC_BINPATH_FULL/../etc"}
+      local confDir=${CONFDIR:-"$YC_BINPATH_FULL/../etc"}
 
       # create the folders before installing to
       # set the current user and permissions
-      echo "Creating $AC_BINPATH_FULL..."
-      mkdir -p "$AC_BINPATH_FULL"
+      echo "Creating $YC_BINPATH_FULL..."
+      mkdir -p "$YC_BINPATH_FULL"
       echo "Creating $confDir..."
       mkdir -p "$confDir"
       mkdir -p "$confDir/modules"
@@ -155,10 +155,10 @@ function comp_compile() {
         echo "Skipping root ownership and SUID changes (IS_SUDO_ENABLED=0)"
       else
         echo "Setting permissions on binary files"
-        find "$AC_BINPATH_FULL"  -mindepth 1 -maxdepth 1 -type f -exec $SUDO chown root:root -- {} +
-        find "$AC_BINPATH_FULL"  -mindepth 1 -maxdepth 1 -type f -exec $SUDO chmod u+s  -- {} +
-        $SUDO setcap cap_sys_nice=eip "$AC_BINPATH_FULL/worldserver"
-        $SUDO setcap cap_sys_nice=eip "$AC_BINPATH_FULL/authserver"
+        find "$YC_BINPATH_FULL"  -mindepth 1 -maxdepth 1 -type f -exec $SUDO chown root:root -- {} +
+        find "$YC_BINPATH_FULL"  -mindepth 1 -maxdepth 1 -type f -exec $SUDO chmod u+s  -- {} +
+        $SUDO setcap cap_sys_nice=eip "$YC_BINPATH_FULL/worldserver"
+        $SUDO setcap cap_sys_nice=eip "$YC_BINPATH_FULL/authserver"
       fi
 
       [[ -f "$confDir/worldserver.conf.dist" ]] && \

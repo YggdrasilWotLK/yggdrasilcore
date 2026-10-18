@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -25,7 +25,7 @@
 class WorldObject;
 class WorldPacket;
 
-namespace Acore
+namespace Ycore
 {
     class BroadcastTextBuilder
     {
@@ -61,10 +61,10 @@ namespace Acore
             WorldObject const* _target;
     };
 
-    class AcoreStringChatBuilder
+    class YcoreStringChatBuilder
     {
         public:
-            AcoreStringChatBuilder(WorldObject const* obj, ChatMsg msgType, uint32 textId, WorldObject const* target = nullptr, va_list* args = nullptr)
+            YcoreStringChatBuilder(WorldObject const* obj, ChatMsg msgType, uint32 textId, WorldObject const* target = nullptr, va_list* args = nullptr)
                 : _source(obj), _msgType(msgType), _textId(textId), _target(target), _args(args) { }
 
             void operator()(WorldPacket& data, LocaleConstant locale) const;
@@ -77,6 +77,6 @@ namespace Acore
             va_list* _args;
     };
 }
-// namespace Acore
+// namespace Ycore
 
 #endif // __CHATTEXT_BUILDER_H

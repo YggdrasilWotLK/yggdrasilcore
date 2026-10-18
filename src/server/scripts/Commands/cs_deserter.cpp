@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -28,7 +28,7 @@
 #include "Player.h"
 #include "SpellAuras.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 enum Spells
 {
@@ -146,7 +146,7 @@ public:
 
         if (duration == 0)
         {
-            duration = Acore::StringTo<int32>(*time).value_or(0);
+            duration = Ycore::StringTo<int32>(*time).value_or(0);
         }
 
         if (duration == 0)
@@ -324,7 +324,7 @@ public:
             remainTime = TimeStringToSecs(*maxTime);
             if (remainTime == 0)
             {
-                remainTime = Acore::StringTo<int32>(*maxTime).value_or(0);
+                remainTime = Ycore::StringTo<int32>(*maxTime).value_or(0);
             }
         }
 

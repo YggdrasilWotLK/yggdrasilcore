@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -41,31 +41,31 @@ namespace lfg
         std::string rolesstr = "";
 
         if (roles & PLAYER_ROLE_TANK)
-            rolesstr.append(sObjectMgr->GetAcoreStringForDBCLocale(LANG_LFG_ROLE_TANK));
+            rolesstr.append(sObjectMgr->GetYcoreStringForDBCLocale(LANG_LFG_ROLE_TANK));
 
         if (roles & PLAYER_ROLE_HEALER)
         {
             if (!rolesstr.empty())
                 rolesstr.append(", ");
-            rolesstr.append(sObjectMgr->GetAcoreStringForDBCLocale(LANG_LFG_ROLE_HEALER));
+            rolesstr.append(sObjectMgr->GetYcoreStringForDBCLocale(LANG_LFG_ROLE_HEALER));
         }
 
         if (roles & PLAYER_ROLE_DAMAGE)
         {
             if (!rolesstr.empty())
                 rolesstr.append(", ");
-            rolesstr.append(sObjectMgr->GetAcoreStringForDBCLocale(LANG_LFG_ROLE_DAMAGE));
+            rolesstr.append(sObjectMgr->GetYcoreStringForDBCLocale(LANG_LFG_ROLE_DAMAGE));
         }
 
         if (roles & PLAYER_ROLE_LEADER)
         {
             if (!rolesstr.empty())
                 rolesstr.append(", ");
-            rolesstr.append(sObjectMgr->GetAcoreStringForDBCLocale(LANG_LFG_ROLE_LEADER));
+            rolesstr.append(sObjectMgr->GetYcoreStringForDBCLocale(LANG_LFG_ROLE_LEADER));
         }
 
         if (rolesstr.empty())
-            rolesstr.append(sObjectMgr->GetAcoreStringForDBCLocale(LANG_LFG_ROLE_NONE));
+            rolesstr.append(sObjectMgr->GetYcoreStringForDBCLocale(LANG_LFG_ROLE_NONE));
 
         return rolesstr;
     }
@@ -101,7 +101,7 @@ namespace lfg
                 break;
         }
 
-        return std::string(sObjectMgr->GetAcoreStringForDBCLocale(entry));
+        return std::string(sObjectMgr->GetYcoreStringForDBCLocale(entry));
     }
 
 } // namespace lfg

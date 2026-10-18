@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -99,7 +99,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND NOT NOJEM)
 
   target_link_libraries(jemalloc
     PRIVATE
-      acore-dependency-interface
+      ycore-dependency-interface
     PUBLIC
       threads
     ${CMAKE_DL_LIBS})

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -26,7 +26,7 @@
 #include <variant>
 #include <vector>
 
-namespace Acore::Types
+namespace Ycore::Types
 {
     template <typename T>
     using is_default = std::enable_if_t<std::is_arithmetic_v<T> || std::is_same_v<std::vector<uint8>, T>>;
@@ -64,7 +64,7 @@ struct PreparedStatementData
 };
 
 //- Upper-level class that is used in code
-class AC_DATABASE_API PreparedStatementBase
+class YC_DATABASE_API PreparedStatementBase
 {
 friend class PreparedStatementTask;
 
@@ -74,14 +74,14 @@ public:
 
     // Set numerlic and default binary
     template<typename T>
-    inline Acore::Types::is_default<T> SetData(const uint8 index, T value)
+    inline Ycore::Types::is_default<T> SetData(const uint8 index, T value)
     {
         SetValidData(index, value);
     }
 
     // Set enums
     template<typename T>
-    inline Acore::Types::is_enum_v<T> SetData(const uint8 index, T value)
+    inline Ycore::Types::is_enum_v<T> SetData(const uint8 index, T value)
     {
         SetValidData(index, std::underlying_type_t<T>(value));
     }
@@ -125,7 +125,7 @@ public:
 
 protected:
     template<typename T>
-    Acore::Types::is_non_string_view_v<T> SetValidData(const uint8 index, T const& value);
+    Ycore::Types::is_non_string_view_v<T> SetValidData(const uint8 index, T const& value);
 
     void SetValidData(const uint8 index);
     void SetValidData(const uint8 index, std::string_view value);
@@ -166,7 +166,7 @@ private:
 };
 
 //- Lower-level class, enqueuable operation
-class AC_DATABASE_API PreparedStatementTask : public SQLOperation
+class YC_DATABASE_API PreparedStatementTask : public SQLOperation
 {
 public:
     PreparedStatementTask(PreparedStatementBase* stmt, bool async = false);

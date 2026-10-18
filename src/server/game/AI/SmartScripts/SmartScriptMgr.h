@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_SMARTSCRIPTMGR_H
-#define ACORE_SMARTSCRIPTMGR_H
+#ifndef YCORE_SMARTSCRIPTMGR_H
+#define YCORE_SMARTSCRIPTMGR_H
 
 #include "Common.h"
 #include "Creature.h"
@@ -203,8 +203,8 @@ enum SMART_EVENT
 
     SMART_EVENT_TC_END                   = 83,
 
-    /* AC Custom Events */
-    SMART_EVENT_AC_START                 = 100,
+    /* YC Custom Events */
+    SMART_EVENT_YC_START                 = 100,
 
     SMART_EVENT_NEAR_PLAYERS             = 101,      // min, radius, first timer, repeatMin, repeatMax
     SMART_EVENT_NEAR_PLAYERS_NEGATION    = 102,      // max, radius, first timer, repeatMin, repeatMax
@@ -217,7 +217,7 @@ enum SMART_EVENT
     SMART_EVENT_WAYPOINT_DATA_ENDED      = 109,      // PointId (0: any), pathId (0: any)
     SMART_EVENT_IS_IN_MELEE_RANGE        = 110,      // min, max, repeatMin, repeatMax, dist, invert (0: false, 1: true)
 
-    SMART_EVENT_AC_END                   = 111
+    SMART_EVENT_YC_END                   = 111
 };
 
 struct SmartEvent
@@ -697,8 +697,8 @@ enum SMART_ACTION
 
     SMART_ACTION_TC_END                             = 199,    // placeholder
 
-    // AC-only SmartActions:
-    SMART_ACTION_AC_START                           = 200,    // placeholder
+    // YC-only SmartActions:
+    SMART_ACTION_YC_START                           = 200,    // placeholder
 
     SMART_ACTION_MOVE_TO_POS_TARGET                 = 201,    // pointId
     // SMART_ACTION_SET_GO_STATE                    = 202,    // state // Replaced by SMART_ACTION_GO_SET_GO_STATE
@@ -721,7 +721,7 @@ enum SMART_ACTION
     SMART_ACTION_CUSTOM_CAST                        = 218,    // spellId, castflag, bp0, bp1, bp2
     SMART_ACTION_CONE_SUMMON                        = 219,    // entry, duration (0 = perm), dist between rings, dist between earch summon in a row, length of cone, width of cone (angle)
     SMART_ACTION_PLAYER_TALK                        = 220,    // acore_string.entry, yell? (0/1)
-    SMART_ACTION_VORTEX_SUMMON                      = 221,    // entry, duration (0 = perm), spiral scaling, spiral appearance, range max, phi_delta     <-- yes confusing math, try it ingame and see, my lovely AC boys!
+    SMART_ACTION_VORTEX_SUMMON                      = 221,    // entry, duration (0 = perm), spiral scaling, spiral appearance, range max, phi_delta     <-- yes confusing math, try it ingame and see, my lovely YC boys!
     SMART_ACTION_CU_ENCOUNTER_START                 = 222,    // Resets cooldowns on all targets and removes Heroism debuff(s)
     SMART_ACTION_DO_ACTION                          = 223,    // ActionId
     SMART_ACTION_ATTACK_STOP                        = 224,    //
@@ -740,7 +740,7 @@ enum SMART_ACTION
     SMART_ACTION_WORLD_SCRIPT                       = 237,    // eventId, param
     SMART_ACTION_DISABLE_REWARD                     = 238,    // reputation 0/1, loot 0/1
 
-    SMART_ACTION_AC_END                             = 239,    // placeholder
+    SMART_ACTION_YC_END                             = 239,    // placeholder
 };
 
 enum class SmartActionSummonCreatureFlags
@@ -1568,9 +1568,9 @@ enum SMARTAI_TARGETS
 
     SMART_TARGET_TC_END                         = 30,   // placeholder
 
-    // AC-only SmartTargets:
+    // YC-only SmartTargets:
 
-    SMART_TARGET_AC_START                       = 200,  // placeholder
+    SMART_TARGET_YC_START                       = 200,  // placeholder
 
     SMART_TARGET_PLAYER_WITH_AURA               = 201,  // spellId, negation, MaxDist, MinDist, set target.o to a number to random resize the list
     SMART_TARGET_RANDOM_POINT                   = 202,  // range, amount (for summoning creature), self als middle (0/1) else use xyz
@@ -1578,7 +1578,7 @@ enum SMARTAI_TARGETS
     SMART_TARGET_SUMMONED_CREATURES             = 204,  // Entry
     SMART_TARGET_INSTANCE_STORAGE               = 205,  // Instance data index, Type (creature (1), gameobject (2))
 
-    SMART_TARGET_AC_END                         = 206   // placeholder
+    SMART_TARGET_YC_END                         = 206   // placeholder
 };
 
 struct SmartTarget
@@ -1812,7 +1812,7 @@ const uint32 SmartAITypeMask[SMART_SCRIPT_TYPE_MAX][2] =
     {SMART_SCRIPT_TYPE_TIMED_ACTIONLIST,    SMART_SCRIPT_TYPE_MASK_TIMED_ACTIONLIST }
 };
 
-const uint32 SmartAIEventMask[SMART_EVENT_AC_END][2] =
+const uint32 SmartAIEventMask[SMART_EVENT_YC_END][2] =
 {
     {SMART_EVENT_UPDATE_IC,                 SMART_SCRIPT_TYPE_MASK_CREATURE + SMART_SCRIPT_TYPE_MASK_TIMED_ACTIONLIST},
     {SMART_EVENT_UPDATE_OOC,                SMART_SCRIPT_TYPE_MASK_CREATURE + SMART_SCRIPT_TYPE_MASK_GAMEOBJECT + SMART_SCRIPT_TYPE_MASK_INSTANCE },

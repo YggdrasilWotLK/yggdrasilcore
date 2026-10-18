@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -593,7 +593,7 @@ class spell_pal_divine_storm_dummy : public SpellScript
 
     void CountTargets(std::list<WorldObject*>& targetList)
     {
-        Acore::Containers::RandomResize(targetList, GetSpellValue()->MaxAffectedTargets);
+        Ycore::Containers::RandomResize(targetList, GetSpellValue()->MaxAffectedTargets);
         _targetCount = targetList.size();
     }
 
@@ -684,7 +684,7 @@ class spell_pal_glyph_of_holy_light : public SpellScript
         uint32 const maxTargets = GetSpellInfo()->MaxAffectedTargets;
         if (targets.size() > maxTargets)
         {
-            targets.sort(Acore::HealthPctOrderPred());
+            targets.sort(Ycore::HealthPctOrderPred());
             targets.resize(maxTargets);
         }
     }

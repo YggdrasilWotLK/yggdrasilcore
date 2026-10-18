@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -48,7 +48,7 @@
 #include "WorldPacket.h"
 #include "WorldStatePackets.h"
 
-namespace Acore
+namespace Ycore
 {
     class BattlegroundChatBuilder
     {
@@ -58,7 +58,7 @@ namespace Acore
 
         void operator()(WorldPacket& data, LocaleConstant loc_idx)
         {
-            std::string strtext = sObjectMgr->GetAcoreString(_textId, loc_idx);
+            std::string strtext = sObjectMgr->GetYcoreString(_textId, loc_idx);
             char const* text = strtext.c_str();
             if (_args)
             {
@@ -96,11 +96,11 @@ namespace Acore
 
         void operator()(WorldPacket& data, LocaleConstant loc_idx)
         {
-            std::string strtext = sObjectMgr->GetAcoreString(_textId, loc_idx);
+            std::string strtext = sObjectMgr->GetYcoreString(_textId, loc_idx);
             char const* text = strtext.c_str();
-            std::string stragr1str = sObjectMgr->GetAcoreString(_arg1, loc_idx);
+            std::string stragr1str = sObjectMgr->GetYcoreString(_arg1, loc_idx);
             char const* arg1str = _arg1 ? stragr1str.c_str() : "";
-            std::string strarg2str = sObjectMgr->GetAcoreString(_arg2, loc_idx);
+            std::string strarg2str = sObjectMgr->GetYcoreString(_arg2, loc_idx);
             char const* arg2str = _arg2 ? strarg2str.c_str() : "";
 
             char str[2048];
@@ -116,7 +116,7 @@ namespace Acore
         uint32 _arg1;
         uint32 _arg2;
     };
-}                                                           // namespace Acore
+}                                                           // namespace Ycore
 
 template<class Do>
 void Battleground::BroadcastWorker(Do& _do)
@@ -918,8 +918,8 @@ void Battleground::SendBroadcastText(uint32 id, ChatMsg msgType, WorldObject con
         return;
     }
 
-    Acore::BroadcastTextBuilder builder(nullptr, msgType, id, GENDER_MALE, target);
-    Acore::LocalizedPacketDo<Acore::BroadcastTextBuilder> localizer(builder);
+    Ycore::BroadcastTextBuilder builder(nullptr, msgType, id, GENDER_MALE, target);
+    Ycore::LocalizedPacketDo<Ycore::BroadcastTextBuilder> localizer(builder);
     BroadcastWorker(localizer);
 }
 
@@ -1225,7 +1225,7 @@ uint32 Battleground::GetBonusHonorFromKill(uint32 kills) const
     std::lock_guard<std::recursive_mutex> lock(*sGroupMgr->GetSocialLock());
     //variable kills means how many honorable kills you scored (so we need kills * honor_for_one_kill)
     uint32 maxLevel = std::min<uint32>(GetMaxLevel(), 80U);
-    return Acore::Honor::hk_honor_at_level(maxLevel, float(kills));
+    return Ycore::Honor::hk_honor_at_level(maxLevel, float(kills));
 }
 
 void Battleground::BlockMovement(Player* player)

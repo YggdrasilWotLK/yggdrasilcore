@@ -322,7 +322,7 @@ function start_service() {
     
     # Set up session name (with backward compatibility for SCREEN_NAME)
     SESSION_NAME="${SESSION_NAME:-$SCREEN_NAME}"
-    SESSION_NAME="${SESSION_NAME:-AC-${SERVERBIN%server}}"
+    SESSION_NAME="${SESSION_NAME:-YC-${SERVERBIN%server}}"
 
     configure_files
     
@@ -342,13 +342,13 @@ function start_service() {
         echo "Server config: default (not specified)"
     fi
     
-    # Set AC_DISABLE_INTERACTIVE when running as a service without interactive session manager
+    # Set YC_DISABLE_INTERACTIVE when running as a service without interactive session manager
     # This prevents AzerothCore from showing interactive prompts when running under systemd/pm2
     if [[ "${SERVICE_MODE:-false}" == "true" && "$session_manager" == "none" ]]; then
-        export AC_DISABLE_INTERACTIVE=1
-        echo "Service mode: Non-interactive mode enabled (AC_DISABLE_INTERACTIVE=1)"
+        export YC_DISABLE_INTERACTIVE=1
+        echo "Service mode: Non-interactive mode enabled (YC_DISABLE_INTERACTIVE=1)"
     else
-        export AC_DISABLE_INTERACTIVE=0
+        export YC_DISABLE_INTERACTIVE=0
         if [[ "${SERVICE_MODE:-false}" == "true" ]]; then
             echo "Service mode: Interactive mode enabled (session manager: $session_manager)"
         else

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -27,7 +27,7 @@
 template <class T>
 void GridObjectLoader::AddObjectHelper(Map* map, T* obj)
 {
-    CellCoord cellCoord = Acore::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
+    CellCoord cellCoord = Ycore::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
     Cell cell(cellCoord);
 
     map->AddToGrid<T>(obj, cell);
@@ -52,7 +52,7 @@ void GridObjectLoader::LoadCreatures(CellGuidSet const& guid_set, Map* map)
             if (obj->IsAlive() && !obj->HasUnitState(UNIT_STATE_SIGHTLESS) && obj->HasReactState(REACT_AGGRESSIVE) && !obj->IsImmuneToNPC())
             {
                 // call MoveInLineOfSight for nearby grid creatures
-                Acore::AIRelocationNotifier notifier(*obj);
+                Ycore::AIRelocationNotifier notifier(*obj);
                 Cell::VisitObjects(obj, notifier, 60.f);
             }
         }

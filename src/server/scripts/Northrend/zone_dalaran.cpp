@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -540,7 +540,7 @@ struct npc_minigob_manabonk : public ScriptedAI
 
         if (playerInDalaranList.empty())
             return nullptr;
-        return Acore::Containers::SelectRandomContainerElement(playerInDalaranList);
+        return Ycore::Containers::SelectRandomContainerElement(playerInDalaranList);
     }
 
     void SendMailToPlayer(Player* player)

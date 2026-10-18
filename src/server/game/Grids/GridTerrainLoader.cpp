@@ -30,7 +30,7 @@ void GridTerrainLoader::LoadMap()
     }
 
     // map file name
-    std::string const mapFileName = Acore::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), _map->GetId(), _grid.GetX(), _grid.GetY());
+    std::string const mapFileName = Ycore::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), _map->GetId(), _grid.GetX(), _grid.GetY());
 
     // loading data
     LOG_DEBUG("maps", "Loading map {}", mapFileName);
@@ -94,7 +94,7 @@ void GridTerrainLoader::LoadMMap()
 
 bool GridTerrainLoader::ExistMap(uint32 mapid, int gx, int gy)
 {
-    std::string const mapFileName = Acore::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), mapid, gx, gy);
+    std::string const mapFileName = Ycore::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), mapid, gx, gy);
     std::ifstream fileStream(mapFileName, std::ios::binary);
     if (fileStream.fail())
     {

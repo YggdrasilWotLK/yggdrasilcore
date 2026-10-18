@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -175,7 +175,7 @@ public:
 
                             if (!targetList.empty())
                             {
-                                Acore::Containers::RandomShuffle(targetList);
+                                Ycore::Containers::RandomShuffle(targetList);
 
                                 // First get ranged targets
                                 for (Unit* target : targetList)
@@ -200,7 +200,7 @@ public:
 
                                 if (!_thousandBladesTargets.empty())
                                 {
-                                    Acore::Containers::RandomResize(_thousandBladesTargets, _thousandBladesCount);
+                                    Ycore::Containers::RandomResize(_thousandBladesTargets, _thousandBladesCount);
                                 }
                             }
                         }

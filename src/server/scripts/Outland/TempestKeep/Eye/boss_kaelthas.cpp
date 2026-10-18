@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -957,7 +957,7 @@ class spell_kaelthas_mind_control : public SpellScript
     {
         if (Unit* victim = GetCaster()->GetVictim())
         {
-            targets.remove_if(Acore::ObjectGUIDCheck(victim->GetGUID(), true));
+            targets.remove_if(Ycore::ObjectGUIDCheck(victim->GetGUID(), true));
         }
 
         targets.remove_if([&](WorldObject const* target) -> bool
@@ -1092,7 +1092,7 @@ class spell_kaelthas_nether_beam : public SpellScript
                 targetList.push_back(target);
         }
 
-        Acore::Containers::RandomResize(targetList, 5);
+        Ycore::Containers::RandomResize(targetList, 5);
         for (std::list<Unit*>::const_iterator itr = targetList.begin(); itr != targetList.end(); ++itr)
             GetCaster()->CastSpell(*itr, SPELL_NETHER_BEAM_DAMAGE, true);
     }
@@ -1129,7 +1129,7 @@ class spell_kael_pyroblast : public SpellScript
         if (GetCaster()->GetVictim())
         {
             if (Unit* victim = GetCaster()->GetVictim())
-                targets.remove_if(Acore::ObjectGUIDCheck(victim->GetGUID(), false));
+                targets.remove_if(Ycore::ObjectGUIDCheck(victim->GetGUID(), false));
         }
     }
 

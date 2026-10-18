@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -163,7 +163,7 @@ struct boss_ouro : public BossAI
         me->GetCreatureListWithEntryInGrid(ouroMounds, NPC_DIRT_MOUND, 200.f);
         if (!ouroMounds.empty()) // This can't be possible, but just to be sure.
         {
-            if (Creature* mound = Acore::Containers::SelectRandomContainerElement(ouroMounds))
+            if (Creature* mound = Ycore::Containers::SelectRandomContainerElement(ouroMounds))
             {
                 mound->AddAura(SPELL_SUMMON_OURO_AURA, mound);
                 mound->AI()->SetData(DATA_OURO_HEALTH, me->GetHealth());
@@ -176,8 +176,8 @@ struct boss_ouro : public BossAI
     void CastGroundRupture()
     {
         std::list<WorldObject*> targets;
-        Acore::AllWorldObjectsInRange checker(me, 10.0f);
-        Acore::WorldObjectListSearcher<Acore::AllWorldObjectsInRange> searcher(me, targets, checker);
+        Ycore::AllWorldObjectsInRange checker(me, 10.0f);
+        Ycore::WorldObjectListSearcher<Ycore::AllWorldObjectsInRange> searcher(me, targets, checker);
         Cell::VisitObjects(me, searcher, 10.0f);
 
         for (WorldObject* target : targets)

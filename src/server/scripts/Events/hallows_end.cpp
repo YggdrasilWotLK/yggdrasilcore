@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -805,8 +805,8 @@ struct npc_hallows_end_soh : public ScriptedAI
         }
 
         std::list<Player*> players;
-        Acore::AnyPlayerInObjectRangeCheck checker(me, 60.f);
-        Acore::PlayerListSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(me, players, checker);
+        Ycore::AnyPlayerInObjectRangeCheck checker(me, 60.f);
+        Ycore::PlayerListSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(me, players, checker);
         Cell::VisitObjects(me, searcher, 60.f);
         if (players.empty())
         {
@@ -834,7 +834,7 @@ struct npc_hallows_end_soh : public ScriptedAI
             sizeCount += playerCount % 2;
         }
 
-        Acore::Containers::RandomResize(tmpList, sizeCount);
+        Ycore::Containers::RandomResize(tmpList, sizeCount);
         for (Unit* trigger : tmpList)
             me->CastSpell(trigger, SPELL_START_FIRE, true);
     }
@@ -885,8 +885,8 @@ struct npc_hallows_end_soh : public ScriptedAI
     {
         float radius = 100.0f;
         std::list<Player*> players;
-        Acore::AnyPlayerInObjectRangeCheck checker(me, radius);
-        Acore::PlayerListSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(me, players, checker);
+        Ycore::AnyPlayerInObjectRangeCheck checker(me, radius);
+        Ycore::PlayerListSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(me, players, checker);
         Cell::VisitObjects(me, searcher, radius);
 
         for (Player* player : players)

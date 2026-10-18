@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -34,7 +34,7 @@
 
 class ChatHandler;
 
-namespace Acore::ChatCommands
+namespace Ycore::ChatCommands
 {
     enum class Console : bool
     {
@@ -46,7 +46,7 @@ namespace Acore::ChatCommands
     using ChatCommandTable = std::vector<ChatCommandBuilder>;
 }
 
-namespace Acore::Impl::ChatCommands
+namespace Ycore::Impl::ChatCommands
 {
     // forward declaration
     // ConsumeFromOffset contains the bounds check for offset, then hands off to MultiConsumer
@@ -88,9 +88,9 @@ namespace Acore::Impl::ChatCommands
                 return result2;
             if (result1.HasErrorMessage() && result2.HasErrorMessage())
             {
-                return Acore::StringFormat("{} \"{}\"\n{} \"{}\"",
-                    GetAcoreString(handler, LANG_CMDPARSER_EITHER), result2.GetErrorMessage(),
-                    GetAcoreString(handler, LANG_CMDPARSER_OR), result1.GetErrorMessage());
+                return Ycore::StringFormat("{} \"{}\"\n{} \"{}\"",
+                    GetYcoreString(handler, LANG_CMDPARSER_EITHER), result2.GetErrorMessage(),
+                    GetYcoreString(handler, LANG_CMDPARSER_OR), result1.GetErrorMessage());
             }
             else if (result1.HasErrorMessage())
                 return result1;
@@ -110,7 +110,7 @@ namespace Acore::Impl::ChatCommands
             return args;
     }
 
-    template <typename T> struct HandlerToTuple { static_assert(Acore::dependant_false_v<T>, "Invalid command handler signature"); };
+    template <typename T> struct HandlerToTuple { static_assert(Ycore::dependant_false_v<T>, "Invalid command handler signature"); };
     template <typename... Ts> struct HandlerToTuple<bool(ChatHandler*, Ts...)> { using type = std::tuple<ChatHandler*, std::remove_cvref_t<Ts>...>; };
     template <typename T> using TupleType = typename HandlerToTuple<T>::type;
 
@@ -166,15 +166,15 @@ namespace Acore::Impl::ChatCommands
     struct CommandPermissions
     {
         CommandPermissions() : RequiredLevel{}, AllowConsole{} { }
-        CommandPermissions(uint32 securityLevel, Acore::ChatCommands::Console console) : RequiredLevel{ securityLevel }, AllowConsole{ console } {}
+        CommandPermissions(uint32 securityLevel, Ycore::ChatCommands::Console console) : RequiredLevel{ securityLevel }, AllowConsole{ console } {}
         uint32 RequiredLevel;
-        Acore::ChatCommands::Console AllowConsole;
+        Ycore::ChatCommands::Console AllowConsole;
     };
 
     class ChatCommandNode
     {
     friend struct FilteredCommandListIterator;
-    using ChatCommandBuilder = Acore::ChatCommands::ChatCommandBuilder;
+    using ChatCommandBuilder = Ycore::ChatCommands::ChatCommandBuilder;
 
     public:
         static void LoadCommandMap();
@@ -187,7 +187,7 @@ namespace Acore::Impl::ChatCommands
 
     private:
         static std::map<std::string_view, ChatCommandNode, StringCompareLessI_T> const& GetTopLevelMap();
-        static void LoadCommandsIntoMap(ChatCommandNode* blank, std::map<std::string_view, Acore::Impl::ChatCommands::ChatCommandNode, StringCompareLessI_T>& map, Acore::ChatCommands::ChatCommandTable const& commands);
+        static void LoadCommandsIntoMap(ChatCommandNode* blank, std::map<std::string_view, Ycore::Impl::ChatCommands::ChatCommandNode, StringCompareLessI_T>& map, Ycore::ChatCommands::ChatCommandTable const& commands);
 
         void LoadFromBuilder(ChatCommandBuilder const& builder);
         ChatCommandNode(ChatCommandNode&& other) = default;
@@ -202,29 +202,29 @@ namespace Acore::Impl::ChatCommands
         std::string _name;
         CommandInvoker _invoker;
         CommandPermissions _permission;
-        std::variant<std::monostate, AcoreStrings, std::string> _help;
+        std::variant<std::monostate, YcoreStrings, std::string> _help;
         std::map<std::string_view, ChatCommandNode, StringCompareLessI_T> _subCommands;
     };
 }
 
-namespace Acore::ChatCommands
+namespace Ycore::ChatCommands
 {
     struct ChatCommandBuilder
     {
-        friend class Acore::Impl::ChatCommands::ChatCommandNode;
+        friend class Ycore::Impl::ChatCommands::ChatCommandNode;
 
         struct InvokerEntry
         {
             template <typename T>
-            InvokerEntry(T& handler, AcoreStrings help, uint32 securityLevel, Acore::ChatCommands::Console allowConsole)
+            InvokerEntry(T& handler, YcoreStrings help, uint32 securityLevel, Ycore::ChatCommands::Console allowConsole)
                 : _invoker{ handler }, _help{ help }, _permissions{ securityLevel, allowConsole } { }
 
             InvokerEntry(InvokerEntry const&) = default;
             InvokerEntry(InvokerEntry&&) = default;
 
-            Acore::Impl::ChatCommands::CommandInvoker _invoker;
-            AcoreStrings _help;
-            Acore::Impl::ChatCommands::CommandPermissions _permissions;
+            Ycore::Impl::ChatCommands::CommandInvoker _invoker;
+            YcoreStrings _help;
+            Ycore::Impl::ChatCommands::CommandPermissions _permissions;
 
             auto operator*() const { return std::tie(_invoker, _help, _permissions); }
         };
@@ -235,12 +235,12 @@ namespace Acore::ChatCommands
         ChatCommandBuilder(ChatCommandBuilder const&) = default;
 
         template <typename TypedHandler>
-        ChatCommandBuilder(char const* name, TypedHandler& handler, AcoreStrings help, uint32 securityLevel, Acore::ChatCommands::Console allowConsole)
+        ChatCommandBuilder(char const* name, TypedHandler& handler, YcoreStrings help, uint32 securityLevel, Ycore::ChatCommands::Console allowConsole)
             : _name{ ASSERT_NOTNULL(name) }, _data{ std::in_place_type<InvokerEntry>, handler, help, securityLevel, allowConsole } { }
 
         template <typename TypedHandler>
-        ChatCommandBuilder(char const* name, TypedHandler& handler, uint32 securityLevel, Acore::ChatCommands::Console allowConsole)
-            : ChatCommandBuilder(name, handler, AcoreStrings(), securityLevel, allowConsole) { }
+        ChatCommandBuilder(char const* name, TypedHandler& handler, uint32 securityLevel, Ycore::ChatCommands::Console allowConsole)
+            : ChatCommandBuilder(name, handler, YcoreStrings(), securityLevel, allowConsole) { }
 
         ChatCommandBuilder(char const* name, std::vector<ChatCommandBuilder> const& subCommands)
             : _name{ ASSERT_NOTNULL(name) }, _data{ std::in_place_type<SubCommandEntry>, subCommands } { }
@@ -250,14 +250,14 @@ namespace Acore::ChatCommands
         std::variant<InvokerEntry, SubCommandEntry> _data;
     };
 
-    AC_GAME_API void LoadCommandMap();
-    AC_GAME_API void InvalidateCommandMap();
-    AC_GAME_API bool TryExecuteCommand(ChatHandler& handler, std::string_view cmd);
-    AC_GAME_API void SendCommandHelpFor(ChatHandler& handler, std::string_view cmd);
-    AC_GAME_API std::vector<std::string> GetAutoCompletionsFor(ChatHandler const& handler, std::string_view cmd);
+    YC_GAME_API void LoadCommandMap();
+    YC_GAME_API void InvalidateCommandMap();
+    YC_GAME_API bool TryExecuteCommand(ChatHandler& handler, std::string_view cmd);
+    YC_GAME_API void SendCommandHelpFor(ChatHandler& handler, std::string_view cmd);
+    YC_GAME_API std::vector<std::string> GetAutoCompletionsFor(ChatHandler const& handler, std::string_view cmd);
 }
 
 // backwards compatibility with old patches
-using ChatCommand [[deprecated("std::vector<ChatCommand> should be ChatCommandTable! (using namespace Acore::ChatCommands)")]] = Acore::ChatCommands::ChatCommandBuilder;
+using ChatCommand [[deprecated("std::vector<ChatCommand> should be ChatCommandTable! (using namespace Ycore::ChatCommands)")]] = Ycore::ChatCommands::ChatCommandBuilder;
 
 #endif

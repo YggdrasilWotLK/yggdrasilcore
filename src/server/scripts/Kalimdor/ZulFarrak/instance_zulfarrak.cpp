@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -496,8 +496,8 @@ class spell_zulfarrak_unlocking : public SpellScript
     {
         GameObject* cage = GetHitGObj();
         std::list<WorldObject*> cagesList;
-        Acore::AllWorldObjectsInRange objects(GetCaster(), 15.0f);
-        Acore::WorldObjectListSearcher<Acore::AllWorldObjectsInRange> searcher(GetCaster(), cagesList, objects);
+        Ycore::AllWorldObjectsInRange objects(GetCaster(), 15.0f);
+        Ycore::WorldObjectListSearcher<Ycore::AllWorldObjectsInRange> searcher(GetCaster(), cagesList, objects);
         Cell::VisitObjects(GetCaster(), searcher, 15.0f);
         for (std::list<WorldObject*>::const_iterator itr = cagesList.begin(); itr != cagesList.end(); ++itr)
         {

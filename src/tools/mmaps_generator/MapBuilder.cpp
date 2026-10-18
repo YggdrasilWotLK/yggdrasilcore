@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -563,7 +563,7 @@ namespace MMAP
             return;
         }
 
-        const std::string fileName = Acore::StringFormat(
+        const std::string fileName = Ycore::StringFormat(
             MAP_FILE_NAME_FORMAT,
             m_config->DataDirPath(),
             mapID
@@ -862,7 +862,7 @@ namespace MMAP
             }
 
             // file output
-            const std::string fileName = Acore::StringFormat(
+            const std::string fileName = Ycore::StringFormat(
                 TILE_FILE_NAME_FORMAT,
                 m_mapBuilder->getConfig().DataDirPath(),
                 mapID, tileY, tileX
@@ -1034,7 +1034,7 @@ namespace MMAP
     /**************************************************************************/
     bool TileBuilder::shouldSkipTile(uint32 mapID, uint32 tileX, uint32 tileY) const
     {
-        const std::string fileName = Acore::StringFormat(
+        const std::string fileName = Ycore::StringFormat(
             TILE_FILE_NAME_FORMAT,
             m_mapBuilder->getConfig().DataDirPath(),
             mapID, tileY, tileX

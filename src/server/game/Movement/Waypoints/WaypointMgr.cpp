@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -68,8 +68,8 @@ void WaypointMgr::Load()
         if (!fields[5].IsNull())
             o = fields[5].Get<float>();
 
-        Acore::NormalizeMapCoord(x);
-        Acore::NormalizeMapCoord(y);
+        Ycore::NormalizeMapCoord(x);
+        Ycore::NormalizeMapCoord(y);
 
         wp.id = fields[1].Get<uint32>();
         wp.x = x;
@@ -126,8 +126,8 @@ void WaypointMgr::ReloadPath(uint32 id)
         if (!fields[4].IsNull())
             o = fields[4].Get<float>();
 
-        Acore::NormalizeMapCoord(x);
-        Acore::NormalizeMapCoord(y);
+        Ycore::NormalizeMapCoord(x);
+        Ycore::NormalizeMapCoord(y);
 
         wp.id = fields[0].Get<uint32>();
         wp.x = x;

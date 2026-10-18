@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -80,7 +80,7 @@ public:
                     std::list<Creature*> healers = DoFindFriendlyMissingBuff(45.0f, SPELL_INSPIRE);
                     if (!healers.empty())
                     {
-                        DoCast(Acore::Containers::SelectRandomContainerElement(healers), SPELL_INSPIRE);
+                        DoCast(Ycore::Containers::SelectRandomContainerElement(healers), SPELL_INSPIRE);
                     }
 
                     DoCastSelf(SPELL_INSPIRE);

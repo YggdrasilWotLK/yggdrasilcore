@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -31,7 +31,7 @@ AppenderFile::AppenderFile(uint8 id, std::string const& name, LogLevel level, Ap
 {
     if (args.size() < 4)
     {
-        throw InvalidAppenderArgsException(Acore::StringFormat("Log::CreateAppenderFromConfig: Missing file name for appender {}", name));
+        throw InvalidAppenderArgsException(Ycore::StringFormat("Log::CreateAppenderFromConfig: Missing file name for appender {}", name));
     }
 
     _fileName.assign(args[3]);
@@ -57,13 +57,13 @@ AppenderFile::AppenderFile(uint8 id, std::string const& name, LogLevel level, Ap
 
     if (5 < args.size())
     {
-        if (Optional<uint32> size = Acore::StringTo<uint32>(args[5]))
+        if (Optional<uint32> size = Ycore::StringTo<uint32>(args[5]))
         {
             _maxFileSize = *size;
         }
         else
         {
-            throw InvalidAppenderArgsException(Acore::StringFormat("Log::CreateAppenderFromConfig: Invalid size '{}' for appender {}", args[5], name));
+            throw InvalidAppenderArgsException(Ycore::StringFormat("Log::CreateAppenderFromConfig: Invalid size '{}' for appender {}", args[5], name));
         }
     }
 
@@ -87,8 +87,8 @@ void AppenderFile::_write(LogMessage const* message)
 
     if (_dynamicName)
     {
-        char namebuf[ACORE_PATH_MAX];
-        snprintf(namebuf, ACORE_PATH_MAX, _fileName.c_str(), message->param1.c_str());
+        char namebuf[YCORE_PATH_MAX];
+        snprintf(namebuf, YCORE_PATH_MAX, _fileName.c_str(), message->param1.c_str());
 
         // always use "a" with dynamic name otherwise it could delete the log we wrote in last _write() call
         FILE* file = OpenFile(namebuf, "a", _backup || exceedMaxSize);

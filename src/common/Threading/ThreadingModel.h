@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,15 +15,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_THREADINGMODEL_H
-#define ACORE_THREADINGMODEL_H
+#ifndef YCORE_THREADINGMODEL_H
+#define YCORE_THREADINGMODEL_H
 
 /**
  * @class ThreadingModel<T>
  *
  */
 
-namespace Acore
+namespace Ycore
 {
     template<typename MUTEX>
     class GeneralLock
@@ -135,9 +135,9 @@ namespace Acore
     };
 }
 
-template<class T, class MUTEX> MUTEX Acore::ClassLevelLockable<T, MUTEX>::si_mtx;
+template<class T, class MUTEX> MUTEX Ycore::ClassLevelLockable<T, MUTEX>::si_mtx;
 
 #define INSTANTIATE_CLASS_MUTEX(CTYPE, MUTEX) \
-    template class Acore::ClassLevelLockable<CTYPE, MUTEX>
+    template class Ycore::ClassLevelLockable<CTYPE, MUTEX>
 
 #endif

@@ -6,8 +6,8 @@
  * https://github.com/embeddedartistry/embedded-resources/blob/master/examples/cpp/circular_buffer.cpp
  */
 
-#ifndef AZEROTHCORE_CIRCULAR_BUFFER_H
-#define AZEROTHCORE_CIRCULAR_BUFFER_H
+#ifndef YGGDRASILCORE_CIRCULAR_BUFFER_H
+#define YGGDRASILCORE_CIRCULAR_BUFFER_H
 
 #include <memory>
 #include <mutex>

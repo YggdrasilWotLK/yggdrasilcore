@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -30,7 +30,7 @@ bool ScriptMgr::OnTryExecuteCommand(ChatHandler& handler, std::string_view cmdSt
     CALL_ENABLED_BOOLEAN_HOOKS(AllCommandScript, ALLCOMMANDHOOK_ON_TRY_EXECUTE_COMMAND, !script->OnTryExecuteCommand(handler, cmdStr));
 }
 
-bool ScriptMgr::OnBeforeIsInvokerVisible(std::string name, Acore::Impl::ChatCommands::CommandPermissions permissions, ChatHandler const& who)
+bool ScriptMgr::OnBeforeIsInvokerVisible(std::string name, Ycore::Impl::ChatCommands::CommandPermissions permissions, ChatHandler const& who)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(AllCommandScript, ALLCOMMANDHOOK_ON_BEFORE_IS_INVOKER_VISIBLE, !script->OnBeforeIsInvokerVisible(name, permissions, who));
 }

@@ -13,10 +13,10 @@ SCRIPT_DIR="$CURRENT_PATH"
 
 ROOT_DIR="$(cd "$CURRENT_PATH/../../.." && pwd)"
 
-# Configuration directory (can be overridden with AC_SERVICE_CONFIG_DIR)
-CONFIG_DIR="${AC_SERVICE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/azerothcore/services}"
+# Configuration directory (can be overridden with YC_SERVICE_CONFIG_DIR)
+CONFIG_DIR="${YC_SERVICE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/azerothcore/services}"
 REGISTRY_FILE="$CONFIG_DIR/service_registry.json"
-export AC_SERVICE_CONFIG_DIR="${AC_SERVICE_CONFIG_DIR:-$CONFIG_DIR}"
+export YC_SERVICE_CONFIG_DIR="${YC_SERVICE_CONFIG_DIR:-$CONFIG_DIR}"
 
 # Default values for variables that might be loaded from config files
 # This prevents "unbound variable" errors when sourcing configuration files
@@ -46,7 +46,7 @@ if [ ! -f "$REGISTRY_FILE" ]; then
 fi
 
 # Path conversion utilities for portability
-# When AC_SERVICE_CONFIG_DIR (hence CONFIG_DIR) is set, always store paths
+# When YC_SERVICE_CONFIG_DIR (hence CONFIG_DIR) is set, always store paths
 # relative to it. Resolve relative paths back against CONFIG_DIR.
 function make_path_relative() {
     local input="$1"
@@ -57,10 +57,10 @@ function make_path_relative() {
         return
     fi
 
-    # If AC_SERVICE_CONFIG_DIR is explicitly set, check if path is under it
-    if [ -n "${AC_SERVICE_CONFIG_DIR:-}" ]; then
+    # If YC_SERVICE_CONFIG_DIR is explicitly set, check if path is under it
+    if [ -n "${YC_SERVICE_CONFIG_DIR:-}" ]; then
         local config_dir_abs
-        config_dir_abs="$(realpath -m "$AC_SERVICE_CONFIG_DIR" 2>/dev/null || echo "$AC_SERVICE_CONFIG_DIR")"
+        config_dir_abs="$(realpath -m "$YC_SERVICE_CONFIG_DIR" 2>/dev/null || echo "$YC_SERVICE_CONFIG_DIR")"
         local rel_path=""
 
         if command -v realpath >/dev/null 2>&1; then
@@ -80,7 +80,7 @@ function make_path_relative() {
         fi
     fi
 
-    # If not under AC_SERVICE_CONFIG_DIR or AC_SERVICE_CONFIG_DIR not set, return absolute path unchanged
+    # If not under YC_SERVICE_CONFIG_DIR or YC_SERVICE_CONFIG_DIR not set, return absolute path unchanged
     echo "$input"
 }
 
@@ -93,10 +93,10 @@ function make_path_absolute() {
         return
     fi
 
-    # Resolve relative paths against AC_SERVICE_CONFIG_DIR when explicitly set
-    if [ -n "${AC_SERVICE_CONFIG_DIR:-}" ] && [ -n "$input" ]; then
+    # Resolve relative paths against YC_SERVICE_CONFIG_DIR when explicitly set
+    if [ -n "${YC_SERVICE_CONFIG_DIR:-}" ] && [ -n "$input" ]; then
         local config_dir_abs
-        config_dir_abs="$(realpath "$AC_SERVICE_CONFIG_DIR" 2>/dev/null || echo "$AC_SERVICE_CONFIG_DIR")"
+        config_dir_abs="$(realpath "$YC_SERVICE_CONFIG_DIR" 2>/dev/null || echo "$YC_SERVICE_CONFIG_DIR")"
         # Join and normalize; do not require the target to exist
         realpath -m "$config_dir_abs/$input" 2>/dev/null || echo "$config_dir_abs/$input"
         return
@@ -557,7 +557,7 @@ function print_help() {
     echo "  # Restore missing services from registry"
     echo "  $base_name restore"
     echo ""
-    echo "  # Normalize registry paths to be relative to AC_SERVICE_CONFIG_DIR"
+    echo "  # Normalize registry paths to be relative to YC_SERVICE_CONFIG_DIR"
     echo "  $base_name registry-normalize"
     echo ""
     echo "Notes:"
@@ -574,7 +574,7 @@ function print_help() {
     echo "  - restore command first normalizes registry paths, syncs config files, and then recreates missing services"
     echo ""
     echo "Environment Variables:"
-    echo "  AC_SERVICE_CONFIG_DIR   - Override default config directory for services registry"
+    echo "  YC_SERVICE_CONFIG_DIR   - Override default config directory for services registry"
     echo "                            When set, binary and configuration paths under this directory"
     echo "                            are stored as relative paths for improved portability."
     echo "                            Use '$base_name registry-normalize' to rewrite existing entries."
@@ -808,7 +808,7 @@ export SESSION_MANAGER="$session_manager"
 export RESTART_POLICY="$restart_policy"
 
 # Service mode - indicates this is running under a service manager (systemd/pm2)
-# When true, AC_DISABLE_INTERACTIVE will be set if no interactive session manager is used
+# When true, YC_DISABLE_INTERACTIVE will be set if no interactive session manager is used
 export SERVICE_MODE="true"
 
 # Session name for tmux/screen (optional)
@@ -1055,7 +1055,7 @@ function pm2_create_service() {
         echo "  Exec: $command_string"
     fi
     
-    if AC_LAUNCHED_BY_PM2=1 pm2 "${pm2_args[@]}"; then
+    if YC_LAUNCHED_BY_PM2=1 pm2 "${pm2_args[@]}"; then
         echo -e "${GREEN}PM2 service '$service_name' created successfully${NC}"
         pm2 save
         
@@ -1575,7 +1575,7 @@ export SESSION_MANAGER="$session_manager"
 export RESTART_POLICY="$restart_policy"
 
 # Service mode - indicates this is running under a service manager (systemd/pm2)
-# When true, AC_DISABLE_INTERACTIVE will be set if no interactive session manager is used
+# When true, YC_DISABLE_INTERACTIVE will be set if no interactive session manager is used
 export SERVICE_MODE="true"
 
 # Session name for tmux/screen (optional)

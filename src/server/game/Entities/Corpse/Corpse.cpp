@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -83,7 +83,7 @@ bool Corpse::Create(ObjectGuid::LowType guidlow, Player* owner)
     SetObjectScale(1);
     SetGuidValue(CORPSE_FIELD_OWNER, owner->GetGUID());
 
-    _cellCoord = Acore::ComputeCellCoord(GetPositionX(), GetPositionY());
+    _cellCoord = Ycore::ComputeCellCoord(GetPositionX(), GetPositionY());
 
     return true;
 }
@@ -177,7 +177,7 @@ bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields)
         return false;
     }
 
-    _cellCoord = Acore::ComputeCellCoord(GetPositionX(), GetPositionY());
+    _cellCoord = Ycore::ComputeCellCoord(GetPositionX(), GetPositionY());
     return true;
 }
 

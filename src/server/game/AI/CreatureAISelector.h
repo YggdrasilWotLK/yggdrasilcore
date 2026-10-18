@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_CREATUREAISELECTOR_H
-#define ACORE_CREATUREAISELECTOR_H
+#ifndef YCORE_CREATUREAISELECTOR_H
+#define YCORE_CREATUREAISELECTOR_H
 
 #include "Define.h"
 
@@ -29,9 +29,9 @@ class GameObject;
 
 namespace FactorySelector
 {
-    AC_GAME_API CreatureAI* SelectAI(Creature* creature);
-    AC_GAME_API MovementGenerator* SelectMovementGenerator(Unit* unit);
-    AC_GAME_API GameObjectAI* SelectGameObjectAI(GameObject* go);
+    YC_GAME_API CreatureAI* SelectAI(Creature* creature);
+    YC_GAME_API MovementGenerator* SelectMovementGenerator(Unit* unit);
+    YC_GAME_API GameObjectAI* SelectGameObjectAI(GameObject* go);
 }
 
 #endif

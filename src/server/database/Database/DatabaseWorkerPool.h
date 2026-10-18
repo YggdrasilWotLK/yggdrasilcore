@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -89,7 +89,7 @@ public:
         if (sql.empty())
             return;
 
-        Execute(Acore::StringFormat(sql, std::forward<Args>(args)...));
+        Execute(Ycore::StringFormat(sql, std::forward<Args>(args)...));
     }
 
     //! Enqueues a one-way SQL operation in prepared statement format that will be executed asynchronously.
@@ -112,7 +112,7 @@ public:
         if (sql.empty())
             return;
 
-        DirectExecute(Acore::StringFormat(sql, std::forward<Args>(args)...));
+        DirectExecute(Ycore::StringFormat(sql, std::forward<Args>(args)...));
     }
 
     //! Directly executes a one-way SQL operation in prepared statement format, that will block the calling thread until finished.
@@ -135,7 +135,7 @@ public:
         if (sql.empty())
             return QueryResult(nullptr);
 
-        return Query(Acore::StringFormat(sql, std::forward<Args>(args)...));
+        return Query(Ycore::StringFormat(sql, std::forward<Args>(args)...));
     }
 
     //! Directly executes an SQL query in prepared format that will block the calling thread until finished.
@@ -208,7 +208,7 @@ public:
 
     void WarnAboutSyncQueries([[maybe_unused]] bool warn)
     {
-#ifdef ACORE_DEBUG
+#ifdef YCORE_DEBUG
         _warnSyncQueries = warn;
 #endif
     }
@@ -234,7 +234,7 @@ private:
     std::unique_ptr<MySQLConnectionInfo> _connectionInfo;
     std::vector<uint8> _preparedStatementSize;
     uint8 _async_threads, _synch_threads;
-#ifdef ACORE_DEBUG
+#ifdef YCORE_DEBUG
     static inline thread_local bool _warnSyncQueries = false;
 #endif
 };

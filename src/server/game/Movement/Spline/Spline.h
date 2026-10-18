@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AC_SPLINE_H
-#define AC_SPLINE_H
+#ifndef YC_SPLINE_H
+#define YC_SPLINE_H
 
 #include "Errors.h"
 #include "MovementTypedefs.h"
@@ -209,4 +209,4 @@ namespace Movement
 
 #include "SplineImpl.h"
 
-#endif // AC_SPLINE_H
+#endif // YC_SPLINE_H

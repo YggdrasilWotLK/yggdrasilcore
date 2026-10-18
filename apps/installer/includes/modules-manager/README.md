@@ -210,7 +210,7 @@ export FORCE_COLOR=1
 ### Including in Scripts
 ```bash
 # Source the module functions
-source "$AC_PATH_INSTALLER/includes/modules-manager/modules.sh"
+source "$YC_PATH_INSTALLER/includes/modules-manager/modules.sh"
 
 # Use module functions
 inst_module_install "mod-transmog:custom-dir@develop"
@@ -247,15 +247,15 @@ The list maintains:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MODULES_LIST_FILE` | Override default modules list path | `$AC_PATH_ROOT/conf/modules.list` |
+| `MODULES_LIST_FILE` | Override default modules list path | `$YC_PATH_ROOT/conf/modules.list` |
 | `MODULES_EXCLUDE_LIST` | Space-separated list of modules to exclude | - |
-| `J_PATH_MODULES` | Modules installation directory | `$AC_PATH_ROOT/modules` |
-| `AC_PATH_ROOT` | AzerothCore root path | - |
+| `J_PATH_MODULES` | Modules installation directory | `$YC_PATH_ROOT/modules` |
+| `YC_PATH_ROOT` | AzerothCore root path | - |
 | `NO_COLOR` | Disable colored output | - |
 | `FORCE_COLOR` | Force colored output even when not TTY | - |
 
 ### Default Paths
-- **Modules list**: `$AC_PATH_ROOT/conf/modules.list`
+- **Modules list**: `$YC_PATH_ROOT/conf/modules.list`
 - **Installation directory**: `$J_PATH_MODULES` (flat structure, no owner subfolders)
 
 ## 🏗️ Architecture

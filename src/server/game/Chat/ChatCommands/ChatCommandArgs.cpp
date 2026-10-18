@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -21,8 +21,8 @@
 #include "SpellMgr.h"
 #include "Util.h"
 
-using namespace Acore::ChatCommands;
-using ChatCommandResult = Acore::Impl::ChatCommands::ChatCommandResult;
+using namespace Ycore::ChatCommands;
+using ChatCommandResult = Ycore::Impl::ChatCommands::ChatCommandResult;
 
 struct AchievementVisitor
 {
@@ -31,7 +31,7 @@ struct AchievementVisitor
     value_type operator()(uint32 achId) const { return sAchievementMgr->GetAchievement(achId); }
 };
 
-ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<AchievementEntry const*>::TryConsume(AchievementEntry const*& data, ChatHandler const* handler, std::string_view args)
+ChatCommandResult Ycore::Impl::ChatCommands::ArgInfo<AchievementEntry const*>::TryConsume(AchievementEntry const*& data, ChatHandler const* handler, std::string_view args)
 {
     Variant<Hyperlink<achievement>, uint32> val;
     ChatCommandResult result = ArgInfo<decltype(val)>::TryConsume(val, handler, args);
@@ -40,7 +40,7 @@ ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<AchievementEntry const*>::T
         return result;
 
     if (uint32* id = std::get_if<uint32>(&val))
-        return FormatAcoreString(handler, LANG_CMDPARSER_ACHIEVEMENT_NO_EXIST, *id);
+        return FormatYcoreString(handler, LANG_CMDPARSER_ACHIEVEMENT_NO_EXIST, *id);
 
     return std::nullopt;
 }
@@ -52,7 +52,7 @@ struct GameTeleVisitor
     value_type operator()(std::string_view tele) const { return sObjectMgr->GetGameTele(tele); }
 };
 
-ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<GameTele const*>::TryConsume(GameTele const*& data, ChatHandler const* handler, std::string_view args)
+ChatCommandResult Ycore::Impl::ChatCommands::ArgInfo<GameTele const*>::TryConsume(GameTele const*& data, ChatHandler const* handler, std::string_view args)
 {
     Variant<Hyperlink<tele>, std::string_view> val;
     ChatCommandResult result = ArgInfo<decltype(val)>::TryConsume(val, handler, args);
@@ -61,9 +61,9 @@ ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<GameTele const*>::TryConsum
         return result;
 
     if (val.holds_alternative<Hyperlink<tele>>())
-        return FormatAcoreString(handler, LANG_CMDPARSER_GAME_TELE_ID_NO_EXIST, static_cast<uint32>(std::get<Hyperlink<tele>>(val)));
+        return FormatYcoreString(handler, LANG_CMDPARSER_GAME_TELE_ID_NO_EXIST, static_cast<uint32>(std::get<Hyperlink<tele>>(val)));
     else
-        return FormatAcoreString(handler, LANG_CMDPARSER_GAME_TELE_NO_EXIST, std::get<std::string_view>(val));
+        return FormatYcoreString(handler, LANG_CMDPARSER_GAME_TELE_NO_EXIST, std::get<std::string_view>(val));
 }
 
 struct ItemTemplateVisitor
@@ -73,7 +73,7 @@ struct ItemTemplateVisitor
     value_type operator()(uint32 item) { return sObjectMgr->GetItemTemplate(item); }
 };
 
-ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<ItemTemplate const*>::TryConsume(ItemTemplate const*& data, ChatHandler const* handler, std::string_view args)
+ChatCommandResult Ycore::Impl::ChatCommands::ArgInfo<ItemTemplate const*>::TryConsume(ItemTemplate const*& data, ChatHandler const* handler, std::string_view args)
 {
     Variant<Hyperlink<item>, uint32> val;
     ChatCommandResult result = ArgInfo<decltype(val)>::TryConsume(val, handler, args);
@@ -82,7 +82,7 @@ ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<ItemTemplate const*>::TryCo
         return result;
 
     if (uint32* id = std::get_if<uint32>(&val))
-        return FormatAcoreString(handler, LANG_CMDPARSER_ITEM_NO_EXIST, *id);
+        return FormatYcoreString(handler, LANG_CMDPARSER_ITEM_NO_EXIST, *id);
 
     return std::nullopt;
 }
@@ -102,7 +102,7 @@ struct SpellInfoVisitor
     value_type operator()(uint32 spellId) const { return sSpellMgr->GetSpellInfo(spellId); }
 };
 
-ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<SpellInfo const*>::TryConsume(SpellInfo const*& data, ChatHandler const* handler, std::string_view args)
+ChatCommandResult Ycore::Impl::ChatCommands::ArgInfo<SpellInfo const*>::TryConsume(SpellInfo const*& data, ChatHandler const* handler, std::string_view args)
 {
     Variant<Hyperlink<enchant>, Hyperlink<glyph>, Hyperlink<spell>, Hyperlink<talent>, Hyperlink<trade>, uint32> val;
     ChatCommandResult result = ArgInfo<decltype(val)>::TryConsume(val, handler, args);
@@ -111,7 +111,7 @@ ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<SpellInfo const*>::TryConsu
         return result;
 
     if (uint32* id = std::get_if<uint32>(&val))
-        return FormatAcoreString(handler, LANG_CMDPARSER_SPELL_NO_EXIST, *id);
+        return FormatYcoreString(handler, LANG_CMDPARSER_SPELL_NO_EXIST, *id);
 
     return std::nullopt;
 }
@@ -123,7 +123,7 @@ struct QuestVisitor
     value_type operator()(uint32 questId) const { return sObjectMgr->GetQuestTemplate(questId); };
 };
 
-ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<Quest const*>::TryConsume(Quest const*& data, ChatHandler const* handler, std::string_view args)
+ChatCommandResult Ycore::Impl::ChatCommands::ArgInfo<Quest const*>::TryConsume(Quest const*& data, ChatHandler const* handler, std::string_view args)
 {
     Variant<Hyperlink<quest>, uint32> val;
     ChatCommandResult result = ArgInfo<decltype(val)>::TryConsume(val, handler, args);
@@ -135,7 +135,7 @@ ChatCommandResult Acore::Impl::ChatCommands::ArgInfo<Quest const*>::TryConsume(Q
 
     if (uint32* id = std::get_if<uint32>(&val))
     {
-        return FormatAcoreString(handler, LANG_CMDPARSER_QUEST_NO_EXIST, *id);
+        return FormatYcoreString(handler, LANG_CMDPARSER_QUEST_NO_EXIST, *id);
     }
 
     return std::nullopt;

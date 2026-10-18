@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -2069,7 +2069,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
 
     // pussywizard: check titles here to prevent return while building queries
     const uint32 ktcount = KNOWN_TITLES_SIZE * 2;
-    std::vector<std::string_view> tokens = Acore::Tokenize(knownTitlesStr, ' ', false);
+    std::vector<std::string_view> tokens = Ycore::Tokenize(knownTitlesStr, ' ', false);
 
     if (factionChangeInfo->FactionChange && tokens.size() != ktcount)
     {
@@ -2496,7 +2496,7 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
                 {
                     Optional<uint32> thisMask;
                     if (index < tokens.size())
-                        thisMask = Acore::StringTo<uint32>(tokens[index]);
+                        thisMask = Ycore::StringTo<uint32>(tokens[index]);
 
                     if (thisMask)
                         knownTitles[index] = *thisMask;

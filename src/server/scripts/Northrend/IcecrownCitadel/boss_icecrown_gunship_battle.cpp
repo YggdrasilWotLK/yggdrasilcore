@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -2298,7 +2298,7 @@ class spell_igb_explosion : public SpellScript
     void SelectTarget(std::list<WorldObject*>& targets)
     {
         targets.remove_if(IgbExplosionCheck(GetCaster()));
-        Acore::Containers::RandomResize(targets, 1);
+        Ycore::Containers::RandomResize(targets, 1);
     }
 
     void Register() override
@@ -2531,7 +2531,7 @@ class spell_igb_burning_pitch_selector : public SpellScript
         targets.remove_if(BurningPitchFilterCheck(teamId == TEAM_HORDE ? GO_ORGRIMS_HAMMER_H : GO_THE_SKYBREAKER_A));
         if (!targets.empty())
         {
-            WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+            WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
             targets.clear();
             targets.push_back(target);
         }
@@ -2600,7 +2600,7 @@ class spell_igb_rocket_artillery : public SpellScript
 
         if (!targets.empty())
         {
-            WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+            WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
             targets.clear();
             targets.push_back(target);
         }

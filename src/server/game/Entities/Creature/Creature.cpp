@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -155,7 +155,7 @@ CreatureModel const* CreatureTemplate::GetRandomValidModel() const
     if (Models.size() == 1)
         return &Models[0];
 
-    auto selectedItr = Acore::Containers::SelectRandomWeightedContainerElement(Models, [](CreatureModel const& model)
+    auto selectedItr = Ycore::Containers::SelectRandomWeightedContainerElement(Models, [](CreatureModel const& model)
         {
             return model.Probability;
         });
@@ -401,7 +401,7 @@ void Creature::RemoveFromWorld()
         // resolves the caster via the store during RemoveNotOwnSingleTargetAuras.
         // Still before the callbacks below so they cannot observe a half-removed object.
         if (m_spawnId)
-            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this); }
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Ycore::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this); }
 
         { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<Creature>(GetGUID()); }
 
@@ -1132,8 +1132,8 @@ void Creature::DoFleeToGetAssistance()
     {
         Creature* creature = nullptr;
 
-        Acore::NearestAssistCreatureInCreatureRangeCheck u_check(this, GetVictim(), radius);
-        Acore::CreatureLastSearcher<Acore::NearestAssistCreatureInCreatureRangeCheck> searcher(this, creature, u_check);
+        Ycore::NearestAssistCreatureInCreatureRangeCheck u_check(this, GetVictim(), radius);
+        Ycore::CreatureLastSearcher<Ycore::NearestAssistCreatureInCreatureRangeCheck> searcher(this, creature, u_check);
 
         Cell::VisitObjects(this, searcher, radius);
 
@@ -1831,7 +1831,7 @@ bool Creature::LoadCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool ad
         if (CanFly())
         {
             float tz = map->GetHeight(GetPhaseMask(), data->posX, data->posY, data->posZ, true, MAX_FALL_DISTANCE);
-            if (data->posZ - tz > 0.1f && Acore::IsValidMapCoord(tz))
+            if (data->posZ - tz > 0.1f && Ycore::IsValidMapCoord(tz))
             {
                 Relocate(data->posX, data->posY, tz);
             }
@@ -2464,8 +2464,8 @@ Unit* Creature::SelectNearestTarget(float dist, bool playerOnly /* = false */) c
 
     Unit* target = nullptr;
 
-    Acore::NearestHostileUnitCheck u_check(this, dist, playerOnly);
-    Acore::UnitLastSearcher<Acore::NearestHostileUnitCheck> searcher(this, target, u_check);
+    Ycore::NearestHostileUnitCheck u_check(this, dist, playerOnly);
+    Ycore::UnitLastSearcher<Ycore::NearestHostileUnitCheck> searcher(this, target, u_check);
     Cell::VisitObjects(this, searcher, dist);
     return target;
 }
@@ -2481,8 +2481,8 @@ Unit* Creature::SelectNearestTargetInAttackDistance(float dist) const
         dist = MAX_SEARCHER_DISTANCE;
 
     Unit* target = nullptr;
-    Acore::NearestHostileUnitInAttackDistanceCheck u_check(this, dist);
-    Acore::UnitLastSearcher<Acore::NearestHostileUnitInAttackDistanceCheck> searcher(this, target, u_check);
+    Ycore::NearestHostileUnitInAttackDistanceCheck u_check(this, dist);
+    Ycore::UnitLastSearcher<Ycore::NearestHostileUnitInAttackDistanceCheck> searcher(this, target, u_check);
     Cell::VisitObjects(this, searcher, std::max(dist, ATTACK_DISTANCE));
 
     return target;
@@ -2517,8 +2517,8 @@ void Creature::CallAssistance(Unit* target /*= nullptr*/)
         {
             std::list<Creature*> assistList;
 
-            Acore::AnyAssistCreatureInRangeCheck u_check(this, target, radius);
-            Acore::CreatureListSearcher<Acore::AnyAssistCreatureInRangeCheck> searcher(this, assistList, u_check);
+            Ycore::AnyAssistCreatureInRangeCheck u_check(this, target, radius);
+            Ycore::CreatureListSearcher<Ycore::AnyAssistCreatureInRangeCheck> searcher(this, assistList, u_check);
             Cell::VisitObjects(this, searcher, radius);
 
             if (!assistList.empty())
@@ -2556,8 +2556,8 @@ void Creature::CallForHelp(float radius, Unit* target /*= nullptr*/)
     if (m_alreadyCallForHelp) // avoid recursive call for help for any reason
         return;
 
-    Acore::CallOfHelpCreatureInRangeDo u_do(this, target, radius);
-    Acore::CreatureWorker<Acore::CallOfHelpCreatureInRangeDo> worker(this, u_do);
+    Ycore::CallOfHelpCreatureInRangeDo u_do(this, target, radius);
+    Ycore::CreatureWorker<Ycore::CallOfHelpCreatureInRangeDo> worker(this, u_do);
     Cell::VisitObjects(this, worker, radius);
 }
 
@@ -3393,7 +3393,7 @@ std::string const& Creature::GetNameForLocaleIdx(LocaleConstant loc_idx) const
 
 void Creature::SetPosition(float x, float y, float z, float o)
 {
-    if (!Acore::IsValidMapCoord(x, y, z, o))
+    if (!Ycore::IsValidMapCoord(x, y, z, o))
         return;
 
     GetMap()->CreatureRelocation(this, x, y, z, o);

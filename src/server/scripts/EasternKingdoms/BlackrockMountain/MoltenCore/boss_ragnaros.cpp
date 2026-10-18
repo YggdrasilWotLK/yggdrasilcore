@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -300,7 +300,7 @@ public:
                         {
                             if (!_lavaBurstGUIDS.empty())
                             {
-                                ObjectGuid lavaBurstGUID = Acore::Containers::SelectRandomContainerElement(_lavaBurstGUIDS);
+                                ObjectGuid lavaBurstGUID = Ycore::Containers::SelectRandomContainerElement(_lavaBurstGUIDS);
 
                                 if (GameObject* go = ObjectAccessor::GetGameObject(*me, lavaBurstGUID))
                                 {
@@ -517,7 +517,7 @@ class spell_ragnaros_lava_burst_randomizer : public SpellScript
             // Select three random spells. Can select the same spell twice.
             for (uint8 i = 0; i < 3; ++i)
             {
-                uint32 spell = Acore::Containers::SelectRandomContainerElement(RagnarosLavaBurstSpells);
+                uint32 spell = Ycore::Containers::SelectRandomContainerElement(RagnarosLavaBurstSpells);
                 caster->CastSpell(caster, spell, true);
             }
         }

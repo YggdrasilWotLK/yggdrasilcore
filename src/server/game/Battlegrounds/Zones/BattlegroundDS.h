@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -90,7 +90,7 @@ enum BattlegroundDSEvents
     BG_DS_EVENT_PIPE_KNOCKBACK          = 5
 };
 
-class AC_GAME_API BattlegroundDS : public Arena
+class YC_GAME_API BattlegroundDS : public Arena
 {
 public:
     BattlegroundDS();

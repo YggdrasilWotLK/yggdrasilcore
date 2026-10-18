@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -23,16 +23,16 @@ namespace
     std::string_view _modulesList = {};
 }
 
-void Acore::Module::SetEnableModulesList(std::string_view modulesList)
+void Ycore::Module::SetEnableModulesList(std::string_view modulesList)
 {
     _modulesList = modulesList;
 }
 
-std::vector<std::string_view> Acore::Module::GetEnableModulesList()
+std::vector<std::string_view> Ycore::Module::GetEnableModulesList()
 {
     std::vector<std::string_view> _list;
 
-    for (auto const& modName : Acore::Tokenize(_modulesList, ',', false))
+    for (auto const& modName : Ycore::Tokenize(_modulesList, ',', false))
     {
         _list.emplace_back(modName);
     }

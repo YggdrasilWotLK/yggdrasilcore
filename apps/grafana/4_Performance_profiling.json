@@ -1628,8 +1628,8 @@
         "allValue": null,
         "current": {
           "selected": true,
-          "text": "Acore",
-          "value": "Acore"
+          "text": "Ycore",
+          "value": "Ycore"
         },
         "datasource": "Influx",
         "definition": "show tag values from events with key = realm",

@@ -5,7 +5,7 @@
 
 set -euo pipefail  # Strict error handling
 
-CONFIG_DIR="${AC_SERVICE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/azerothcore/services}"
+CONFIG_DIR="${YC_SERVICE_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/azerothcore/services}"
 REGISTRY_FILE="$CONFIG_DIR/service_registry.json"
 BACKUP_FILE="$CONFIG_DIR/service_registry.json.backup"
 

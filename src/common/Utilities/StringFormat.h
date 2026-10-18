@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -24,12 +24,12 @@
 #include <fmt/printf.h>
 #include <locale>
 
-namespace Acore
+namespace Ycore
 {
     template<typename... Args>
     using FormatString = fmt::format_string<Args...>;
 
-    /// Default AC string format function.
+    /// Default YC string format function.
     template<typename... Args>
     inline std::string StringFormat(FormatString<Args...> fmt, Args&&... args)
     {
@@ -56,14 +56,14 @@ namespace Acore
     }
 }
 
-namespace Acore::String
+namespace Ycore::String
 {
     template<class Str>
-    AC_COMMON_API Str Trim(const Str& s, const std::locale& loc = std::locale());
+    YC_COMMON_API Str Trim(const Str& s, const std::locale& loc = std::locale());
 
-    AC_COMMON_API std::string TrimRightInPlace(std::string& str);
+    YC_COMMON_API std::string TrimRightInPlace(std::string& str);
 
-    AC_COMMON_API std::string AddSuffixIfNotExists(std::string str, const char suffix);
+    YC_COMMON_API std::string AddSuffixIfNotExists(std::string str, const char suffix);
 }
 
 // Add support enum for fmt

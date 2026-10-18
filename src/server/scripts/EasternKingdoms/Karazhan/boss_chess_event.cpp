@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1217,7 +1217,7 @@ struct npc_echo_of_medivh : public ScriptedAI
 
                 if (targetList.size() > 3)
                 {
-                    Acore::Containers::RandomResize(targetList, 3);
+                    Ycore::Containers::RandomResize(targetList, 3);
                 }
 
                 for (Creature* target : targetList)
@@ -1250,7 +1250,7 @@ struct npc_echo_of_medivh : public ScriptedAI
                 uint8 resizeMax = urand(1, 4);
                 if (targetList.size() > resizeMax)
                 {
-                    Acore::Containers::RandomResize(targetList, resizeMax);
+                    Ycore::Containers::RandomResize(targetList, resizeMax);
                 }
 
                 for (Creature* target : targetList)
@@ -1320,7 +1320,7 @@ struct npc_echo_of_medivh : public ScriptedAI
 
         if (!targets.empty())
         {
-            target = Acore::Containers::SelectRandomContainerElement(targets);
+            target = Ycore::Containers::SelectRandomContainerElement(targets);
         }
 
         return target;

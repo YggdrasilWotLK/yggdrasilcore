@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -163,7 +163,7 @@ class spell_morogrim_tidewalker_watery_grave : public SpellScript
 
         if (targets.size() > maxSize)
         {
-            Acore::Containers::RandomResize(targets, maxSize);
+            Ycore::Containers::RandomResize(targets, maxSize);
         }
     }
 
@@ -191,7 +191,7 @@ class spell_morogrim_tidewalker_water_globule_new_target : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& unitList)
     {
-        Acore::Containers::RandomResize(unitList, 1);
+        Ycore::Containers::RandomResize(unitList, 1);
     }
 
     void HandleDummy(SpellEffIndex effIndex)

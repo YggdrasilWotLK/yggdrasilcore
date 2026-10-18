@@ -6,7 +6,7 @@ CURRENT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 source "$CURRENT_PATH/../bash_shared/includes.sh"
 
-UPDATES_PATH="$AC_PATH_ROOT/data/sql/updates"
+UPDATES_PATH="$YC_PATH_ROOT/data/sql/updates"
 
 # get_next_index "data/sql/updates/db_world/2024_10_14_22.sql"
 #   => 23
@@ -40,7 +40,7 @@ function get_next_index() {
 
 TODAY="$(date +%Y_%m_%d)"
 function import() {
-    PENDING_PATH="$AC_PATH_ROOT/data/sql/updates/pending_db_$1"
+    PENDING_PATH="$YC_PATH_ROOT/data/sql/updates/pending_db_$1"
     UPDATES_DIR="$UPDATES_PATH/db_$1"
 
     # Get the most recent SQL file applied to this database. Used for the header comment

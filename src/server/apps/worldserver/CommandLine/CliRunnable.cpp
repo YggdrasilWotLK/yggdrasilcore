@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,7 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/// \addtogroup Acored
+/// \addtogroup Ycored
 /// @{
 /// \file
 
@@ -25,7 +25,7 @@
 #include "World.h"
 #include <fmt/core.h>
 
-#if AC_PLATFORM != AC_PLATFORM_WINDOWS
+#if YC_PLATFORM != YC_PLATFORM_WINDOWS
 #include "Chat.h"
 #include "ChatCommand.h"
 #include <cstring>
@@ -33,15 +33,15 @@
 #include <readline/readline.h>
 #endif
 
-static constexpr char CLI_PREFIX[] = "AC> ";
+static constexpr char CLI_PREFIX[] = "YC> ";
 
 static inline void PrintCliPrefix()
 {
     fmt::print(CLI_PREFIX);
 }
 
-#if AC_PLATFORM != AC_PLATFORM_WINDOWS
-namespace Acore::Impl::Readline
+#if YC_PLATFORM != YC_PLATFORM_WINDOWS
+namespace Ycore::Impl::Readline
 {
     static std::vector<std::string> vec;
     char* cli_unpack_vector(char const*, int state)
@@ -58,7 +58,7 @@ namespace Acore::Impl::Readline
     char** cli_completion(char const* text, int /*start*/, int /*end*/)
     {
         ::rl_attempted_completion_over = 1;
-        vec = Acore::ChatCommands::GetAutoCompletionsFor(CliHandler(nullptr,nullptr), text);
+        vec = Ycore::ChatCommands::GetAutoCompletionsFor(CliHandler(nullptr,nullptr), text);
         return ::rl_completion_matches(text, &cli_unpack_vector);
     }
 
@@ -73,7 +73,7 @@ namespace Acore::Impl::Readline
 
 void utf8print(void* /*arg*/, std::string_view str)
 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     fmt::print(str);
 #else
 {
@@ -107,23 +107,23 @@ int kb_hit_return()
 /// %Thread start
 void CliThread()
 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     // print this here the first time
     // later it will be printed after command queue updates
     PrintCliPrefix();
 #else
-    ::rl_attempted_completion_function = &Acore::Impl::Readline::cli_completion;
+    ::rl_attempted_completion_function = &Ycore::Impl::Readline::cli_completion;
     {
         static char BLANK = '\0';
         ::rl_completer_word_break_characters = &BLANK;
     }
-    ::rl_event_hook = &Acore::Impl::Readline::cli_hook_func;
+    ::rl_event_hook = &Ycore::Impl::Readline::cli_hook_func;
 #endif
 
     if (sConfigMgr->GetOption<bool>("BeepAtStart", true))
         printf("\a"); // \a = Alert
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     if (sConfigMgr->GetOption<bool>("FlashAtStart", true))
     {
         FLASHWINFO fInfo;
@@ -143,7 +143,7 @@ void CliThread()
 
         std::string command;
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
         wchar_t commandbuf[256];
         if (fgetws(commandbuf, sizeof(commandbuf), stdin))
         {
@@ -170,7 +170,7 @@ void CliThread()
             {
                 if (nextLineIndex == 0)
                 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
                     PrintCliPrefix();
 #endif
                     continue;
@@ -181,7 +181,7 @@ void CliThread()
 
             fflush(stdout);
             sWorld->QueueCliCommand(new CliCommandHolder(nullptr, command.c_str(), &utf8print, &commandFinished));
-#if AC_PLATFORM != AC_PLATFORM_WINDOWS
+#if YC_PLATFORM != YC_PLATFORM_WINDOWS
             add_history(command.c_str());
 #endif
         }

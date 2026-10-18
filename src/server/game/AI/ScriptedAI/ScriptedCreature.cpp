@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -495,8 +495,8 @@ void ScriptedAI::DoTeleportAll(float x, float y, float z, float o)
 Unit* ScriptedAI::DoSelectLowestHpFriendly(float range, uint32 minHPDiff)
 {
     Unit* unit = nullptr;
-    Acore::MostHPMissingInRange u_check(me, range, minHPDiff);
-    Acore::UnitLastSearcher<Acore::MostHPMissingInRange> searcher(me, unit, u_check);
+    Ycore::MostHPMissingInRange u_check(me, range, minHPDiff);
+    Ycore::UnitLastSearcher<Ycore::MostHPMissingInRange> searcher(me, unit, u_check);
     Cell::VisitObjects(me, searcher, range);
 
     return unit;
@@ -505,8 +505,8 @@ Unit* ScriptedAI::DoSelectLowestHpFriendly(float range, uint32 minHPDiff)
 std::list<Creature*> ScriptedAI::DoFindFriendlyCC(float range)
 {
     std::list<Creature*> list;
-    Acore::FriendlyCCedInRange u_check(me, range);
-    Acore::CreatureListSearcher<Acore::FriendlyCCedInRange> searcher(me, list, u_check);
+    Ycore::FriendlyCCedInRange u_check(me, range);
+    Ycore::CreatureListSearcher<Ycore::FriendlyCCedInRange> searcher(me, list, u_check);
     Cell::VisitObjects(me, searcher, range);
     return list;
 }
@@ -514,8 +514,8 @@ std::list<Creature*> ScriptedAI::DoFindFriendlyCC(float range)
 std::list<Creature*> ScriptedAI::DoFindFriendlyMissingBuff(float range, uint32 uiSpellid)
 {
     std::list<Creature*> list;
-    Acore::FriendlyMissingBuffInRange u_check(me, range, uiSpellid);
-    Acore::CreatureListSearcher<Acore::FriendlyMissingBuffInRange> searcher(me, list, u_check);
+    Ycore::FriendlyMissingBuffInRange u_check(me, range, uiSpellid);
+    Ycore::CreatureListSearcher<Ycore::FriendlyMissingBuffInRange> searcher(me, list, u_check);
     Cell::VisitObjects(me, searcher, range);
     return list;
 }
@@ -524,8 +524,8 @@ Player* ScriptedAI::GetPlayerAtMinimumRange(float minimumRange)
 {
     Player* player = nullptr;
 
-    Acore::PlayerAtMinimumRangeAway check(me, minimumRange);
-    Acore::PlayerSearcher<Acore::PlayerAtMinimumRangeAway> searcher(me, player, check);
+    Ycore::PlayerAtMinimumRangeAway check(me, minimumRange);
+    Ycore::PlayerSearcher<Ycore::PlayerAtMinimumRangeAway> searcher(me, player, check);
 
     Cell::VisitObjects(me, searcher, minimumRange);
 

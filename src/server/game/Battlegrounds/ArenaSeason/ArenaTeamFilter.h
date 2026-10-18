@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -100,10 +100,10 @@ private:
     std::vector<uint8> ParseTypes(std::string_view userInput)
     {
         std::vector<uint8> validTypes;
-        auto tokens = Acore::Tokenize(userInput, ',', false);
+        auto tokens = Ycore::Tokenize(userInput, ',', false);
 
         for (auto const& token : tokens)
-            if (auto typeOpt = Acore::StringTo<uint8>(token))
+            if (auto typeOpt = Ycore::StringTo<uint8>(token))
                 validTypes.push_back(*typeOpt);
 
         return validTypes;

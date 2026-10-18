@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -172,8 +172,8 @@ struct npc_pet_dk_ebon_gargoyle : ScriptedAI
             _initialSelection = false;
             // Find victim of Summon Gargoyle spell
             std::list<Unit*> targets;
-            Acore::AnyUnfriendlyUnitInObjectRangeCheck u_check(me, me, 50.0f);
-            Acore::UnitListSearcher<Acore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(me, targets, u_check);
+            Ycore::AnyUnfriendlyUnitInObjectRangeCheck u_check(me, me, 50.0f);
+            Ycore::UnitListSearcher<Ycore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(me, targets, u_check);
             Cell::VisitObjects(me, searcher, 50.0f);
             for (auto const& target : targets)
                 if (target->GetAura(SPELL_DK_SUMMON_GARGOYLE_1, me->GetOwnerGUID()))

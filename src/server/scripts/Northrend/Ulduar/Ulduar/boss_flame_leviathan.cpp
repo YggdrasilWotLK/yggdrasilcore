@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1624,7 +1624,7 @@ class spell_pursue : public SpellScript
         else
         {
             //! In the end, only one target should be selected
-            WorldObject* _target = Acore::Containers::SelectRandomContainerElement(targets);
+            WorldObject* _target = Ycore::Containers::SelectRandomContainerElement(targets);
             targets.clear();
             if (_target)
                 targets.push_back(_target);
@@ -1663,8 +1663,8 @@ class spell_vehicle_throw_passenger : public SpellScript
             {
                 // use 99 because it is 3d search
                 std::list<WorldObject*> targetList;
-                Acore::WorldObjectSpellAreaTargetCheck check(99, GetExplTargetDest(), GetCaster(), GetCaster(), GetSpellInfo(), TARGET_CHECK_DEFAULT, nullptr);
-                Acore::WorldObjectListSearcher<Acore::WorldObjectSpellAreaTargetCheck> searcher(GetCaster(), targetList, check);
+                Ycore::WorldObjectSpellAreaTargetCheck check(99, GetExplTargetDest(), GetCaster(), GetCaster(), GetSpellInfo(), TARGET_CHECK_DEFAULT, nullptr);
+                Ycore::WorldObjectListSearcher<Ycore::WorldObjectSpellAreaTargetCheck> searcher(GetCaster(), targetList, check);
                 Cell::VisitObjects(GetCaster(), searcher, 99.0f);
                 float minDist = 99 * 99;
                 Unit* target = nullptr;

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,16 +15,16 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_TOTP_H
-#define ACORE_TOTP_H
+#ifndef YCORE_TOTP_H
+#define YCORE_TOTP_H
 
 #include "Define.h"
 #include <ctime>
 #include <vector>
 
-namespace Acore::Crypto
+namespace Ycore::Crypto
 {
-    struct AC_COMMON_API TOTP
+    struct YC_COMMON_API TOTP
     {
         static constexpr std::size_t RECOMMENDED_SECRET_LENGTH = 20;
         using Secret = std::vector<uint8>;

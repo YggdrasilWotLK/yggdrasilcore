@@ -3,21 +3,21 @@
 # force default language for applications
 LC_ALL=C
 
-AC_PATH_APPS="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )"
+YC_PATH_APPS="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )"
 
-AC_PATH_SHARED="$AC_PATH_APPS/bash_shared"
+YC_PATH_SHARED="$YC_PATH_APPS/bash_shared"
 
 # shellcheck source=./defines.sh
-source "$AC_PATH_SHARED/defines.sh"
+source "$YC_PATH_SHARED/defines.sh"
 
-# shellcheck source=../../deps/acore/bash-lib/src/event/hooks.sh
-source "$AC_PATH_DEPS/acore/bash-lib/src/event/hooks.sh"
+# shellcheck source=../../deps/ycore/bash-lib/src/event/hooks.sh
+source "$YC_PATH_DEPS/ycore/bash-lib/src/event/hooks.sh"
 
 # shellcheck source=./common.sh
-source "$AC_PATH_SHARED/common.sh"
+source "$YC_PATH_SHARED/common.sh"
 
 if [[ "$OSTYPE" = "msys" ]]; then
-    AC_BINPATH_FULL="$BINPATH"
+    YC_BINPATH_FULL="$BINPATH"
 else
-    export AC_BINPATH_FULL="$BINPATH/bin"
+    export YC_BINPATH_FULL="$BINPATH/bin"
 fi

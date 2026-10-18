@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -34,11 +34,11 @@
 class ChatHandler;
 class Player;
 
-namespace Acore::Impl::ChatCommands
+namespace Ycore::Impl::ChatCommands
 {
     struct ContainerTag
     {
-        using ChatCommandResult = Acore::Impl::ChatCommands::ChatCommandResult;
+        using ChatCommandResult = Ycore::Impl::ChatCommands::ChatCommandResult;
     };
 
     template <typename T>
@@ -55,7 +55,7 @@ namespace Acore::Impl::ChatCommands
     }
 
 #define CHATCOMMANDS_IMPL_SPLIT_LITERAL_EXTRACT_CHAR(z, i, strliteral) \
-        BOOST_PP_COMMA_IF(i) Acore::Impl::ChatCommands::GetChar(strliteral, i)
+        BOOST_PP_COMMA_IF(i) Ycore::Impl::ChatCommands::GetChar(strliteral, i)
 
 #define CHATCOMMANDS_IMPL_SPLIT_LITERAL_CONSTRAINED(maxlen, strliteral)  \
         BOOST_PP_REPEAT(maxlen, CHATCOMMANDS_IMPL_SPLIT_LITERAL_EXTRACT_CHAR, strliteral)
@@ -64,11 +64,11 @@ namespace Acore::Impl::ChatCommands
 #define CHATCOMMANDS_IMPL_SPLIT_LITERAL(strliteral) CHATCOMMANDS_IMPL_SPLIT_LITERAL_CONSTRAINED(25, strliteral)
 }
 
-namespace Acore::ChatCommands
+namespace Ycore::ChatCommands
 {
     /************************** CONTAINER TAGS **********************************************\
     |* Simple holder classes to differentiate between extraction methods                    *|
-    |* Must inherit from Acore::Impl::ChatCommands::ContainerTag                          *|
+    |* Must inherit from Ycore::Impl::ChatCommands::ContainerTag                          *|
     |* Must implement the following:                                                        *|
     |* - TryConsume: ChatHandler const*, std::string_view -> ChatCommandResult              *|
     |*   - on match, returns tail of the provided argument string (as std::string_view)     *|
@@ -81,7 +81,7 @@ namespace Acore::ChatCommands
     \****************************************************************************************/
 
     template <char... chars>
-    struct ExactSequence : Acore::Impl::ChatCommands::ContainerTag
+    struct ExactSequence : Ycore::Impl::ChatCommands::ContainerTag
     {
         using value_type = void;
 
@@ -92,12 +92,12 @@ namespace Acore::ChatCommands
             std::string_view start = args.substr(0, _string.length());
             if (StringEqualI(start, _string))
             {
-                auto [remainingToken, tail] = Acore::Impl::ChatCommands::tokenize(args.substr(_string.length()));
+                auto [remainingToken, tail] = Ycore::Impl::ChatCommands::tokenize(args.substr(_string.length()));
                 if (remainingToken.empty()) // if this is not empty, then we did not consume the full token
                     return tail;
                 start = args.substr(0, _string.length() + remainingToken.length());
             }
-            return Acore::Impl::ChatCommands::FormatAcoreString(handler, LANG_CMDPARSER_EXACT_SEQ_MISMATCH, _string, start);
+            return Ycore::Impl::ChatCommands::FormatYcoreString(handler, LANG_CMDPARSER_EXACT_SEQ_MISMATCH, _string, start);
         }
 
         private:
@@ -106,9 +106,9 @@ namespace Acore::ChatCommands
             static constexpr std::string_view _string = { _storage.data(), std::string_view::traits_type::length(_storage.data()) };
     };
 
-#define EXACT_SEQUENCE(str) Acore::ChatCommands::ExactSequence<CHATCOMMANDS_IMPL_SPLIT_LITERAL(str)>
+#define EXACT_SEQUENCE(str) Ycore::ChatCommands::ExactSequence<CHATCOMMANDS_IMPL_SPLIT_LITERAL(str)>
 
-    struct Tail : std::string_view, Acore::Impl::ChatCommands::ContainerTag
+    struct Tail : std::string_view, Ycore::Impl::ChatCommands::ContainerTag
     {
         using value_type = std::string_view;
 
@@ -121,7 +121,7 @@ namespace Acore::ChatCommands
         }
     };
 
-    struct WTail : std::wstring, Acore::Impl::ChatCommands::ContainerTag
+    struct WTail : std::wstring, Ycore::Impl::ChatCommands::ContainerTag
     {
         using value_type = std::wstring;
 
@@ -132,18 +132,18 @@ namespace Acore::ChatCommands
             if (Utf8toWStr(args, *this))
                 return std::string_view();
             else
-                return Acore::Impl::ChatCommands::GetAcoreString(handler, LANG_CMDPARSER_INVALID_UTF8);
+                return Ycore::Impl::ChatCommands::GetYcoreString(handler, LANG_CMDPARSER_INVALID_UTF8);
         }
     };
 
-    struct QuotedString : std::string, Acore::Impl::ChatCommands::ContainerTag
+    struct QuotedString : std::string, Ycore::Impl::ChatCommands::ContainerTag
     {
         using value_type = std::string;
 
-        AC_GAME_API ChatCommandResult TryConsume(ChatHandler const* handler, std::string_view args);
+        YC_GAME_API ChatCommandResult TryConsume(ChatHandler const* handler, std::string_view args);
     };
 
-    struct AC_GAME_API AccountIdentifier : Acore::Impl::ChatCommands::ContainerTag
+    struct YC_GAME_API AccountIdentifier : Ycore::Impl::ChatCommands::ContainerTag
     {
         using value_type = uint32;
 
@@ -161,7 +161,7 @@ namespace Acore::ChatCommands
             std::string _name;
     };
 
-    struct AC_GAME_API PlayerIdentifier : Acore::Impl::ChatCommands::ContainerTag
+    struct YC_GAME_API PlayerIdentifier : Ycore::Impl::ChatCommands::ContainerTag
     {
         using value_type = Player*;
 
@@ -196,7 +196,7 @@ namespace Acore::ChatCommands
     };
 
     template <typename linktag>
-    struct Hyperlink : Acore::Impl::ChatCommands::ContainerTag
+    struct Hyperlink : Ycore::Impl::ChatCommands::ContainerTag
     {
         using value_type = typename linktag::value_type;
         using storage_type = std::remove_cvref_t<value_type>;
@@ -207,7 +207,7 @@ namespace Acore::ChatCommands
 
         ChatCommandResult TryConsume(ChatHandler const* handler, std::string_view args)
         {
-            Acore::Hyperlinks::HyperlinkInfo info = Acore::Hyperlinks::ParseSingleHyperlink(args);
+            Ycore::Hyperlinks::HyperlinkInfo info = Ycore::Hyperlinks::ParseSingleHyperlink(args);
             // invalid hyperlinks cannot be consumed
             if (!info)
                 return std::nullopt;
@@ -218,10 +218,10 @@ namespace Acore::ChatCommands
 
             // store value
             if (!linktag::StoreTo(val, info.data))
-                return Acore::Impl::ChatCommands::GetAcoreString(handler, LANG_CMDPARSER_LINKDATA_INVALID);
+                return Ycore::Impl::ChatCommands::GetYcoreString(handler, LANG_CMDPARSER_LINKDATA_INVALID);
 
             // finally, skip any potential delimiters
-            auto [token, next] = Acore::Impl::ChatCommands::tokenize(info.tail);
+            auto [token, next] = Ycore::Impl::ChatCommands::tokenize(info.tail);
             if (token.empty()) /* empty token = first character is delimiter, skip past it */
                 return next;
             else
@@ -233,10 +233,10 @@ namespace Acore::ChatCommands
     };
 
     // pull in link tags for user convenience
-    using namespace ::Acore::Hyperlinks::LinkTags;
+    using namespace ::Ycore::Hyperlinks::LinkTags;
 }
 
-namespace Acore::Impl
+namespace Ycore::Impl
 {
     template <typename T>
     struct CastToVisitor
@@ -246,20 +246,20 @@ namespace Acore::Impl
     };
 }
 
-namespace Acore::ChatCommands
+namespace Ycore::ChatCommands
 {
     template <typename T1, typename... Ts>
     struct Variant : public std::variant<T1, Ts...>
     {
         using base = std::variant<T1, Ts...>;
 
-        using first_type = Acore::Impl::ChatCommands::tag_base_t<T1>;
-        static constexpr bool have_operators = Acore::Impl::ChatCommands::are_all_assignable<first_type, Acore::Impl::ChatCommands::tag_base_t<Ts>...>::value;
+        using first_type = Ycore::Impl::ChatCommands::tag_base_t<T1>;
+        static constexpr bool have_operators = Ycore::Impl::ChatCommands::are_all_assignable<first_type, Ycore::Impl::ChatCommands::tag_base_t<Ts>...>::value;
 
         template <bool C = have_operators>
         std::enable_if_t<C, first_type> operator*() const
         {
-            return visit(Acore::Impl::CastToVisitor<first_type>());
+            return visit(Ycore::Impl::CastToVisitor<first_type>());
         }
 
         template <bool C = have_operators>
@@ -298,7 +298,7 @@ namespace Acore::ChatCommands
         constexpr bool holds_alternative() const { return std::holds_alternative<T>(static_cast<base const&>(*this)); }
 
         template <bool C = have_operators>
-        friend std::enable_if_t<C, std::ostream&> operator<<(std::ostream& os, Acore::ChatCommands::Variant<T1, Ts...> const& v)
+        friend std::enable_if_t<C, std::ostream&> operator<<(std::ostream& os, Ycore::ChatCommands::Variant<T1, Ts...> const& v)
         {
             return (os << *v);
         }
