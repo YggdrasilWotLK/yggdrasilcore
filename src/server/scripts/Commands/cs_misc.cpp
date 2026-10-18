@@ -1840,7 +1840,7 @@ public:
 
         bool found = false;
 
-        sObjectMgr->ForEachItemTemplate([&](uint32 itemid, ItemTemplate const& itemTemplate)
+        sObjectMgr->ForEachItemTemplate([&](uint32 itemid [[maybe_unused]], ItemTemplate const& itemTemplate)
         {
             if (itemTemplate.ItemSet == uint32(itemSetId))
             {

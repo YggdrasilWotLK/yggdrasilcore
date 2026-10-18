@@ -813,12 +813,12 @@ public:
                     if (!me->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
                         me->CastSpell(me, SPELL_CORRUPTION, true);
 			
-			if (me->GetPositionX() > 4295.0f)
-			{
-				me->AI()->EnterEvadeMode();
-				me->GetMotionMaster()->MovePoint(0, 4216.0f, 2484.0f, 364.87f);
-				return;
-			}
+            if (me->GetPositionX() > 4295.0f)
+            {
+                me->AI()->EnterEvadeMode();
+                me->GetMotionMaster()->MovePoint(0, 4216.0f, 2484.0f, 364.87f);
+                return;
+            }
 			
             if (!UpdateVictim())
                 return;

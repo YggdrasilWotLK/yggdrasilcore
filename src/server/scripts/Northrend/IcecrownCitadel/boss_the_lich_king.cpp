@@ -690,7 +690,7 @@ public:
             me->PlayDirectSound(17374);
         }
 
-        void JustEngagedWith(Unit* target) override
+        void JustEngagedWith(Unit* target [[maybe_unused]]) override
         {
             if (!me->IsVisible()) // (!instance->CheckRequiredBosses(DATA_THE_LICH_KING, who->ToPlayer()) || !me->IsVisible())
             {
@@ -2451,7 +2451,7 @@ public:
         {
             if (me->GetVehicleKit() && me->GetVehicleKit()->GetPassenger(0))
             {
-                SpellCastResult result = me->CastSpell((Unit*)nullptr, SPELL_EJECT_ALL_PASSENGERS, false);
+                SpellCastResult result [[maybe_unused]] = me->CastSpell((Unit*)nullptr, SPELL_EJECT_ALL_PASSENGERS, false);
             }
             else
             {
