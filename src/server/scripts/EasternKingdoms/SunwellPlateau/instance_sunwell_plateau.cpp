@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -182,7 +182,7 @@ struct npc_sunblade_scout : public ScriptedAI
         GetCreatureListWithEntryInGrid(protectors, me, NPC_SUNBLADE_PROTECTOR, 100.0f); // range unknown
         // Skip already activated protectors
         protectors.remove_if([](Creature* trigger) {return !trigger->HasAura(SPELL_COSMETIC_STUN_IMMUNE_PERMANENT);});
-        protectors.sort(Acore::ObjectDistanceOrderPred(me));
+        protectors.sort(Ycore::ObjectDistanceOrderPred(me));
         if (protectors.empty())
         {
             ScheduleCombat();

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -145,9 +145,9 @@ bool DisableMgr::HandleDisableType(DisableType type, uint32 entry, uint8 flags, 
 
         if (flags & SPELL_DISABLE_MAP)
         {
-            for (std::string_view mapStr : Acore::Tokenize(params_0, ',', true))
+            for (std::string_view mapStr : Ycore::Tokenize(params_0, ',', true))
             {
-                if (Optional<uint32> mapId = Acore::StringTo<uint32>(mapStr))
+                if (Optional<uint32> mapId = Ycore::StringTo<uint32>(mapStr))
                     data.params[0].insert(*mapId);
                 else
                     LOG_ERROR("sql.sql", "Disable map '{}' for spell {} is invalid, skipped.", mapStr, entry);
@@ -156,9 +156,9 @@ bool DisableMgr::HandleDisableType(DisableType type, uint32 entry, uint8 flags, 
 
         if (flags & SPELL_DISABLE_AREA)
         {
-            for (std::string_view areaStr : Acore::Tokenize(params_1, ',', true))
+            for (std::string_view areaStr : Ycore::Tokenize(params_1, ',', true))
             {
-                if (Optional<uint32> areaId = Acore::StringTo<uint32>(areaStr))
+                if (Optional<uint32> areaId = Ycore::StringTo<uint32>(areaStr))
                     data.params[1].insert(*areaId);
                 else
                     LOG_ERROR("sql.sql", "Disable area '{}' for spell {} is invalid, skipped.", areaStr, entry);

@@ -10,7 +10,7 @@ ARG TZ=Etc/UTC
 ARG DOCKER=1
 ARG DEBIAN_FRONTEND=noninteractive
 
-ENV AC_FORCE_CREATE_DB=1
+ENV YC_FORCE_CREATE_DB=1
 
 RUN mkdir -pv \
         /azerothcore/bin                   \
@@ -115,9 +115,9 @@ FROM skeleton AS runtime
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
-ARG DOCKER_USER=acore
+ARG DOCKER_USER=ycore
 
-ENV ACORE_COMPONENT=undefined
+ENV YCORE_COMPONENT=undefined
 
 # Install base dependencies for azerothcore
 COPY --from=build /mysql-client-version /mysql-client-version
@@ -163,12 +163,12 @@ ENTRYPOINT ["/usr/bin/env", "bash", "/azerothcore/entrypoint.sh"]
 FROM runtime AS authserver
 LABEL description="AzerothCore Auth Server"
 
-ENV ACORE_COMPONENT=authserver
+ENV YCORE_COMPONENT=authserver
 # Don't run database migrations. We can leave that up to the db-import container
-ENV AC_UPDATES_ENABLE_DATABASES=0
+ENV YC_UPDATES_ENABLE_DATABASES=0
 # This disables user prompts. The console is still active, however
-ENV AC_DISABLE_INTERACTIVE=1
-ENV AC_CLOSE_IDLE_CONNECTIONS=0
+ENV YC_DISABLE_INTERACTIVE=1
+ENV YC_CLOSE_IDLE_CONNECTIONS=0
 
 COPY --chown=$DOCKER_USER:$DOCKER_USER \
      --from=build \
@@ -185,12 +185,12 @@ FROM runtime AS worldserver
 
 LABEL description="AzerothCore World Server"
 
-ENV ACORE_COMPONENT=worldserver
+ENV YCORE_COMPONENT=worldserver
 # Don't run database migrations. We can leave that up to the db-import container
-ENV AC_UPDATES_ENABLE_DATABASES=0
+ENV YC_UPDATES_ENABLE_DATABASES=0
 # This disables user prompts. The console is still active, however
-ENV AC_DISABLE_INTERACTIVE=1
-ENV AC_CLOSE_IDLE_CONNECTIONS=0
+ENV YC_DISABLE_INTERACTIVE=1
+ENV YC_CLOSE_IDLE_CONNECTIONS=0
 
 COPY --chown=$DOCKER_USER:$DOCKER_USER \
      --from=build \
@@ -210,7 +210,7 @@ LABEL description="AzerothCore Database Import tool"
 
 USER $DOCKER_USER
 
-ENV ACORE_COMPONENT=dbimport
+ENV YCORE_COMPONENT=dbimport
 
 COPY --chown=$DOCKER_USER:$DOCKER_USER \
     data data

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -224,8 +224,8 @@ public:
     [[nodiscard]] bool isThreatListEmpty() const { return iThreatContainer.empty(); }
     [[nodiscard]] bool areThreatListsEmpty() const { return iThreatContainer.empty() && iThreatOfflineContainer.empty(); }
 
-    Acore::IteratorPair<std::list<ThreatReference*>::const_iterator> GetSortedThreatList() const { auto& list = iThreatContainer.GetThreatList(); return { list.cbegin(), list.cend() }; }
-    Acore::IteratorPair<std::list<ThreatReference*>::const_iterator> GetUnsortedThreatList() const { return GetSortedThreatList(); }
+    Ycore::IteratorPair<std::list<ThreatReference*>::const_iterator> GetSortedThreatList() const { auto& list = iThreatContainer.GetThreatList(); return { list.cbegin(), list.cend() }; }
+    Ycore::IteratorPair<std::list<ThreatReference*>::const_iterator> GetUnsortedThreatList() const { return GetSortedThreatList(); }
 
     void processThreatEvent(ThreatRefStatusChangeEvent* threatRefStatusChangeEvent);
 
@@ -313,7 +313,7 @@ struct RedirectThreatInfo
 
 //=================================================
 
-namespace Acore
+namespace Ycore
 {
     // Binary predicate for sorting HostileReferences based on threat value
     class ThreatOrderPred

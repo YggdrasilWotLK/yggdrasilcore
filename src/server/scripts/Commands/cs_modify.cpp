@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -24,7 +24,7 @@
 #include "ReputationMgr.h"
 #include "StringConvert.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class modify_commandscript : public CommandScript
 {
@@ -84,7 +84,7 @@ public:
     }
 
     template<typename... Args>
-    static void NotifyModification(ChatHandler* handler, Unit* target, AcoreStrings resourceMessage, AcoreStrings resourceReportMessage, Args&&... args)
+    static void NotifyModification(ChatHandler* handler, Unit* target, YcoreStrings resourceMessage, YcoreStrings resourceReportMessage, Args&&... args)
     {
         if (Player* player = target->ToPlayer())
         {
@@ -187,7 +187,7 @@ public:
         target->SetMaxPower(POWER_ENERGY, energyPoints);
         target->SetPower(POWER_ENERGY, energyPoints);
 
-        LOG_DEBUG("misc", handler->GetAcoreString(LANG_CURRENT_ENERGY), target->GetMaxPower(POWER_ENERGY));
+        LOG_DEBUG("misc", handler->GetYcoreString(LANG_CURRENT_ENERGY), target->GetMaxPower(POWER_ENERGY));
 
         return true;
     }
@@ -593,7 +593,7 @@ public:
         }
         else
         {
-            moneyToAddO = Acore::StringTo<int32>(money);
+            moneyToAddO = Ycore::StringTo<int32>(money);
         }
 
         if (!moneyToAddO)
@@ -608,7 +608,7 @@ public:
         {
             int32 newmoney = int32(targetMoney) + moneyToAdd;
 
-            LOG_DEBUG("chat.system", handler->GetAcoreString(LANG_CURRENT_MONEY), targetMoney, moneyToAdd, newmoney);
+            LOG_DEBUG("chat.system", handler->GetYcoreString(LANG_CURRENT_MONEY), targetMoney, moneyToAdd, newmoney);
             if (newmoney <= 0)
             {
                 handler->PSendSysMessage(LANG_YOU_TAKE_ALL_MONEY, handler->GetNameLink(target));
@@ -643,7 +643,7 @@ public:
             target->ModifyMoney(moneyToAdd);
         }
 
-        LOG_DEBUG("chat.system", handler->GetAcoreString(LANG_NEW_MONEY), targetMoney, moneyToAdd, target->GetMoney());
+        LOG_DEBUG("chat.system", handler->GetYcoreString(LANG_NEW_MONEY), targetMoney, moneyToAdd, target->GetMoney());
 
         return true;
     }
@@ -761,7 +761,7 @@ public:
 
             for (; r < MAX_REPUTATION_RANK; ++r)
             {
-                std::string rank = handler->GetAcoreString(ReputationRankStrIndex[r]);
+                std::string rank = handler->GetYcoreString(ReputationRankStrIndex[r]);
                 if (rank.empty())
                     continue;
 

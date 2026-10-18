@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -855,7 +855,7 @@ public:
                 // get all nearby vrykul
                 std::list<Creature*> temp;
                 FrostwingVrykulSearcher check(me, 150.0f);
-                Acore::CreatureListSearcher<FrostwingVrykulSearcher> searcher(me, temp, check);
+                Ycore::CreatureListSearcher<FrostwingVrykulSearcher> searcher(me, temp, check);
                 Cell::VisitObjects(me, searcher, 150.0f);
 
                 _aliveTrash.clear();
@@ -899,15 +899,15 @@ public:
                 _wipeCheckTimer = 3000;
 
                 Player* player = nullptr;
-                Acore::AnyPlayerInObjectRangeCheck check(me, 140.0f);
-                Acore::PlayerSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(me, player, check);
+                Ycore::AnyPlayerInObjectRangeCheck check(me, 140.0f);
+                Ycore::PlayerSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(me, player, check);
                 Cell::VisitObjects(me, searcher, 140.0f);
                 // wipe
                 if (!player || me->GetExactDist(4357.0f, 2606.0f, 350.0f) > 125.0f)
                 {
                     //Talk(SAY_CROK_DEATH);
                     FrostwingGauntletRespawner respawner;
-                    Acore::CreatureWorker<FrostwingGauntletRespawner> worker(me, respawner);
+                    Ycore::CreatureWorker<FrostwingGauntletRespawner> worker(me, respawner);
                     Cell::VisitObjects(me, worker, 333.0f);
                     return;
                 }
@@ -1339,7 +1339,7 @@ public:
                     {
                         std::list<Creature*> targets = DoFindFriendlyMissingBuff(40.0f, SPELL_POWER_WORD_SHIELD);
                         if (!targets.empty())
-                            DoCast(Acore::Containers::SelectRandomContainerElement(targets), SPELL_POWER_WORD_SHIELD);
+                            DoCast(Ycore::Containers::SelectRandomContainerElement(targets), SPELL_POWER_WORD_SHIELD);
                         Events.ScheduleEvent(EVENT_ARNATH_PW_SHIELD, 15s, 20s);
                         break;
                     }
@@ -1363,8 +1363,8 @@ public:
         Creature* FindFriendlyCreature() const
         {
             Creature* target = nullptr;
-            Acore::MostHPMissingInRange u_check(me, 60.0f, 0);
-            Acore::CreatureLastSearcher<Acore::MostHPMissingInRange> searcher(me, target, u_check);
+            Ycore::MostHPMissingInRange u_check(me, 60.0f, 0);
+            Ycore::CreatureLastSearcher<Ycore::MostHPMissingInRange> searcher(me, target, u_check);
             Cell::VisitObjects(me, searcher, 60.0f);
             return target;
         }
@@ -1961,7 +1961,7 @@ class spell_icc_sprit_alarm : public SpellScript
 
         std::list<Creature*> wards;
         GetCaster()->GetCreatureListWithEntryInGrid(wards, NPC_DEATHBOUND_WARD, 150.0f);
-        wards.sort(Acore::ObjectDistanceOrderPred(GetCaster()));
+        wards.sort(Ycore::ObjectDistanceOrderPred(GetCaster()));
         for (std::list<Creature*>::iterator itr = wards.begin(); itr != wards.end(); ++itr)
         {
             if ((*itr)->IsAlive() && (*itr)->HasAura(SPELL_STONEFORM))
@@ -2040,8 +2040,8 @@ class spell_frost_giant_death_plague : public SpellScript
     // First effect
     void CountTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
-        targets.remove_if(Acore::ObjectGUIDCheck(GetCaster()->GetGUID(), true));
+        targets.remove_if(Ycore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
+        targets.remove_if(Ycore::ObjectGUIDCheck(GetCaster()->GetGUID(), true));
 
         bool kill = true;
         for (std::list<WorldObject*>::const_iterator itr = targets.begin(); itr != targets.end(); ++itr)
@@ -2112,7 +2112,7 @@ class spell_svalna_revive_champion : public SpellScript
     void RemoveAliveTarget(std::list<WorldObject*>& targets)
     {
         targets.remove_if(AliveCheck());
-        Acore::Containers::RandomResize(targets, 2);
+        Ycore::Containers::RandomResize(targets, 2);
     }
 
     void Land(SpellEffIndex /*effIndex*/)
@@ -2202,7 +2202,7 @@ public:
             instance->SetData(DATA_COLDFLAME_JETS, IN_PROGRESS);
             std::list<Creature*> traps;
             GetCreatureListWithEntryInGrid(traps, player, NPC_FROST_FREEZE_TRAP, 120.0f);
-            traps.sort(Acore::ObjectDistanceOrderPred(player));
+            traps.sort(Ycore::ObjectDistanceOrderPred(player));
             bool instant = false;
             for (std::list<Creature*>::iterator itr = traps.begin(); itr != traps.end(); ++itr)
             {
@@ -2260,7 +2260,7 @@ public:
                     if (!crok->IsAlive())
                     {
                         FrostwingGauntletRespawner respawner;
-                        Acore::CreatureWorker<FrostwingGauntletRespawner> worker(crok, respawner);
+                        Ycore::CreatureWorker<FrostwingGauntletRespawner> worker(crok, respawner);
                         Cell::VisitObjects(crok, worker, 333.0f);
                         return true;
                     }

@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -23,7 +23,7 @@ if (POLICY CMP0153)
 endif()
 
 # Set projectname (must be done AFTER setting configurationtypes)
-project(AzerothCore VERSION 3.0.0 LANGUAGES CXX C)
+project(YggdrasilCore VERSION 3.0.0 LANGUAGES CXX C)
 
 # add this options before PROJECT keyword
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
@@ -38,7 +38,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH 1)
 # Export compile commands for IDE support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(AC_PATH_ROOT "${CMAKE_SOURCE_DIR}")
+set(YC_PATH_ROOT "${CMAKE_SOURCE_DIR}")
 
 # set macro-directory
 list(APPEND CMAKE_MODULE_PATH
@@ -52,9 +52,9 @@ include(ConfigureApplications)
 include(ConfigureTools)
 
 # some utils for cmake
-include(deps/acore/cmake-utils/utils.cmake)
+include(deps/ycore/cmake-utils/utils.cmake)
 
-include(src/cmake/ac_macros.cmake)
+include(src/cmake/yc_macros.cmake)
 
 # set default buildoptions and print them
 include(conf/dist/config.cmake)
@@ -74,7 +74,7 @@ FOREACH(subdir ${sub_DIRS})
 
     get_filename_component(MODULENAME ${subdir} NAME)
 
-    if (";${DISABLED_AC_MODULES};" MATCHES ";${MODULENAME};")
+    if (";${DISABLED_YC_MODULES};" MATCHES ";${MODULENAME};")
         continue()
     endif()
 

@@ -161,7 +161,7 @@ public:
             SelectTargetList(candidates, RAID_MODE(1, 2), SelectTargetMethod::Random, 0, WebTargetSelector(me));
 
             std::vector<uint32> positions {0, 1, 2, 3, 4, 5, 6};
-            Acore::Containers::RandomShuffle(positions);
+            Ycore::Containers::RandomShuffle(positions);
 
             if (candidates.empty())
                 return;

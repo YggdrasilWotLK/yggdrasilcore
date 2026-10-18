@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_CONDITIONMGR_H
-#define ACORE_CONDITIONMGR_H
+#ifndef YCORE_CONDITIONMGR_H
+#define YCORE_CONDITIONMGR_H
 
 #include "Define.h"
 #include <list>
@@ -85,13 +85,13 @@ enum ConditionTypes
     CONDITION_DIFFICULTY_ID            = 49,            // Difficulty       0              0                  true is map has difficulty id
     CONDITION_TC_END                   = 50,            // placeholder
 
-    CONDITION_AC_START                 = 100,
+    CONDITION_YC_START                 = 100,
     CONDITION_QUEST_SATISFY_EXCLUSIVE  = 101,           // quest_id         0              0                  true if satisfied exclusive group
     CONDITION_HAS_AURA_TYPE            = 102,           // aura_type        0              0                  true if has aura type
     CONDITION_WORLD_SCRIPT             = 103,           // conditionId      state          0                  true if WorldState::IsConditionFulfilled returns true
     CONDITION_AI_DATA                  = 104,           // dataId           value          0                  true if AI::GetData returns value
 
-    CONDITION_AC_END                   = 105            // placeholder
+    CONDITION_YC_END                   = 105            // placeholder
 };
 
 /*! Documentation on implementing a new ConditionSourceType:

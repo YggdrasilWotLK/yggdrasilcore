@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -320,8 +320,8 @@ public:
             {
                 timer = 0;
                 std::list<Player*> players;
-                Acore::AnyPlayerExactPositionInGameObjectRangeCheck checker(me, 0.3f);
-                Acore::PlayerListSearcher<Acore::AnyPlayerExactPositionInGameObjectRangeCheck> searcher(me, players, checker);
+                Ycore::AnyPlayerExactPositionInGameObjectRangeCheck checker(me, 0.3f);
+                Ycore::PlayerListSearcher<Ycore::AnyPlayerExactPositionInGameObjectRangeCheck> searcher(me, players, checker);
                 Cell::VisitObjects(me, searcher, 0.3f);
 
                 if (players.size() > 0)
@@ -367,8 +367,8 @@ public:
             {
                 timer = 0;
                 std::list<Player*> players;
-                Acore::AnyPlayerExactPositionInGameObjectRangeCheck checker(me, 0.3f);
-                Acore::PlayerListSearcher<Acore::AnyPlayerExactPositionInGameObjectRangeCheck> searcher(me, players, checker);
+                Ycore::AnyPlayerExactPositionInGameObjectRangeCheck checker(me, 0.3f);
+                Ycore::PlayerListSearcher<Ycore::AnyPlayerExactPositionInGameObjectRangeCheck> searcher(me, players, checker);
                 Cell::VisitObjects(me, searcher, 0.3f);
 
                 if (players.size() > 0)
@@ -818,8 +818,8 @@ public:
                                 break;
 
                             std::list<Player*> targets;
-                            Acore::AnyPlayerInObjectRangeCheck check(me, me->GetVisibilityRange(), false);
-                            Acore::PlayerListSearcherWithSharedVision<Acore::AnyPlayerInObjectRangeCheck> searcher(me, targets, check);
+                            Ycore::AnyPlayerInObjectRangeCheck check(me, me->GetVisibilityRange(), false);
+                            Ycore::PlayerListSearcherWithSharedVision<Ycore::AnyPlayerInObjectRangeCheck> searcher(me, targets, check);
                             Cell::VisitObjects(me, searcher, me->GetVisibilityRange());
                             for (Player* player : targets)
                             {
@@ -1829,7 +1829,7 @@ public:
                 case EVENT_TIME:
                 {
                     tzset(); // set timezone for localtime_r() -> fix issues due to daylight time
-                    tm local_tm = Acore::Time::TimeBreakdown();
+                    tm local_tm = Ycore::Time::TimeBreakdown();
                     uint8 _rings = (local_tm.tm_hour) % 12;
                     _rings = (_rings == 0) ? 12 : _rings; // 00:00 and 12:00
 

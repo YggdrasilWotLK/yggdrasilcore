@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -892,7 +892,7 @@ class spell_xt002_gravity_bomb : public SpellScript
     void SelectTarget(std::list<WorldObject*>& targets)
     {
         if (Unit* victim = GetCaster()->GetVictim())
-            targets.remove_if(Acore::ObjectGUIDCheck(victim->GetGUID(), true));
+            targets.remove_if(Ycore::ObjectGUIDCheck(victim->GetGUID(), true));
     }
 
     void Register() override
@@ -974,7 +974,7 @@ class spell_xt002_searing_light_spawn_life_spark : public SpellScript
     void SelectTarget(std::list<WorldObject*>& targets)
     {
         if (Unit* victim = GetCaster()->GetVictim())
-            targets.remove_if(Acore::ObjectGUIDCheck(victim->GetGUID(), true));
+            targets.remove_if(Ycore::ObjectGUIDCheck(victim->GetGUID(), true));
     }
 
     void Register() override

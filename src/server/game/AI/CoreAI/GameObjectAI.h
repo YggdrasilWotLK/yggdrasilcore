@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_GAMEOBJECTAI_H
-#define ACORE_GAMEOBJECTAI_H
+#ifndef YCORE_GAMEOBJECTAI_H
+#define YCORE_GAMEOBJECTAI_H
 
 #include "CreatureAI.h"
 #include "Define.h"
@@ -29,7 +29,7 @@ class GameObject;
 class Unit;
 class SpellInfo;
 
-class AC_GAME_API GameObjectAI
+class YC_GAME_API GameObjectAI
 {
 protected:
     GameObject* const me;

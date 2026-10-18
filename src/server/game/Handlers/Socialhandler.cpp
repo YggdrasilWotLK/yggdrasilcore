@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -36,7 +36,7 @@ void WorldSession::HandleContactListOpcode(WorldPacket& recv_data)
 
 void WorldSession::HandleAddFriendOpcode(WorldPacket& recv_data)
 {
-    std::string friendName = GetAcoreString(LANG_FRIEND_IGNORE_UNKNOWN);
+    std::string friendName = GetYcoreString(LANG_FRIEND_IGNORE_UNKNOWN);
     std::string friendNote;
 
     recv_data >> friendName;
@@ -102,7 +102,7 @@ void WorldSession::HandleDelFriendOpcode(WorldPacket& recv_data)
 
 void WorldSession::HandleAddIgnoreOpcode(WorldPacket& recv_data)
 {
-    std::string ignoreName = GetAcoreString(LANG_FRIEND_IGNORE_UNKNOWN);
+    std::string ignoreName = GetYcoreString(LANG_FRIEND_IGNORE_UNKNOWN);
 
     recv_data >> ignoreName;
 

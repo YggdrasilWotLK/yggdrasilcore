@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -21,7 +21,7 @@
 #include "ARC4.h"
 #include "AuthDefines.h"
 
-class AC_COMMON_API AuthCrypt
+class YC_COMMON_API AuthCrypt
 {
 public:
     AuthCrypt() = default;
@@ -33,8 +33,8 @@ public:
     bool IsInitialized() const { return _initialized; }
 
 private:
-    Acore::Crypto::ARC4 _clientDecrypt;
-    Acore::Crypto::ARC4 _serverEncrypt;
+    Ycore::Crypto::ARC4 _clientDecrypt;
+    Ycore::Crypto::ARC4 _serverEncrypt;
     bool _initialized{ false };
 };
 #endif

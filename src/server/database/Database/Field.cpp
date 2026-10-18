@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -199,7 +199,7 @@ T Field::GetData() const
     if (!data.value)
         return GetDefaultValue<T>();
 
-#ifdef ACORE_STRICT_DATABASE_TYPE_CHECKS
+#ifdef YCORE_STRICT_DATABASE_TYPE_CHECKS
     if (!IsCorrectFieldType<T>(meta->Type))
     {
         LogWrongType(__FUNCTION__, typeid(T).name());
@@ -212,7 +212,7 @@ T Field::GetData() const
     if (data.raw)
         result = *reinterpret_cast<T const*>(data.value);
     else
-        result = Acore::StringTo<T>(std::string_view(data.value, data.length));
+        result = Ycore::StringTo<T>(std::string_view(data.value, data.length));
 
     // Correct double fields... this undefined behavior :/
     if constexpr (std::is_same_v<T, double>)
@@ -220,7 +220,7 @@ T Field::GetData() const
         if (data.raw && !IsType(DatabaseFieldTypes::Decimal))
             result = *reinterpret_cast<double const*>(data.value);
         else
-            result = Acore::StringTo<float>(std::string_view(data.value, data.length));
+            result = Ycore::StringTo<float>(std::string_view(data.value, data.length));
     }
 
     // Check -1 for *_dbc db tables
@@ -230,7 +230,7 @@ T Field::GetData() const
 
         if (!tableName.empty() && tableName.size() > 4)
         {
-            auto signedResult = Acore::StringTo<int32>(std::string_view(data.value, data.length));
+            auto signedResult = Ycore::StringTo<int32>(std::string_view(data.value, data.length));
 
             if (signedResult && !result && tableName.substr(tableName.length() - 4) == "_dbc")
             {
@@ -291,7 +291,7 @@ std::string Field::GetDataString() const
     if (!data.value)
         return "";
 
-#ifdef ACORE_STRICT_DATABASE_TYPE_CHECKS
+#ifdef YCORE_STRICT_DATABASE_TYPE_CHECKS
     if (IsNumeric() && data.raw)
     {
         LogWrongType(__FUNCTION__, "std::string");
@@ -307,7 +307,7 @@ std::string_view Field::GetDataStringView() const
     if (!data.value)
         return {};
 
-#ifdef ACORE_STRICT_DATABASE_TYPE_CHECKS
+#ifdef YCORE_STRICT_DATABASE_TYPE_CHECKS
     if (IsNumeric() && data.raw)
     {
         LogWrongType(__FUNCTION__, "std::string_view");
@@ -324,7 +324,7 @@ Binary Field::GetDataBinary() const
     if (!data.value || !data.length)
         return result;
 
-#ifdef ACORE_STRICT_DATABASE_TYPE_CHECKS
+#ifdef YCORE_STRICT_DATABASE_TYPE_CHECKS
     if (!IsCorrectFieldType<Binary>(meta->Type))
     {
         LogWrongType(__FUNCTION__, "Binary");

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -67,7 +67,7 @@ struct ClientPktHeader
 
 struct AuthSession;
 
-class AC_GAME_API WorldSocket : public Socket<WorldSocket>
+class YC_GAME_API WorldSocket : public Socket<WorldSocket>
 {
     typedef Socket<WorldSocket> BaseSocket;
 

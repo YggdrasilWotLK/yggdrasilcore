@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -37,7 +37,7 @@
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class server_commandscript : public CommandScript
 {
@@ -120,9 +120,9 @@ public:
                 dbPort = (*res)[0].Get<uint16>();
 
             if (dbPort)
-                dbPortOutput = Acore::StringFormat("Realmlist (Realm Id: {}) configured in port {}", realm.Id.Realm, dbPort);
+                dbPortOutput = Ycore::StringFormat("Realmlist (Realm Id: {}) configured in port {}", realm.Id.Realm, dbPort);
             else
-                dbPortOutput = Acore::StringFormat("Realm Id: {} not found in `realmlist` table. Please check your setup", realm.Id.Realm);
+                dbPortOutput = Ycore::StringFormat("Realm Id: {} not found in `realmlist` table. Please check your setup", realm.Id.Realm);
         }
 
         HandleServerInfoCommand(handler);
@@ -249,12 +249,12 @@ public:
 #endif
         
 
-        if (Acore::Module::GetEnableModulesList().empty())
+        if (Ycore::Module::GetEnableModulesList().empty())
             handler->PSendSysMessage("No modules are enabled");
         else
             handler->PSendSysMessage("List of enabled modules:");
 
-        for (auto const& modName : Acore::Module::GetEnableModulesList())
+        for (auto const& modName : Ycore::Module::GetEnableModulesList())
         {
             handler->PSendSysMessage("|- {}", modName);
         }
@@ -318,7 +318,7 @@ public:
             return false;
         }
 
-        if (Acore::StringTo<int32>(time).value_or(0) < 0)
+        if (Ycore::StringTo<int32>(time).value_or(0) < 0)
         {
             handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
@@ -340,7 +340,7 @@ public:
         int32 delay = TimeStringToSecs(time);
         if (delay <= 0)
         {
-            delay = Acore::StringTo<int32>(time).value_or(0);
+            delay = Ycore::StringTo<int32>(time).value_or(0);
         }
 
         if (delay <= 0)
@@ -371,7 +371,7 @@ public:
             return false;
         }
 
-        if (Acore::StringTo<int32>(time).value_or(0) < 0)
+        if (Ycore::StringTo<int32>(time).value_or(0) < 0)
         {
             handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
@@ -393,7 +393,7 @@ public:
         int32 delay = TimeStringToSecs(time);
         if (delay <= 0)
         {
-            delay = Acore::StringTo<int32>(time).value_or(0);
+            delay = Ycore::StringTo<int32>(time).value_or(0);
         }
 
         if (delay <= 0)
@@ -424,7 +424,7 @@ public:
             return false;
         }
 
-        if (Acore::StringTo<int32>(time).value_or(0) < 0)
+        if (Ycore::StringTo<int32>(time).value_or(0) < 0)
         {
             handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
@@ -446,7 +446,7 @@ public:
         int32 delay = TimeStringToSecs(time);
         if (delay <= 0)
         {
-            delay = Acore::StringTo<int32>(time).value_or(0);
+            delay = Ycore::StringTo<int32>(time).value_or(0);
         }
 
         if (delay <= 0)
@@ -477,7 +477,7 @@ public:
             return false;
         }
 
-        if (Acore::StringTo<int32>(time).value_or(0) < 0)
+        if (Ycore::StringTo<int32>(time).value_or(0) < 0)
         {
             handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
@@ -499,7 +499,7 @@ public:
         int32 delay = TimeStringToSecs(time);
         if (delay <= 0)
         {
-            delay = Acore::StringTo<int32>(time).value_or(0);
+            delay = Ycore::StringTo<int32>(time).value_or(0);
         }
 
         if (delay <= 0)

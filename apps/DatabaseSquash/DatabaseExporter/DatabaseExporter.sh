@@ -20,12 +20,12 @@ read -p "Enter MySQL port (default: 3306): " DB_PORT
 DB_PORT=${DB_PORT:-3306}
 
 # Prompt for database names
-read -p "Enter name of Auth database [default: acore_auth]: " DB_AUTH
-DB_AUTH=${DB_AUTH:-acore_auth}
-read -p "Enter name of Characters database [default: acore_characters]: " DB_CHARACTERS
-DB_CHARACTERS=${DB_CHARACTERS:-acore_characters}
-read -p "Enter name of World database [default: acore_world]: " DB_WORLD
-DB_WORLD=${DB_WORLD:-acore_world}
+read -p "Enter name of Auth database [default: ycore_auth]: " DB_AUTH
+DB_AUTH=${DB_AUTH:-ycore_auth}
+read -p "Enter name of Characters database [default: ycore_characters]: " DB_CHARACTERS
+DB_CHARACTERS=${DB_CHARACTERS:-ycore_characters}
+read -p "Enter name of World database [default: ycore_world]: " DB_WORLD
+DB_WORLD=${DB_WORLD:-ycore_world}
 
 # Mapping for folder names
 declare -A DB_MAP=(

@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -52,7 +52,7 @@ elseif(CMAKE_C_COMPILER MATCHES "icc")
 elseif(CMAKE_C_COMPILER MATCHES "clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   include(${CMAKE_SOURCE_DIR}/src/cmake/compiler/clang/settings.cmake)
 else()
-  target_compile_definitions(acore-compile-option-interface
+  target_compile_definitions(ycore-compile-option-interface
     INTERFACE
       -D_BUILD_DIRECTIVE="${CMAKE_BUILD_TYPE}")
 endif()

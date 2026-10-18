@@ -4,8 +4,8 @@
 # This script tests the basic functionality of the startup scripts using the unified test framework
 
 # Load the AzerothCore test framework
-load '../../test-framework/bats_libs/acore-support'
-load '../../test-framework/bats_libs/acore-assert'
+load '../../test-framework/bats_libs/ycore-support'
+load '../../test-framework/bats_libs/ycore-assert'
 
 # Setup that runs before each test
 setup() {
@@ -15,7 +15,7 @@ setup() {
 
 # Cleanup that runs after each test
 teardown() {
-    acore_test_teardown
+    ycore_test_teardown
 }
 
 # ===== STARTER SCRIPT TESTS =====
@@ -43,8 +43,8 @@ teardown() {
 
 @test "starter: should detect PM2 environment properly" {
     cd "$TEST_DIR"
-    # Test with AC_LAUNCHED_BY_PM2=1 (should not use script command)
-    AC_LAUNCHED_BY_PM2=1 run timeout 5s "$SCRIPT_DIR/starter" "$TEST_DIR/bin" "test-server" "" "$TEST_DIR/test-server.conf" "" "" 0
+    # Test with YC_LAUNCHED_BY_PM2=1 (should not use script command)
+    YC_LAUNCHED_BY_PM2=1 run timeout 5s "$SCRIPT_DIR/starter" "$TEST_DIR/bin" "test-server" "" "$TEST_DIR/test-server.conf" "" "" 0
     debug_on_failure
     # Should start without using script command
     [[ "$output" =~ "Test server starting" ]]
@@ -155,10 +155,10 @@ teardown() {
 
 @test "service-manager: pm2 uptime and wait-uptime work with mocked pm2" {
     command -v jq >/dev/null 2>&1 || skip "jq not installed"
-    export AC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
-    mkdir -p "$AC_SERVICE_CONFIG_DIR"
+    export YC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
+    mkdir -p "$YC_SERVICE_CONFIG_DIR"
     # Create registry with pm2 provider service
-    cat > "$AC_SERVICE_CONFIG_DIR/service_registry.json" << 'EOF'
+    cat > "$YC_SERVICE_CONFIG_DIR/service_registry.json" << 'EOF'
 [
   {
     "name":"test-world",
@@ -176,8 +176,8 @@ teardown() {
 ]
 EOF
     # Create minimal service config and run-engine config files required by 'send'
-    echo "RUN_ENGINE_CONFIG_FILE=\"$AC_SERVICE_CONFIG_DIR/test-world-run-engine.conf\"" > "$AC_SERVICE_CONFIG_DIR/test-world.conf"
-    cat > "$AC_SERVICE_CONFIG_DIR/test-world-run-engine.conf" << 'EOF'
+    echo "RUN_ENGINE_CONFIG_FILE=\"$YC_SERVICE_CONFIG_DIR/test-world-run-engine.conf\"" > "$YC_SERVICE_CONFIG_DIR/test-world.conf"
+    cat > "$YC_SERVICE_CONFIG_DIR/test-world-run-engine.conf" << 'EOF'
 export SESSION_MANAGER="none"
 export SESSION_NAME="test-world"
 EOF
@@ -222,10 +222,10 @@ EOF
 
 @test "service-manager: send works under pm2 with mocked pm2" {
     command -v jq >/dev/null 2>&1 || skip "jq not installed"
-    export AC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
-    mkdir -p "$AC_SERVICE_CONFIG_DIR"
+    export YC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
+    mkdir -p "$YC_SERVICE_CONFIG_DIR"
     # Create registry and config as in previous test
-    cat > "$AC_SERVICE_CONFIG_DIR/service_registry.json" << 'EOF'
+    cat > "$YC_SERVICE_CONFIG_DIR/service_registry.json" << 'EOF'
 [
   {
     "name":"test-world",
@@ -242,8 +242,8 @@ EOF
   }
 ]
 EOF
-    echo "RUN_ENGINE_CONFIG_FILE=\"$AC_SERVICE_CONFIG_DIR/test-world-run-engine.conf\"" > "$AC_SERVICE_CONFIG_DIR/test-world.conf"
-    cat > "$AC_SERVICE_CONFIG_DIR/test-world-run-engine.conf" << 'EOF'
+    echo "RUN_ENGINE_CONFIG_FILE=\"$YC_SERVICE_CONFIG_DIR/test-world-run-engine.conf\"" > "$YC_SERVICE_CONFIG_DIR/test-world.conf"
+    cat > "$YC_SERVICE_CONFIG_DIR/test-world-run-engine.conf" << 'EOF'
 export SESSION_MANAGER="none"
 export SESSION_NAME="test-world"
 EOF
@@ -284,13 +284,13 @@ EOF
 
 @test "service-manager: restore helper recreates missing configs" {
     command -v jq >/dev/null 2>&1 || skip "jq not installed"
-    export AC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
-    mkdir -p "$AC_SERVICE_CONFIG_DIR"
+    export YC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
+    mkdir -p "$YC_SERVICE_CONFIG_DIR"
     source "$SCRIPT_DIR/service-manager.sh"
 
     local service_name="restore-test"
-    local run_engine_config="$AC_SERVICE_CONFIG_DIR/$service_name-run-engine.conf"
-    local service_conf="$AC_SERVICE_CONFIG_DIR/$service_name.conf"
+    local run_engine_config="$YC_SERVICE_CONFIG_DIR/$service_name-run-engine.conf"
+    local service_conf="$YC_SERVICE_CONFIG_DIR/$service_name.conf"
     rm -f "$run_engine_config" "$service_conf"
 
     mkdir -p "$TEST_DIR/bin" "$TEST_DIR/etc"
@@ -309,9 +309,9 @@ EOF
 
 @test "service-manager: wait-uptime times out for unknown service" {
     command -v jq >/dev/null 2>&1 || skip "jq not installed"
-    export AC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
-    mkdir -p "$AC_SERVICE_CONFIG_DIR"
-    echo "[]" > "$AC_SERVICE_CONFIG_DIR/service_registry.json"
+    export YC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
+    mkdir -p "$YC_SERVICE_CONFIG_DIR"
+    echo "[]" > "$YC_SERVICE_CONFIG_DIR/service_registry.json"
     run "$SCRIPT_DIR/service-manager.sh" wait-uptime unknown 2 1
     [ "$status" -ne 0 ]
 }
@@ -334,16 +334,16 @@ EOF
     # Source the service-manager script to access helper functions
     source "$SCRIPT_DIR/service-manager.sh"
     
-    # Test make_path_relative without AC_SERVICE_CONFIG_DIR
-    unset AC_SERVICE_CONFIG_DIR
+    # Test make_path_relative without YC_SERVICE_CONFIG_DIR
+    unset YC_SERVICE_CONFIG_DIR
     result=$(make_path_relative "/absolute/path/test")
     [[ "$result" == "/absolute/path/test" ]]
     
-    # Test make_path_relative with AC_SERVICE_CONFIG_DIR
-    export AC_SERVICE_CONFIG_DIR="/tmp/test-config"
-   mkdir -p "$AC_SERVICE_CONFIG_DIR/subdir"
+    # Test make_path_relative with YC_SERVICE_CONFIG_DIR
+    export YC_SERVICE_CONFIG_DIR="/tmp/test-config"
+   mkdir -p "$YC_SERVICE_CONFIG_DIR/subdir"
    
-    result=$(make_path_relative "$AC_SERVICE_CONFIG_DIR/subdir/binary")
+    result=$(make_path_relative "$YC_SERVICE_CONFIG_DIR/subdir/binary")
     [[ "$result" == "subdir/binary" ]]
 
     result=$(make_path_relative "/opt/bin/authserver")
@@ -351,7 +351,7 @@ EOF
    
     # Test make_path_absolute
     result=$(make_path_absolute "subdir/binary")
-    [[ "$result" == "$AC_SERVICE_CONFIG_DIR/subdir/binary" ]]
+    [[ "$result" == "$YC_SERVICE_CONFIG_DIR/subdir/binary" ]]
 
     result=$(make_path_absolute "../../opt/bin/authserver")
     [[ "$result" == "/opt/bin/authserver" ]]
@@ -361,17 +361,17 @@ EOF
     [[ "$result" == "/absolute/path" ]]
     
     # Cleanup
-    rm -rf "$AC_SERVICE_CONFIG_DIR"
-    unset AC_SERVICE_CONFIG_DIR
+    rm -rf "$YC_SERVICE_CONFIG_DIR"
+    unset YC_SERVICE_CONFIG_DIR
 }
 
 @test "service-manager: registry stores relative paths when possible" {
     # Set up test environment
-    export AC_SERVICE_CONFIG_DIR="$TEST_DIR/service-config"
-    mkdir -p "$AC_SERVICE_CONFIG_DIR"
+    export YC_SERVICE_CONFIG_DIR="$TEST_DIR/service-config"
+    mkdir -p "$YC_SERVICE_CONFIG_DIR"
     
     # Create a temporary service registry in our test directory
-    local test_registry="$AC_SERVICE_CONFIG_DIR/test_registry.json"
+    local test_registry="$YC_SERVICE_CONFIG_DIR/test_registry.json"
     echo "[]" > "$test_registry"
     
     # Source the service-manager and override REGISTRY_FILE
@@ -379,10 +379,10 @@ EOF
     REGISTRY_FILE="$test_registry"
     
     # Create test binary directory under config dir
-    mkdir -p "$AC_SERVICE_CONFIG_DIR/bin"
+    mkdir -p "$YC_SERVICE_CONFIG_DIR/bin"
     
-    # Test that paths under AC_SERVICE_CONFIG_DIR are stored as relative
-    add_service_to_registry "test-service" "pm2" "auth" "$AC_SERVICE_CONFIG_DIR/bin/authserver" "--config test.conf" "" "always" "none" "0" "" "$AC_SERVICE_CONFIG_DIR/etc/test.conf"
+    # Test that paths under YC_SERVICE_CONFIG_DIR are stored as relative
+    add_service_to_registry "test-service" "pm2" "auth" "$YC_SERVICE_CONFIG_DIR/bin/authserver" "--config test.conf" "" "always" "none" "0" "" "$YC_SERVICE_CONFIG_DIR/etc/test.conf"
     
     # Check that paths were stored as relative
     local stored_bin_path=$(jq -r '.[0].bin_path' "$test_registry")
@@ -404,16 +404,16 @@ EOF
     [[ "$stored_config_path2" == "$expected_cfg_rel" ]]
     
     # Cleanup
-    rm -rf "$AC_SERVICE_CONFIG_DIR"
-    unset AC_SERVICE_CONFIG_DIR
+    rm -rf "$YC_SERVICE_CONFIG_DIR"
+    unset YC_SERVICE_CONFIG_DIR
 }
 
 @test "service-manager: restore --sync-only recreates config files" {
     command -v jq >/dev/null 2>&1 || skip "jq not installed"
-    export AC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
-    mkdir -p "$AC_SERVICE_CONFIG_DIR"
+    export YC_SERVICE_CONFIG_DIR="$TEST_DIR/services"
+    mkdir -p "$YC_SERVICE_CONFIG_DIR"
 
-    cat > "$AC_SERVICE_CONFIG_DIR/service_registry.json" <<'EOF'
+    cat > "$YC_SERVICE_CONFIG_DIR/service_registry.json" <<'EOF'
 [
   {
     "name": "sync-test",
@@ -442,20 +442,20 @@ EOF
 ]
 EOF
 
-    rm -f "$AC_SERVICE_CONFIG_DIR/sync-test.conf" "$AC_SERVICE_CONFIG_DIR/sync-test-run-engine.conf"
+    rm -f "$YC_SERVICE_CONFIG_DIR/sync-test.conf" "$YC_SERVICE_CONFIG_DIR/sync-test-run-engine.conf"
 
-    mkdir -p "$AC_SERVICE_CONFIG_DIR/bin" "$AC_SERVICE_CONFIG_DIR/etc"
-    touch "$AC_SERVICE_CONFIG_DIR/bin/authserver"
-    touch "$AC_SERVICE_CONFIG_DIR/etc/authserver.conf"
+    mkdir -p "$YC_SERVICE_CONFIG_DIR/bin" "$YC_SERVICE_CONFIG_DIR/etc"
+    touch "$YC_SERVICE_CONFIG_DIR/bin/authserver"
+    touch "$YC_SERVICE_CONFIG_DIR/etc/authserver.conf"
 
     run "$SCRIPT_DIR/service-manager.sh" restore --sync-only
     debug_on_failure
     [ "$status" -eq 0 ]
 
-    [ -f "$AC_SERVICE_CONFIG_DIR/sync-test.conf" ]
-    [ -f "$AC_SERVICE_CONFIG_DIR/sync-test-run-engine.conf" ]
-    grep -Fq "RUN_ENGINE_CONFIG_FILE=\"$AC_SERVICE_CONFIG_DIR/sync-test-run-engine.conf\"" "$AC_SERVICE_CONFIG_DIR/sync-test.conf"
-    grep -Fq "export BINPATH=\"$AC_SERVICE_CONFIG_DIR/bin\"" "$AC_SERVICE_CONFIG_DIR/sync-test-run-engine.conf"
+    [ -f "$YC_SERVICE_CONFIG_DIR/sync-test.conf" ]
+    [ -f "$YC_SERVICE_CONFIG_DIR/sync-test-run-engine.conf" ]
+    grep -Fq "RUN_ENGINE_CONFIG_FILE=\"$YC_SERVICE_CONFIG_DIR/sync-test-run-engine.conf\"" "$YC_SERVICE_CONFIG_DIR/sync-test.conf"
+    grep -Fq "export BINPATH=\"$YC_SERVICE_CONFIG_DIR/bin\"" "$YC_SERVICE_CONFIG_DIR/sync-test-run-engine.conf"
 }
 
 @test "examples: restarter-auth should show configuration error" {

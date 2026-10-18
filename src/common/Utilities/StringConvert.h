@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _ACORE_STRINGCONVERT_H_
-#define _ACORE_STRINGCONVERT_H_
+#ifndef _YCORE_STRINGCONVERT_H_
+#define _YCORE_STRINGCONVERT_H_
 
 #include "Define.h"
 #include "Errors.h"
@@ -28,11 +28,11 @@
 #include <string_view>
 #include <type_traits>
 
-namespace Acore::Impl::StringConvertImpl
+namespace Ycore::Impl::StringConvertImpl
 {
     template <typename T, typename = void> struct For
     {
-        static_assert(Acore::dependant_false_v<T>, "Unsupported type used for ToString or StringTo");
+        static_assert(Ycore::dependant_false_v<T>, "Unsupported type used for ToString or StringTo");
     };
 
     template <typename T>
@@ -127,7 +127,7 @@ namespace Acore::Impl::StringConvertImpl
         }
     };
 
-#if AC_COMPILER == AC_COMPILER_MICROSOFT
+#if YC_COMPILER == YC_COMPILER_MICROSOFT
     template <typename T>
     struct For<T, std::enable_if_t<std::is_floating_point_v<T>>>
     {
@@ -238,19 +238,19 @@ namespace Acore::Impl::StringConvertImpl
 #endif
 }
 
-namespace Acore
+namespace Ycore
 {
     template <typename Result, typename... Params>
     Optional<Result> StringTo(std::string_view str, Params&&... params)
     {
-        return Acore::Impl::StringConvertImpl::For<Result>::FromString(str, std::forward<Params>(params)...);
+        return Ycore::Impl::StringConvertImpl::For<Result>::FromString(str, std::forward<Params>(params)...);
     }
 
     template <typename Type, typename... Params>
     std::string ToString(Type&& val, Params&&... params)
     {
-        return Acore::Impl::StringConvertImpl::For<std::decay_t<Type>>::ToString(std::forward<Type>(val), std::forward<Params>(params)...);
+        return Ycore::Impl::StringConvertImpl::For<std::decay_t<Type>>::ToString(std::forward<Type>(val), std::forward<Params>(params)...);
     }
 }
 
-#endif // _ACORE_STRINGCONVERT_H_
+#endif // _YCORE_STRINGCONVERT_H_

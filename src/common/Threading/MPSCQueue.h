@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -21,7 +21,7 @@
 #include <atomic>
 #include <memory>
 
-namespace Acore::Impl
+namespace Ycore::Impl
 {
     /**
      * @brief C++ implementation of Dmitry Vyukov's lock-free MPSC queue (Non-Intrusive).
@@ -249,6 +249,6 @@ namespace Acore::Impl
  * @tparam IntrusiveLink If provided, the queue will be intrusive, otherwise, it will be non-intrusive.
  */
 template<typename T, std::atomic<T*> T::* IntrusiveLink = nullptr>
-using MPSCQueue = std::conditional_t<IntrusiveLink != nullptr, Acore::Impl::MPSCQueueIntrusive<T, IntrusiveLink>, Acore::Impl::MPSCQueueNonIntrusive<T>>;
+using MPSCQueue = std::conditional_t<IntrusiveLink != nullptr, Ycore::Impl::MPSCQueueIntrusive<T, IntrusiveLink>, Ycore::Impl::MPSCQueueNonIntrusive<T>>;
 
 #endif // MPSCQueue_h__

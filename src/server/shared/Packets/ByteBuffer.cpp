@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -51,7 +51,7 @@ ByteBufferSourceException::ByteBufferSourceException(std::size_t pos, std::size_
 
 ByteBufferInvalidValueException::ByteBufferInvalidValueException(char const* type, char const* value)
 {
-    message().assign(Acore::StringFormat("Invalid {} value ({}) found in ByteBuffer", type, value));
+    message().assign(Ycore::StringFormat("Invalid {} value ({}) found in ByteBuffer", type, value));
 }
 
 ByteBuffer& ByteBuffer::operator>>(float& value)
@@ -136,7 +136,7 @@ void ByteBuffer::append(uint8 const* src, std::size_t cnt)
 
 void ByteBuffer::AppendPackedTime(time_t time)
 {
-    tm lt = Acore::Time::TimeBreakdown(time);
+    tm lt = Ycore::Time::TimeBreakdown(time);
     append<uint32>((lt.tm_year - 100) << 24 | lt.tm_mon << 20 | (lt.tm_mday - 1) << 14 | lt.tm_wday << 11 | lt.tm_hour << 6 | lt.tm_min);
 }
 

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -871,10 +871,10 @@ class spell_sindragosa_unchained_magic : public SpellScript
         uint32 maxSize = uint32(GetCaster()->GetMap()->GetSpawnMode() & 1 ? 3 : 1);
         healList.remove_if(UnchainedMagicTargetSelector(false));
         if (healList.size() > maxSize)
-            Acore::Containers::RandomResize(healList, maxSize);
+            Ycore::Containers::RandomResize(healList, maxSize);
         dpsList.remove_if(UnchainedMagicTargetSelector(true));
         if (dpsList.size() > maxSize)
-            Acore::Containers::RandomResize(dpsList, maxSize);
+            Ycore::Containers::RandomResize(dpsList, maxSize);
         unitList.splice(unitList.begin(), healList);
         unitList.splice(unitList.begin(), dpsList);
     }
@@ -1045,7 +1045,7 @@ class spell_sindragosa_ice_tomb_trap : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& unitList)
     {
-        unitList.remove_if(Acore::UnitAuraCheck(true, GetSpellInfo()->Id));
+        unitList.remove_if(Ycore::UnitAuraCheck(true, GetSpellInfo()->Id));
         _targetList.clear();
         _targetList = unitList;
     }
@@ -1699,11 +1699,11 @@ class spell_frostwarden_handler_order_whelp : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
+        targets.remove_if(Ycore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
         if (targets.empty())
             return;
 
-        WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+        WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
         targets.clear();
         targets.push_back(target);
     }
@@ -1720,7 +1720,7 @@ class spell_frostwarden_handler_order_whelp : public SpellScript
         if (unitList.empty())
             return;
 
-        Acore::Containers::SelectRandomContainerElement(unitList)->CastSpell(GetHitUnit(), uint32(GetEffectValue()), true);
+        Ycore::Containers::SelectRandomContainerElement(unitList)->CastSpell(GetHitUnit(), uint32(GetEffectValue()), true);
     }
 
     void Register() override

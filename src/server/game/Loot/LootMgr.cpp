@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -56,7 +56,7 @@ LootStore LootTemplates_Spell("spell_loot_template",                 "spell id (
 LootStore LootTemplates_Player("player_loot_template",               "team id",                         true);
 
 // Selects invalid loot items to be removed from group possible entries (before rolling)
-struct LootGroupInvalidSelector : public Acore::unary_function<LootStoreItem*, bool>
+struct LootGroupInvalidSelector : public Ycore::unary_function<LootStoreItem*, bool>
 {
     explicit LootGroupInvalidSelector(Loot const& loot, uint16 lootMode) : _loot(loot), _lootMode(lootMode) { }
 
@@ -1332,7 +1332,7 @@ LootStoreItem const* LootTemplate::LootGroup::Roll(Loot& loot, Player const* pla
     possibleLoot = EqualChanced;
     possibleLoot.remove_if(LootGroupInvalidSelector(loot, lootMode));
     if (!possibleLoot.empty())                              // If nothing selected yet - an item is taken from equal-chanced part
-        return Acore::Containers::SelectRandomContainerElement(possibleLoot);
+        return Ycore::Containers::SelectRandomContainerElement(possibleLoot);
 
     return nullptr;                                            // Empty drop from the group
 }

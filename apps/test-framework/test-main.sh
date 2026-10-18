@@ -6,7 +6,7 @@ CURRENT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # shellcheck source=../bash_shared/includes.sh
 source "$CURRENT_PATH/../bash_shared/includes.sh"
 # shellcheck source=../bash_shared/menu_system.sh
-source "$AC_PATH_APPS/bash_shared/menu_system.sh"
+source "$YC_PATH_APPS/bash_shared/menu_system.sh"
 
 # Menu: single ordered source of truth (no functions in strings)
 # Format: "key|short|description"

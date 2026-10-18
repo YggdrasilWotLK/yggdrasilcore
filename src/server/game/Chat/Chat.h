@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_CHAT_H
-#define AZEROTHCORE_CHAT_H
+#ifndef YGGDRASILCORE_CHAT_H
+#define YGGDRASILCORE_CHAT_H
 
 #include "ChatCommand.h"
 #include "Player.h"
@@ -44,7 +44,7 @@ enum PlayerChatTag
 };
 typedef uint32 ChatTagFlags;
 
-class AC_GAME_API ChatHandler
+class YC_GAME_API ChatHandler
 {
 public:
     explicit ChatHandler(WorldSession* session) : m_session(session), sentErrorMessage(false) {}
@@ -72,13 +72,13 @@ public:
     void SendNotification(uint32 strId, Args&&... args)
     {
         if (HasSession())
-            SendNotification(Acore::StringFormat(GetAcoreString(strId), std::forward<Args>(args)...));
+            SendNotification(Ycore::StringFormat(GetYcoreString(strId), std::forward<Args>(args)...));
     }
     template<typename... Args>
     void SendNotification(char const* fmt, Args&&... args)
     {
         if (HasSession())
-            SendNotification(Acore::StringFormat(fmt, std::forward<Args>(args)...));
+            SendNotification(Ycore::StringFormat(fmt, std::forward<Args>(args)...));
     }
 
     void SendGMText(std::string_view str);
@@ -89,7 +89,7 @@ public:
         DoForAllValidSessions([&](Player* player)
             {
                 m_session = player->GetSession();
-                SendGMText(Acore::StringFormat(GetAcoreString(strId), std::forward<Args>(args)...));
+                SendGMText(Ycore::StringFormat(GetYcoreString(strId), std::forward<Args>(args)...));
             });
     }
     template<typename... Args>
@@ -99,7 +99,7 @@ public:
         DoForAllValidSessions([&](Player* player)
             {
                 m_session = player->GetSession();
-                SendGMText(Acore::StringFormat(fmt, std::forward<Args>(args)...));
+                SendGMText(Ycore::StringFormat(fmt, std::forward<Args>(args)...));
             });
     }
 
@@ -111,7 +111,7 @@ public:
         DoForAllValidSessions([&](Player* player)
             {
                 m_session = player->GetSession();
-                SendWorldText(Acore::StringFormat(GetAcoreString(strId), std::forward<Args>(args)...));
+                SendWorldText(Ycore::StringFormat(GetYcoreString(strId), std::forward<Args>(args)...));
             });
     }
     template<typename... Args>
@@ -121,7 +121,7 @@ public:
         DoForAllValidSessions([&](Player* player)
             {
                 m_session = player->GetSession();
-                SendWorldText(Acore::StringFormat(fmt, std::forward<Args>(args)...));
+                SendWorldText(Ycore::StringFormat(fmt, std::forward<Args>(args)...));
             });
     }
 
@@ -133,7 +133,7 @@ public:
         DoForAllValidSessions([&](Player* player)
             {
                 m_session = player->GetSession();
-                SendWorldTextOptional(Acore::StringFormat(GetAcoreString(strId), std::forward<Args>(args)...), flag);
+                SendWorldTextOptional(Ycore::StringFormat(GetYcoreString(strId), std::forward<Args>(args)...), flag);
             });
     }
     template<typename... Args>
@@ -143,12 +143,12 @@ public:
         DoForAllValidSessions([&](Player* player)
             {
                 m_session = player->GetSession();
-                SendWorldTextOptional(Acore::StringFormat(fmt, std::forward<Args>(args)...), flag);
+                SendWorldTextOptional(Ycore::StringFormat(fmt, std::forward<Args>(args)...), flag);
             });
     }
 
     // function with different implementation for chat/console
-    virtual std::string GetAcoreString(uint32 entry) const;
+    virtual std::string GetYcoreString(uint32 entry) const;
     virtual void SendSysMessage(std::string_view str, bool escapeCharacters = false);
 
     void SendSysMessage(uint32 entry);
@@ -158,7 +158,7 @@ public:
     void PSendSysMessage(char const* fmt, Args&&... args)
     {
         if (HasSession())
-            SendSysMessage(Acore::StringFormat(fmt, std::forward<Args>(args)...));
+            SendSysMessage(Ycore::StringFormat(fmt, std::forward<Args>(args)...));
     }
 
     template<typename... Args>
@@ -171,7 +171,7 @@ public:
     template<typename... Args>
     std::string PGetParseString(uint32 entry, Args&&... args) const
     {
-        return Acore::StringFormat(GetAcoreString(entry), std::forward<Args>(args)...);
+        return Ycore::StringFormat(GetYcoreString(entry), std::forward<Args>(args)...);
     }
 
     std::string const* GetModuleString(std::string module, uint32 id) const;
@@ -186,7 +186,7 @@ public:
     template<typename... Args>
     std::string PGetParseModuleString(std::string module, uint32 id, Args&&... args) const
     {
-        return Acore::StringFormat(GetModuleString(module, id)->c_str(), std::forward<Args>(args)...);
+        return Ycore::StringFormat(GetModuleString(module, id)->c_str(), std::forward<Args>(args)...);
     }
 
     void SendErrorMessage(uint32 entry);
@@ -269,14 +269,14 @@ private:
     bool sentErrorMessage;
 };
 
-class AC_GAME_API CliHandler : public ChatHandler
+class YC_GAME_API CliHandler : public ChatHandler
 {
 public:
     using Print = void(void*, std::string_view);
     explicit CliHandler(void* callbackArg, Print* zprint) : m_callbackArg(callbackArg), m_print(zprint) { }
 
     // overwrite functions
-    std::string GetAcoreString(uint32 entry) const override;
+    std::string GetYcoreString(uint32 entry) const override;
     void SendSysMessage(std::string_view, bool escapeCharacters) override;
     bool ParseCommands(std::string_view str) override;
     std::string GetNameLink() const override;
@@ -292,7 +292,7 @@ private:
     Print* m_print;
 };
 
-class AC_GAME_API AddonChannelCommandHandler : public ChatHandler
+class YC_GAME_API AddonChannelCommandHandler : public ChatHandler
 {
     public:
         using ChatHandler::ChatHandler;

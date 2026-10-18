@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -86,8 +86,8 @@ void IpLocationStore::Load()
         // Convert country code to lowercase
         std::transform(countryCode.begin(), countryCode.end(), countryCode.begin(), ::tolower);
 
-        auto IpFrom = Acore::StringTo<uint32>(ipFrom);
-        auto IpTo = Acore::StringTo<uint32>(ipTo);
+        auto IpFrom = Ycore::StringTo<uint32>(ipFrom);
+        auto IpTo = Ycore::StringTo<uint32>(ipTo);
 
         if (!IpFrom || !IpTo)
             continue;
@@ -107,7 +107,7 @@ void IpLocationStore::Load()
 
 IpLocationRecord const* IpLocationStore::GetLocationRecord(std::string const& ipAddress) const
 {
-    uint32 ip = Acore::Net::address_to_uint(Acore::Net::make_address_v4(ipAddress));
+    uint32 ip = Ycore::Net::address_to_uint(Ycore::Net::make_address_v4(ipAddress));
     auto itr = std::upper_bound(_ipLocationStore.begin(), _ipLocationStore.end(), ip, [](uint32 ip, IpLocationRecord const& loc) { return ip < loc.IpTo; });
     if (itr == _ipLocationStore.end())
     {

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -971,7 +971,7 @@ bool SmartAIMgr::CheckUnusedTargetParams(SmartScriptHolder const& e)
 
 bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
 {
-    if ((e.event.type >= SMART_EVENT_TC_END && e.event.type <= SMART_EVENT_AC_START) || e.event.type >= SMART_EVENT_AC_END)
+    if ((e.event.type >= SMART_EVENT_TC_END && e.event.type <= SMART_EVENT_YC_START) || e.event.type >= SMART_EVENT_YC_END)
     {
         LOG_ERROR("sql.sql", "SmartAIMgr: EntryOrGuid {} using event({}) has invalid event type ({}), skipped.", e.entryOrGuid, e.event_id, e.GetEventType());
         return false;
@@ -983,8 +983,8 @@ bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
         return false;
     }
     if (e.action.type <= 0
-            || (e.action.type >= SMART_ACTION_TC_END && e.action.type <= SMART_ACTION_AC_START)
-            || e.action.type >= SMART_ACTION_AC_END)
+            || (e.action.type >= SMART_ACTION_TC_END && e.action.type <= SMART_ACTION_YC_START)
+            || e.action.type >= SMART_ACTION_YC_END)
     {
         LOG_ERROR("sql.sql", "SmartAIMgr: EntryOrGuid {} using event({}) has an invalid action type ({}), skipped.", e.entryOrGuid, e.event_id, e.GetActionType());
         return false;
@@ -1010,7 +1010,7 @@ bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
         default:
             break;
     }
-    if (e.target.type < 0 || (e.target.type >= SMART_TARGET_TC_END && e.target.type < SMART_TARGET_AC_START) || e.target.type >= SMART_TARGET_AC_END)
+    if (e.target.type < 0 || (e.target.type >= SMART_TARGET_TC_END && e.target.type < SMART_TARGET_YC_START) || e.target.type >= SMART_TARGET_YC_END)
     {
         LOG_ERROR("sql.sql", "SmartAIMgr: EntryOrGuid {} using event({}) has an invalid target type ({}), skipped.",
                          e.entryOrGuid, e.event_id, e.GetTargetType());
@@ -1831,7 +1831,7 @@ bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
             }
         case SMART_ACTION_LOAD_GRID:
             {
-                if (!Acore::IsValidMapCoord(e.target.x, e.target.y))
+                if (!Ycore::IsValidMapCoord(e.target.x, e.target.y))
                 {
                     LOG_ERROR("scripts.ai.sai", "SmartScript: SMART_ACTION_LOAD_GRID uses invalid map coords: {}, skipped.", e.entryOrGuid);
                     return false;

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -248,7 +248,7 @@ void CharmInfo::SetPetNumber(uint32 petnumber, bool statwindow)
 
 void CharmInfo::LoadPetActionBar(const std::string& data)
 {
-    std::vector<std::string_view> tokens = Acore::Tokenize(data, ' ', false);
+    std::vector<std::string_view> tokens = Ycore::Tokenize(data, ' ', false);
 
     if (tokens.size() != (ACTION_BAR_INDEX_END - ACTION_BAR_INDEX_START) * 2)
         return;                                             // non critical, will reset to default
@@ -256,8 +256,8 @@ void CharmInfo::LoadPetActionBar(const std::string& data)
     auto iter = tokens.begin();
     for (uint8 index = ACTION_BAR_INDEX_START; index < ACTION_BAR_INDEX_END; ++index)
     {
-        Optional<uint8> type = Acore::StringTo<uint8>(*(iter++));
-        Optional<uint32> action = Acore::StringTo<uint32>(*(iter++));
+        Optional<uint8> type = Ycore::StringTo<uint8>(*(iter++));
+        Optional<uint32> action = Ycore::StringTo<uint32>(*(iter++));
 
         if (!type || !action)
         {

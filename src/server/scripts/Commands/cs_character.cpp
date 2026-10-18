@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -30,7 +30,7 @@
 #include "World.h"
 #include "WorldSession.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class character_commandscript : public CommandScript
 {
@@ -114,7 +114,7 @@ public:
             if (isNumeric(searchString.c_str()))
             {
                 stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_DEL_INFO_BY_GUID);
-                stmt->SetData(0, *Acore::StringTo<uint32>(searchString));
+                stmt->SetData(0, *Ycore::StringTo<uint32>(searchString));
                 result = CharacterDatabase.Query(stmt);
             }
             // search by name
@@ -177,7 +177,7 @@ public:
 
         for (DeletedInfoList::const_iterator itr = foundList.begin(); itr != foundList.end(); ++itr)
         {
-            std::string dateStr = Acore::Time::TimeToTimestampStr(Seconds(itr->deleteDate));
+            std::string dateStr = Ycore::Time::TimeToTimestampStr(Seconds(itr->deleteDate));
 
             if (!handler->GetSession())
                 handler->PSendSysMessage(LANG_CHARACTER_DELETED_LIST_LINE_CONSOLE,
@@ -285,7 +285,7 @@ public:
         Player const* target = player->GetConnectedPlayer();
 
         LocaleConstant loc = handler->GetSessionDbcLocale();
-        std::string knownStr = handler->GetAcoreString(LANG_KNOWN);
+        std::string knownStr = handler->GetYcoreString(LANG_KNOWN);
 
         // Search in CharTitles.dbc
         for (uint32 id = 0; id < sCharTitlesStore.GetNumRows(); id++)
@@ -303,9 +303,9 @@ public:
 
                 std::string activeStr = "";
                 if (target->GetUInt32Value(PLAYER_CHOSEN_TITLE) == titleInfo->bit_index)
-                    activeStr = handler->GetAcoreString(LANG_ACTIVE);
+                    activeStr = handler->GetYcoreString(LANG_ACTIVE);
 
-                std::string titleName = Acore::StringFormat(name, player->GetName());
+                std::string titleName = Ycore::StringFormat(name, player->GetName());
 
                 // send title in "id (idx:idx) - [namedlink locale]" format
                 if (handler->GetSession())
@@ -543,7 +543,7 @@ public:
             FactionEntry const* factionEntry = sFactionStore.LookupEntry(faction.ID);
             char const* factionName = factionEntry ? factionEntry->name[loc] : "#Not found#";
             ReputationRank rank = target->GetReputationMgr().GetRank(factionEntry);
-            std::string rankName = handler->GetAcoreString(ReputationRankStrIndex[rank]);
+            std::string rankName = handler->GetYcoreString(ReputationRankStrIndex[rank]);
             std::ostringstream ss;
             if (handler->GetSession())
                 ss << faction.ID << " - |cffffffff|Hfaction:" << faction.ID << "|h[" << factionName << ' ' << localeNames[loc] << "]|h|r";
@@ -553,17 +553,17 @@ public:
             ss << ' ' << rankName << " (" << target->GetReputationMgr().GetReputation(factionEntry) << ')';
 
             if (faction.Flags & FACTION_FLAG_VISIBLE)
-                ss << handler->GetAcoreString(LANG_FACTION_VISIBLE);
+                ss << handler->GetYcoreString(LANG_FACTION_VISIBLE);
             if (faction.Flags & FACTION_FLAG_AT_WAR)
-                ss << handler->GetAcoreString(LANG_FACTION_ATWAR);
+                ss << handler->GetYcoreString(LANG_FACTION_ATWAR);
             if (faction.Flags & FACTION_FLAG_PEACE_FORCED)
-                ss << handler->GetAcoreString(LANG_FACTION_PEACE_FORCED);
+                ss << handler->GetYcoreString(LANG_FACTION_PEACE_FORCED);
             if (faction.Flags & FACTION_FLAG_HIDDEN)
-                ss << handler->GetAcoreString(LANG_FACTION_HIDDEN);
+                ss << handler->GetYcoreString(LANG_FACTION_HIDDEN);
             if (faction.Flags & FACTION_FLAG_INVISIBLE_FORCED)
-                ss << handler->GetAcoreString(LANG_FACTION_INVISIBLE_FORCED);
+                ss << handler->GetYcoreString(LANG_FACTION_INVISIBLE_FORCED);
             if (faction.Flags & FACTION_FLAG_INACTIVE)
-                ss << handler->GetAcoreString(LANG_FACTION_INACTIVE);
+                ss << handler->GetYcoreString(LANG_FACTION_INACTIVE);
 
             handler->SendSysMessage(ss.str().c_str());
         }

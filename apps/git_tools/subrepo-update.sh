@@ -21,14 +21,14 @@ git submodule update --init --recursive
 git submodule foreach git pull origin master
 # include libraries for git subrepo
 source "$ROOT_PATH/deps/git-subrepo/.rc"
-source "$ROOT_PATH/deps/acore/bash-lib/src/git-utils/subrepo.sh"
+source "$ROOT_PATH/deps/ycore/bash-lib/src/git-utils/subrepo.sh"
 
 echo "> Pulling and update all subrepos"
 
-subrepoUpdate https://github.com/azerothcore/bash-lib  master deps/acore/bash-lib
+subrepoUpdate https://github.com/azerothcore/bash-lib  master deps/ycore/bash-lib
 
-subrepoUpdate https://github.com/azerothcore/cmake-utils  master deps/acore/cmake-utils
+subrepoUpdate https://github.com/azerothcore/cmake-utils  master deps/ycore/cmake-utils
 
-subrepoUpdate https://github.com/azerothcore/mysql-tools  master deps/acore/mysql-tools
+subrepoUpdate https://github.com/azerothcore/mysql-tools  master deps/ycore/mysql-tools
 
-subrepoUpdate https://github.com/azerothcore/joiner  master deps/acore/joiner
+subrepoUpdate https://github.com/azerothcore/joiner  master deps/ycore/joiner

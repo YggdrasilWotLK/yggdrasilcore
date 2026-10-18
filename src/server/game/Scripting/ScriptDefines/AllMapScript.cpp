@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -57,7 +57,7 @@ namespace
         }
         else
         {
-            static_assert(Acore::dependant_false_v<ScriptName>, "Unsupported type used for ForeachMaps");
+            static_assert(Ycore::dependant_false_v<ScriptName>, "Unsupported type used for ForeachMaps");
         }
 
         if (ScriptRegistry<ScriptName>::ScriptPointerList.empty())
@@ -283,4 +283,4 @@ AllMapScript::AllMapScript(const char* name, std::vector<uint16> enabledHooks) :
     ScriptRegistry<AllMapScript>::AddScript(this, std::move(enabledHooks));
 }
 
-template class AC_GAME_API ScriptRegistry<AllMapScript>;
+template class YC_GAME_API ScriptRegistry<AllMapScript>;

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __ACORE_LANGUAGE_H
-#define __ACORE_LANGUAGE_H
+#ifndef __YCORE_LANGUAGE_H
+#define __YCORE_LANGUAGE_H
 
 enum BroadcastTextIds
 {
@@ -25,7 +25,7 @@ enum BroadcastTextIds
     BROADCAST_TEXT_FLEE_FOR_ASSIST      = 1150
 };
 
-enum AcoreStrings
+enum YcoreStrings
 {
     // for chat commands
     LANG_SELECT_CHAR_OR_CREATURE        = 1,
@@ -92,23 +92,23 @@ enum AcoreStrings
     LANG_CONNECTED_PLAYERS              = 60,
     LANG_ACCOUNT_ADDON                  = 61,
     LANG_IMPROPER_VALUE                 = 62,
-    LANG_RBAC_WRONG_PARAMETER_ID        = 63,
-    LANG_RBAC_WRONG_PARAMETER_REALM     = 64,
-    LANG_RBAC_LIST_HEADER_GRANTED       = 65,
-    LANG_RBAC_LIST_HEADER_DENIED        = 66,
-    LANG_RBAC_LIST_HEADER_BY_SEC_LEVEL  = 67,
-    LANG_RBAC_LIST_PERMISSIONS_HEADER   = 68,
-    LANG_RBAC_LIST_PERMS_LINKED_HEADER  = 69,
-    LANG_RBAC_LIST_EMPTY                = 70,
-    LANG_RBAC_LIST_ELEMENT              = 71,
-    LANG_RBAC_PERM_GRANTED_IN_LIST      = 72,
-    LANG_RBAC_PERM_GRANTED_IN_DENIED_LIST = 73,
-    LANG_RBAC_PERM_GRANTED              = 74,
-    LANG_RBAC_PERM_DENIED_IN_LIST       = 75,
-    LANG_RBAC_PERM_DENIED_IN_GRANTED_LIST = 76,
-    LANG_RBAC_PERM_DENIED               = 77,
-    LANG_RBAC_PERM_REVOKED              = 78,
-    LANG_RBAC_PERM_REVOKED_NOT_IN_LIST  = 79,
+    LANG_RBYC_WRONG_PARAMETER_ID        = 63,
+    LANG_RBYC_WRONG_PARAMETER_REALM     = 64,
+    LANG_RBYC_LIST_HEADER_GRANTED       = 65,
+    LANG_RBYC_LIST_HEADER_DENIED        = 66,
+    LANG_RBYC_LIST_HEADER_BY_SEC_LEVEL  = 67,
+    LANG_RBYC_LIST_PERMISSIONS_HEADER   = 68,
+    LANG_RBYC_LIST_PERMS_LINKED_HEADER  = 69,
+    LANG_RBYC_LIST_EMPTY                = 70,
+    LANG_RBYC_LIST_ELEMENT              = 71,
+    LANG_RBYC_PERM_GRANTED_IN_LIST      = 72,
+    LANG_RBYC_PERM_GRANTED_IN_DENIED_LIST = 73,
+    LANG_RBYC_PERM_GRANTED              = 74,
+    LANG_RBYC_PERM_DENIED_IN_LIST       = 75,
+    LANG_RBYC_PERM_DENIED_IN_GRANTED_LIST = 76,
+    LANG_RBYC_PERM_DENIED               = 77,
+    LANG_RBYC_PERM_REVOKED              = 78,
+    LANG_RBYC_PERM_REVOKED_NOT_IN_LIST  = 79,
     LANG_PVPSTATS                       = 80,
     LANG_PVPSTATS_DISABLED              = 81,
     LANG_GENERIC_TWO_CURLIES_WITH_COLON = 82,
@@ -841,7 +841,7 @@ enum AcoreStrings
     LANG_COMMAND_EMAIL_OUTPUT           = 878,
     //                                  = 879, see LANG_PINFO_CHR_REGMAILS
     LANG_ACCOUNT_SEC_TYPE               = 880,
-    LANG_RBAC_EMAIL_REQUIRED            = 881,
+    LANG_RBYC_EMAIL_REQUIRED            = 881,
     // Room for in-game strings           882-999 not used
 
     //Access Requirements
@@ -1051,7 +1051,7 @@ enum AcoreStrings
     LANG_COMMAND_TICKETRESPONSEAPPENDED = 2031,
     LANG_COMMAND_TICKETRESPONSEDELETED  = 2032,
 
-    // acore strings                    5000-9999
+    // ycore strings                    5000-9999
     LANG_COMMAND_FREEZE                 = 5000,
     LANG_COMMAND_FREEZE_ERROR           = 5001,
     LANG_COMMAND_FREEZE_WRONG           = 5002,

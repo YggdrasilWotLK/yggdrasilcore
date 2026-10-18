@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -22,10 +22,10 @@
 #include <string_view>
 #include <vector>
 
-namespace Acore::Module
+namespace Ycore::Module
 {
-    AC_COMMON_API void SetEnableModulesList(std::string_view modulesList);
-    AC_COMMON_API std::vector<std::string_view> GetEnableModulesList();
+    YC_COMMON_API void SetEnableModulesList(std::string_view modulesList);
+    YC_COMMON_API std::vector<std::string_view> GetEnableModulesList();
 }
 
 #endif

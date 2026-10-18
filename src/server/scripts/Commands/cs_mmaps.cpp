@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -35,7 +35,7 @@
 #include "Player.h"
 #include "TargetedMovementGenerator.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class mmaps_commandscript : public CommandScript
 {
@@ -134,11 +134,11 @@ public:
         // grid tile location
         Player* player = handler->GetSession()->GetPlayer();
 
-        GridCoord const gridCoord = Acore::ComputeGridCoord(player->GetPositionX(), player->GetPositionY());
+        GridCoord const gridCoord = Ycore::ComputeGridCoord(player->GetPositionX(), player->GetPositionY());
 
         handler->PSendSysMessage("{}{}{}.mmtile", player->GetMapId(), gridCoord.x_coord, gridCoord.y_coord);
 
-        std::string fileName = Acore::StringFormat(MMAP::TILE_FILE_NAME_FORMAT, sConfigMgr->GetOption<std::string>("DataDir", "."), player->GetMapId(), gridCoord.x_coord, gridCoord.y_coord);
+        std::string fileName = Ycore::StringFormat(MMAP::TILE_FILE_NAME_FORMAT, sConfigMgr->GetOption<std::string>("DataDir", "."), player->GetMapId(), gridCoord.x_coord, gridCoord.y_coord);
         FILE* file = fopen(fileName.c_str(), "rb");
         if (!file)
         {
@@ -301,8 +301,8 @@ public:
 
         // Get Creatures
         std::list<Creature*> creatureList;
-        Acore::AnyUnitInObjectRangeCheck go_check(object, radius);
-        Acore::CreatureListSearcher<Acore::AnyUnitInObjectRangeCheck> go_search(object, creatureList, go_check);
+        Ycore::AnyUnitInObjectRangeCheck go_check(object, radius);
+        Ycore::CreatureListSearcher<Ycore::AnyUnitInObjectRangeCheck> go_search(object, creatureList, go_check);
         Cell::VisitObjects(object, go_search, radius);
 
         if (!creatureList.empty())

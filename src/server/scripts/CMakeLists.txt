@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -105,20 +105,20 @@ GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 # it to the variable arguments
 function(ConfigureScriptLoader SCRIPTLOADER_NAME LOADER_OUT IS_DYNAMIC_SCRIPTLOADER)
   # Deduces following variables which are referenced by thge template:
-  # ACORE_IS_DYNAMIC_SCRIPTLOADER
-  # ACORE_SCRIPTS_FORWARD_DECL
-  # ACORE_SCRIPTS_INVOKE
-  # ACORE_CURRENT_SCRIPT_PROJECT
+  # YCORE_IS_DYNAMIC_SCRIPTLOADER
+  # YCORE_SCRIPTS_FORWARD_DECL
+  # YCORE_SCRIPTS_INVOKE
+  # YCORE_CURRENT_SCRIPT_PROJECT
 
   # To generate export macros
-  set(ACORE_IS_DYNAMIC_SCRIPTLOADER ${IS_DYNAMIC_SCRIPTLOADER})
+  set(YCORE_IS_DYNAMIC_SCRIPTLOADER ${IS_DYNAMIC_SCRIPTLOADER})
 
   # To generate forward declarations of the loading functions
-  unset(ACORE_SCRIPTS_FORWARD_DECL)
-  unset(ACORE_SCRIPTS_INVOKE)
+  unset(YCORE_SCRIPTS_FORWARD_DECL)
+  unset(YCORE_SCRIPTS_INVOKE)
 
   # The current script project which is built in
-  set(ACORE_CURRENT_SCRIPT_PROJECT ${SCRIPTLOADER_NAME})
+  set(YCORE_CURRENT_SCRIPT_PROJECT ${SCRIPTLOADER_NAME})
 
   foreach(LOCALE_SCRIPT_MODULE ${ARGN})
 
@@ -130,11 +130,11 @@ function(ConfigureScriptLoader SCRIPTLOADER_NAME LOADER_OUT IS_DYNAMIC_SCRIPTLOA
       "Add${LOCALE_SCRIPT_MODULE}Scripts()")
 
     # Generate the funciton call and the forward declarations
-    set(ACORE_SCRIPTS_FORWARD_DECL
-      "${ACORE_SCRIPTS_FORWARD_DECL}void ${LOADER_FUNCTION};\n")
+    set(YCORE_SCRIPTS_FORWARD_DECL
+      "${YCORE_SCRIPTS_FORWARD_DECL}void ${LOADER_FUNCTION};\n")
 
-    set(ACORE_SCRIPTS_INVOKE
-      "${ACORE_SCRIPTS_INVOKE}    ${LOADER_FUNCTION};\n")
+    set(YCORE_SCRIPTS_INVOKE
+      "${YCORE_SCRIPTS_INVOKE}    ${LOADER_FUNCTION};\n")
   endforeach()
 
   set(GENERATED_LOADER ${CMAKE_CURRENT_BINARY_DIR}/gen_scriptloader/${SCRIPTLOADER_NAME}/ScriptLoader.cpp)
@@ -183,7 +183,7 @@ foreach(SCRIPT_MODULE ${SCRIPT_MODULE_LIST})
 
     target_link_libraries(${SCRIPT_MODULE_PROJECT_NAME}
       PRIVATE
-        acore-core-interface
+        ycore-core-interface
       PUBLIC
         game)
 
@@ -230,7 +230,7 @@ add_library(scripts STATIC
 
 target_link_libraries(scripts
   PRIVATE
-    acore-core-interface
+    ycore-core-interface
   PUBLIC
     game-interface)
 

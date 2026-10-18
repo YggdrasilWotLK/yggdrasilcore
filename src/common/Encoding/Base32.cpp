@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -44,12 +44,12 @@ struct B32Impl
     }
 };
 
-/*static*/ std::string Acore::Encoding::Base32::Encode(std::vector<uint8> const& data)
+/*static*/ std::string Ycore::Encoding::Base32::Encode(std::vector<uint8> const& data)
 {
-    return Acore::Impl::GenericBaseEncoding<B32Impl>::Encode(data);
+    return Ycore::Impl::GenericBaseEncoding<B32Impl>::Encode(data);
 }
 
-/*static*/ Optional<std::vector<uint8>> Acore::Encoding::Base32::Decode(std::string const& data)
+/*static*/ Optional<std::vector<uint8>> Ycore::Encoding::Base32::Decode(std::string const& data)
 {
-    return Acore::Impl::GenericBaseEncoding<B32Impl>::Decode(data);
+    return Ycore::Impl::GenericBaseEncoding<B32Impl>::Decode(data);
 }

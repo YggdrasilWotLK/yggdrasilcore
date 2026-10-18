@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_CRYPTOHASH_H
-#define AZEROTHCORE_CRYPTOHASH_H
+#ifndef YGGDRASILCORE_CRYPTOHASH_H
+#define YGGDRASILCORE_CRYPTOHASH_H
 
 #include "CryptoConstants.h"
 #include "Errors.h"
@@ -28,7 +28,7 @@
 
 class BigNumber;
 
-namespace Acore::Impl
+namespace Ycore::Impl
 {
     struct GenericHashImpl
     {
@@ -136,11 +136,11 @@ namespace Acore::Impl
     };
 }
 
-namespace Acore::Crypto
+namespace Ycore::Crypto
 {
-    using MD5 = Acore::Impl::GenericHash<EVP_md5, Constants::MD5_DIGEST_LENGTH_BYTES>;
-    using SHA1 = Acore::Impl::GenericHash<EVP_sha1, Constants::SHA1_DIGEST_LENGTH_BYTES>;
-    using SHA256 = Acore::Impl::GenericHash<EVP_sha256, Constants::SHA256_DIGEST_LENGTH_BYTES>;
+    using MD5 = Ycore::Impl::GenericHash<EVP_md5, Constants::MD5_DIGEST_LENGTH_BYTES>;
+    using SHA1 = Ycore::Impl::GenericHash<EVP_sha1, Constants::SHA1_DIGEST_LENGTH_BYTES>;
+    using SHA256 = Ycore::Impl::GenericHash<EVP_sha256, Constants::SHA256_DIGEST_LENGTH_BYTES>;
 }
 
 #endif

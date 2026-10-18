@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -102,8 +102,8 @@ void TotemAI::UpdateAI(uint32 /*diff*/)
             me->IsFriendlyTo(victim) || !me->CanSeeOrDetect(victim))
     {
         victim = nullptr;
-        Acore::NearestAttackableUnitInObjectRangeCheck u_check(me, me, max_range);
-        Acore::UnitLastSearcher<Acore::NearestAttackableUnitInObjectRangeCheck> checker(me, victim, u_check);
+        Ycore::NearestAttackableUnitInObjectRangeCheck u_check(me, me, max_range);
+        Ycore::UnitLastSearcher<Ycore::NearestAttackableUnitInObjectRangeCheck> checker(me, victim, u_check);
         Cell::VisitObjects(me, checker, max_range);
     }
 

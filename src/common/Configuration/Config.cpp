@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -65,7 +65,7 @@ namespace
     template<typename Format, typename... Args>
     inline void PrintError(std::string_view filename, Format&& fmt, Args&& ... args)
     {
-        std::string message = Acore::StringFormat(std::forward<Format>(fmt), std::forward<Args>(args)...);
+        std::string message = Ycore::StringFormat(std::forward<Format>(fmt), std::forward<Args>(args)...);
 
         if (IsAppConfig(filename))
         {
@@ -117,7 +117,7 @@ namespace
                 return false;
             }
 
-            throw ConfigException(Acore::StringFormat("Config::LoadFile: Failed open {}file '{}'", isOptional ? "optional " : "", file));
+            throw ConfigException(Ycore::StringFormat("Config::LoadFile: Failed open {}file '{}'", isOptional ? "optional " : "", file));
         }
 
         uint32 count = 0;
@@ -144,10 +144,10 @@ namespace
 
             // read line error
             if (!in.good() && !in.eof())
-                throw ConfigException(Acore::StringFormat("> Config::LoadFile: Failure to read line number {} in file '{}'", lineNumber, file));
+                throw ConfigException(Ycore::StringFormat("> Config::LoadFile: Failure to read line number {} in file '{}'", lineNumber, file));
 
             // remove whitespace in line
-            line = Acore::String::Trim(line, in.getloc());
+            line = Ycore::String::Trim(line, in.getloc());
 
             if (line.empty())
                 continue;
@@ -164,8 +164,8 @@ namespace
                 continue;
             }
 
-            auto entry = Acore::String::Trim(line.substr(0, equal_pos), in.getloc());
-            auto value = Acore::String::Trim(line.substr(equal_pos + 1, std::string::npos), in.getloc());
+            auto entry = Ycore::String::Trim(line.substr(0, equal_pos), in.getloc());
+            auto value = Ycore::String::Trim(line.substr(equal_pos + 1, std::string::npos), in.getloc());
 
             value.erase(std::remove(value.begin(), value.end(), '"'), value.end());
 
@@ -187,7 +187,7 @@ namespace
                 return false;
             }
 
-            throw ConfigException(Acore::StringFormat("Config::LoadFile: Empty file '{}'", file));
+            throw ConfigException(Ycore::StringFormat("Config::LoadFile: Empty file '{}'", file));
         }
 
         // Add correct keys if file load without errors
@@ -280,7 +280,7 @@ namespace
 
     std::string GetEnvVarName(std::string const& configName)
     {
-        return "AC_" + IniKeyToEnvVarKey(configName);
+        return "YC_" + IniKeyToEnvVarKey(configName);
     }
 
     Optional<std::string> EnvVarForIniKey(std::string const& key)
@@ -410,7 +410,7 @@ T ConfigMgr::GetValueDefault(std::string const& name, T const& def, bool showLog
 
             if (fatalConfig)
                 LOG_FATAL("server.loading", "> Config:\n\nFATAL ERROR: Missing property {} in config file {}, add \"{} = {}\" to this file or define '{}' as an environment variable\n\nYour server cannot start without this option!",
-                    name, _filename, name, Acore::ToString(def), envVarName);
+                    name, _filename, name, Ycore::ToString(def), envVarName);
             else
             {
                 std::string configs = _filename;
@@ -428,13 +428,13 @@ T ConfigMgr::GetValueDefault(std::string const& name, T const& def, bool showLog
         strValue = itr->second;
     }
 
-    auto value = Acore::StringTo<T>(strValue);
+    auto value = Ycore::StringTo<T>(strValue);
     if (!value)
     {
         if (showLogs)
         {
             LOG_ERROR("server.loading", "> Config: Bad value defined for name '{}', going to use '{}' instead",
-                name, Acore::ToString(def));
+                name, Ycore::ToString(def));
         }
 
         return def;
@@ -504,7 +504,7 @@ bool ConfigMgr::GetOption<bool>(std::string const& name, bool const& def, bool s
 {
     std::string val = GetValueDefault(name, std::string(def ? "1" : "0"), showLogs);
 
-    auto boolVal = Acore::StringTo<bool>(val);
+    auto boolVal = Ycore::StringTo<bool>(val);
     if (!boolVal)
     {
         if (showLogs)
@@ -551,7 +551,7 @@ std::string const ConfigMgr::GetConfigPath()
 {
     std::lock_guard<std::mutex> lock(_configLock);
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     return "configs/";
 #else
     return std::string(_CONF_DIR) + "/";
@@ -566,7 +566,7 @@ void ConfigMgr::Configure(std::string const& initFileName, std::vector<std::stri
     // Add modules config if exist
     if (!modulesConfigList.empty())
     {
-        for (auto const& itr : Acore::Tokenize(modulesConfigList, ',', false))
+        for (auto const& itr : Ycore::Tokenize(modulesConfigList, ',', false))
         {
             _additonalFiles.emplace_back(itr);
         }

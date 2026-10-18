@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -115,7 +115,7 @@ foreach(TOOL_NAME ${TOOLS_BUILD_LIST})
   # Need fix errors in maps tools
   # target_link_libraries(${TOOL_PROJECT_NAME}
   #   PRIVATE
-  #     acore-dependency-interface)
+  #     ycore-dependency-interface)
 
   if (${TOOL_PROJECT_NAME} MATCHES "dbimport")
     target_link_libraries(${TOOL_PROJECT_NAME}
@@ -124,7 +124,7 @@ foreach(TOOL_NAME ${TOOLS_BUILD_LIST})
       PRIVATE
         modules
         scripts
-        acore-core-interface)
+        ycore-core-interface)
 
     # Install config
     CopyToolConfig(${TOOL_PROJECT_NAME} ${TOOL_NAME})
@@ -132,7 +132,7 @@ foreach(TOOL_NAME ${TOOLS_BUILD_LIST})
 
     target_link_libraries(${TOOL_PROJECT_NAME}
     PRIVATE
-      acore-dependency-interface)
+      ycore-dependency-interface)
 
     target_link_libraries(${TOOL_PROJECT_NAME}
       PUBLIC

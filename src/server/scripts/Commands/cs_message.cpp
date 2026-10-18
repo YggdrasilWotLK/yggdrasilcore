@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -27,7 +27,7 @@
 #include "WorldSession.h"
 #include "WorldSessionMgr.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class message_commandscript : public CommandScript
 {
@@ -81,7 +81,7 @@ public:
         if (message.empty())
             return false;
 
-        sWorldSessionMgr->SendServerMessage(SERVER_MSG_STRING, Acore::StringFormat(handler->GetAcoreString(LANG_SYSTEMMESSAGE), message.data()));
+        sWorldSessionMgr->SendServerMessage(SERVER_MSG_STRING, Ycore::StringFormat(handler->GetYcoreString(LANG_SYSTEMMESSAGE), message.data()));
         return true;
     }
 
@@ -101,7 +101,7 @@ public:
         if (message.empty())
             return false;
 
-        std::string str = handler->GetAcoreString(LANG_GLOBAL_NOTIFY);
+        std::string str = handler->GetYcoreString(LANG_GLOBAL_NOTIFY);
         str += message;
 
         WorldPacket data(SMSG_NOTIFICATION, (str.size() + 1));
@@ -117,7 +117,7 @@ public:
         if (message.empty())
             return false;
 
-        std::string str = handler->GetAcoreString(LANG_GM_NOTIFY);
+        std::string str = handler->GetYcoreString(LANG_GM_NOTIFY);
         str += message;
 
         WorldPacket data(SMSG_NOTIFICATION, (str.size() + 1));
@@ -132,7 +132,7 @@ public:
     {
         if (!operationArg)
         {
-            handler->PSendSysMessage(LANG_COMMAND_WHISPERACCEPTING, handler->GetSession()->GetPlayer()->isAcceptWhispers() ?  handler->GetAcoreString(LANG_ON) : handler->GetAcoreString(LANG_OFF));
+            handler->PSendSysMessage(LANG_COMMAND_WHISPERACCEPTING, handler->GetSession()->GetPlayer()->isAcceptWhispers() ?  handler->GetYcoreString(LANG_ON) : handler->GetYcoreString(LANG_OFF));
             return true;
         }
 

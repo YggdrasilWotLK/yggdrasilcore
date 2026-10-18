@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -81,7 +81,7 @@ void RASession::Start()
     // Read commands
     for (;;)
     {
-        Send("AC>");
+        Send("YC>");
         std::string command = ReadString();
 
         if (ProcessCommand(command))
@@ -168,10 +168,10 @@ bool RASession::CheckPassword(const std::string& user, const std::string& pass)
 
     if (PreparedQueryResult result = LoginDatabase.Query(stmt))
     {
-        Acore::Crypto::SRP6::Salt salt = (*result)[0].Get<Binary, Acore::Crypto::SRP6::SALT_LENGTH>();
-        Acore::Crypto::SRP6::Verifier verifier = (*result)[1].Get<Binary, Acore::Crypto::SRP6::VERIFIER_LENGTH>();
+        Ycore::Crypto::SRP6::Salt salt = (*result)[0].Get<Binary, Ycore::Crypto::SRP6::SALT_LENGTH>();
+        Ycore::Crypto::SRP6::Verifier verifier = (*result)[1].Get<Binary, Ycore::Crypto::SRP6::VERIFIER_LENGTH>();
 
-        if (Acore::Crypto::SRP6::CheckLogin(safe_user, safe_pass, salt, verifier))
+        if (Ycore::Crypto::SRP6::CheckLogin(safe_user, safe_pass, salt, verifier))
             return true;
     }
 

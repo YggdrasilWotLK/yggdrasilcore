@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -531,7 +531,7 @@ struct npc_dark_iron_attack_generator : public ScriptedAI
 
     bool AllowStart()
     {
-        auto minutes = Acore::Time::GetMinutes();
+        auto minutes = Ycore::Time::GetMinutes();
 
         if (!minutes || minutes == 30)
             return true;
@@ -791,8 +791,8 @@ struct npc_brewfest_super_brew_trigger : public ScriptedAI
         {
             timer = 0;
             Player* player = nullptr;
-            Acore::AnyPlayerInObjectRangeCheck checker(me, 2.0f);
-            Acore::PlayerSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(me, player, checker);
+            Ycore::AnyPlayerInObjectRangeCheck checker(me, 2.0f);
+            Ycore::PlayerSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(me, player, checker);
             Cell::VisitObjects(me, searcher, 2.0f);
             if (player)
             {
@@ -1014,7 +1014,7 @@ class spell_brewfest_apple_trap : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::UnitAuraCheck(false, SPELL_RAM_FATIGUE));
+        targets.remove_if(Ycore::UnitAuraCheck(false, SPELL_RAM_FATIGUE));
 
         if (targets.empty())
             FinishCast(SPELL_FAILED_CASTER_AURASTATE);
@@ -1269,7 +1269,7 @@ class spell_brewfest_toss_mug : public SpellScript
 
         if (!bakers.empty())
         {
-            std::sort(bakers.begin(), bakers.end(), Acore::ObjectDistanceOrderPred(caster));
+            std::sort(bakers.begin(), bakers.end(), Ycore::ObjectDistanceOrderPred(caster));
             if (Creature* creature = *bakers.begin())
             {
                 creature->CastSpell(caster, SPELL_THROW_MUG_TO_PLAYER, true);
@@ -1933,7 +1933,7 @@ class spell_send_mug_target_picker: public SpellScript
     {
         Unit* caster = GetCaster();
 
-        targets.remove_if(Acore::UnitAuraCheck(true, SPELL_HAS_DARK_BREWMAIDENS_BREW));
+        targets.remove_if(Ycore::UnitAuraCheck(true, SPELL_HAS_DARK_BREWMAIDENS_BREW));
 
         if (targets.size() > 1)
         {
@@ -1953,7 +1953,7 @@ class spell_send_mug_target_picker: public SpellScript
             return;
         }
 
-        WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+        WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
         targets.clear();
         targets.push_back(target);
     }

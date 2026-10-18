@@ -3,6 +3,6 @@
 set -e
 
 echo "compile core"
-export AC_CCACHE=true
+export YC_CCACHE=true
 ./acore.sh "compiler" "all"
 

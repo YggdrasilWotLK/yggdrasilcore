@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -49,7 +49,7 @@ else()
 
   target_link_libraries(zlib
     PRIVATE
-      acore-dependency-interface)
+      ycore-dependency-interface)
 
   set_target_properties(zlib
       PROPERTIES

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -18,7 +18,7 @@
 #include "CommandScript.h"
 #include "PlayerCommand.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class player_commandscript : public CommandScript
 {
@@ -48,7 +48,7 @@ public:
             return false;
 
         Player* targetPlayer = player->GetConnectedPlayer();
-        return Acore::PlayerCommand::HandleLearnSpellCommand(handler, targetPlayer, spell, allRanks);
+        return Ycore::PlayerCommand::HandleLearnSpellCommand(handler, targetPlayer, spell, allRanks);
     }
 
     static bool HandlePlayerUnLearnCommand(ChatHandler* handler, Optional<PlayerIdentifier> player, SpellInfo const* spell, Optional<EXACT_SEQUENCE("all")> allRanks)
@@ -59,7 +59,7 @@ public:
             return false;
 
         Player* targetPlayer = player->GetConnectedPlayer();
-        return Acore::PlayerCommand::HandleUnlearnSpellCommand(handler, targetPlayer, spell, allRanks);
+        return Ycore::PlayerCommand::HandleUnlearnSpellCommand(handler, targetPlayer, spell, allRanks);
     }
 };
 

@@ -4,16 +4,16 @@ import * as semver from "https://deno.land/x/semver/mod.ts";
 const CHANGELOG_PATH = "doc/changelog";
 const CHANGELOG_PENDING_PATH = `${CHANGELOG_PATH}/pendings`;
 const CHANGELOG_MASTER_FILE = `${CHANGELOG_PATH}/master.md`;
-const ACORE_JSON = "./acore.json";
+const YCORE_JSON = "./acore.json";
 
 // read the acore.json file to work with the versioning
 const decoder = new TextDecoder("utf-8");
-const data = await Deno.readFile(ACORE_JSON);
-const acoreInfo = JSON.parse(decoder.decode(data));
+const data = await Deno.readFile(YCORE_JSON);
+const ycoreInfo = JSON.parse(decoder.decode(data));
 
 let changelogText = await Deno.readTextFile(CHANGELOG_MASTER_FILE);
 
-const currentVersion = acoreInfo.version;
+const currentVersion = ycoreInfo.version;
 
 const res=Deno.run({ cmd: [ "git", "rev-parse",
                           "HEAD"],
@@ -30,7 +30,7 @@ for await (const dirEntry of Deno.readDir(CHANGELOG_PENDING_PATH)) {
   }
 
   // Upgrade the prerelease version number (e.g. 1.0.0-dev.1 -> 1.0.0-dev.2)
-  acoreInfo.version = semver.inc(acoreInfo.version, "prerelease", {
+  ycoreInfo.version = semver.inc(ycoreInfo.version, "prerelease", {
     includePrerelease: true,
   });
 
@@ -38,17 +38,17 @@ for await (const dirEntry of Deno.readDir(CHANGELOG_PENDING_PATH)) {
   const data = await Deno.readTextFile(
     `${CHANGELOG_PENDING_PATH}/${dirEntry.name}`,
   );
-  changelogText = `## ${acoreInfo.version} | Commit: [${gitVersion}](https://github.com/azerothcore/azerothcore-wotlk/commit/${gitVersion}\n\n${data}\n${changelogText}`;
+  changelogText = `## ${ycoreInfo.version} | Commit: [${gitVersion}](https://github.com/azerothcore/azerothcore-wotlk/commit/${gitVersion}\n\n${data}\n${changelogText}`;
 
   // remove the pending file
   await Deno.remove(`${CHANGELOG_PENDING_PATH}/${dirEntry.name}`);
 }
 
 // write to acore.json and master.md only if new version is available
-if (currentVersion != acoreInfo.version) {
-  console.log(`Changelog version upgraded from ${currentVersion} to ${acoreInfo.version}`)
+if (currentVersion != ycoreInfo.version) {
+  console.log(`Changelog version upgraded from ${currentVersion} to ${ycoreInfo.version}`)
   Deno.writeTextFile(CHANGELOG_MASTER_FILE, changelogText);
-  Deno.writeTextFile(ACORE_JSON, JSON.stringify(acoreInfo, null, 2)+"\n");
+  Deno.writeTextFile(YCORE_JSON, JSON.stringify(ycoreInfo, null, 2)+"\n");
 } else {
   console.log("No changelogs to add")
 }

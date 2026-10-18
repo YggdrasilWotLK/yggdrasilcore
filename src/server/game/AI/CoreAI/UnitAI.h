@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_UNITAI_H
-#define ACORE_UNITAI_H
+#ifndef YCORE_UNITAI_H
+#define YCORE_UNITAI_H
 
 #include "Containers.h"
 #include "Define.h"
@@ -50,7 +50,7 @@ enum class SelectTargetMethod
 };
 
 // default predicate function to select target based on distance, player and/or aura criteria
-struct DefaultTargetSelector : public Acore::unary_function<Unit*, bool>
+struct DefaultTargetSelector : public Ycore::unary_function<Unit*, bool>
 {
     Unit const* me;
     float m_dist;
@@ -105,7 +105,7 @@ struct DefaultTargetSelector : public Acore::unary_function<Unit*, bool>
 
 // Target selector for spell casts checking range, auras and attributes
 /// @todo: Add more checks from Spell::CheckCast
-struct SpellTargetSelector : public Acore::unary_function<Unit*, bool>
+struct SpellTargetSelector : public Ycore::unary_function<Unit*, bool>
 {
 public:
     SpellTargetSelector(Unit* caster, uint32 spellId);
@@ -119,7 +119,7 @@ private:
 // Very simple target selector, will just skip main target
 // NOTE: When passing to UnitAI::SelectTarget remember to use 0 as position for random selection
 //       because tank will not be in the temporary list
-struct NonTankTargetSelector : public Acore::unary_function<Unit*, bool>
+struct NonTankTargetSelector : public Ycore::unary_function<Unit*, bool>
 {
 public:
     NonTankTargetSelector(Creature* source, bool playerOnly = true) : _source(source), _playerOnly(playerOnly) { }
@@ -131,7 +131,7 @@ private:
 };
 
 // Simple selector for units using mana
-struct PowerUsersSelector : public Acore::unary_function<Unit*, bool>
+struct PowerUsersSelector : public Ycore::unary_function<Unit*, bool>
 {
     Unit const* _me;
     Powers const _power;
@@ -166,7 +166,7 @@ struct PowerUsersSelector : public Acore::unary_function<Unit*, bool>
 };
 
 // Simple selector based on range and Los
-struct RangeSelector : public Acore::unary_function<Unit*, bool>
+struct RangeSelector : public Ycore::unary_function<Unit*, bool>
 {
     RangeSelector(Unit const* unit, float maxDist, bool playerOnly, bool inLos, float minDist = 0.f) : _me(unit), _minDist(minDist), _maxDist(maxDist), _playerOnly(playerOnly), _inLos(inLos) {}
 
@@ -257,7 +257,7 @@ public:
         case SelectTargetMethod::MinDistance:
             return targetList.front();
         case SelectTargetMethod::Random:
-            return Acore::Containers::SelectRandomContainerElement(targetList);
+            return Ycore::Containers::SelectRandomContainerElement(targetList);
         default:
             return nullptr;
         }
@@ -337,7 +337,7 @@ public:
             return;
 
         if (targetType == SelectTargetMethod::Random)
-            Acore::Containers::RandomResize(targetList, num);
+            Ycore::Containers::RandomResize(targetList, num);
         else
             targetList.resize(num);
     }

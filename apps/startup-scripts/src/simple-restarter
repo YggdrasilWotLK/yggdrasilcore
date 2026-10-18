@@ -2,7 +2,7 @@
 
 # AzerothCore Simple Restarter
 # This script is a wrapper around the starter script that provides restart functionality
-# and maintains compatibility with the acore dashboard
+# and maintains compatibility with the ycore dashboard
 #
 # Usage: simple-restarter <binary> [gdb_file] [config] [syslog] [syserr] [gdb_enabled] [crashes_path]
 #

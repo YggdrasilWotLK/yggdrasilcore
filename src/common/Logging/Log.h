@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -30,7 +30,7 @@ class Appender;
 class Logger;
 struct LogMessage;
 
-namespace Acore::Asio
+namespace Ycore::Asio
 {
     class IoContext;
     class Strand;
@@ -61,7 +61,7 @@ private:
 public:
     static Log* instance();
 
-    void Initialize(Acore::Asio::IoContext* ioContext = nullptr);
+    void Initialize(Ycore::Asio::IoContext* ioContext = nullptr);
     void SetSynchronous();  // Not threadsafe - should only be called from main() after all threads are joined
     void LoadFromConfig();
     void Close();
@@ -69,20 +69,20 @@ public:
     bool SetLogLevel(std::string const& name, int32 level, bool isLogger = true);
 
     template<typename... Args>
-    inline void outMessage(std::string const& filter, LogLevel const level, Acore::FormatString<Args...> fmt, Args&&... args)
+    inline void outMessage(std::string const& filter, LogLevel const level, Ycore::FormatString<Args...> fmt, Args&&... args)
     {
-        _outMessage(filter, level, Acore::StringFormat(fmt, std::forward<Args>(args)...));
+        _outMessage(filter, level, Ycore::StringFormat(fmt, std::forward<Args>(args)...));
     }
 
     template<typename... Args>
-    void outCommand(uint32 account, Acore::FormatString<Args...> fmt, Args&&... args)
+    void outCommand(uint32 account, Ycore::FormatString<Args...> fmt, Args&&... args)
     {
         if (!ShouldLog("commands.gm", LOG_LEVEL_INFO))
         {
             return;
         }
 
-        _outCommand(Acore::StringFormat(fmt, std::forward<Args>(args)...), std::to_string(account));
+        _outCommand(Ycore::StringFormat(fmt, std::forward<Args>(args)...), std::to_string(account));
     }
 
     void SetRealmId(uint32 id);
@@ -120,8 +120,8 @@ private:
     std::string m_logsDir;
     std::string m_logsTimestamp;
 
-    Acore::Asio::IoContext* _ioContext;
-    std::unique_ptr<Acore::Asio::Strand> _strand;
+    Ycore::Asio::IoContext* _ioContext;
+    std::unique_ptr<Ycore::Asio::Strand> _strand;
 };
 
 #define sLog Log::instance()

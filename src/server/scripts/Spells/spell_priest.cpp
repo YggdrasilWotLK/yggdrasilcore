@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -164,13 +164,13 @@ class spell_pri_circle_of_healing : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::RaidCheck(GetCaster(), false));
+        targets.remove_if(Ycore::RaidCheck(GetCaster(), false));
 
         uint32 const maxTargets = GetCaster()->HasAura(SPELL_PRIEST_GLYPH_OF_CIRCLE_OF_HEALING) ? 6 : 5; // Glyph of Circle of Healing
 
         if (targets.size() > maxTargets)
         {
-            targets.sort(Acore::HealthPctOrderPred());
+            targets.sort(Ycore::HealthPctOrderPred());
             targets.resize(maxTargets);
         }
     }
@@ -225,13 +225,13 @@ class spell_pri_divine_hymn : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::RaidCheck(GetCaster(), false));
+        targets.remove_if(Ycore::RaidCheck(GetCaster(), false));
 
         uint32 const maxTargets = 3;
 
         if (targets.size() > maxTargets)
         {
-            targets.sort(Acore::HealthPctOrderPred());
+            targets.sort(Ycore::HealthPctOrderPred());
             targets.resize(maxTargets);
         }
     }
@@ -324,14 +324,14 @@ class spell_pri_hymn_of_hope : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
-        targets.remove_if(Acore::PowerCheck(POWER_MANA, false));
-        targets.remove_if(Acore::RaidCheck(GetCaster(), false));
+        targets.remove_if(Ycore::PowerCheck(POWER_MANA, false));
+        targets.remove_if(Ycore::RaidCheck(GetCaster(), false));
 
         uint32 const maxTargets = 3;
 
         if (targets.size() > maxTargets)
         {
-            targets.sort(Acore::PowerPctOrderPred(POWER_MANA));
+            targets.sort(Ycore::PowerPctOrderPred(POWER_MANA));
             targets.resize(maxTargets);
         }
     }
@@ -516,7 +516,7 @@ class spell_pri_mind_sear : public SpellScript
 
     void FilterTargets(std::list<WorldObject*>& unitList)
     {
-        unitList.remove_if(Acore::ObjectGUIDCheck(GetCaster()->GetGuidValue(UNIT_FIELD_CHANNEL_OBJECT), true));
+        unitList.remove_if(Ycore::ObjectGUIDCheck(GetCaster()->GetGuidValue(UNIT_FIELD_CHANNEL_OBJECT), true));
     }
 
     void Register() override

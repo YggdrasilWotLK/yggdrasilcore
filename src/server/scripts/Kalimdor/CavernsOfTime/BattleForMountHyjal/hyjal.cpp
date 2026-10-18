@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -551,7 +551,7 @@ struct npc_hyjal_ground_trash : public ScriptedAI
         GetCreatureListWithEntryInGrid(creatureList, me, NPC_CRYPT, radius);
         GetCreatureListWithEntryInGrid(creatureList, me, NPC_GHOUL, radius);
         GetCreatureListWithEntryInGrid(creatureList, me, NPC_SKELETON_INVADER, radius);
-        Acore::Containers::RandomResize(creatureList, 1);
+        Ycore::Containers::RandomResize(creatureList, 1);
         if (creatureList.size() > 0)
         {
             creatureToReturn = creatureList.front();

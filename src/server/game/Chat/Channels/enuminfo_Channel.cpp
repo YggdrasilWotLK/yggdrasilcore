@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -20,14 +20,14 @@
 #include "SmartEnum.h"
 #include <stdexcept>
 
-namespace Acore::Impl::EnumUtilsImpl
+namespace Ycore::Impl::EnumUtilsImpl
 {
 
 /************************************************************\
 |* data for enum 'ChatNotify' in 'Channel.h' auto-generated *|
 \************************************************************/
 template <>
-AC_API_EXPORT EnumText EnumUtils<ChatNotify>::ToString(ChatNotify value)
+YC_API_EXPORT EnumText EnumUtils<ChatNotify>::ToString(ChatNotify value)
 {
     switch (value)
     {
@@ -72,10 +72,10 @@ AC_API_EXPORT EnumText EnumUtils<ChatNotify>::ToString(ChatNotify value)
 }
 
 template <>
-AC_API_EXPORT std::size_t EnumUtils<ChatNotify>::Count() { return 36; }
+YC_API_EXPORT std::size_t EnumUtils<ChatNotify>::Count() { return 36; }
 
 template <>
-AC_API_EXPORT ChatNotify EnumUtils<ChatNotify>::FromIndex(std::size_t index)
+YC_API_EXPORT ChatNotify EnumUtils<ChatNotify>::FromIndex(std::size_t index)
 {
     switch (index)
     {
@@ -120,7 +120,7 @@ AC_API_EXPORT ChatNotify EnumUtils<ChatNotify>::FromIndex(std::size_t index)
 }
 
 template <>
-AC_API_EXPORT std::size_t EnumUtils<ChatNotify>::ToIndex(ChatNotify value)
+YC_API_EXPORT std::size_t EnumUtils<ChatNotify>::ToIndex(ChatNotify value)
 {
     switch (value)
     {

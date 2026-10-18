@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -28,7 +28,7 @@
 #include "Player.h"
 #include "SpellAuraEffects.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class list_commandscript : public CommandScript
 {
@@ -456,8 +456,8 @@ public:
 
         wstrToLower(namePart);
 
-        std::string talentStr = handler->GetAcoreString(LANG_TALENT);
-        std::string passiveStr = handler->GetAcoreString(LANG_PASSIVE);
+        std::string talentStr = handler->GetYcoreString(LANG_TALENT);
+        std::string passiveStr = handler->GetYcoreString(LANG_PASSIVE);
 
         Unit::AuraApplicationMap const& auras = unit->GetAppliedAuras();
         handler->PSendSysMessage(LANG_COMMAND_TARGET_LISTAURAS, auras.size());

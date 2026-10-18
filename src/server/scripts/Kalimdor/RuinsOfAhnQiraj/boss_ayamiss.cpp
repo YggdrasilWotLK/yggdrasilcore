@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -285,7 +285,7 @@ class spell_ayamiss_swarmer_teleport_trigger : public SpellScript
             { SPELL_HIVEZARA_SWARMER_TELEPORT_5, (NPC_HIVEZARA_SWARMER + 4) * 10 }
         };
 
-        WaspTeleportData data = Acore::Containers::SelectRandomContainerElement(telData);
+        WaspTeleportData data = Ycore::Containers::SelectRandomContainerElement(telData);
         caster->CastSpell((Unit*)nullptr, data.spellId, true);
 
         uint32 pathId = data.pathId;

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1770,7 +1770,7 @@ class spell_item_echoes_of_light : public SpellScript
         if (targets.size() < 2)
             return;
 
-        targets.sort(Acore::HealthPctOrderPred());
+        targets.sort(Ycore::HealthPctOrderPred());
 
         WorldObject* target = targets.front();
         targets.clear();
@@ -2025,7 +2025,7 @@ class spell_item_mingos_fortune_generator : public SpellScript
 
     void HandleDummy(SpellEffIndex /*effIndex*/)
     {
-        GetCaster()->CastSpell(GetCaster(), Acore::Containers::SelectRandomContainerElement(CreateFortuneSpells), true);
+        GetCaster()->CastSpell(GetCaster(), Ycore::Containers::SelectRandomContainerElement(CreateFortuneSpells), true);
     }
 
     void Register() override

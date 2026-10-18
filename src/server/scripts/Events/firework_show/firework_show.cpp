@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -72,7 +72,7 @@ struct go_firework_show : public GameObjectAI
                 if (!_showRunning)
                 {
                     tzset(); // set timezone for localtime_r() -> fix issues due to daylight time
-                    tm local_tm = Acore::Time::TimeBreakdown();
+                    tm local_tm = Ycore::Time::TimeBreakdown();
 
                     // each show runs approx. 12 minutes
                     // and starts at the full hour

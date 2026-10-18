@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -48,7 +48,7 @@ public:
      */
     [[nodiscard]] virtual bool OnTryExecuteCommand(ChatHandler& /*handler*/, std::string_view /*cmdStr*/) { return true; }
 
-    [[nodiscard]] virtual bool OnBeforeIsInvokerVisible(std::string /*name*/, Acore::Impl::ChatCommands::CommandPermissions /*permissions*/, ChatHandler const& /*who*/) { return true; }
+    [[nodiscard]] virtual bool OnBeforeIsInvokerVisible(std::string /*name*/, Ycore::Impl::ChatCommands::CommandPermissions /*permissions*/, ChatHandler const& /*who*/) { return true; }
 };
 
 // Compatibility for old scripts

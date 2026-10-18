@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -477,12 +477,12 @@ class spell_mistress_kiss_area : public SpellScript
     void FilterTargets(std::list<WorldObject*>& targets)
     {
         // get a list of players with mana
-        targets.remove_if(Acore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
-        targets.remove_if(Acore::PowerCheck(POWER_MANA, false));
+        targets.remove_if(Ycore::ObjectTypeIdCheck(TYPEID_PLAYER, false));
+        targets.remove_if(Ycore::PowerCheck(POWER_MANA, false));
         if (targets.empty())
             return;
 
-        WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+        WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
         targets.clear();
         targets.push_back(target);
     }

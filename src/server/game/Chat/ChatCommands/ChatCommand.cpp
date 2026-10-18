@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -27,24 +27,24 @@
 #include "Tokenize.h"
 #include "WorldSession.h"
 
-using ChatSubCommandMap = std::map<std::string_view, Acore::Impl::ChatCommands::ChatCommandNode, StringCompareLessI_T>;
+using ChatSubCommandMap = std::map<std::string_view, Ycore::Impl::ChatCommands::ChatCommandNode, StringCompareLessI_T>;
 
-void Acore::Impl::ChatCommands::ChatCommandNode::LoadFromBuilder(ChatCommandBuilder const& builder)
+void Ycore::Impl::ChatCommands::ChatCommandNode::LoadFromBuilder(ChatCommandBuilder const& builder)
 {
     if (std::holds_alternative<ChatCommandBuilder::InvokerEntry>(builder._data))
     {
         ASSERT(!_invoker, "Duplicate blank sub-command.");
-        AcoreStrings help;
+        YcoreStrings help;
         std::tie(_invoker, help, _permission) = *(std::get<ChatCommandBuilder::InvokerEntry>(builder._data));
         if (help)
-            _help.emplace<AcoreStrings>(help);
+            _help.emplace<YcoreStrings>(help);
     }
     else
         LoadCommandsIntoMap(this, _subCommands, std::get<ChatCommandBuilder::SubCommandEntry>(builder._data));
 }
 
-/*static*/ void Acore::Impl::ChatCommands::ChatCommandNode::LoadCommandsIntoMap(ChatCommandNode* blank,
-    std::map<std::string_view, Acore::Impl::ChatCommands::ChatCommandNode, StringCompareLessI_T>& map, Acore::ChatCommands::ChatCommandTable const& commands)
+/*static*/ void Ycore::Impl::ChatCommands::ChatCommandNode::LoadCommandsIntoMap(ChatCommandNode* blank,
+    std::map<std::string_view, Ycore::Impl::ChatCommands::ChatCommandNode, StringCompareLessI_T>& map, Ycore::ChatCommands::ChatCommandTable const& commands)
 {
     for (ChatCommandBuilder const& builder : commands)
     {
@@ -55,7 +55,7 @@ void Acore::Impl::ChatCommands::ChatCommandNode::LoadFromBuilder(ChatCommandBuil
         }
         else
         {
-            std::vector<std::string_view> const tokens = Acore::Tokenize(builder._name, COMMAND_DELIMITER, false);
+            std::vector<std::string_view> const tokens = Ycore::Tokenize(builder._name, COMMAND_DELIMITER, false);
             ASSERT(!tokens.empty(), "Invalid command name '{}'.", builder._name);
             ChatSubCommandMap* subMap = &map;
             for (std::size_t i = 0, n = (tokens.size() - 1); i < n; ++i)
@@ -66,19 +66,19 @@ void Acore::Impl::ChatCommands::ChatCommandNode::LoadFromBuilder(ChatCommandBuil
 }
 
 static ChatSubCommandMap COMMAND_MAP;
-/*static*/ ChatSubCommandMap const& Acore::Impl::ChatCommands::ChatCommandNode::GetTopLevelMap()
+/*static*/ ChatSubCommandMap const& Ycore::Impl::ChatCommands::ChatCommandNode::GetTopLevelMap()
 {
     if (COMMAND_MAP.empty())
         LoadCommandMap();
 
     return COMMAND_MAP;
 }
-/*static*/ void Acore::Impl::ChatCommands::ChatCommandNode::InvalidateCommandMap()
+/*static*/ void Ycore::Impl::ChatCommands::ChatCommandNode::InvalidateCommandMap()
 {
     COMMAND_MAP.clear();
 }
 
-/*static*/ void Acore::Impl::ChatCommands::ChatCommandNode::LoadCommandMap()
+/*static*/ void Ycore::Impl::ChatCommands::ChatCommandNode::LoadCommandMap()
 {
     InvalidateCommandMap();
     LoadCommandsIntoMap(nullptr, COMMAND_MAP, sScriptMgr->GetChatCommands());
@@ -95,7 +95,7 @@ static ChatSubCommandMap COMMAND_MAP;
             ChatCommandNode* cmd = nullptr;
             ChatSubCommandMap* map = &COMMAND_MAP;
 
-            for (std::string_view key : Acore::Tokenize(name, COMMAND_DELIMITER, false))
+            for (std::string_view key : Ycore::Tokenize(name, COMMAND_DELIMITER, false))
             {
                 auto it = map->find(key);
                 if (it != map->end())
@@ -133,7 +133,7 @@ static ChatSubCommandMap COMMAND_MAP;
         cmd.ResolveNames(std::string(name));
 }
 
-void Acore::Impl::ChatCommands::ChatCommandNode::ResolveNames(std::string name)
+void Ycore::Impl::ChatCommands::ChatCommandNode::ResolveNames(std::string name)
 {
     _name = name;
 
@@ -169,7 +169,7 @@ static void LogCommandUsage(WorldSession const& session, std::string_view cmdStr
         zoneName = zone->area_name[locale];
     }
 
-    std::string logMessage = Acore::StringFormat("Command: {} [Player: {} ({}) (Account: {}) X: {} Y: {} Z: {} Map: {} ({}) Area: {} ({}) Zone: {} ({}) Selected: {} ({})]",
+    std::string logMessage = Ycore::StringFormat("Command: {} [Player: {} ({}) (Account: {}) X: {} Y: {} Z: {} Map: {} ({}) Area: {} ({}) Zone: {} ({}) Selected: {} ({})]",
         cmdStr, player->GetName(), player->GetGUID().ToString(),
         session.GetAccountId(),
         player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetMapId(),
@@ -181,13 +181,13 @@ static void LogCommandUsage(WorldSession const& session, std::string_view cmdStr
     LOG_GM(session.GetAccountId(), logMessage);
 }
 
-void Acore::Impl::ChatCommands::ChatCommandNode::SendCommandHelp(ChatHandler& handler) const
+void Ycore::Impl::ChatCommands::ChatCommandNode::SendCommandHelp(ChatHandler& handler) const
 {
     bool const hasInvoker = IsInvokerVisible(handler);
     if (hasInvoker)
     {
-        if (std::holds_alternative<AcoreStrings>(_help))
-            handler.SendSysMessage(std::get<AcoreStrings>(_help));
+        if (std::holds_alternative<YcoreStrings>(_help))
+            handler.SendSysMessage(std::get<YcoreStrings>(_help));
         else if (std::holds_alternative<std::string>(_help))
             handler.SendSysMessage(std::get<std::string>(_help));
         else
@@ -223,7 +223,7 @@ void Acore::Impl::ChatCommands::ChatCommandNode::SendCommandHelp(ChatHandler& ha
     }
 }
 
-namespace Acore::Impl::ChatCommands
+namespace Ycore::Impl::ChatCommands
 {
     struct FilteredCommandListIterator
     {
@@ -265,7 +265,7 @@ namespace Acore::Impl::ChatCommands
     };
 }
 
-/*static*/ bool Acore::Impl::ChatCommands::ChatCommandNode::TryExecuteCommand(ChatHandler& handler, std::string_view cmdStr)
+/*static*/ bool Ycore::Impl::ChatCommands::ChatCommandNode::TryExecuteCommand(ChatHandler& handler, std::string_view cmdStr)
 {
     ChatCommandNode const* cmd = nullptr;
     ChatSubCommandMap const* map = &GetTopLevelMap();
@@ -340,12 +340,12 @@ namespace Acore::Impl::ChatCommands
     return false;
 }
 
-/*static*/ void Acore::Impl::ChatCommands::ChatCommandNode::SendCommandHelpFor(ChatHandler& handler, std::string_view cmdStr)
+/*static*/ void Ycore::Impl::ChatCommands::ChatCommandNode::SendCommandHelpFor(ChatHandler& handler, std::string_view cmdStr)
 {
     ChatCommandNode const* cmd = nullptr;
     ChatSubCommandMap const* map = &GetTopLevelMap();
 
-    for (std::string_view token : Acore::Tokenize(cmdStr, COMMAND_DELIMITER, false))
+    for (std::string_view token : Ycore::Tokenize(cmdStr, COMMAND_DELIMITER, false))
     {
         FilteredCommandListIterator it1(*map, handler, token);
         if (!it1)
@@ -403,7 +403,7 @@ namespace Acore::Impl::ChatCommands
         handler.PSendSysMessage(LANG_CMD_INVALID, cmdStr);
 }
 
-/*static*/ std::vector<std::string> Acore::Impl::ChatCommands::ChatCommandNode::GetAutoCompletionsFor(ChatHandler const& handler, std::string_view cmdStr)
+/*static*/ std::vector<std::string> Ycore::Impl::ChatCommands::ChatCommandNode::GetAutoCompletionsFor(ChatHandler const& handler, std::string_view cmdStr)
 {
     std::string path;
     ChatCommandNode const* cmd = nullptr;
@@ -437,11 +437,11 @@ namespace Acore::Impl::ChatCommands
                 {
                     if (prefix.empty())
                     {
-                        return Acore::StringFormat("{}{}{}", match, COMMAND_DELIMITER, suffix);
+                        return Ycore::StringFormat("{}{}{}", match, COMMAND_DELIMITER, suffix);
                     }
                     else
                     {
-                        return Acore::StringFormat("{}{}{}{}{}", prefix, COMMAND_DELIMITER, match, COMMAND_DELIMITER, suffix);
+                        return Ycore::StringFormat("{}{}{}{}{}", prefix, COMMAND_DELIMITER, match, COMMAND_DELIMITER, suffix);
                     }
                 });
 
@@ -459,7 +459,7 @@ namespace Acore::Impl::ChatCommands
             path.assign(it1->first);
         else
         {
-            path = Acore::StringFormat("{}{}{}", path, COMMAND_DELIMITER, it1->first);
+            path = Ycore::StringFormat("{}{}{}", path, COMMAND_DELIMITER, it1->first);
         }
         cmd = &it1->second;
         map = &cmd->_subCommands;
@@ -471,7 +471,7 @@ namespace Acore::Impl::ChatCommands
     { /* there is some trailing text, leave it as is */
         if (cmd)
         { /* if we matched a command at some point, auto-complete it */
-            return { Acore::StringFormat("{}{}{}", path, COMMAND_DELIMITER, oldTail) };
+            return { Ycore::StringFormat("{}{}{}", path, COMMAND_DELIMITER, oldTail) };
         }
         else
             return {};
@@ -484,7 +484,7 @@ namespace Acore::Impl::ChatCommands
                 return std::string(match);
             else
             {
-                return Acore::StringFormat("{}{}{}", prefix, COMMAND_DELIMITER, match);
+                return Ycore::StringFormat("{}{}{}", prefix, COMMAND_DELIMITER, match);
             }
         });
 
@@ -495,7 +495,7 @@ namespace Acore::Impl::ChatCommands
     }
 }
 
-bool Acore::Impl::ChatCommands::ChatCommandNode::IsInvokerVisible(ChatHandler const& who) const
+bool Ycore::Impl::ChatCommands::ChatCommandNode::IsInvokerVisible(ChatHandler const& who) const
 {
     if (!_invoker)
         return false;
@@ -503,16 +503,16 @@ bool Acore::Impl::ChatCommands::ChatCommandNode::IsInvokerVisible(ChatHandler co
     if (!sScriptMgr->OnBeforeIsInvokerVisible(_name, _permission, who))
         return true;
 
-    if (who.IsConsole() && (_permission.AllowConsole == Acore::ChatCommands::Console::No))
+    if (who.IsConsole() && (_permission.AllowConsole == Ycore::ChatCommands::Console::No))
         return false;
 
-    if (who.IsConsole() && (_permission.AllowConsole == Acore::ChatCommands::Console::Yes))
+    if (who.IsConsole() && (_permission.AllowConsole == Ycore::ChatCommands::Console::Yes))
         return true;
 
     return !who.IsConsole() && who.IsAvailable(_permission.RequiredLevel);
 }
 
-bool Acore::Impl::ChatCommands::ChatCommandNode::HasVisibleSubCommands(ChatHandler const& who) const
+bool Ycore::Impl::ChatCommands::ChatCommandNode::HasVisibleSubCommands(ChatHandler const& who) const
 {
     for (auto it = _subCommands.begin(); it != _subCommands.end(); ++it)
         if (it->second.IsVisible(who))
@@ -521,8 +521,8 @@ bool Acore::Impl::ChatCommands::ChatCommandNode::HasVisibleSubCommands(ChatHandl
     return false;
 }
 
-void Acore::ChatCommands::LoadCommandMap() { Acore::Impl::ChatCommands::ChatCommandNode::LoadCommandMap(); }
-void Acore::ChatCommands::InvalidateCommandMap() { Acore::Impl::ChatCommands::ChatCommandNode::InvalidateCommandMap(); }
-bool Acore::ChatCommands::TryExecuteCommand(ChatHandler& handler, std::string_view cmd) { return Acore::Impl::ChatCommands::ChatCommandNode::TryExecuteCommand(handler, cmd); }
-void Acore::ChatCommands::SendCommandHelpFor(ChatHandler& handler, std::string_view cmd) { Acore::Impl::ChatCommands::ChatCommandNode::SendCommandHelpFor(handler, cmd); }
-std::vector<std::string> Acore::ChatCommands::GetAutoCompletionsFor(ChatHandler const& handler, std::string_view cmd) { return Acore::Impl::ChatCommands::ChatCommandNode::GetAutoCompletionsFor(handler, cmd); }
+void Ycore::ChatCommands::LoadCommandMap() { Ycore::Impl::ChatCommands::ChatCommandNode::LoadCommandMap(); }
+void Ycore::ChatCommands::InvalidateCommandMap() { Ycore::Impl::ChatCommands::ChatCommandNode::InvalidateCommandMap(); }
+bool Ycore::ChatCommands::TryExecuteCommand(ChatHandler& handler, std::string_view cmd) { return Ycore::Impl::ChatCommands::ChatCommandNode::TryExecuteCommand(handler, cmd); }
+void Ycore::ChatCommands::SendCommandHelpFor(ChatHandler& handler, std::string_view cmd) { Ycore::Impl::ChatCommands::ChatCommandNode::SendCommandHelpFor(handler, cmd); }
+std::vector<std::string> Ycore::ChatCommands::GetAutoCompletionsFor(ChatHandler const& handler, std::string_view cmd) { return Ycore::Impl::ChatCommands::ChatCommandNode::GetAutoCompletionsFor(handler, cmd); }

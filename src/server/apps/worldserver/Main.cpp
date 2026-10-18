@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,11 +15,11 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/// \addtogroup Acored Acore Daemon
+/// \addtogroup Ycored Ycore Daemon
 /// @{
 /// \file
 
-#include "ACSoap.h"
+#include "YCSoap.h"
 #include "AppenderDB.h"
 #include "AsyncAcceptor.h"
 #include "Banner.h"
@@ -60,7 +60,7 @@
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
 #include "ServiceWin32.h"
 char serviceName[] = "worldserver";
 char serviceLongName[] = "AzerothCore world service";
@@ -77,8 +77,8 @@ int m_ServiceStatus = -1;
 #include <timeapi.h>
 #endif
 
-#ifndef _ACORE_CORE_CONFIG
-#define _ACORE_CORE_CONFIG "worldserver.conf"
+#ifndef _YCORE_CORE_CONFIG
+#define _YCORE_CORE_CONFIG "worldserver.conf"
 #endif
 
 using namespace boost::program_options;
@@ -87,12 +87,12 @@ namespace fs = std::filesystem;
 class FreezeDetector
 {
 public:
-    FreezeDetector(Acore::Asio::IoContext& ioContext, uint32 maxCoreStuckTime)
+    FreezeDetector(Ycore::Asio::IoContext& ioContext, uint32 maxCoreStuckTime)
         : _timer(ioContext), _worldLoopCounter(0), _lastChangeMsTime(getMSTime()), _maxCoreStuckTimeInMs(maxCoreStuckTime) { }
 
     static void Start(std::shared_ptr<FreezeDetector> const& freezeDetector)
     {
-        freezeDetector->_timer.expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(5));
+        freezeDetector->_timer.expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(5));
         freezeDetector->_timer.async_wait(std::bind(&FreezeDetector::Handler, std::weak_ptr<FreezeDetector>(freezeDetector), std::placeholders::_1));
     }
 
@@ -109,8 +109,8 @@ void SignalHandler(boost::system::error_code const& error, int signalNumber);
 void ClearOnlineAccounts();
 bool StartDB();
 void StopDB();
-bool LoadRealmInfo(Acore::Asio::IoContext& ioContext);
-AsyncAcceptor* StartRaSocketAcceptor(Acore::Asio::IoContext& ioContext);
+bool LoadRealmInfo(Ycore::Asio::IoContext& ioContext);
+AsyncAcceptor* StartRaSocketAcceptor(Ycore::Asio::IoContext& ioContext);
 void ShutdownCLIThread(std::thread* cliThread);
 void WorldUpdateLoop();
 variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, [[maybe_unused]] std::string& cfg_service);
@@ -118,11 +118,11 @@ variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, [
 /// Launch the Azeroth server
 int main(int argc, char** argv)
 {
-    Acore::Impl::CurrentServerProcessHolder::_type = SERVER_PROCESS_WORLDSERVER;
-    signal(SIGABRT, &Acore::AbortHandler);
+    Ycore::Impl::CurrentServerProcessHolder::_type = SERVER_PROCESS_WORLDSERVER;
+    signal(SIGABRT, &Ycore::AbortHandler);
 
     // Command line parsing
-    auto configFile = fs::path(sConfigMgr->GetConfigPath() + std::string(_ACORE_CORE_CONFIG));
+    auto configFile = fs::path(sConfigMgr->GetConfigPath() + std::string(_YCORE_CORE_CONFIG));
     std::string configService;
     auto vm = GetConsoleArguments(argc, argv, configFile, configService);
 
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
     if (vm.count("help") || vm.count("version"))
         return 0;
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     if (configService.compare("install") == 0)
         return WinServiceInstall() == true ? 0 : 1;
     else if (configService.compare("uninstall") == 0)
@@ -183,14 +183,14 @@ int main(int argc, char** argv)
     if (!sConfigMgr->LoadAppConfigs())
         return 1;
 
-    std::shared_ptr<Acore::Asio::IoContext> ioContext = std::make_shared<Acore::Asio::IoContext>();
+    std::shared_ptr<Ycore::Asio::IoContext> ioContext = std::make_shared<Ycore::Asio::IoContext>();
 
     // Init all logs
     sLog->RegisterAppender<AppenderDB>();
     // If logs are supposed to be handled async then we need to pass the IoContext into the Log singleton
     sLog->Initialize(sConfigMgr->GetOption<bool>("Log.Async.Enable", false) ? ioContext.get() : nullptr);
 
-    Acore::Banner::Show("worldserver-daemon",
+    Ycore::Banner::Show("worldserver-daemon",
         [](std::string_view text)
         {
             LOG_INFO("server.worldserver", text);
@@ -226,7 +226,7 @@ int main(int argc, char** argv)
 
     // Set signal handlers (this must be done before starting IoContext threads, because otherwise they would unblock and exit)
     boost::asio::signal_set signals(*ioContext, SIGINT, SIGTERM);
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     signals.add(SIGBREAK);
 #endif
     signals.async_wait(SignalHandler);
@@ -305,7 +305,7 @@ int main(int argc, char** argv)
         sMetric->Unload();
     });
 
-    Acore::Module::SetEnableModulesList(AC_MODULES_LIST);
+    Ycore::Module::SetEnableModulesList(YC_MODULES_LIST);
 
     ///- Initialize the World
     sSecretMgr->Initialize();
@@ -333,7 +333,7 @@ int main(int argc, char** argv)
     std::shared_ptr<std::thread> soapThread;
     if (sConfigMgr->GetOption<bool>("SOAP.Enabled", false))
     {
-        soapThread.reset(new std::thread(ACSoapThread, sConfigMgr->GetOption<std::string>("SOAP.IP", "127.0.0.1"), uint16(sConfigMgr->GetOption<int32>("SOAP.Port", 7878))),
+        soapThread.reset(new std::thread(YCSoapThread, sConfigMgr->GetOption<std::string>("SOAP.IP", "127.0.0.1"), uint16(sConfigMgr->GetOption<int32>("SOAP.Port", 7878))),
             [](std::thread* thr)
         {
             thr->join();
@@ -392,7 +392,7 @@ int main(int argc, char** argv)
 
     // Launch CliRunnable thread
     std::shared_ptr<std::thread> cliThread;
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     if (sConfigMgr->GetOption<bool>("Console.Enable", true) && (m_ServiceStatus == -1)/* need disable console in service mode*/)
 #else
     if (sConfigMgr->GetOption<bool>("Console.Enable", true))
@@ -428,7 +428,7 @@ bool StartDB()
     MySQL::Library_Init();
 
     // Load databases
-    DatabaseLoader loader("server.worldserver", DatabaseLoader::DATABASE_NONE, AC_MODULES_LIST);
+    DatabaseLoader loader("server.worldserver", DatabaseLoader::DATABASE_NONE, YC_MODULES_LIST);
     loader
         .AddDatabase(LoginDatabase, "Login")
         .AddDatabase(CharacterDatabase, "Character")
@@ -648,13 +648,13 @@ void FreezeDetector::Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, bo
                 }
             }
 
-            freezeDetector->_timer.expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(1));
+            freezeDetector->_timer.expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(1));
             freezeDetector->_timer.async_wait(std::bind(&FreezeDetector::Handler, freezeDetectorRef, std::placeholders::_1));
         }
     }
 }
 
-AsyncAcceptor* StartRaSocketAcceptor(Acore::Asio::IoContext& ioContext)
+AsyncAcceptor* StartRaSocketAcceptor(Ycore::Asio::IoContext& ioContext)
 {
     uint16 raPort = uint16(sConfigMgr->GetOption<int32>("Ra.Port", 3443));
     std::string raListener = sConfigMgr->GetOption<std::string>("Ra.IP", "0.0.0.0");
@@ -671,13 +671,13 @@ AsyncAcceptor* StartRaSocketAcceptor(Acore::Asio::IoContext& ioContext)
     return acceptor;
 }
 
-bool LoadRealmInfo(Acore::Asio::IoContext& ioContext)
+bool LoadRealmInfo(Ycore::Asio::IoContext& ioContext)
 {
     QueryResult result = LoginDatabase.Query("SELECT id, name, address, localAddress, localSubnetMask, port, icon, flag, timezone, allowedSecurityLevel, population, gamebuild FROM realmlist WHERE id = {}", realm.Id.Realm);
     if (!result)
         return false;
 
-    Acore::Asio::Resolver resolver(ioContext);
+    Ycore::Asio::Resolver resolver(ioContext);
 
     Field* fields = result->Fetch();
     realm.Name = fields[1].Get<std::string>();
@@ -726,9 +726,9 @@ variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, [
         ("help,h", "print usage message")
         ("version,v", "print version build info")
         ("dry-run,d", "Dry run")
-        ("config,c", value<fs::path>(&configFile)->default_value(fs::path(sConfigMgr->GetConfigPath() + std::string(_ACORE_CORE_CONFIG))), "use <arg> as configuration file");
+        ("config,c", value<fs::path>(&configFile)->default_value(fs::path(sConfigMgr->GetConfigPath() + std::string(_YCORE_CORE_CONFIG))), "use <arg> as configuration file");
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     options_description win("Windows platform specific options");
     win.add_options()
         ("service,s", value<std::string>(&configService)->default_value(""), "Windows service options: [install | uninstall]");

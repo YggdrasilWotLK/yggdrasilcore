@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -19,13 +19,13 @@
 #include "Chat.h"
 #include "ScriptMgr.h"
 
-Acore::ChatCommands::ChatCommandTable ScriptMgr::GetChatCommands()
+Ycore::ChatCommands::ChatCommandTable ScriptMgr::GetChatCommands()
 {
-    Acore::ChatCommands::ChatCommandTable table;
+    Ycore::ChatCommands::ChatCommandTable table;
 
     for (auto const& [scriptID, script] : ScriptRegistry<CommandScript>::ScriptPointerList)
     {
-        Acore::ChatCommands::ChatCommandTable cmds = script->GetCommands();
+        Ycore::ChatCommands::ChatCommandTable cmds = script->GetCommands();
         std::move(cmds.begin(), cmds.end(), std::back_inserter(table));
     }
 
@@ -38,4 +38,4 @@ CommandScript::CommandScript(const char* name)
     ScriptRegistry<CommandScript>::AddScript(this);
 }
 
-template class AC_GAME_API ScriptRegistry<CommandScript>;
+template class YC_GAME_API ScriptRegistry<CommandScript>;

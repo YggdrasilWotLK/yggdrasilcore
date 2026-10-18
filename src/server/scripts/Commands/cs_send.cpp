@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -25,7 +25,7 @@
 #include "Player.h"
 #include "Tokenize.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class send_commandscript : public CommandScript
 {
@@ -65,9 +65,9 @@ public:
         // extract items
         std::vector<std::pair<uint32, uint32>> itemList;
 
-        for (auto const& itemString : Acore::Tokenize(items, ' ', true))
+        for (auto const& itemString : Ycore::Tokenize(items, ' ', true))
         {
-            auto itemTokens = Acore::Tokenize(itemString, ':', false);
+            auto itemTokens = Ycore::Tokenize(itemString, ':', false);
 
             uint32 itemCount;
             switch (itemTokens.size())
@@ -76,14 +76,14 @@ public:
                     itemCount = 1; // Default to sending 1 item
                     break;
                 case 2:
-                    itemCount = *Acore::StringTo<uint32>(itemTokens.at(1));
+                    itemCount = *Ycore::StringTo<uint32>(itemTokens.at(1));
                     break;
                 default:
-                    handler->SendSysMessage(Acore::StringFormat("> Incorrect item list format for '{}'", itemString));
+                    handler->SendSysMessage(Ycore::StringFormat("> Incorrect item list format for '{}'", itemString));
                     continue;
             }
 
-            uint32 itemID = *Acore::StringTo<uint32>(itemTokens.at(0));
+            uint32 itemID = *Ycore::StringTo<uint32>(itemTokens.at(0));
 
             ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemID);
             if (!itemTemplate)

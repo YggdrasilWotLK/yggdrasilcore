@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -34,11 +34,11 @@ RealmList* RealmList::Instance()
 }
 
 // Load the realm list from the database
-void RealmList::Initialize(Acore::Asio::IoContext& ioContext, uint32 updateInterval)
+void RealmList::Initialize(Ycore::Asio::IoContext& ioContext, uint32 updateInterval)
 {
     _updateInterval = updateInterval;
     _updateTimer = std::make_unique<boost::asio::steady_timer>(ioContext);
-    _resolver = std::make_unique<Acore::Asio::Resolver>(ioContext);
+    _resolver = std::make_unique<Ycore::Asio::Resolver>(ioContext);
 
     LoadBuildInfo();
 
@@ -228,7 +228,7 @@ void RealmList::UpdateRealms(boost::system::error_code const& error)
 
     if (_updateInterval)
     {
-        _updateTimer->expires_at(Acore::Asio::SteadyTimer::GetExpirationTime(_updateInterval));
+        _updateTimer->expires_at(Ycore::Asio::SteadyTimer::GetExpirationTime(_updateInterval));
         _updateTimer->async_wait([this](boost::system::error_code const& errorCode){ UpdateRealms(errorCode); });
     }
 }

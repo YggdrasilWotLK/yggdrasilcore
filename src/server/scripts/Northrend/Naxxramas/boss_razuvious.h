@@ -168,7 +168,7 @@ public:
 
         void ScheduleRP()
         {
-            _rpBuddyGUID = Acore::Containers::SelectRandomContainerElement(summons);
+            _rpBuddyGUID = Ycore::Containers::SelectRandomContainerElement(summons);
             scheduler.Schedule(60s, 80s, GROUP_OOC_RP, [this](TaskContext context)
             {
                 if (_rpBuddyGUID)

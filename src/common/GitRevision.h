@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -22,20 +22,20 @@
 
 namespace GitRevision
 {
-    AC_COMMON_API char const* GetHash();
-    AC_COMMON_API char const* GetDate();
-    AC_COMMON_API char const* GetBranch();
-    AC_COMMON_API char const* GetCMakeCommand();
-    AC_COMMON_API char const* GetCMakeVersion();
-    AC_COMMON_API char const* GetHostOSVersion();
-    AC_COMMON_API char const* GetBuildDirectory();
-    AC_COMMON_API char const* GetSourceDirectory();
-    AC_COMMON_API char const* GetMySQLExecutable();
-    AC_COMMON_API char const* GetFullVersion();
-    AC_COMMON_API char const* GetCompanyNameStr();
-    AC_COMMON_API char const* GetLegalCopyrightStr();
-    AC_COMMON_API char const* GetFileVersionStr();
-    AC_COMMON_API char const* GetProductVersionStr();
+    YC_COMMON_API char const* GetHash();
+    YC_COMMON_API char const* GetDate();
+    YC_COMMON_API char const* GetBranch();
+    YC_COMMON_API char const* GetCMakeCommand();
+    YC_COMMON_API char const* GetCMakeVersion();
+    YC_COMMON_API char const* GetHostOSVersion();
+    YC_COMMON_API char const* GetBuildDirectory();
+    YC_COMMON_API char const* GetSourceDirectory();
+    YC_COMMON_API char const* GetMySQLExecutable();
+    YC_COMMON_API char const* GetFullVersion();
+    YC_COMMON_API char const* GetCompanyNameStr();
+    YC_COMMON_API char const* GetLegalCopyrightStr();
+    YC_COMMON_API char const* GetFileVersionStr();
+    YC_COMMON_API char const* GetProductVersionStr();
 }
 
 #endif

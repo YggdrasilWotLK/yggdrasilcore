@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -145,8 +145,8 @@ private:
     uint8 _inputKey[16];
     uint8 _outputKey[16];
     uint8 _seed[16];
-    Acore::Crypto::ARC4 _inputCrypto;
-    Acore::Crypto::ARC4 _outputCrypto;
+    Ycore::Crypto::ARC4 _inputCrypto;
+    Ycore::Crypto::ARC4 _outputCrypto;
     uint32 _checkTimer;                          // Timer for sending check requests
     uint32 _clientResponseTimer;                 // Timer for client response delay
     bool _dataSent;

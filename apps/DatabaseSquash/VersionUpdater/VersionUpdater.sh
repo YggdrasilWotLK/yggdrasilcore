@@ -11,10 +11,10 @@ if [[ "$PROJECT_ROOT" =~ ^/([a-zA-Z])/(.*) ]]; then
   PROJECT_ROOT="${DRIVE_LETTER^^}:/${PATH_REMAINDER}"
 fi
 
-ACORE_JSON_PATH="$PROJECT_ROOT/acore.json"
+YCORE_JSON_PATH="$PROJECT_ROOT/acore.json"
 DB_WORLD_UPDATE_DIR="$PROJECT_ROOT/data/sql/updates/db_world"
 
-VERSION_LINE=$(grep '"version"' "$ACORE_JSON_PATH")
+VERSION_LINE=$(grep '"version"' "$YCORE_JSON_PATH")
 VERSION=$(echo "$VERSION_LINE" | sed -E 's/.*"version": *"([^"]+)".*/\1/')
 
 # Parse version into parts
@@ -24,8 +24,8 @@ if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(.*)$ ]]; then
   NEW_VERSION="$((MAJOR + 1)).0.0$SUFFIX"
 
   # Replace version in file
-  sed -i.bak -E "s/(\"version\": *\")[^\"]+(\" *)/\1$NEW_VERSION\2/" "$ACORE_JSON_PATH"
-  rm -f "$ACORE_JSON_PATH.bak"
+  sed -i.bak -E "s/(\"version\": *\")[^\"]+(\" *)/\1$NEW_VERSION\2/" "$YCORE_JSON_PATH"
+  rm -f "$YCORE_JSON_PATH.bak"
 
   echo "✅ Version updated to $NEW_VERSION"
 else

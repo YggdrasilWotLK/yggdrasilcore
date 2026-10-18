@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -22,7 +22,7 @@
 #include "SharedDefines.h"
 #include "StringFormat.h"
 
-struct AC_GAME_API ArenaScore : public BattlegroundScore
+struct YC_GAME_API ArenaScore : public BattlegroundScore
 {
     friend class Arena;
 
@@ -36,13 +36,13 @@ protected:
     // For Logging purpose
     std::string ToString() const override
     {
-        return Acore::StringFormat("Damage done: {}, Healing done: {}, Killing blows: {}", DamageDone, HealingDone, KillingBlows);
+        return Ycore::StringFormat("Damage done: {}, Healing done: {}, Killing blows: {}", DamageDone, HealingDone, KillingBlows);
     }
 
     uint8 PvPTeamId;
 };
 
-struct AC_GAME_API ArenaTeamScore
+struct YC_GAME_API ArenaTeamScore
 {
     friend class Arena;
     friend class Battleground;
@@ -73,4 +73,4 @@ protected:
     std::string TeamName{};
 };
 
-#endif // ACORE_ARENA_SCORE_H
+#endif // YCORE_ARENA_SCORE_H

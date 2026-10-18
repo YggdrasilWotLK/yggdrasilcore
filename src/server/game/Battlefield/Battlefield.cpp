@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1153,8 +1153,8 @@ bool BfCapturePoint::Update(uint32 diff)
     }
 
     std::list<Player*> players;
-    Acore::AnyPlayerInObjectRangeCheck checker(capturePoint, radius);
-    Acore::PlayerListSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(capturePoint, players, checker);
+    Ycore::AnyPlayerInObjectRangeCheck checker(capturePoint, radius);
+    Ycore::PlayerListSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(capturePoint, players, checker);
     Cell::VisitObjects(capturePoint, searcher, radius);
 
     for (std::list<Player*>::iterator itr = players.begin(); itr != players.end(); ++itr)

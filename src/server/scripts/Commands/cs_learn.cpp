@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -24,7 +24,7 @@
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class learn_commandscript : public CommandScript
 {
@@ -75,7 +75,7 @@ public:
             return false;
         }
 
-        return Acore::PlayerCommand::HandleLearnSpellCommand(handler, targetPlayer, spell, allRanks);
+        return Ycore::PlayerCommand::HandleLearnSpellCommand(handler, targetPlayer, spell, allRanks);
     }
 
     static bool HandleLearnAllGMCommand(ChatHandler* handler)
@@ -414,7 +414,7 @@ public:
             return false;
         }
 
-        return Acore::PlayerCommand::HandleUnlearnSpellCommand(handler, target, spell, allRanks);
+        return Ycore::PlayerCommand::HandleUnlearnSpellCommand(handler, target, spell, allRanks);
     }
 };
 

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -528,12 +528,12 @@ class spell_rotface_mutated_infection : public SpellScript
     {
         // remove targets with this aura already
         // tank is not on this list
-        targets.remove_if(Acore::UnitAuraCheck(true, GetSpellInfo()->Id));
+        targets.remove_if(Ycore::UnitAuraCheck(true, GetSpellInfo()->Id));
         targets.remove(GetCaster()->GetVictim());
         if (targets.empty())
             return;
 
-        WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+        WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
         targets.clear();
         targets.push_back(target);
         _target = target;

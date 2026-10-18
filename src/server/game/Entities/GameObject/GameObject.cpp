@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -174,7 +174,7 @@ void GameObject::RemoveFromWorld()
         // Unlink from findable stores first: reentrant Find* calls in the
         // teardown below must not observe a half-removed object.
         if (m_spawnId)
-            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Acore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this); }
+            { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); Ycore::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this); }
         { std::lock_guard<std::recursive_mutex> lock(*GetMap()->GetStoreLock()); GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID()); }
 
         sScriptMgr->OnGameObjectRemoveWorld(this);
@@ -566,7 +566,7 @@ void GameObject::Update(uint32 diff)
                             if (info->summoningRitual.casterTargetSpell && info->summoningRitual.casterTargetSpell != 1) // No idea why this field is a bool in some cases
                                 for (uint32 i = 0; i < info->summoningRitual.casterTargetSpellTargets; i++)
                                     // m_unique_users can contain only player GUIDs
-                                    if (Player* target = ObjectAccessor::GetPlayer(*this, Acore::Containers::SelectRandomContainerElement(m_unique_users)))
+                                    if (Player* target = ObjectAccessor::GetPlayer(*this, Ycore::Containers::SelectRandomContainerElement(m_unique_users)))
                                         spellCaster->CastSpell(target, info->summoningRitual.casterTargetSpell, true);
 
                             // finish owners spell
@@ -718,8 +718,8 @@ void GameObject::Update(uint32 diff)
                         // search unfriendly creature
                         if (owner && goInfo->trap.autoCloseTime != -1) // hunter trap
                         {
-                            Acore::NearestAttackableNoTotemUnitInObjectRangeCheck checker(this, owner, radius);
-                            Acore::UnitSearcher<Acore::NearestAttackableNoTotemUnitInObjectRangeCheck> searcher(this, target, checker);
+                            Ycore::NearestAttackableNoTotemUnitInObjectRangeCheck checker(this, owner, radius);
+                            Ycore::UnitSearcher<Ycore::NearestAttackableNoTotemUnitInObjectRangeCheck> searcher(this, target, checker);
                             Cell::VisitObjects(this, searcher, radius);
                         }
                         else                                        // environmental trap
@@ -727,8 +727,8 @@ void GameObject::Update(uint32 diff)
                             // environmental damage spells already have around enemies targeting but this not help in case not existed GO casting support
                             // affect only players
                             Player* player = nullptr;
-                            Acore::AnyPlayerInObjectRangeCheck checker(this, radius, true, true);
-                            Acore::PlayerSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(this, player, checker);
+                            Ycore::AnyPlayerInObjectRangeCheck checker(this, radius, true, true);
+                            Ycore::PlayerSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(this, player, checker);
                             Cell::VisitObjects(this, searcher, radius);
                             target = player;
                         }
@@ -1393,8 +1393,8 @@ GameObject* GameObject::LookupFishingHoleAround(float range)
 {
     GameObject* ok = nullptr;
 
-    Acore::NearestGameObjectFishingHole u_check(*this, range);
-    Acore::GameObjectSearcher<Acore::NearestGameObjectFishingHole> checker(this, ok, u_check);
+    Ycore::NearestGameObjectFishingHole u_check(*this, range);
+    Ycore::GameObjectSearcher<Ycore::NearestGameObjectFishingHole> checker(this, ok, u_check);
 
     Cell::VisitObjects(this, checker, range);
     return ok;
@@ -2863,7 +2863,7 @@ void GameObject::SetPosition(float x, float y, float z, float o)
 {
     // pussywizard: do not call for MotionTransport and other gobjects not in grid
 
-    if (!Acore::IsValidMapCoord(x, y, z, o))
+    if (!Ycore::IsValidMapCoord(x, y, z, o))
         return;
 
     GetMap()->GameObjectRelocation(this, x, y, z, o);

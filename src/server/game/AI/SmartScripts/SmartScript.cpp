@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -575,7 +575,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             {
                 if (IsUnit(target))
                 {
-                    uint32 emote = Acore::Containers::SelectRandomContainerElement(emotes);
+                    uint32 emote = Ycore::Containers::SelectRandomContainerElement(emotes);
                     target->ToUnit()->HandleEmoteCommand(emote);
                     LOG_DEBUG("scripts.ai", "SmartScript::ProcessAction:: SMART_ACTION_RANDOM_EMOTE: Creature guidLow {} handle random emote {}",
                               target->GetGUID().ToString(), emote);
@@ -648,7 +648,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 caster = unit->SummonTrigger(unit->GetPositionX(), unit->GetPositionY(), unit->GetPositionZ(), unit->GetOrientation(), 5000);
 
             if (e.action.cast.targetsLimit)
-                Acore::Containers::RandomResize(targets, e.action.cast.targetsLimit);
+                Ycore::Containers::RandomResize(targets, e.action.cast.targetsLimit);
 
             bool failedSpellCast = false, successfulSpellCast = false;
 
@@ -784,7 +784,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 break;
 
             if (e.action.cast.targetsLimit)
-                Acore::Containers::RandomResize(targets, e.action.cast.targetsLimit);
+                Ycore::Containers::RandomResize(targets, e.action.cast.targetsLimit);
 
             TriggerCastFlags triggerFlags = TRIGGERED_NONE;
             if (e.action.cast.castFlags & SMARTCAST_TRIGGERED)
@@ -828,7 +828,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 break;
 
             if (e.action.cast.targetsLimit)
-                Acore::Containers::RandomResize(targets, e.action.cast.targetsLimit);
+                Ycore::Containers::RandomResize(targets, e.action.cast.targetsLimit);
 
             for (WorldObject* target : targets)
             {
@@ -1037,7 +1037,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             me->DoFleeToGetAssistance();
             if (e.action.flee.withEmote)
             {
-                Acore::BroadcastTextBuilder builder(me, CHAT_MSG_MONSTER_EMOTE, BROADCAST_TEXT_FLEE_FOR_ASSIST, me->getGender());
+                Ycore::BroadcastTextBuilder builder(me, CHAT_MSG_MONSTER_EMOTE, BROADCAST_TEXT_FLEE_FOR_ASSIST, me->getGender());
                 sCreatureTextMgr->SendChatPacket(me, builder, CHAT_MSG_MONSTER_EMOTE);
             }
             LOG_DEBUG("sql.sql", "SmartScript::ProcessAction:: SMART_ACTION_FLEE_FOR_ASSIST: Creature {} DoFleeToGetAssistance", me->GetGUID().ToString());
@@ -1140,7 +1140,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             std::copy_if(e.action.randomPhase.phases.begin(), e.action.randomPhase.phases.end(),
                          std::back_inserter(phases), [](uint32 phase) { return phase != 0; });
 
-            uint32 phase = Acore::Containers::SelectRandomContainerElement(phases);
+            uint32 phase = Ycore::Containers::SelectRandomContainerElement(phases);
             SetPhase(phase);
             LOG_DEBUG("scripts.ai", "SmartScript::ProcessAction: SMART_ACTION_RANDOM_PHASE: Creature {} sets event phase to {}",
                       GetBaseObject()->GetGUID().ToString(), phase);
@@ -1335,7 +1335,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                     target->ToCreature()->CallForHelp(float(e.action.callHelp.range));
                     if (e.action.callHelp.withEmote)
                     {
-                        Acore::BroadcastTextBuilder builder(target, CHAT_MSG_MONSTER_EMOTE, BROADCAST_TEXT_CALL_FOR_HELP, LANG_UNIVERSAL, nullptr);
+                        Ycore::BroadcastTextBuilder builder(target, CHAT_MSG_MONSTER_EMOTE, BROADCAST_TEXT_CALL_FOR_HELP, LANG_UNIVERSAL, nullptr);
                         sCreatureTextMgr->SendChatPacket(target, builder, CHAT_MSG_MONSTER_EMOTE);
                     }
                     LOG_DEBUG("scripts.ai", "SmartScript::ProcessAction: SMART_ACTION_CALL_FOR_HELP: Creature {}, target: {}",
@@ -1513,7 +1513,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 break;
 
             // attack random target
-            if (Unit* target = Acore::Containers::SelectRandomContainerElement(targets)->ToUnit())
+            if (Unit* target = Ycore::Containers::SelectRandomContainerElement(targets)->ToUnit())
                 me->AI()->AttackStart(target);
             break;
         }
@@ -1894,7 +1894,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                     if (targets.empty())
                         return;
                     else
-                        target = Acore::Containers::SelectRandomContainerElement(targets);
+                        target = Ycore::Containers::SelectRandomContainerElement(targets);
 
                     float x, y, z;
                     target->GetPosition(x, y, z);
@@ -2160,7 +2160,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             std::copy_if(e.action.randTimedActionList.actionLists.begin(), e.action.randTimedActionList.actionLists.end(),
                          std::back_inserter(actionLists), [](uint32 actionList) { return actionList != 0; });
 
-            uint32 id = Acore::Containers::SelectRandomContainerElement(actionLists);
+            uint32 id = Ycore::Containers::SelectRandomContainerElement(actionLists);
             if (e.GetTargetType() == SMART_TARGET_NONE)
             {
                 LOG_ERROR("sql.sql", "SmartScript: Entry {} SourceType {} Event {} Action {} is using TARGET_NONE(0) for Script9 target. Please correct target_type in database.", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetActionType());
@@ -2309,7 +2309,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             // xinef: my implementation
             if (e.action.jump.selfJump)
             {
-                if (WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets))
+                if (WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets))
                     if (me)
                         me->GetMotionMaster()->MoveJump(target->GetPositionX() + e.target.x, target->GetPositionY() + e.target.y, target->GetPositionZ() + e.target.z, (float)e.action.jump.speedxy, (float)e.action.jump.speedz);
             }
@@ -2713,7 +2713,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         }
         case SMART_ACTION_PLAYER_TALK:
         {
-            std::string text = sObjectMgr->GetAcoreString(e.action.playerTalk.textId, DEFAULT_LOCALE);
+            std::string text = sObjectMgr->GetYcoreString(e.action.playerTalk.textId, DEFAULT_LOCALE);
 
             if (!targets.empty())
                 for (WorldObject* target : targets)
@@ -3725,7 +3725,7 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
                         targets.push_back(unit);
 
             if (e.target.playerRange.maxCount)
-                Acore::Containers::RandomResize(targets, e.target.playerRange.maxCount);
+                Ycore::Containers::RandomResize(targets, e.target.playerRange.maxCount);
 
             break;
         }
@@ -3905,7 +3905,7 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
                             targets.push_back(unit);
 
             if (e.target.o > 0)
-                Acore::Containers::RandomResize(targets, e.target.o);
+                Ycore::Containers::RandomResize(targets, e.target.o);
 
             break;
         }
@@ -3946,7 +3946,7 @@ void SmartScript::GetTargets(ObjectVector& targets, SmartScriptHolder const& e, 
                     }
 
             if (e.target.roleSelection.resize > 0)
-                Acore::Containers::RandomResize(targets, e.target.roleSelection.resize);
+                Ycore::Containers::RandomResize(targets, e.target.roleSelection.resize);
 
             break;
         }
@@ -4047,8 +4047,8 @@ void SmartScript::GetWorldObjectsInDist(ObjectVector& targets, float dist) const
     if (!obj)
         return;
 
-    Acore::AllWorldObjectsInRange u_check(obj, dist);
-    Acore::WorldObjectListSearcher<Acore::AllWorldObjectsInRange> searcher(obj, targets, u_check);
+    Ycore::AllWorldObjectsInRange u_check(obj, dist);
+    Ycore::WorldObjectListSearcher<Ycore::AllWorldObjectsInRange> searcher(obj, targets, u_check);
     Cell::VisitObjects(obj, searcher, dist);
 }
 
@@ -4180,7 +4180,7 @@ void SmartScript::ProcessEvent(SmartScriptHolder& e, Unit* unit, uint32 var0, ui
                     RecalcTimer(e, 1000, 3000);
                     return;
                 }
-                ProcessTimedAction(e, e.event.friendlyCC.repeatMin, e.event.friendlyCC.repeatMax, Acore::Containers::SelectRandomContainerElement(creatures));
+                ProcessTimedAction(e, e.event.friendlyCC.repeatMin, e.event.friendlyCC.repeatMax, Ycore::Containers::SelectRandomContainerElement(creatures));
                 break;
             }
         case SMART_EVENT_FRIENDLY_MISSING_BUFF:
@@ -4196,7 +4196,7 @@ void SmartScript::ProcessEvent(SmartScriptHolder& e, Unit* unit, uint32 var0, ui
             if (creatures.empty())
                 return;
 
-            ProcessTimedAction(e, e.event.missingBuff.repeatMin, e.event.missingBuff.repeatMax, Acore::Containers::SelectRandomContainerElement(creatures));
+            ProcessTimedAction(e, e.event.missingBuff.repeatMin, e.event.missingBuff.repeatMax, Ycore::Containers::SelectRandomContainerElement(creatures));
             break;
         }
         case SMART_EVENT_HAS_AURA:
@@ -5118,7 +5118,7 @@ void SmartScript::FillScript(SmartAIEventList e, WorldObject* obj, AreaTrigger c
     }
     for (SmartAIEventList::iterator i = e.begin(); i != e.end(); ++i)
     {
-#ifndef ACORE_DEBUG
+#ifndef YCORE_DEBUG
         if ((*i).event.event_flags & SMART_EVENT_FLAG_DEBUG_ONLY)
             continue;
 #endif
@@ -5275,8 +5275,8 @@ Unit* SmartScript::DoSelectLowestHpFriendly(float range, uint32 MinHPDiff) const
 
     Unit* unit = nullptr;
 
-    Acore::MostHPMissingInRange u_check(me, range, MinHPDiff);
-    Acore::UnitLastSearcher<Acore::MostHPMissingInRange> searcher(me, unit, u_check);
+    Ycore::MostHPMissingInRange u_check(me, range, MinHPDiff);
+    Ycore::UnitLastSearcher<Ycore::MostHPMissingInRange> searcher(me, unit, u_check);
     Cell::VisitObjects(me, searcher, range);
     return unit;
 }
@@ -5289,8 +5289,8 @@ Unit* SmartScript::DoSelectLowestHpPercentFriendly(float range, uint32 minHpPct,
     }
 
     Unit* unit = nullptr;
-    Acore::MostHPPercentMissingInRange u_check(me, range, minHpPct, maxHpPct);
-    Acore::UnitLastSearcher<Acore::MostHPPercentMissingInRange> searcher(me, unit, u_check);
+    Ycore::MostHPPercentMissingInRange u_check(me, range, minHpPct, maxHpPct);
+    Ycore::UnitLastSearcher<Ycore::MostHPPercentMissingInRange> searcher(me, unit, u_check);
     Cell::VisitObjects(me, searcher, range);
     return unit;
 }
@@ -5300,8 +5300,8 @@ void SmartScript::DoFindFriendlyCC(std::vector<Creature*>& creatures, float rang
     if (!me)
         return;
 
-    Acore::FriendlyCCedInRange u_check(me, range);
-    Acore::CreatureListSearcher<Acore::FriendlyCCedInRange> searcher(me, creatures, u_check);
+    Ycore::FriendlyCCedInRange u_check(me, range);
+    Ycore::CreatureListSearcher<Ycore::FriendlyCCedInRange> searcher(me, creatures, u_check);
     Cell::VisitObjects(me, searcher, range);
 }
 
@@ -5310,8 +5310,8 @@ void SmartScript::DoFindFriendlyMissingBuff(std::vector<Creature*>& creatures, f
     if (!me)
         return;
 
-    Acore::FriendlyMissingBuffInRange u_check(me, range, spellid);
-    Acore::CreatureListSearcher<Acore::FriendlyMissingBuffInRange> searcher(me, creatures, u_check);
+    Ycore::FriendlyMissingBuffInRange u_check(me, range, spellid);
+    Ycore::CreatureListSearcher<Ycore::FriendlyMissingBuffInRange> searcher(me, creatures, u_check);
     Cell::VisitObjects(me, searcher, range);
 }
 
@@ -5321,8 +5321,8 @@ Unit* SmartScript::DoFindClosestFriendlyInRange(float range, bool playerOnly) co
         return nullptr;
 
     Unit* unit = nullptr;
-    Acore::AnyFriendlyNotSelfUnitInObjectRangeCheck u_check(me, me, range, playerOnly);
-    Acore::UnitLastSearcher<Acore::AnyFriendlyNotSelfUnitInObjectRangeCheck> searcher(me, unit, u_check);
+    Ycore::AnyFriendlyNotSelfUnitInObjectRangeCheck u_check(me, me, range, playerOnly);
+    Ycore::UnitLastSearcher<Ycore::AnyFriendlyNotSelfUnitInObjectRangeCheck> searcher(me, unit, u_check);
     Cell::VisitObjects(me, searcher, range);
     return unit;
 }

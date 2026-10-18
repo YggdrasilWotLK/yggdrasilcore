@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -146,7 +146,7 @@ class spell_the_flag_of_ownership : public SpellScript
 
         LocaleConstant loc_idx = caster->ToPlayer()->GetSession()->GetSessionDbLocaleIndex();
         BroadcastText const* bct = sObjectMgr->GetBroadcastText(TEXT_FLAG_OF_OWNERSHIP);
-        std::string bctMsg = Acore::StringFormat(bct->GetText(loc_idx, caster->getGender()), caster->GetName(), target->GetName());
+        std::string bctMsg = Ycore::StringFormat(bct->GetText(loc_idx, caster->getGender()), caster->GetName(), target->GetName());
         caster->Talk(bctMsg, CHAT_MSG_MONSTER_EMOTE, LANG_UNIVERSAL, sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_TEXTEMOTE), target);
 
         haveTarget = true;
@@ -670,7 +670,7 @@ public:
     void FilterTargets(std::list<WorldObject*>& targets)
     {
         targets.remove(GetCaster());
-        Acore::Containers::RandomResize(targets, _count);
+        Ycore::Containers::RandomResize(targets, _count);
     }
 
     void Register() override
@@ -1357,8 +1357,8 @@ class spell_gen_cannibalize : public SpellScript
         float max_range = GetSpellInfo()->GetMaxRange(false);
         WorldObject* result = nullptr;
         // search for nearby enemy corpse in range
-        Acore::AnyDeadUnitSpellTargetInRangeCheck check(caster, max_range, GetSpellInfo(), TARGET_CHECK_CORPSE);
-        Acore::WorldObjectSearcher<Acore::AnyDeadUnitSpellTargetInRangeCheck> searcher(caster, result, check);
+        Ycore::AnyDeadUnitSpellTargetInRangeCheck check(caster, max_range, GetSpellInfo(), TARGET_CHECK_CORPSE);
+        Ycore::WorldObjectSearcher<Ycore::AnyDeadUnitSpellTargetInRangeCheck> searcher(caster, result, check);
         Cell::VisitObjects(caster, searcher, max_range);
         if (!result)
         {
@@ -4268,13 +4268,13 @@ class spell_gen_replenishment : public SpellScript
             }
         }
 
-        targets.remove_if(Acore::PowerCheck(POWER_MANA, false));
+        targets.remove_if(Ycore::PowerCheck(POWER_MANA, false));
 
         uint8 const maxTargets = 10;
 
         if (targets.size() > maxTargets)
         {
-            targets.sort(Acore::PowerPctOrderPred(POWER_MANA));
+            targets.sort(Ycore::PowerPctOrderPred(POWER_MANA));
             targets.resize(maxTargets);
         }
     }

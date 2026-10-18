@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -654,8 +654,8 @@ public:
             if (_missingHPForHealTimer <= diff)
             {
                 Unit* unit = nullptr;
-                Acore::MostHPMissingInRange u_check(me, 40.f, 1500);
-                Acore::UnitLastSearcher<Acore::MostHPMissingInRange> searcher(me, unit, u_check);
+                Ycore::MostHPMissingInRange u_check(me, 40.f, 1500);
+                Ycore::UnitLastSearcher<Ycore::MostHPMissingInRange> searcher(me, unit, u_check);
                 Cell::VisitObjects(me, searcher, 40.f);
                 if (unit)
                 {
@@ -672,8 +672,8 @@ public:
             if (_missingHPForRenewTimer <= diff)
             {
                 Unit* unit = nullptr;
-                Acore::MostHPMissingInRange u_check(me, 40.f, 700);
-                Acore::UnitLastSearcher<Acore::MostHPMissingInRange> searcher(me, unit, u_check);
+                Ycore::MostHPMissingInRange u_check(me, 40.f, 700);
+                Ycore::UnitLastSearcher<Ycore::MostHPMissingInRange> searcher(me, unit, u_check);
                 Cell::VisitObjects(me, searcher, 40.f);
                 if (unit)
                 {

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -38,7 +38,7 @@ enum ArenaSpellIds
     SPELL_LAST_MAN_STANDING                 = 26549  // Achievement Credit
 };
 
-class AC_GAME_API Arena : public Battleground
+class YC_GAME_API Arena : public Battleground
 {
 protected:
     Arena();
@@ -57,4 +57,4 @@ private:
     void EndBattleground(TeamId winnerTeamId) override;
 };
 
-#endif // ACORE_ARENA_H
+#endif // YCORE_ARENA_H

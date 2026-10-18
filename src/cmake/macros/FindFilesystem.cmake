@@ -119,7 +119,7 @@ cmake_push_check_state()
 set(CMAKE_REQUIRED_QUIET ${Filesystem_FIND_QUIETLY})
 
 # All of our tests required C++17 or later
-# But AC already sets this in ConfigureBaseTargets.cmake
+# But YC already sets this in ConfigureBaseTargets.cmake
 # set(CMAKE_CXX_STANDARD 17)
 
 # Normalize and check the component list we were given

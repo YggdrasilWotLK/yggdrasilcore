@@ -2,7 +2,7 @@ from re import compile, MULTILINE
 from os import walk, getcwd
 
 notice = ('''/*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -109,7 +109,7 @@ def processFile(path, filename):
     output.write('#include "SmartEnum.h"\n')
     output.write('#include <stdexcept>\n')
     output.write('\n')
-    output.write('namespace Acore::Impl::EnumUtilsImpl\n')
+    output.write('namespace Ycore::Impl::EnumUtilsImpl\n')
     output.write('{\n')
     for name, prefix, values in enums:
         tag = ('data for enum \'%s\' in \'%s.h\' auto-generated' % (name, filename))
@@ -118,7 +118,7 @@ def processFile(path, filename):
         output.write('|* ' + tag + ' *|\n')
         output.write('\\*' + ('*'*(len(tag)+2)) + '*/\n')
         output.write('template <>\n')
-        output.write('AC_API_EXPORT EnumText EnumUtils<%s>::ToString(%s value)\n' % (name, name))
+        output.write('YC_API_EXPORT EnumText EnumUtils<%s>::ToString(%s value)\n' % (name, name))
         output.write('{\n')
         output.write('    switch (value)\n')
         output.write('    {\n')
@@ -129,10 +129,10 @@ def processFile(path, filename):
         output.write('}\n')
         output.write('\n')
         output.write('template <>\n')
-        output.write('AC_API_EXPORT size_t EnumUtils<%s>::Count() { return %d; }\n' % (name, len(values)))
+        output.write('YC_API_EXPORT size_t EnumUtils<%s>::Count() { return %d; }\n' % (name, len(values)))
         output.write('\n')
         output.write('template <>\n')
-        output.write('AC_API_EXPORT %s EnumUtils<%s>::FromIndex(size_t index)\n' % (name, name))
+        output.write('YC_API_EXPORT %s EnumUtils<%s>::FromIndex(size_t index)\n' % (name, name))
         output.write('{\n')
         output.write('    switch (index)\n')
         output.write('    {\n')
@@ -143,7 +143,7 @@ def processFile(path, filename):
         output.write('}\n')
         output.write('\n')
         output.write('template <>\n')
-        output.write('AC_API_EXPORT size_t EnumUtils<%s>::ToIndex(%s value)\n' % (name, name))
+        output.write('YC_API_EXPORT size_t EnumUtils<%s>::ToIndex(%s value)\n' % (name, name))
         output.write('{\n')
         output.write('    switch (value)\n')
         output.write('    {\n')

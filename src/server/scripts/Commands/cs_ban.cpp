@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -34,11 +34,11 @@ enum BanMode
     BAN_IP
 };
 
-#if AC_COMPILER == AC_COMPILER_GNU
+#if YC_COMPILER == YC_COMPILER_GNU
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-using namespace Acore::ChatCommands;
+using namespace Ycore::ChatCommands;
 
 class ban_commandscript : public CommandScript
 {
@@ -296,9 +296,9 @@ public:
             if (fields[2].Get<bool>() && (fields[1].Get<uint64>() == uint64(0) || unbanDate >= GameTime::GetGameTime().count()))
                 active = true;
             bool permanent = (fields[1].Get<uint64>() == uint64(0));
-            std::string banTime = permanent ? handler->GetAcoreString(LANG_BANINFO_INFINITE) : secsToTimeString(fields[1].Get<uint64>(), true);
+            std::string banTime = permanent ? handler->GetYcoreString(LANG_BANINFO_INFINITE) : secsToTimeString(fields[1].Get<uint64>(), true);
             handler->PSendSysMessage(LANG_BANINFO_HISTORYENTRY,
-                fields[0].Get<std::string>(), banTime, active ? handler->GetAcoreString(LANG_YES) : handler->GetAcoreString(LANG_NO), fields[4].Get<std::string>(), fields[5].Get<std::string>());
+                fields[0].Get<std::string>(), banTime, active ? handler->GetYcoreString(LANG_YES) : handler->GetYcoreString(LANG_NO), fields[4].Get<std::string>(), fields[5].Get<std::string>());
         } while (result->NextRow());
 
         return true;
@@ -344,9 +344,9 @@ public:
             if (fields[2].Get<uint8>() && (!fields[1].Get<uint32>() || unbanDate >= GameTime::GetGameTime().count()))
                 active = true;
             bool permanent = (fields[1].Get<uint32>() == uint32(0));
-            std::string banTime = permanent ? handler->GetAcoreString(LANG_BANINFO_INFINITE) : secsToTimeString(fields[1].Get<uint64>(), true);
+            std::string banTime = permanent ? handler->GetYcoreString(LANG_BANINFO_INFINITE) : secsToTimeString(fields[1].Get<uint64>(), true);
             handler->PSendSysMessage(LANG_BANINFO_HISTORYENTRY,
-                fields[0].Get<std::string>(), banTime, active ? handler->GetAcoreString(LANG_YES) : handler->GetAcoreString(LANG_NO), fields[4].Get<std::string>(), fields[5].Get<std::string>());
+                fields[0].Get<std::string>(), banTime, active ? handler->GetYcoreString(LANG_YES) : handler->GetYcoreString(LANG_NO), fields[4].Get<std::string>(), fields[5].Get<std::string>());
         } while (result->NextRow());
 
         return true;
@@ -384,8 +384,8 @@ public:
         Field* fields = result->Fetch();
         bool permanent = fields[6].Get<uint64>() == 1;
         handler->PSendSysMessage(LANG_BANINFO_IPENTRY,
-            fields[0].Get<std::string>(), fields[1].Get<std::string>(), permanent ? handler->GetAcoreString(LANG_BANINFO_NEVER) : fields[2].Get<std::string>(),
-            permanent ? handler->GetAcoreString(LANG_BANINFO_INFINITE) : secsToTimeString(fields[3].Get<uint64>(), true), fields[4].Get<std::string>(), fields[5].Get<std::string>());
+            fields[0].Get<std::string>(), fields[1].Get<std::string>(), permanent ? handler->GetYcoreString(LANG_BANINFO_NEVER) : fields[2].Get<std::string>(),
+            permanent ? handler->GetYcoreString(LANG_BANINFO_INFINITE) : secsToTimeString(fields[3].Get<uint64>(), true), fields[4].Get<std::string>(), fields[5].Get<std::string>());
 
         return true;
     }
@@ -469,7 +469,7 @@ public:
                     Field* fields2 = banInfo->Fetch();
                     do
                     {
-                        tm tmBan = Acore::Time::TimeBreakdown(fields2[0].Get<uint32>());
+                        tm tmBan = Ycore::Time::TimeBreakdown(fields2[0].Get<uint32>());
 
                         if (fields2[0].Get<uint32>() == fields2[1].Get<uint32>())
                         {
@@ -479,7 +479,7 @@ public:
                         }
                         else
                         {
-                            tm tmUnban = Acore::Time::TimeBreakdown(fields2[1].Get<uint32>());
+                            tm tmUnban = Ycore::Time::TimeBreakdown(fields2[1].Get<uint32>());
                             handler->PSendSysMessage("|{:<15.15}|{:02}-{:02}-{:02} {:02}:{:02}|{:02}-{:02}-{:02} {:02}:{:02}|{:<15.15}|{:<15.15}|",
                                                      accountName, tmBan.tm_year % 100, tmBan.tm_mon + 1, tmBan.tm_mday, tmBan.tm_hour, tmBan.tm_min,
                                                      tmUnban.tm_year % 100, tmUnban.tm_mon + 1, tmUnban.tm_mday, tmUnban.tm_hour, tmUnban.tm_min,
@@ -553,7 +553,7 @@ public:
                     Field* banFields = banInfo->Fetch();
                     do
                     {
-                        tm tmBan = Acore::Time::TimeBreakdown(banFields[0].Get<uint32>());
+                        tm tmBan = Ycore::Time::TimeBreakdown(banFields[0].Get<uint32>());
 
                         if (banFields[0].Get<uint32>() == banFields[1].Get<uint32>())
                         {
@@ -563,7 +563,7 @@ public:
                         }
                         else
                         {
-                            tm tmUnban = Acore::Time::TimeBreakdown(banFields[1].Get<uint32>());
+                            tm tmUnban = Ycore::Time::TimeBreakdown(banFields[1].Get<uint32>());
                             handler->PSendSysMessage("|{:<15.15}|{:02}-{:02}-{:02} {:02}:{:02}|{:02}-{:02}-{:02} {:02}:{:02}|{:<15.15}|{:<15.15}|",
                                                      char_name, tmBan.tm_year % 100, tmBan.tm_mon + 1, tmBan.tm_mday, tmBan.tm_hour, tmBan.tm_min,
                                                      tmUnban.tm_year % 100, tmUnban.tm_mon + 1, tmUnban.tm_mday, tmUnban.tm_hour, tmUnban.tm_min,
@@ -627,7 +627,7 @@ public:
             {
                 handler->SendSysMessage("-------------------------------------------------------------------------------");
                 Field* fields = result->Fetch();
-                tm tmBan = Acore::Time::TimeBreakdown(fields[1].Get<uint32>());
+                tm tmBan = Ycore::Time::TimeBreakdown(fields[1].Get<uint32>());
                 if (fields[1].Get<uint32>() == fields[2].Get<uint32>())
                 {
                     handler->PSendSysMessage("{:<15.15}|{:02}-{:02}-{:02} {:02}:{:02}|   permanent  |{:<15.15}|{:<15.15}|",
@@ -636,7 +636,7 @@ public:
                 }
                 else
                 {
-                    tm tmUnban = Acore::Time::TimeBreakdown(fields[2].Get<uint32>());
+                    tm tmUnban = Ycore::Time::TimeBreakdown(fields[2].Get<uint32>());
                     handler->PSendSysMessage("|{:<15.15}|{:02}-{:02}-{:02} {:02}:{:02}|{:02}-{:02}-{:02} {:02}:{:02}|{:<15.15}|{:<15.15}|",
                                              fields[0].Get<std::string>(), tmBan.tm_year % 100, tmBan.tm_mon + 1, tmBan.tm_mday, tmBan.tm_hour, tmBan.tm_min,
                                              tmUnban.tm_year % 100, tmUnban.tm_mon + 1, tmUnban.tm_mday, tmUnban.tm_hour, tmUnban.tm_min,

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AC_SMARTENUM_H
-#define AC_SMARTENUM_H
+#ifndef YC_SMARTENUM_H
+#define YC_SMARTENUM_H
 
 #include "IteratorPair.h"
 
@@ -31,7 +31,7 @@ struct EnumText
     char const* const Description;
 };
 
-namespace Acore::Impl::EnumUtilsImpl
+namespace Ycore::Impl::EnumUtilsImpl
 {
     template <typename Enum>
     struct EnumUtils
@@ -47,20 +47,20 @@ class EnumUtils
 {
 public:
     template <typename Enum>
-    static std::size_t Count() { return Acore::Impl::EnumUtilsImpl::EnumUtils<Enum>::Count(); }
+    static std::size_t Count() { return Ycore::Impl::EnumUtilsImpl::EnumUtils<Enum>::Count(); }
     template <typename Enum>
-    static EnumText ToString(Enum value) { return Acore::Impl::EnumUtilsImpl::EnumUtils<Enum>::ToString(value); }
+    static EnumText ToString(Enum value) { return Ycore::Impl::EnumUtilsImpl::EnumUtils<Enum>::ToString(value); }
     template <typename Enum>
-    static Enum FromIndex(std::size_t index) { return Acore::Impl::EnumUtilsImpl::EnumUtils<Enum>::FromIndex(index); }
+    static Enum FromIndex(std::size_t index) { return Ycore::Impl::EnumUtilsImpl::EnumUtils<Enum>::FromIndex(index); }
     template <typename Enum>
-    static uint32 ToIndex(Enum value) { return Acore::Impl::EnumUtilsImpl::EnumUtils<Enum>::ToIndex(value);}
+    static uint32 ToIndex(Enum value) { return Ycore::Impl::EnumUtilsImpl::EnumUtils<Enum>::ToIndex(value);}
 
     template<typename Enum>
     static bool IsValid(Enum value)
     {
         try
         {
-            Acore::Impl::EnumUtilsImpl::EnumUtils<Enum>::ToIndex(value);
+            Ycore::Impl::EnumUtilsImpl::EnumUtils<Enum>::ToIndex(value);
             return true;
         }
         catch (...)
@@ -117,7 +117,7 @@ public:
     static Iterator<Enum> End() { return Iterator<Enum>(); }
 
     template <typename Enum>
-    static Acore::IteratorPair<Iterator<Enum>> Iterate() { return { Begin<Enum>(), End<Enum>() }; }
+    static Ycore::IteratorPair<Iterator<Enum>> Iterate() { return { Begin<Enum>(), End<Enum>() }; }
 
     template <typename Enum>
     static char const* ToConstant(Enum value) { return ToString(value).Constant; }
@@ -129,4 +129,4 @@ public:
     static char const* ToDescription(Enum value) { return ToString(value).Description; }
 };
 
-#endif // AC_SMART_ENUM_H
+#endif // YC_SMART_ENUM_H

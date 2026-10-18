@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1903,8 +1903,8 @@ class spell_q11010_q11102_q11023_choose_loc : public SpellScript
         Unit* caster = GetCaster();
         // Check for player that is in 65 y range
         std::list<Player*> playerList;
-        Acore::AnyPlayerInObjectRangeCheck checker(caster, 65.0f);
-        Acore::PlayerListSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(caster, playerList, checker);
+        Ycore::AnyPlayerInObjectRangeCheck checker(caster, 65.0f);
+        Ycore::PlayerListSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(caster, playerList, checker);
         Cell::VisitObjects(caster, searcher, 65.0f);
         for (std::list<Player*>::const_iterator itr = playerList.begin(); itr != playerList.end(); ++itr)
             // Check if found player target is on fly mount or using flying form

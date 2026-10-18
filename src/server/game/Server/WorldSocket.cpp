@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -119,7 +119,7 @@ void EncryptableAndCompressiblePacket::CompressIfNeeded()
 WorldSocket::WorldSocket(tcp::socket&& socket)
     : Socket(std::move(socket)), _OverSpeedPings(0), _worldSession(nullptr), _authed(false), _sendBufferSize(4096), _loggingPackets(false)
 {
-    Acore::Crypto::GetRandomBytes(_authSeed);
+    Ycore::Crypto::GetRandomBytes(_authSeed);
     _headerBuffer.Resize(sizeof(ClientPktHeader));
 }
 
@@ -225,7 +225,7 @@ void WorldSocket::HandleSendAuthSession()
     packet << uint32(1);                                    // 1...31
     packet.append(_authSeed);
 
-    packet.append(Acore::Crypto::GetRandomBytes<32>());               // new encryption seeds
+    packet.append(Ycore::Crypto::GetRandomBytes<32>());               // new encryption seeds
 
     SendPacketAndLogOpcode(packet);
 }
@@ -339,7 +339,7 @@ struct AuthSession
     uint32 LoginServerID = 0;
     uint32 RegionID = 0;
     uint64 DosResponse = 0;
-    Acore::Crypto::SHA1::Digest Digest = {};
+    Ycore::Crypto::SHA1::Digest Digest = {};
     std::string Account;
     ByteBuffer AddonInfo;
 };
@@ -612,7 +612,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<AuthSession> authSes
     // Check that Key and account name are the same on client and server
     uint8 t[4] = { 0x00,0x00,0x00,0x00 };
 
-    Acore::Crypto::SHA1 sha;
+    Ycore::Crypto::SHA1 sha;
     sha.UpdateData(authSession->Account);
     sha.UpdateData(t);
     sha.UpdateData(authSession->LocalChallenge);

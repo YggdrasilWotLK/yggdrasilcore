@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -892,11 +892,11 @@ void ObjectMgr::LoadCreatureTemplateAddons()
         creatureAddon.emote   = fields[5].Get<uint32>();
         creatureAddon.visibilityDistanceType = VisibilityDistanceType(fields[6].Get<uint8>());
 
-        for (std::string_view aura : Acore::Tokenize(fields[7].Get<std::string_view>(), ' ', false))
+        for (std::string_view aura : Ycore::Tokenize(fields[7].Get<std::string_view>(), ' ', false))
         {
             SpellInfo const* spellInfo = nullptr;
 
-            if (Optional<uint32> spellId = Acore::StringTo<uint32>(aura))
+            if (Optional<uint32> spellId = Ycore::StringTo<uint32>(aura))
             {
                 spellInfo = sSpellMgr->GetSpellInfo(*spellId);
             }
@@ -956,11 +956,11 @@ void ObjectMgr::LoadCreatureCustomIDs()
 {
     // Hack for modules
     std::string stringCreatureIds = sConfigMgr->GetOption<std::string>("Creatures.CustomIDs", "190010,55005,999991,25462,98888,601014,34567,34568");
-    std::vector<std::string_view> CustomCreatures = Acore::Tokenize(stringCreatureIds, ',', false);
+    std::vector<std::string_view> CustomCreatures = Ycore::Tokenize(stringCreatureIds, ',', false);
 
     for (auto& itr : CustomCreatures)
     {
-        _creatureCustomIDsStore.push_back(Acore::StringTo<uint32>(itr).value());
+        _creatureCustomIDsStore.push_back(Ycore::StringTo<uint32>(itr).value());
     }
 }
 
@@ -1333,11 +1333,11 @@ void ObjectMgr::LoadCreatureAddons()
         creatureAddon.emote   = fields[5].Get<uint32>();
         creatureAddon.visibilityDistanceType = VisibilityDistanceType(fields[6].Get<uint8>());
 
-        for (std::string_view aura : Acore::Tokenize(fields[7].Get<std::string_view>(), ' ', false))
+        for (std::string_view aura : Ycore::Tokenize(fields[7].Get<std::string_view>(), ' ', false))
         {
             SpellInfo const* spellInfo = nullptr;
 
-            if (Optional<uint32> spellId = Acore::StringTo<uint32>(aura))
+            if (Optional<uint32> spellId = Ycore::StringTo<uint32>(aura))
             {
                 spellInfo = sSpellMgr->GetSpellInfo(*spellId);
             }
@@ -1473,7 +1473,7 @@ CreatureAddon const* ObjectMgr::GetCreatureTemplateAddon(uint32 entry)
 
 CreatureMovementData const* ObjectMgr::GetCreatureMovementOverride(ObjectGuid::LowType spawnId) const
 {
-    return Acore::Containers::MapGetValuePtr(_creatureMovementOverrides, spawnId);
+    return Ycore::Containers::MapGetValuePtr(_creatureMovementOverrides, spawnId);
 }
 
 EquipmentInfo const* ObjectMgr::GetEquipmentInfo(uint32 entry, int8& id)
@@ -2501,7 +2501,7 @@ void ObjectMgr::AddCreatureToGrid(ObjectGuid::LowType guid, CreatureData const* 
     {
         if (mask & 1)
         {
-            GridCoord gridCoord = Acore::ComputeGridCoord(data->posX, data->posY);
+            GridCoord gridCoord = Ycore::ComputeGridCoord(data->posX, data->posY);
             CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][gridCoord.GetId()];
             cell_guids.creatures.insert(guid);
         }
@@ -2515,7 +2515,7 @@ void ObjectMgr::RemoveCreatureFromGrid(ObjectGuid::LowType guid, CreatureData co
     {
         if (mask & 1)
         {
-            GridCoord gridCoord = Acore::ComputeGridCoord(data->posX, data->posY);
+            GridCoord gridCoord = Ycore::ComputeGridCoord(data->posX, data->posY);
             CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][gridCoord.GetId()];
             cell_guids.creatures.erase(guid);
         }
@@ -2807,7 +2807,7 @@ void ObjectMgr::AddGameobjectToGrid(ObjectGuid::LowType guid, GameObjectData con
     {
         if (mask & 1)
         {
-            GridCoord gridCoord = Acore::ComputeGridCoord(data->posX, data->posY);
+            GridCoord gridCoord = Ycore::ComputeGridCoord(data->posX, data->posY);
             CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][gridCoord.GetId()];
             cell_guids.gameobjects.insert(guid);
         }
@@ -2821,7 +2821,7 @@ void ObjectMgr::RemoveGameobjectFromGrid(ObjectGuid::LowType guid, GameObjectDat
     {
         if (mask & 1)
         {
-            GridCoord gridCoord = Acore::ComputeGridCoord(data->posX, data->posY);
+            GridCoord gridCoord = Ycore::ComputeGridCoord(data->posX, data->posY);
             CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(data->mapid, i)][gridCoord.GetId()];
             cell_guids.gameobjects.erase(guid);
         }
@@ -5528,7 +5528,7 @@ void ObjectMgr::LoadScripts(ScriptsType type)
                         continue;
                     }
 
-                    if (!Acore::IsValidMapCoord(tmp.TeleportTo.DestX, tmp.TeleportTo.DestY, tmp.TeleportTo.DestZ, tmp.TeleportTo.Orientation))
+                    if (!Ycore::IsValidMapCoord(tmp.TeleportTo.DestX, tmp.TeleportTo.DestY, tmp.TeleportTo.DestZ, tmp.TeleportTo.Orientation))
                     {
                         LOG_ERROR("sql.sql", "Table `{}` has invalid coordinates (X: {} Y: {} Z: {} O: {}) in SCRIPT_COMMAND_TELEPORT_TO for script id {}",
                                          tableName, tmp.TeleportTo.DestX, tmp.TeleportTo.DestY, tmp.TeleportTo.DestZ, tmp.TeleportTo.Orientation, tmp.id);
@@ -5626,7 +5626,7 @@ void ObjectMgr::LoadScripts(ScriptsType type)
 
             case SCRIPT_COMMAND_TEMP_SUMMON_CREATURE:
                 {
-                    if (!Acore::IsValidMapCoord(tmp.TempSummonCreature.PosX, tmp.TempSummonCreature.PosY, tmp.TempSummonCreature.PosZ, tmp.TempSummonCreature.Orientation))
+                    if (!Ycore::IsValidMapCoord(tmp.TempSummonCreature.PosX, tmp.TempSummonCreature.PosY, tmp.TempSummonCreature.PosZ, tmp.TempSummonCreature.Orientation))
                     {
                         LOG_ERROR("sql.sql", "Table `{}` has invalid coordinates (X: {} Y: {} Z: {} O: {}) in SCRIPT_COMMAND_TEMP_SUMMON_CREATURE for script id {}",
                                          tableName, tmp.TempSummonCreature.PosX, tmp.TempSummonCreature.PosY, tmp.TempSummonCreature.PosZ, tmp.TempSummonCreature.Orientation, tmp.id);
@@ -8100,7 +8100,7 @@ void ObjectMgr::LoadPointsOfInterest()
         POI.Importance  = fields[5].Get<uint32>();
         POI.Name        = fields[6].Get<std::string>();
 
-        if (!Acore::IsValidMapCoord(POI.PositionX, POI.PositionY))
+        if (!Ycore::IsValidMapCoord(POI.PositionX, POI.PositionY))
         {
             LOG_ERROR("sql.sql", "Table `points_of_interest` (ID: {}) have invalid coordinates (X: {} Y: {}), ignored.", point_id, POI.PositionX, POI.PositionY);
             continue;
@@ -8937,15 +8937,15 @@ std::string const* ObjectMgr::GetModuleString(std::string module, uint32 id, Loc
     return (std::string*)"error";
 }
 
-bool ObjectMgr::LoadAcoreStrings()
+bool ObjectMgr::LoadYcoreStrings()
 {
     uint32 oldMSTime = getMSTime();
 
-    _acoreStringStore.clear(); // for reload case
+    _ycoreStringStore.clear(); // for reload case
     QueryResult result = WorldDatabase.Query("SELECT entry, content_default, locale_koKR, locale_frFR, locale_deDE, locale_zhCN, locale_zhTW, locale_esES, locale_esMX, locale_ruRU FROM acore_string");
     if (!result)
     {
-        LOG_WARN("server.loading", ">> Loaded 0 acore strings. DB table `acore_strings` is empty.");
+        LOG_WARN("server.loading", ">> Loaded 0 ycore strings. DB table `acore_strings` is empty.");
         LOG_INFO("server.loading", " ");
         return false;
     }
@@ -8956,7 +8956,7 @@ bool ObjectMgr::LoadAcoreStrings()
 
         uint32 entry = fields[0].Get<uint32>();
 
-        AcoreString& data = _acoreStringStore[entry];
+        YcoreString& data = _ycoreStringStore[entry];
 
         data.Content.resize(DEFAULT_LOCALE + 1);
 
@@ -8964,15 +8964,15 @@ bool ObjectMgr::LoadAcoreStrings()
             AddLocaleString(fields[i + 1].Get<std::string>(), LocaleConstant(i), data.Content);
     } while (result->NextRow());
 
-    LOG_INFO("server.loading", ">> Loaded {} Acore Strings in {} ms", (uint32)_acoreStringStore.size(), GetMSTimeDiffToNow(oldMSTime));
+    LOG_INFO("server.loading", ">> Loaded {} Ycore Strings in {} ms", (uint32)_ycoreStringStore.size(), GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
 
     return true;
 }
 
-std::string ObjectMgr::GetAcoreString(uint32 entry, LocaleConstant locale) const
+std::string ObjectMgr::GetYcoreString(uint32 entry, LocaleConstant locale) const
 {
-    AcoreString const* as = GetAcoreString(entry);
+    YcoreString const* as = GetYcoreString(entry);
     if (as && !as->Content.empty())
     {
         if (as->Content.size() > std::size_t(locale) && !as->Content[locale].empty())
@@ -8981,7 +8981,7 @@ std::string ObjectMgr::GetAcoreString(uint32 entry, LocaleConstant locale) const
         return as->Content[DEFAULT_LOCALE];
     }
 
-    std::string msg = Acore::StringFormat("No entry for acore_string ({}) in DB.", entry);
+    std::string msg = Ycore::StringFormat("No entry for acore_string ({}) in DB.", entry);
     LOG_ERROR("sql.sql", msg);
     return msg;
 }
@@ -9328,7 +9328,7 @@ void ObjectMgr::LoadMailLevelRewards()
 
 void ObjectMgr::AddSpellToTrainer(uint32 entry, uint32 spell, uint32 spellCost, uint32 reqSkill, uint32 reqSkillValue, uint32 reqLevel, uint32 reqSpell)
 {
-    if (entry >= ACORE_TRAINER_START_REF)
+    if (entry >= YCORE_TRAINER_START_REF)
         return;
 
     CreatureTemplate const* cInfo = GetCreatureTemplate(entry);

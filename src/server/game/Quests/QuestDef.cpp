@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -317,7 +317,7 @@ uint32 Quest::CalculateHonorGain(uint8 level) const
         honor = uint32(tc->value * GetRewHonorMultiplier() * 0.1000000014901161);
 
         // Xinef: exactly this is calculated above, however with higher precision...
-        //honor += Acore::Honor::hk_honor_at_level(level, GetRewHonorMultiplier());
+        //honor += Ycore::Honor::hk_honor_at_level(level, GetRewHonorMultiplier());
         honor += GetRewHonorAddition();
     }
 

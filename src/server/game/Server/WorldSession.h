@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -422,13 +422,13 @@ public:
     void SendAreaTriggerMessage(char const* fmt, Args&&... args)
     {
         if (!m_playerLoading)
-            SendAreaTriggerMessage(Acore::StringFormat(fmt, std::forward<Args>(args)...));
+            SendAreaTriggerMessage(Ycore::StringFormat(fmt, std::forward<Args>(args)...));
     }
     template<typename... Args>
     void SendAreaTriggerMessage(uint32 strId, Args&&... args)
     {
         if (!m_playerLoading)
-            SendAreaTriggerMessage(Acore::StringFormat(GetAcoreString(strId), std::forward<Args>(args)...));
+            SendAreaTriggerMessage(Ycore::StringFormat(GetYcoreString(strId), std::forward<Args>(args)...));
     }
 
     void SendSetPhaseShift(uint32 phaseShift);
@@ -578,7 +578,7 @@ public:
     // Locales
     LocaleConstant GetSessionDbcLocale() const { return m_sessionDbcLocale; }
     LocaleConstant GetSessionDbLocaleIndex() const { return m_sessionDbLocaleIndex; }
-    std::string GetAcoreString(uint32 entry) const;
+    std::string GetYcoreString(uint32 entry) const;
     std::string const* GetModuleString(std::string module, uint32 id) const;
 
     uint32 GetLatency() const { return m_latency; }

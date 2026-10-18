@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_TOTEM_H
-#define AZEROTHCORE_TOTEM_H
+#ifndef YGGDRASILCORE_TOTEM_H
+#define YGGDRASILCORE_TOTEM_H
 
 #include "TemporarySummon.h"
 

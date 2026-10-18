@@ -112,13 +112,13 @@ BindIP = "0.0.0.0"
 #                                                                 section my.ini)
 #                     ".;/path/to/unix_socket;username;password;database" - (use Unix sockets on
 #                                                                           Unix/Linux)
-#        Default:     "127.0.0.1;3306;acore;acore;acore_auth"       - (LoginDatabaseInfo)
-#                     "127.0.0.1;3306;acore;acore;acore_world"      - (WorldDatabaseInfo)
-#                     "127.0.0.1;3306;acore;acore;acore_characters" - (CharacterDatabaseInfo)
+#        Default:     "127.0.0.1;3306;acore;acore;ycore_auth"       - (LoginDatabaseInfo)
+#                     "127.0.0.1;3306;acore;acore;ycore_world"      - (WorldDatabaseInfo)
+#                     "127.0.0.1;3306;acore;acore;ycore_characters" - (CharacterDatabaseInfo)
 
-LoginDatabaseInfo     = "127.0.0.1;3306;acore;acore;acore_auth"
-WorldDatabaseInfo     = "127.0.0.1;3306;acore;acore;acore_world"
-CharacterDatabaseInfo = "127.0.0.1;3306;acore;acore;acore_characters"
+LoginDatabaseInfo     = "127.0.0.1;3306;acore;acore;ycore_auth"
+WorldDatabaseInfo     = "127.0.0.1;3306;acore;acore;ycore_world"
+CharacterDatabaseInfo = "127.0.0.1;3306;acore;acore;ycore_characters"
 
 #
 #    LoginDatabase.WorkerThreads
@@ -571,8 +571,8 @@ MinRecordUpdateTimeDiff = 100
 #
 #    IPLocationFile
 #        Description: The path to your IP2Location database CSV file.
-#        Example:     "C:/acore/IP2LOCATION-LITE-DB1.CSV"
-#                     "/home/acore/IP2LOCATION-LITE-DB1.CSV"
+#        Example:     "C:/ycore/IP2LOCATION-LITE-DB1.CSV"
+#                     "/home/ycore/IP2LOCATION-LITE-DB1.CSV"
 #        Default:     ""  - (Disabled)
 #
 

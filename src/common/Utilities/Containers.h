@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_CONTAINERS_H
-#define ACORE_CONTAINERS_H
+#ifndef YCORE_CONTAINERS_H
+#define YCORE_CONTAINERS_H
 
 #include "Define.h"
 #include "Random.h"
@@ -25,7 +25,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace Acore
+namespace Ycore
 {
     template<class T>
     constexpr inline T* AddressOrSelf(T* ptr)
@@ -71,14 +71,14 @@ namespace Acore
     };
 }
 
-namespace Acore::Containers
+namespace Ycore::Containers
 {
     // resizes <container> to have at most <requestedSize> elements
     // if it has more than <requestedSize> elements, the elements to keep are selected randomly
     template<class C>
     void RandomResize(C& container, std::size_t requestedSize)
     {
-        static_assert(std::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<typename C::iterator>::iterator_category>::value, "Invalid container passed to Acore::Containers::RandomResize");
+        static_assert(std::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<typename C::iterator>::iterator_category>::value, "Invalid container passed to Ycore::Containers::RandomResize");
 
         if (std::size(container) <= requestedSize)
         {
@@ -220,7 +220,7 @@ namespace Acore::Containers
     }
 
     /*
-     * @fn void Acore::Containers::RandomShuffle(C& container)
+     * @fn void Ycore::Containers::RandomShuffle(C& container)
      *
      * @brief Reorder the elements of the container randomly.
      *
@@ -284,4 +284,4 @@ namespace Acore::Containers
     }
 }
 
-#endif //! #ifdef ACORE_CONTAINERS_H
+#endif //! #ifdef YCORE_CONTAINERS_H

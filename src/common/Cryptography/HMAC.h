@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_HMAC_H
-#define AZEROTHCORE_HMAC_H
+#ifndef YGGDRASILCORE_HMYC_H
+#define YGGDRASILCORE_HMYC_H
 
 #include "CryptoConstants.h"
 #include "CryptoHash.h"
@@ -27,7 +27,7 @@
 
 class BigNumber;
 
-namespace Acore::Impl
+namespace Ycore::Impl
 {
     template <GenericHashImpl::HashCreator HashCreator, std::size_t DigestLength>
     class GenericHMAC
@@ -134,10 +134,10 @@ namespace Acore::Impl
     };
 }
 
-namespace Acore::Crypto
+namespace Ycore::Crypto
 {
-    using HMAC_SHA1 = Acore::Impl::GenericHMAC<EVP_sha1, Constants::SHA1_DIGEST_LENGTH_BYTES>;
-    using HMAC_SHA256 = Acore::Impl::GenericHMAC<EVP_sha256, Constants::SHA256_DIGEST_LENGTH_BYTES>;
+    using HMYC_SHA1 = Ycore::Impl::GenericHMAC<EVP_sha1, Constants::SHA1_DIGEST_LENGTH_BYTES>;
+    using HMYC_SHA256 = Ycore::Impl::GenericHMAC<EVP_sha256, Constants::SHA256_DIGEST_LENGTH_BYTES>;
 }
 
 #endif

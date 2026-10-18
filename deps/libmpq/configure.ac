@@ -1,23 +1,23 @@
 # the autoconf initilization.
-AC_INIT(libmpq, 0.4.2, [mbroemme@plusserver.de], [libmpq])
+YC_INIT(libmpq, 0.4.2, [mbroemme@plusserver.de], [libmpq])
 
 # detect the canonical host and target build environment.
-AC_CANONICAL_SYSTEM
+YC_CANONICAL_SYSTEM
 
 # initialize autoconf and automake system.
 AM_INIT_AUTOMAKE([no-dependencies])
-AC_CONFIG_HEADERS([config.h:config.h.in])
+YC_CONFIG_HEADERS([config.h:config.h.in])
 
 # notices.
-AC_PREREQ(2.53)
-AC_REVISION($Revision: 1.6 $)
+YC_PREREQ(2.53)
+YC_REVISION($Revision: 1.6 $)
 
 # checking for programs.
-AC_PROG_LIBTOOL
-AC_PROG_MAKE_SET
-AC_PROG_CC
-AC_SYS_LARGEFILE
-AC_FUNC_FSEEKO
+YC_PROG_LIBTOOL
+YC_PROG_MAKE_SET
+YC_PROG_CC
+YC_SYS_LARGEFILE
+YC_FUNC_FSEEKO
 
 # check if we need to export some largefile flags.
 if test "$enable_largefile" != no; then
@@ -45,18 +45,18 @@ if test "$enable_largefile" != no; then
 fi
 
 # export largefile flags.
-AC_SUBST(LFS_CFLAGS)
+YC_SUBST(LFS_CFLAGS)
 
 # check for zlib library.
-AC_CHECK_HEADER([zlib.h], [], [AC_MSG_ERROR([*** zlib.h is required, install zlib header files])])
-AC_CHECK_LIB([z], [inflateEnd], [], [AC_MSG_ERROR([*** inflateEnd is required, install zlib library files])])
+YC_CHECK_HEADER([zlib.h], [], [YC_MSG_ERROR([*** zlib.h is required, install zlib header files])])
+YC_CHECK_LIB([z], [inflateEnd], [], [YC_MSG_ERROR([*** inflateEnd is required, install zlib library files])])
 
 # check for bzlib2 library.
-AC_CHECK_HEADER([bzlib.h], [], [AC_MSG_ERROR([*** bzlib.h is required, install bzip2 header files])])
-AC_CHECK_LIB([bz2], [BZ2_bzDecompressInit], [], [AC_MSG_ERROR([*** BZ2_bzDecompressInit is required, install bzip2 library files])])
+YC_CHECK_HEADER([bzlib.h], [], [YC_MSG_ERROR([*** bzlib.h is required, install bzip2 header files])])
+YC_CHECK_LIB([bz2], [BZ2_bzDecompressInit], [], [YC_MSG_ERROR([*** BZ2_bzDecompressInit is required, install bzip2 library files])])
 
 # When we're running gcc 4 or greater, compile with -fvisibility=hidden.
-AC_TRY_COMPILE([
+YC_TRY_COMPILE([
 #if !defined(__GNUC__) || (__GNUC__ < 4)
 #error not gcc4
 #endif
@@ -67,11 +67,11 @@ AM_PATH_PYTHON([2.4],,[:])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 # configuration files.
-AC_CONFIG_FILES([libmpq.pc])
-AC_CONFIG_FILES([libmpq-config],[chmod +x libmpq-config])
+YC_CONFIG_FILES([libmpq.pc])
+YC_CONFIG_FILES([libmpq-config],[chmod +x libmpq-config])
 
 # creating files.
-AC_OUTPUT([
+YC_OUTPUT([
 Makefile
 libmpq/Makefile
 bindings/Makefile

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -566,7 +566,7 @@ void Player::UpdateLocalChannels(uint32 newZone)
                     std::string currentNameExt;
 
                     if (channel->flags & CHANNEL_DBC_FLAG_CITY_ONLY)
-                        currentNameExt = sObjectMgr->GetAcoreStringForDBCLocale(LANG_CHANNEL_CITY);
+                        currentNameExt = sObjectMgr->GetYcoreStringForDBCLocale(LANG_CHANNEL_CITY);
                     else
                         currentNameExt = current_zone_name;
 
@@ -1061,7 +1061,7 @@ void Player::UpdateCombatSkills(Unit* victim, WeaponAttackType attType, bool def
         return;
     }
 
-    uint8 greylevel = Acore::XP::GetGrayLevel(playerLevel);
+    uint8 greylevel = Ycore::XP::GetGrayLevel(playerLevel);
     uint8 moblevel = defence ? victim->getLevelForTarget(this) : victim->GetLevel(); // if defense than victim == attacker
     /*if (moblevel < greylevel)
         return;*/
@@ -1648,7 +1648,7 @@ void Player::UpdateVisibilityForPlayer(bool mapChange)
     if (mapChange && m_seer != this)
         m_seer = this;
 
-    Acore::VisibleNotifier notifier(*this, mapChange);
+    Ycore::VisibleNotifier notifier(*this, mapChange);
     Cell::VisitObjects(m_seer, notifier, GetSightRange());
     Cell::VisitFarVisibleObjects(m_seer, notifier, VISIBILITY_DISTANCE_GIGANTIC);
     notifier.SendToSelf();

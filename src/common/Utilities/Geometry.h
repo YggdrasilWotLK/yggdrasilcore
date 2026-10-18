@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef _ACORE_GEOMETRY_H
-#define _ACORE_GEOMETRY_H
+#ifndef _YCORE_GEOMETRY_H
+#define _YCORE_GEOMETRY_H
 
 #include <cstdlib>
 #include <math.h>
@@ -63,4 +63,4 @@
     return height * getCircleAreaByRadius(radius);
 }
 
-#endif // _ACORE_GEOMETRY_H
+#endif // _YCORE_GEOMETRY_H

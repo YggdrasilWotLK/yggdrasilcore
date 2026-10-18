@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACORE_BASE_ENCODING_HPP
-#define ACORE_BASE_ENCODING_HPP
+#ifndef YCORE_BASE_ENCODING_HPP
+#define YCORE_BASE_ENCODING_HPP
 
 #include "Define.h"
 #include "Optional.h"
@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-namespace Acore::Impl
+namespace Ycore::Impl
 {
     template <typename Encoding>
     struct GenericBaseEncoding

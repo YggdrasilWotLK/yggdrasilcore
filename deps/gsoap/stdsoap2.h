@@ -431,7 +431,7 @@ extern intmax_t __strtoull(const char*, char**, int);
 #  define SOAP_LONG_FORMAT "%ld"
 #  define SOAP_ULONG_FORMAT "%lu"
 #  define HAVE_LOCALE_H
-# elif defined(MAC_CARBON)
+# elif defined(MYC_CARBON)
 #  define WITH_NOIO
 #  define HAVE_SNPRINTF
 #  define HAVE_STRRCHR

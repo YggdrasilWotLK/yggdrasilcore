@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -20,14 +20,14 @@
 #include "SmartEnum.h"
 #include <stdexcept>
 
-namespace Acore::Impl::EnumUtilsImpl
+namespace Ycore::Impl::EnumUtilsImpl
 {
 
 /*************************************************************************\
 |* data for enum 'CreatureFlagsExtra' in 'CreatureData.h' auto-generated *|
 \*************************************************************************/
 template <>
-AC_API_EXPORT EnumText EnumUtils<CreatureFlagsExtra>::ToString(CreatureFlagsExtra value)
+YC_API_EXPORT EnumText EnumUtils<CreatureFlagsExtra>::ToString(CreatureFlagsExtra value)
 {
     switch (value)
     {
@@ -68,10 +68,10 @@ AC_API_EXPORT EnumText EnumUtils<CreatureFlagsExtra>::ToString(CreatureFlagsExtr
 }
 
 template <>
-AC_API_EXPORT std::size_t EnumUtils<CreatureFlagsExtra>::Count() { return 32; }
+YC_API_EXPORT std::size_t EnumUtils<CreatureFlagsExtra>::Count() { return 32; }
 
 template <>
-AC_API_EXPORT CreatureFlagsExtra EnumUtils<CreatureFlagsExtra>::FromIndex(std::size_t index)
+YC_API_EXPORT CreatureFlagsExtra EnumUtils<CreatureFlagsExtra>::FromIndex(std::size_t index)
 {
     switch (index)
     {
@@ -112,7 +112,7 @@ AC_API_EXPORT CreatureFlagsExtra EnumUtils<CreatureFlagsExtra>::FromIndex(std::s
 }
 
 template <>
-AC_API_EXPORT std::size_t EnumUtils<CreatureFlagsExtra>::ToIndex(CreatureFlagsExtra value)
+YC_API_EXPORT std::size_t EnumUtils<CreatureFlagsExtra>::ToIndex(CreatureFlagsExtra value)
 {
     switch (value)
     {

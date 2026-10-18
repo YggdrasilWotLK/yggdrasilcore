@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -41,8 +41,8 @@ void ConfusedMovementGenerator<T>::DoInitialize(T* unit)
         float wanderY = y + (wander_distance * (float)rand_norm() - wander_distance / 2);
 
         // prevent invalid coordinates generation
-        Acore::NormalizeMapCoord(wanderX);
-        Acore::NormalizeMapCoord(wanderY);
+        Ycore::NormalizeMapCoord(wanderX);
+        Ycore::NormalizeMapCoord(wanderY);
 
         float new_z = unit->GetMapHeight(wanderX, wanderY, z);
         if (new_z <= INVALID_HEIGHT || std::fabs(z - new_z) > 3.0f) // pussywizard

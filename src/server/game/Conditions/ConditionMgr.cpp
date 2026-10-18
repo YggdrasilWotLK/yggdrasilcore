@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1876,7 +1876,7 @@ bool ConditionMgr::isSourceTypeValid(Condition* cond)
 }
 bool ConditionMgr::isConditionTypeValid(Condition* cond)
 {
-    if (cond->ConditionType == CONDITION_NONE || (cond->ConditionType >= CONDITION_TC_END && cond->ConditionType <= CONDITION_AC_START) || (cond->ConditionType >= CONDITION_AC_END))
+    if (cond->ConditionType == CONDITION_NONE || (cond->ConditionType >= CONDITION_TC_END && cond->ConditionType <= CONDITION_YC_START) || (cond->ConditionType >= CONDITION_YC_END))
     {
         LOG_ERROR("sql.sql", "SourceEntry {} in `condition` table has an invalid ConditionType ({}), ignoring.", cond->SourceEntry, uint32(cond->ConditionType));
         return false;

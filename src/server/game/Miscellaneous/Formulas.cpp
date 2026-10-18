@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -23,7 +23,7 @@
 #include "Player.h"
 #include "World.h"
 
-uint32 Acore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels content)
+uint32 Ycore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels content)
 {
     uint32 baseGain;
     uint32 nBaseExp;
@@ -69,7 +69,7 @@ uint32 Acore::XP::BaseGain(uint8 pl_level, uint8 mob_level, ContentLevels conten
     return baseGain;
 }
 
-uint32 Acore::XP::Gain(Player* player, Unit* unit, bool isBattleGround /*= false*/)
+uint32 Ycore::XP::Gain(Player* player, Unit* unit, bool isBattleGround /*= false*/)
 {
     Creature* creature = unit->ToCreature();
     uint32 gain = 0;
@@ -99,7 +99,7 @@ uint32 Acore::XP::Gain(Player* player, Unit* unit, bool isBattleGround /*= false
         {
             switch (player->GetMapId())
             {
-                case MAP_ALTERAC_VALLEY:
+                case MAP_ALTERYC_VALLEY:
                     xpMod *= sWorld->getRate(RATE_XP_BG_KILL_AV);
                     break;
                 case MAP_WARSONG_GULCH:

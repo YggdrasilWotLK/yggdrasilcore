@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -24,7 +24,7 @@
 #ifdef WIN32
 #include <windows.h>
 #endif // WIN32
-using namespace Acore;
+using namespace Ycore;
 
 Thread::Thread() : m_task(nullptr), m_iThreadId(), m_ThreadImp()
 {

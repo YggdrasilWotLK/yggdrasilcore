@@ -4,8 +4,8 @@
 # Tests the configuration and support scripts for the compiler module
 
 # Load the AzerothCore test framework
-load '../../test-framework/bats_libs/acore-support'
-load '../../test-framework/bats_libs/acore-assert'
+load '../../test-framework/bats_libs/ycore-support'
+load '../../test-framework/bats_libs/ycore-assert'
 
 # Setup that runs before each test
 setup() {
@@ -15,7 +15,7 @@ setup() {
 
 # Cleanup that runs after each test
 teardown() {
-    acore_test_teardown
+    ycore_test_teardown
 }
 
 # ===== DEFINES SCRIPT TESTS =====
@@ -70,7 +70,7 @@ teardown() {
     run bash -c "
         export BUILDPATH='$build_path'
         export BINPATH='$bin_path'
-        export AC_PATH_APPS='$SCRIPT_DIR/..'
+        export YC_PATH_APPS='$SCRIPT_DIR/..'
         
         # Create directories manually since includes.sh does this
         mkdir -p \"\$BUILDPATH\"
@@ -93,7 +93,7 @@ teardown() {
     # Test that all required files are sourced without errors
     run bash -c "
         # Set minimal required environment
-        AC_PATH_APPS='$SCRIPT_DIR/..'
+        YC_PATH_APPS='$SCRIPT_DIR/..'
         BUILDPATH='/tmp'
         BINPATH='/tmp'
         source '$SCRIPT_DIR/includes/includes.sh'
@@ -104,25 +104,25 @@ teardown() {
     [[ "$output" =~ "All files sourced successfully" ]]
 }
 
-@test "includes: should set AC_PATH_COMPILER variable" {
-    # Test that AC_PATH_COMPILER is set correctly
+@test "includes: should set YC_PATH_COMPILER variable" {
+    # Test that YC_PATH_COMPILER is set correctly
     run bash -c "
-        AC_PATH_APPS='$SCRIPT_DIR/..'
+        YC_PATH_APPS='$SCRIPT_DIR/..'
         BUILDPATH='/tmp'
         BINPATH='/tmp'
         source '$SCRIPT_DIR/includes/includes.sh'
-        echo \"AC_PATH_COMPILER=\$AC_PATH_COMPILER\"
+        echo \"YC_PATH_COMPILER=\$YC_PATH_COMPILER\"
     "
     
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "AC_PATH_COMPILER=" ]]
+    [[ "$output" =~ "YC_PATH_COMPILER=" ]]
     [[ "$output" =~ "/compiler" ]]
 }
 
 @test "includes: should register ON_AFTER_BUILD hook" {
     # Test that the hook is registered
     run bash -c "
-        AC_PATH_APPS='$SCRIPT_DIR/..'
+        YC_PATH_APPS='$SCRIPT_DIR/..'
         BUILDPATH='/tmp'
         BINPATH='/tmp'
         source '$SCRIPT_DIR/includes/includes.sh'
@@ -139,8 +139,8 @@ teardown() {
 @test "config: should handle missing config file gracefully" {
     # Test behavior when config.sh doesn't exist
     run bash -c "
-        export AC_PATH_APPS='$SCRIPT_DIR/..'
-        export AC_PATH_COMPILER='$SCRIPT_DIR'
+        export YC_PATH_APPS='$SCRIPT_DIR/..'
+        export YC_PATH_COMPILER='$SCRIPT_DIR'
         export BUILDPATH='/tmp'
         export BINPATH='/tmp'
         
@@ -197,9 +197,9 @@ teardown() {
     export -f cp
     
     # Set required variables
-    AC_PATH_APPS="$SCRIPT_DIR/.."
+    YC_PATH_APPS="$SCRIPT_DIR/.."
     BINPATH="/tmp/test_bin"
-    export AC_PATH_APPS BINPATH
+    export YC_PATH_APPS BINPATH
     
     # Source and test the hook function
     source "$SCRIPT_DIR/includes/includes.sh"

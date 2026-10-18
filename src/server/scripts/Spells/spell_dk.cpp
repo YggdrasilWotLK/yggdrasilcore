@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -1161,7 +1161,7 @@ class spell_dk_corpse_explosion : public SpellScript
                 FinishCast(SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW);
                 return;
             }
-            target = Acore::Containers::SelectRandomContainerElement(targets);
+            target = Ycore::Containers::SelectRandomContainerElement(targets);
             targets.clear();
             targets.push_back(target);
         }
@@ -1974,7 +1974,7 @@ class spell_dk_raise_dead : public SpellScript
             return;
         }
 
-        WorldObject* target = Acore::Containers::SelectRandomContainerElement(targets);
+        WorldObject* target = Ycore::Containers::SelectRandomContainerElement(targets);
         targets.clear();
         targets.push_back(target);
         _corpse = true;

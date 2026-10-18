@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,13 +15,13 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _ACORE_TOKENIZE_H_
-#define _ACORE_TOKENIZE_H_
+#ifndef _YCORE_TOKENIZE_H_
+#define _YCORE_TOKENIZE_H_
 
 #include <string_view>
 #include <vector>
 
-namespace Acore
+namespace Ycore
 {
     std::vector<std::string_view> Tokenize(std::string_view str, char sep, bool keepEmpty);
 
@@ -33,4 +33,4 @@ namespace Acore
     inline std::vector<std::string_view> Tokenize(char const* str, char sep, bool keepEmpty) { return Tokenize(std::string_view(str ? str : ""), sep, keepEmpty); }
 }
 
-#endif // _ACORE_TOKENIZE_H_
+#endif // _YCORE_TOKENIZE_H_

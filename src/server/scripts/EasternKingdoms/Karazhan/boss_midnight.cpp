@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -190,7 +190,7 @@ struct boss_attumen : public BossAI
                 }
                 if (!target_list.empty())
                 {
-                    target = Acore::Containers::SelectRandomContainerElement(target_list);
+                    target = Ycore::Containers::SelectRandomContainerElement(target_list);
                 }
                 DoCast(target, SPELL_CHARGE);
                 task.Repeat(10s, 25s);

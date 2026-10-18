@@ -630,8 +630,8 @@
         "allFormat": "regex values",
         "allValue": null,
         "current": {
-          "text": "Acore",
-          "value": "Acore"
+          "text": "Ycore",
+          "value": "Ycore"
         },
         "datasource": "Influx",
         "definition": "",

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,19 +15,19 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_COMMON_H
-#define AZEROTHCORE_COMMON_H
+#ifndef YGGDRASILCORE_COMMON_H
+#define YGGDRASILCORE_COMMON_H
 
 #include "Define.h"
 #include <string>
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
 #include <ws2tcpip.h>
-#if AC_COMPILER == AC_COMPILER_INTEL
+#if YC_COMPILER == YC_COMPILER_INTEL
 #    if !defined(BOOST_ASIO_HAS_MOVE)
 #      define BOOST_ASIO_HAS_MOVE
 #    endif // !defined(BOOST_ASIO_HAS_MOVE)
-#  endif // if AC_COMPILER == AC_COMPILER_INTEL
+#  endif // if YC_COMPILER == YC_COMPILER_INTEL
 #else
 #include <cstdlib>
 #include <netdb.h>
@@ -133,16 +133,16 @@ enum LocaleConstant
 #define MAX_LOCALES 8
 #define MAX_ACCOUNT_TUTORIAL_VALUES 8
 
-AC_COMMON_API extern char const* localeNames[TOTAL_LOCALES];
+YC_COMMON_API extern char const* localeNames[TOTAL_LOCALES];
 
-AC_COMMON_API bool IsLocaleValid(std::string const& locale);
-AC_COMMON_API LocaleConstant GetLocaleByName(const std::string& name);
-AC_COMMON_API const std::string GetNameByLocaleConstant(LocaleConstant localeConstant);
-AC_COMMON_API void CleanStringForMysqlQuery(std::string& str);
+YC_COMMON_API bool IsLocaleValid(std::string const& locale);
+YC_COMMON_API LocaleConstant GetLocaleByName(const std::string& name);
+YC_COMMON_API const std::string GetNameByLocaleConstant(LocaleConstant localeConstant);
+YC_COMMON_API void CleanStringForMysqlQuery(std::string& str);
 
 #define MAX_QUERY_LEN 32*1024
 
-namespace Acore
+namespace Ycore
 {
     template<class ArgumentType, class ResultType>
     struct unary_function

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -49,7 +49,7 @@ namespace AccountMgr
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_ACCOUNT);
 
         stmt->SetData(0, username);
-        auto [salt, verifier] = Acore::Crypto::SRP6::MakeRegistrationData(username, password);
+        auto [salt, verifier] = Ycore::Crypto::SRP6::MakeRegistrationData(username, password);
         stmt->SetData(1, salt);
         stmt->SetData(2, verifier);
         stmt->SetData(3, uint8(sWorld->getIntConfig(CONFIG_EXPANSION)));
@@ -192,7 +192,7 @@ namespace AccountMgr
         stmt->SetData(1, accountId);
         LoginDatabase.Execute(stmt);
 
-        auto [salt, verifier] = Acore::Crypto::SRP6::MakeRegistrationData(newUsername, newPassword);
+        auto [salt, verifier] = Ycore::Crypto::SRP6::MakeRegistrationData(newUsername, newPassword);
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_LOGON);
         stmt->SetData(0, salt);
         stmt->SetData(1, verifier);
@@ -221,7 +221,7 @@ namespace AccountMgr
         Utf8ToUpperOnlyLatin(username);
         Utf8ToUpperOnlyLatin(newPassword);
 
-        auto [salt, verifier] = Acore::Crypto::SRP6::MakeRegistrationData(username, newPassword);
+        auto [salt, verifier] = Ycore::Crypto::SRP6::MakeRegistrationData(username, newPassword);
 
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_LOGON);
         stmt->SetData(0, salt);
@@ -290,9 +290,9 @@ namespace AccountMgr
         stmt->SetData(0, accountId);
         if (PreparedQueryResult result = LoginDatabase.Query(stmt))
         {
-            Acore::Crypto::SRP6::Salt salt = (*result)[0].Get<Binary, Acore::Crypto::SRP6::SALT_LENGTH>();
-            Acore::Crypto::SRP6::Verifier verifier = (*result)[1].Get<Binary, Acore::Crypto::SRP6::VERIFIER_LENGTH>();
-            if (Acore::Crypto::SRP6::CheckLogin(username, password, salt, verifier))
+            Ycore::Crypto::SRP6::Salt salt = (*result)[0].Get<Binary, Ycore::Crypto::SRP6::SALT_LENGTH>();
+            Ycore::Crypto::SRP6::Verifier verifier = (*result)[1].Get<Binary, Ycore::Crypto::SRP6::VERIFIER_LENGTH>();
+            if (Ycore::Crypto::SRP6::CheckLogin(username, password, salt, verifier))
                 return true;
         }
 

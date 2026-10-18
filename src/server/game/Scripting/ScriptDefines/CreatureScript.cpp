@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -201,4 +201,4 @@ CreatureScript::CreatureScript(const char* name)
     ScriptRegistry<CreatureScript>::AddScript(this);
 }
 
-template class AC_GAME_API ScriptRegistry<CreatureScript>;
+template class YC_GAME_API ScriptRegistry<CreatureScript>;

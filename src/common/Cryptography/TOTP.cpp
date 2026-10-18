@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -20,19 +20,19 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
-constexpr std::size_t Acore::Crypto::TOTP::RECOMMENDED_SECRET_LENGTH;
+constexpr std::size_t Ycore::Crypto::TOTP::RECOMMENDED_SECRET_LENGTH;
 static constexpr uint32 TOTP_INTERVAL = 30;
-static constexpr uint32 HMAC_RESULT_SIZE = 20;
+static constexpr uint32 HMYC_RESULT_SIZE = 20;
 
-/*static*/ uint32 Acore::Crypto::TOTP::GenerateToken(Secret const& secret, time_t timestamp)
+/*static*/ uint32 Ycore::Crypto::TOTP::GenerateToken(Secret const& secret, time_t timestamp)
 {
     timestamp /= TOTP_INTERVAL;
     unsigned char challenge[8];
     for (int i = 8; i--; timestamp >>= 8)
         challenge[i] = timestamp;
 
-    unsigned char digest[HMAC_RESULT_SIZE];
-    uint32 digestSize = HMAC_RESULT_SIZE;
+    unsigned char digest[HMYC_RESULT_SIZE];
+    uint32 digestSize = HMYC_RESULT_SIZE;
     HMAC(EVP_sha1(), secret.data(), secret.size(), challenge, 8, digest, &digestSize);
 
     uint32 offset = digest[19] & 0xF;
@@ -41,7 +41,7 @@ static constexpr uint32 HMAC_RESULT_SIZE = 20;
     return (truncated % 1000000);
 }
 
-/*static*/ bool Acore::Crypto::TOTP::ValidateToken(Secret const& secret, uint32 token)
+/*static*/ bool Ycore::Crypto::TOTP::ValidateToken(Secret const& secret, uint32 token)
 {
     time_t now = GetEpochTime().count();
     return (

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -437,7 +437,7 @@ namespace lfg
         proposal.cancelTime = GameTime::GetGameTime().count() + LFG_TIME_PROPOSAL;
         proposal.state = LFG_PROPOSAL_INITIATING;
         proposal.leader.Clear();
-        proposal.dungeonId = Acore::Containers::SelectRandomContainerElement(proposalDungeons);
+        proposal.dungeonId = Ycore::Containers::SelectRandomContainerElement(proposalDungeons);
 
         uint32 completedEncounters = 0;
         bool leader = false;

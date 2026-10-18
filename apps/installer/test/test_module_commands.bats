@@ -3,23 +3,23 @@
 # Tests for installer module commands (search/install/update/remove)
 # Focused on installer:module install behavior using a mocked joiner
 
-load '../../test-framework/bats_libs/acore-support'
-load '../../test-framework/bats_libs/acore-assert'
+load '../../test-framework/bats_libs/ycore-support'
+load '../../test-framework/bats_libs/ycore-assert'
 
 setup() {
-    acore_test_setup
+    ycore_test_setup
     # Point to the installer src directory (not needed in this test)
 
     # Set installer/paths environment for the test
-    export AC_PATH_APPS="$TEST_DIR/apps"
-    export AC_PATH_ROOT="$TEST_DIR"
-    export AC_PATH_DEPS="$TEST_DIR/deps"
-    export AC_PATH_MODULES="$TEST_DIR/modules"
+    export YC_PATH_APPS="$TEST_DIR/apps"
+    export YC_PATH_ROOT="$TEST_DIR"
+    export YC_PATH_DEPS="$TEST_DIR/deps"
+    export YC_PATH_MODULES="$TEST_DIR/modules"
     export MODULES_LIST_FILE="$TEST_DIR/conf/modules.list"
 
     # Create stubbed deps: joiner.sh (sourced by includes) and semver
-    mkdir -p "$TEST_DIR/deps/acore/joiner"
-    cat > "$TEST_DIR/deps/acore/joiner/joiner.sh" << 'EOF'
+    mkdir -p "$TEST_DIR/deps/ycore/joiner"
+    cat > "$TEST_DIR/deps/ycore/joiner/joiner.sh" << 'EOF'
 #!/usr/bin/env bash
 # Stub joiner functions used by installer
 Joiner:add_repo() {
@@ -36,7 +36,7 @@ Joiner:remove() {
     return 0
 }
 EOF
-    chmod +x "$TEST_DIR/deps/acore/joiner/joiner.sh"
+    chmod +x "$TEST_DIR/deps/ycore/joiner/joiner.sh"
 
     mkdir -p "$TEST_DIR/deps/semver_bash"
     # Minimal semver stub
@@ -59,15 +59,15 @@ EOF
 EOF
 
     # Copy the menu system needed by modules.sh
-    cp "$AC_TEST_ROOT/apps/bash_shared/menu_system.sh" "$TEST_DIR/apps/bash_shared/"
+    cp "$YC_TEST_ROOT/apps/bash_shared/menu_system.sh" "$TEST_DIR/apps/bash_shared/"
 
     # Copy the real installer app into the test apps dir
     mkdir -p "$TEST_DIR/apps"
-    cp -r "$(cd "$AC_TEST_ROOT/apps/installer" && pwd)" "$TEST_DIR/apps/installer"
+    cp -r "$(cd "$YC_TEST_ROOT/apps/installer" && pwd)" "$TEST_DIR/apps/installer"
 }
 
 teardown() {
-    acore_test_teardown
+    ycore_test_teardown
 }
 
 @test "module install should call joiner and record entry in modules list" {

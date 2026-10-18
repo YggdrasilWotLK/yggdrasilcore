@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -206,7 +206,7 @@ public:
                     {
                         if (_availableRiftPositions.size() > 1)
                         {
-                            auto spawnPosItr = Acore::Containers::SelectRandomContainerElementIf(_availableRiftPositions, [&](Position const& pos) -> bool
+                            auto spawnPosItr = Ycore::Containers::SelectRandomContainerElementIf(_availableRiftPositions, [&](Position const& pos) -> bool
                             {
                                 return pos != lastPosition;
                             });
@@ -215,7 +215,7 @@ public:
                         }
                         else
                         {
-                            spawnPos = Acore::Containers::SelectRandomContainerElement(_availableRiftPositions);
+                            spawnPos = Ycore::Containers::SelectRandomContainerElement(_availableRiftPositions);
                         }
 
                         _availableRiftPositions.remove(spawnPos);

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -24,7 +24,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Acore::Types
+namespace Ycore::Types
 {
     template <typename T>
     using is_chrono_v = std::enable_if_t<std::is_same_v<Milliseconds, T>
@@ -94,7 +94,7 @@ struct QueryResultFieldMetadata
     | SUM, AVG | DECIMAL           |
     | COUNT    | BIGINT            |
 */
-class AC_DATABASE_API Field
+class YC_DATABASE_API Field
 {
 friend class ResultSet;
 friend class PreparedResultSet;
@@ -141,7 +141,7 @@ public:
     }
 
     template<typename T>
-    inline Acore::Types::is_chrono_v<T> Get(bool convertToUin32 = true) const
+    inline Ycore::Types::is_chrono_v<T> Get(bool convertToUin32 = true) const
     {
         return convertToUin32 ? T(GetData<uint32>()) : T(GetData<uint64>());
     }

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -173,7 +173,7 @@ union keyData
 uint32 Warden::BuildChecksum(const uint8* data, uint32 length)
 {
     keyData hash{};
-    hash.bytes = Acore::Crypto::SHA1::GetDigestOf(data, std::size_t(length));
+    hash.bytes = Ycore::Crypto::SHA1::GetDigestOf(data, std::size_t(length));
     uint32 checkSum = 0;
 
     for (uint8 i = 0; i < 5; ++i)
@@ -251,14 +251,14 @@ void Warden::ApplyPenalty(uint16 checkId, std::string const& reason)
         if (Player const* plr = _session->GetPlayer())
         {
             std::string const reportFormat = "Player {} (guid {}, account id: {}) failed warden {} check ({}). Action: {}";
-            reportMsg = Acore::StringFormat(reportFormat, plr->GetName(), plr->GetGUID().GetCounter(), _session->GetAccountId(),
+            reportMsg = Ycore::StringFormat(reportFormat, plr->GetName(), plr->GetGUID().GetCounter(), _session->GetAccountId(),
                                            checkId, ((checkData && !checkData->Comment.empty()) ? checkData->Comment : "<warden comment is not set>"),
                                            GetWardenActionStr(action));
         }
         else
         {
             std::string const reportFormat = "Account id: {} failed warden {} check. Action: {}";
-            reportMsg = Acore::StringFormat(reportFormat, _session->GetAccountId(), checkId, GetWardenActionStr(action));
+            reportMsg = Ycore::StringFormat(reportFormat, _session->GetAccountId(), checkId, GetWardenActionStr(action));
         }
     }
     else
@@ -266,12 +266,12 @@ void Warden::ApplyPenalty(uint16 checkId, std::string const& reason)
         if (Player const* plr = _session->GetPlayer())
         {
             std::string const reportFormat = "Player {} (guid {}, account id: {}) triggered warden penalty by reason: {}. Action: {}";
-            reportMsg = Acore::StringFormat(reportFormat, plr->GetName(), plr->GetGUID().GetCounter(), _session->GetAccountId(), causeMsg, GetWardenActionStr(action));
+            reportMsg = Ycore::StringFormat(reportFormat, plr->GetName(), plr->GetGUID().GetCounter(), _session->GetAccountId(), causeMsg, GetWardenActionStr(action));
         }
         else
         {
             std::string const reportFormat = "Account id: {} failed warden {} check. Action: {}";
-            reportMsg = Acore::StringFormat(reportFormat, _session->GetAccountId(), causeMsg, GetWardenActionStr(action));
+            reportMsg = Ycore::StringFormat(reportFormat, _session->GetAccountId(), causeMsg, GetWardenActionStr(action));
         }
     }
 

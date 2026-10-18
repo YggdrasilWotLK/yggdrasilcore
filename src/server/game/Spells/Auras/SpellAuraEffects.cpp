@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -2836,8 +2836,8 @@ void AuraEffect::HandleFeignDeath(AuraApplication const* aurApp, uint8 mode, boo
         */
 
         UnitList targets;
-        Acore::AnyUnfriendlyUnitInObjectRangeCheck u_check(target, target, target->GetVisibilityRange()); // no VISIBILITY_COMPENSATION, distance is enough
-        Acore::UnitListSearcher<Acore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(target, targets, u_check);
+        Ycore::AnyUnfriendlyUnitInObjectRangeCheck u_check(target, target, target->GetVisibilityRange()); // no VISIBILITY_COMPENSATION, distance is enough
+        Ycore::UnitListSearcher<Ycore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(target, targets, u_check);
         Cell::VisitObjects(target, searcher, target->GetMap()->GetVisibilityRange());
         for (UnitList::iterator iter = targets.begin(); iter != targets.end(); ++iter)
         {
@@ -5656,8 +5656,8 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
                                     return;
 
                                 Player* player = nullptr;
-                                Acore::AnyPlayerInObjectRangeCheck checker(target, 10.0f);
-                                Acore::PlayerSearcher<Acore::AnyPlayerInObjectRangeCheck> searcher(target, player, checker);
+                                Ycore::AnyPlayerInObjectRangeCheck checker(target, 10.0f);
+                                Ycore::PlayerSearcher<Ycore::AnyPlayerInObjectRangeCheck> searcher(target, player, checker);
                                 Cell::VisitObjects(target, searcher, 10.0f);
 
                                 if (player && player->GetGUID() != target->GetGUID())
@@ -7390,8 +7390,8 @@ void AuraEffect::HandleRaidProcFromChargeWithValueAuraProc(AuraApplication* aurA
             float radius = GetSpellInfo()->Effects[GetEffIndex()].CalcRadius(caster);
 
             Unit*                                                         triggerTarget = nullptr;
-            Acore::MostHPMissingGroupInRange                              u_check(target, radius, 0);
-            Acore::UnitLastSearcher<Acore::MostHPMissingGroupInRange>     searcher(target, triggerTarget, u_check);
+            Ycore::MostHPMissingGroupInRange                              u_check(target, radius, 0);
+            Ycore::UnitLastSearcher<Ycore::MostHPMissingGroupInRange>     searcher(target, triggerTarget, u_check);
             Cell::VisitObjects(target, searcher, radius);
 
             if (triggerTarget)

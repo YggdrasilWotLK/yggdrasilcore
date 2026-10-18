@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -17,7 +17,7 @@ set(MSVC_EXPECTED_VERSION 19.24)
 set(MSVC_EXPECTED_VERSION_STRING "Microsoft Visual Studio 2019 16.4")
 
 if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS MSVC_EXPECTED_VERSION)
-  message(FATAL_ERROR "MSVC: AzerothCore requires version ${MSVC_EXPECTED_VERSION} (${MSVC_EXPECTED_VERSION_STRING}) to build but found ${CMAKE_CXX_COMPILER_VERSION}")
+  message(FATAL_ERROR "MSVC: YggdrasilCore requires version ${MSVC_EXPECTED_VERSION} (${MSVC_EXPECTED_VERSION_STRING}) to build but found ${CMAKE_CXX_COMPILER_VERSION}")
 else()
   message(STATUS "MSVC: Minimum version required is ${MSVC_EXPECTED_VERSION}, found ${CMAKE_CXX_COMPILER_VERSION} - ok!")
 endif()
@@ -32,7 +32,7 @@ string(REGEX REPLACE "/W[0-4] " "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 string(REGEX REPLACE "/W[0-4]$" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
 # https://tinyurl.com/jxnc4s83
-target_compile_options(acore-compile-option-interface
+target_compile_options(ycore-compile-option-interface
     INTERFACE
       /utf-8)
 
@@ -40,7 +40,7 @@ if(PLATFORM EQUAL 64)
   # This definition is necessary to work around a bug with Intellisense described
   # here: http://tinyurl.com/2cb428.  Syntax highlighting is important for proper
   # debugger functionality.
-  target_compile_definitions(acore-compile-option-interface
+  target_compile_definitions(ycore-compile-option-interface
     INTERFACE
       -D_WIN64)
   message(STATUS "MSVC: 64-bit platform, enforced -D_WIN64 parameter")
@@ -53,7 +53,7 @@ else()
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LARGEADDRESSAWARE")
   message(STATUS "MSVC: Enabled large address awareness")
 
-  target_compile_options(acore-compile-option-interface
+  target_compile_options(ycore-compile-option-interface
     INTERFACE
       /arch:SSE2)
   message(STATUS "MSVC: Enabled SSE2 support")
@@ -62,59 +62,59 @@ endif()
 # Set build-directive (used in core to tell which buildtype we used)
 # msbuild/devenv don't set CMAKE_MAKE_PROGRAM, you can choose build type from a dropdown after generating projects
 if("${CMAKE_MAKE_PROGRAM}" MATCHES "MSBuild")
-  target_compile_definitions(acore-compile-option-interface
+  target_compile_definitions(ycore-compile-option-interface
     INTERFACE
       -D_BUILD_DIRECTIVE="$(ConfigurationName)")
 else()
   # while all make-like generators do (nmake, ninja)
-  target_compile_definitions(acore-compile-option-interface
+  target_compile_definitions(ycore-compile-option-interface
     INTERFACE
       -D_BUILD_DIRECTIVE="${CMAKE_BUILD_TYPE}")
 endif()
 
 # multithreaded compiling on VS
-target_compile_options(acore-compile-option-interface
+target_compile_options(ycore-compile-option-interface
   INTERFACE
     /MP)
 
 # Define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES - eliminates the warning by changing the strcpy call to strcpy_s, which prevents buffer overruns
-target_compile_definitions(acore-compile-option-interface
+target_compile_definitions(ycore-compile-option-interface
   INTERFACE
     -D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES)
 message(STATUS "MSVC: Overloaded standard names")
 
 # Ignore warnings about older, less secure functions
-target_compile_definitions(acore-compile-option-interface
+target_compile_definitions(ycore-compile-option-interface
   INTERFACE
     -D_CRT_SECURE_NO_WARNINGS)
 message(STATUS "MSVC: Disabled NON-SECURE warnings")
 
 # Ignore warnings about POSIX deprecation
-target_compile_definitions(acore-compile-option-interface
+target_compile_definitions(ycore-compile-option-interface
   INTERFACE
     -D_CRT_NONSTDC_NO_WARNINGS)
 message(STATUS "MSVC: Disabled POSIX warnings")
 
 # Ignore warnings about INTMAX_MAX
-target_compile_definitions(acore-compile-option-interface
+target_compile_definitions(ycore-compile-option-interface
   INTERFACE
     -D__STDC_LIMIT_MACROS)
 message(STATUS "MSVC: Disabled INTMAX_MAX warnings")
 
 # Ignore specific warnings
-target_compile_options(acore-compile-option-interface
+target_compile_options(ycore-compile-option-interface
   INTERFACE
     /wd4351  # C4351: new behavior: elements of array 'x' will be default initialized
     /wd4091) # C4091: 'typedef ': ignored on left of '' when no variable is declared
 
 # Define NOMINMAX
-target_compile_definitions(acore-compile-option-interface
+target_compile_definitions(ycore-compile-option-interface
   INTERFACE
     -DNOMINMAX)
 message(STATUS "MSVC: Enable NOMINMAX")
 
 if(NOT WITH_WARNINGS)
-  target_compile_options(acore-warning-interface
+  target_compile_options(ycore-warning-interface
     INTERFACE
       /wd4996  # C4996 deprecation
       /wd4985  # C4985 'symbol-name': attributes not present on previous declaration.
@@ -127,7 +127,7 @@ if(NOT WITH_WARNINGS)
 endif()
 
 # Move some warnings that are enabled for other compilers from level 4 to level 3
-target_compile_options(acore-compile-option-interface
+target_compile_options(ycore-compile-option-interface
   INTERFACE
     /w34100  # C4100 'identifier' : unreferenced formal parameter
     /w34101  # C4101: 'identifier' : unreferenced local variable
@@ -135,7 +135,7 @@ target_compile_options(acore-compile-option-interface
     /w34389) # C4189: 'equality-operator' : signed/unsigned mismatch
 
 if(BUILD_SHARED_LIBS)
-  target_compile_options(acore-compile-option-interface
+  target_compile_options(ycore-compile-option-interface
     INTERFACE
       /wd4251  # C4251: needs to have dll-interface to be used by clients of class '...'
       /wd4275) # C4275: non dll-interface class ...' used as base for dll-interface class '...'
@@ -144,7 +144,7 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 # Enable and treat as errors the following warnings to easily detect virtual function signature failures:
-target_compile_options(acore-warning-interface
+target_compile_options(ycore-warning-interface
   INTERFACE
     /we4263  # 'function' : member function does not override any base class virtual member function
     /we4264) # 'virtual_function' : no override available for virtual member function from base 'class'; function is hidden

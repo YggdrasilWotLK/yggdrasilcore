@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -91,7 +91,7 @@ struct OutdoorPvPData;
 struct TargetInfo;
 struct SpellModifier;
 
-namespace Acore::ChatCommands
+namespace Ycore::ChatCommands
 {
     struct ChatCommandBuilder;
 }
@@ -270,7 +270,7 @@ public: /* OutdoorPvPScript */
     OutdoorPvP* CreateOutdoorPvP(OutdoorPvPData const* data);
 
 public: /* CommandScript */
-    std::vector<Acore::ChatCommands::ChatCommandBuilder> GetChatCommands();
+    std::vector<Ycore::ChatCommands::ChatCommandBuilder> GetChatCommands();
 
 public: /* WeatherScript */
     void OnWeatherChange(Weather* weather, WeatherState state, float grade);
@@ -710,7 +710,7 @@ public: /* CommandSC */
 
     void OnHandleDevCommand(Player* player, bool& enable);
     bool OnTryExecuteCommand(ChatHandler& handler, std::string_view cmdStr);
-    bool OnBeforeIsInvokerVisible(std::string name, Acore::Impl::ChatCommands::CommandPermissions permissions, ChatHandler const& who);
+    bool OnBeforeIsInvokerVisible(std::string name, Ycore::Impl::ChatCommands::CommandPermissions permissions, ChatHandler const& who);
 
 public: /* DatabaseScript */
 

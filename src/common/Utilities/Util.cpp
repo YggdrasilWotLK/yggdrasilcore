@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -113,7 +113,7 @@ Optional<int32> MoneyStringToMoney(std::string_view moneyString)
     bool hadS = false;
     bool hadC = false;
 
-    for (std::string_view token : Acore::Tokenize(moneyString, ' ', false))
+    for (std::string_view token : Ycore::Tokenize(moneyString, ' ', false))
     {
         uint32 unit;
         switch (token[token.length() - 1])
@@ -146,7 +146,7 @@ Optional<int32> MoneyStringToMoney(std::string_view moneyString)
             return std::nullopt;
         }
 
-        Optional<uint32> amount = Acore::StringTo<uint32>(token.substr(0, token.length() - 1));
+        Optional<uint32> amount = Ycore::StringTo<uint32>(token.substr(0, token.length() - 1));
         if (amount)
         {
             money += (unit * *amount);
@@ -210,7 +210,7 @@ bool IsIPAddress(char const* ipaddress)
     }
 
     boost::system::error_code error;
-    Acore::Net::make_address(ipaddress, error);
+    Ycore::Net::make_address(ipaddress, error);
     return !error;
 }
 
@@ -282,7 +282,7 @@ bool Utf8toWStr(char const* utf8str, std::size_t csize, wchar_t* wstr, std::size
 {
     try
     {
-        Acore::CheckedBufferOutputIterator<wchar_t> out(wstr, wsize);
+        Ycore::CheckedBufferOutputIterator<wchar_t> out(wstr, wsize);
         out = utf8::utf8to16(utf8str, utf8str + csize, out);
         wsize -= out.remaining(); // remaining unused space
         wstr[wsize] = L'\0';
@@ -446,7 +446,7 @@ std::wstring GetMainPartOfName(std::wstring const& wname, uint32_t declension)
 
 bool utf8ToConsole(std::string_view utf8str, std::string& conStr)
 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     std::wstring wstr;
     if (!Utf8toWStr(utf8str, wstr))
     {
@@ -465,7 +465,7 @@ bool utf8ToConsole(std::string_view utf8str, std::string& conStr)
 
 bool consoleToUtf8(std::string_view conStr, std::string& utf8str)
 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     std::wstring wstr;
     wstr.resize(conStr.size());
     OemToCharBuffW(&conStr[0], &wstr[0], uint32(conStr.size()));
@@ -508,7 +508,7 @@ void utf8printf(FILE* out, const char* str, ...)
 
 void vutf8printf(FILE* out, const char* str, va_list* ap)
 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     char temp_buf[32 * 1024];
     wchar_t wtemp_buf[32 * 1024];
 
@@ -542,7 +542,7 @@ bool Utf8ToUpperOnlyLatin(std::string& utf8String)
     return WStrToUtf8(wstr, utf8String);
 }
 
-std::string Acore::Impl::ByteArrayToHexStr(uint8 const* bytes, std::size_t arrayLen, bool reverse /* = false */)
+std::string Ycore::Impl::ByteArrayToHexStr(uint8 const* bytes, std::size_t arrayLen, bool reverse /* = false */)
 {
     int32 init = 0;
     int32 end = arrayLen;
@@ -566,7 +566,7 @@ std::string Acore::Impl::ByteArrayToHexStr(uint8 const* bytes, std::size_t array
     return ss.str();
 }
 
-void Acore::Impl::HexStrToByteArray(std::string_view str, uint8* out, std::size_t outlen, bool reverse /*= false*/)
+void Ycore::Impl::HexStrToByteArray(std::string_view str, uint8* out, std::size_t outlen, bool reverse /*= false*/)
 {
     ASSERT(str.size() == (2 * outlen));
 

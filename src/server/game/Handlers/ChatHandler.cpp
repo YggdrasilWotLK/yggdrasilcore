@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -633,7 +633,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
                     }
                     else                                        // New AFK mode
                     {
-                        sender->autoReplyMsg = msg.empty() ? GetAcoreString(LANG_PLAYER_AFK_DEFAULT) : msg;
+                        sender->autoReplyMsg = msg.empty() ? GetYcoreString(LANG_PLAYER_AFK_DEFAULT) : msg;
 
                         if (sender->isDND())
                             sender->ToggleDND();
@@ -661,7 +661,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
                 }
                 else                                            // New DND mode
                 {
-                    sender->autoReplyMsg = msg.empty() ? GetAcoreString(LANG_PLAYER_DND_DEFAULT) : msg;
+                    sender->autoReplyMsg = msg.empty() ? GetYcoreString(LANG_PLAYER_DND_DEFAULT) : msg;
 
                     if (sender->isAFK())
                         sender->ToggleAFK();
@@ -702,7 +702,7 @@ void WorldSession::HandleEmoteOpcode(WorldPackets::Chat::EmoteClient& packet)
     _player->HandleEmoteCommand(emoteId);
 }
 
-namespace Acore
+namespace Ycore
 {
     class EmoteChatBuilder
     {
@@ -732,7 +732,7 @@ namespace Acore
         uint32        i_emote_num;
         Unit const*   i_target;
     };
-}                                                           // namespace Acore
+}                                                           // namespace Ycore
 
 void WorldSession::HandleTextEmoteOpcode(WorldPacket& recvData)
 {
@@ -786,9 +786,9 @@ void WorldSession::HandleTextEmoteOpcode(WorldPacket& recvData)
 
     Unit* unit = ObjectAccessor::GetUnit(*_player, guid);
 
-    Acore::EmoteChatBuilder emote_builder(*GetPlayer(), text_emote, emoteNum, unit);
-    Acore::LocalizedPacketDo<Acore::EmoteChatBuilder > emote_do(emote_builder);
-    Acore::PlayerDistWorker<Acore::LocalizedPacketDo<Acore::EmoteChatBuilder > > emote_worker(GetPlayer(), sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_TEXTEMOTE), emote_do);
+    Ycore::EmoteChatBuilder emote_builder(*GetPlayer(), text_emote, emoteNum, unit);
+    Ycore::LocalizedPacketDo<Ycore::EmoteChatBuilder > emote_do(emote_builder);
+    Ycore::PlayerDistWorker<Ycore::LocalizedPacketDo<Ycore::EmoteChatBuilder > > emote_worker(GetPlayer(), sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_TEXTEMOTE), emote_do);
     Cell::VisitObjects(GetPlayer(), emote_worker, sWorld->getFloatConfig(CONFIG_LISTEN_RANGE_TEXTEMOTE));
 
     GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DO_EMOTE, text_emote, 0, unit);

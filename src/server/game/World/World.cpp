@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -263,7 +263,7 @@ void World::LoadConfigSettings(bool reload)
     if (dataPath.empty() || (dataPath.at(dataPath.length() - 1) != '/' && dataPath.at(dataPath.length() - 1) != '\\'))
         dataPath.push_back('/');
 
-#if AC_PLATFORM == AC_PLATFORM_UNIX || AC_PLATFORM == AC_PLATFORM_APPLE
+#if YC_PLATFORM == YC_PLATFORM_UNIX || YC_PLATFORM == YC_PLATFORM_APPLE
     if (dataPath[0] == '~')
     {
         const char* home = getenv("HOME");
@@ -352,8 +352,8 @@ void World::SetInitialWorldSettings()
 
     ///- Loading strings. Getting no records means core load has to be canceled because no error message can be output.
     LOG_INFO("server.loading", " ");
-    LOG_INFO("server.loading", "Loading Acore Strings...");
-    if (!sObjectMgr->LoadAcoreStrings())
+    LOG_INFO("server.loading", "Loading Ycore Strings...");
+    if (!sObjectMgr->LoadYcoreStrings())
         exit(1);                                            // Error message displayed in function already
 
     LOG_INFO("server.loading", "Loading Module Strings...");
@@ -873,7 +873,7 @@ void World::SetInitialWorldSettings()
     sObjectMgr->InitializeSpellInfoPrecomputedData();
 
     LOG_INFO("server.loading", "Initialize Commands...");
-    Acore::ChatCommands::LoadCommandMap();
+    Ycore::ChatCommands::LoadCommandMap();
 
     ///- Initialize game time and timers
     LOG_INFO("server.loading", "Initialize Game Time and Timers");
@@ -1378,7 +1378,7 @@ void World::ForceGameEventUpdate()
     _timers[WUPDATE_EVENTS].Reset();
 }
 
-namespace Acore
+namespace Ycore
 {
     class WorldWorldTextBuilder
     {
@@ -1387,7 +1387,7 @@ namespace Acore
         explicit WorldWorldTextBuilder(uint32 textId, va_list* args = nullptr) : i_textId(textId), i_args(args) {}
         void operator()(WorldPacketList& data_list, LocaleConstant loc_idx)
         {
-            std::string strtext = sObjectMgr->GetAcoreString(i_textId, loc_idx);
+            std::string strtext = sObjectMgr->GetYcoreString(i_textId, loc_idx);
             char const* text = strtext.c_str();
 
             if (i_args)
@@ -1421,7 +1421,7 @@ namespace Acore
         uint32 i_textId;
         va_list* i_args;
     };
-}                                                           // namespace Acore
+}                                                           // namespace Ycore
 
 /// Update the game time
 void World::_UpdateGameTime()
@@ -1595,7 +1595,7 @@ void World::_UpdateRealmCharCount(PreparedQueryResult resultCharCount,uint32 acc
 void World::InitWeeklyQuestResetTime()
 {
     Seconds wstime = Seconds(sWorldState->getWorldState(WORLD_STATE_CUSTOM_WEEKLY_QUEST_RESET_TIME));
-    _nextWeeklyQuestReset = wstime > 0s ? wstime : Seconds(Acore::Time::GetNextTimeWithDayAndHour(4, 6));
+    _nextWeeklyQuestReset = wstime > 0s ? wstime : Seconds(Ycore::Time::GetNextTimeWithDayAndHour(4, 6));
 
     if (wstime == 0s)
     {
@@ -1606,7 +1606,7 @@ void World::InitWeeklyQuestResetTime()
 void World::InitDailyQuestResetTime()
 {
     Seconds wstime = Seconds(sWorldState->getWorldState(WORLD_STATE_CUSTOM_DAILY_QUEST_RESET_TIME));
-    _nextDailyQuestReset = wstime > 0s ? wstime : Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
+    _nextDailyQuestReset = wstime > 0s ? wstime : Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, 6));
 
     if (wstime == 0s)
     {
@@ -1617,7 +1617,7 @@ void World::InitDailyQuestResetTime()
 void World::InitMonthlyQuestResetTime()
 {
     Seconds wstime = Seconds(sWorldState->getWorldState(WORLD_STATE_CUSTOM_MONTHLY_QUEST_RESET_TIME));
-    _nextMonthlyQuestReset = wstime > 0s ? wstime : Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
+    _nextMonthlyQuestReset = wstime > 0s ? wstime : Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, 6));
 
     if (wstime == 0s)
     {
@@ -1628,7 +1628,7 @@ void World::InitMonthlyQuestResetTime()
 void World::InitRandomBGResetTime()
 {
     Seconds wstime = Seconds(sWorldState->getWorldState(WORLD_STATE_CUSTOM_BG_DAILY_RESET_TIME));
-    _nextRandomBGReset = wstime > 0s ? wstime : Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
+    _nextRandomBGReset = wstime > 0s ? wstime : Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, 6));
 
     if (wstime == 0s)
     {
@@ -1639,7 +1639,7 @@ void World::InitRandomBGResetTime()
 void World::InitCalendarOldEventsDeletionTime()
 {
     Seconds currentDeletionTime = Seconds(sWorldState->getWorldState(WORLD_STATE_CUSTOM_DAILY_CALENDAR_DELETION_OLD_EVENTS_TIME));
-    Seconds nextDeletionTime = currentDeletionTime > 0s ? currentDeletionTime : Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, getIntConfig(CONFIG_CALENDAR_DELETE_OLD_EVENTS_HOUR)));
+    Seconds nextDeletionTime = currentDeletionTime > 0s ? currentDeletionTime : Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, getIntConfig(CONFIG_CALENDAR_DELETE_OLD_EVENTS_HOUR)));
 
     if (currentDeletionTime == 0s)
     {
@@ -1650,7 +1650,7 @@ void World::InitCalendarOldEventsDeletionTime()
 void World::InitGuildResetTime()
 {
     Seconds wstime = Seconds(sWorldState->getWorldState(WORLD_STATE_CUSTOM_GUILD_DAILY_RESET_TIME));
-    _nextGuildReset = wstime > 0s ? wstime : Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
+    _nextGuildReset = wstime > 0s ? wstime : Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, 6));
 
     if (wstime == 0s)
     {
@@ -1672,7 +1672,7 @@ void World::ResetDailyQuests()
             session->GetPlayer()->ResetDailyQuestStatus();
     }
 
-    _nextDailyQuestReset = Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
+    _nextDailyQuestReset = Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_DAILY_QUEST_RESET_TIME, _nextDailyQuestReset.count());
 
     // change available dailies
@@ -1712,7 +1712,7 @@ void World::ResetWeeklyQuests()
             session->GetPlayer()->ResetWeeklyQuestStatus();
     }
 
-    _nextWeeklyQuestReset = Seconds(Acore::Time::GetNextTimeWithDayAndHour(4, 6));
+    _nextWeeklyQuestReset = Seconds(Ycore::Time::GetNextTimeWithDayAndHour(4, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_WEEKLY_QUEST_RESET_TIME, _nextWeeklyQuestReset.count());
 
     // change available weeklies
@@ -1735,7 +1735,7 @@ void World::ResetMonthlyQuests()
             session->GetPlayer()->ResetMonthlyQuestStatus();
     }
 
-    _nextMonthlyQuestReset = Seconds(Acore::Time::GetNextTimeWithMonthAndHour(-1, 6));
+    _nextMonthlyQuestReset = Seconds(Ycore::Time::GetNextTimeWithMonthAndHour(-1, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_MONTHLY_QUEST_RESET_TIME, _nextMonthlyQuestReset.count());
 }
 
@@ -1771,7 +1771,7 @@ void World::ResetRandomBG()
             session->GetPlayer()->SetRandomWinner(false);
     }
 
-    _nextRandomBGReset = Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
+    _nextRandomBGReset = Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_BG_DAILY_RESET_TIME, _nextRandomBGReset.count());
 }
 
@@ -1779,7 +1779,7 @@ void World::CalendarDeleteOldEvents()
 {
     LOG_INFO("server.worldserver", "Calendar deletion of old events.");
 
-    _nextCalendarOldEventsDeletionTime = Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, getIntConfig(CONFIG_CALENDAR_DELETE_OLD_EVENTS_HOUR)));
+    _nextCalendarOldEventsDeletionTime = Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, getIntConfig(CONFIG_CALENDAR_DELETE_OLD_EVENTS_HOUR)));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_DAILY_CALENDAR_DELETION_OLD_EVENTS_TIME, _nextCalendarOldEventsDeletionTime.count());
     sCalendarMgr->DeleteOldEvents();
 }
@@ -1788,7 +1788,7 @@ void World::ResetGuildCap()
 {
     LOG_INFO("server.worldserver", "Guild Daily Cap reset.");
 
-    _nextGuildReset = Seconds(Acore::Time::GetNextTimeWithDayAndHour(-1, 6));
+    _nextGuildReset = Seconds(Ycore::Time::GetNextTimeWithDayAndHour(-1, 6));
     sWorldState->setWorldState(WORLD_STATE_CUSTOM_GUILD_DAILY_RESET_TIME, _nextGuildReset.count());
 
     sGuildMgr->ResetTimes();

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -25,7 +25,7 @@
 #define BG_AV_CAPTIME                   240000  //4:00
 #define BG_AV_SNOWFALL_FIRSTCAP         300000  //5:00 but i also have seen 4:05
 
-#define BG_AV_SCORE_INITIAL_POINTS      (sWorld->getIntConfig(CONFIG_BATTLEGROUND_ALTERAC_REINFORCEMENTS)) // Blizzlike default is 600
+#define BG_AV_SCORE_INITIAL_POINTS      (sWorld->getIntConfig(CONFIG_BATTLEGROUND_ALTERYC_REINFORCEMENTS)) // Blizzlike default is 600
 #define SEND_MSG_NEAR_LOSE              120
 
 #define BG_AV_KILL_BOSS                 4
@@ -1754,7 +1754,7 @@ protected:
     uint32 GetAttr5() const final { return MinesCaptured; }
 };
 
-class AC_GAME_API BattlegroundAV : public Battleground
+class YC_GAME_API BattlegroundAV : public Battleground
 {
 public:
     BattlegroundAV();

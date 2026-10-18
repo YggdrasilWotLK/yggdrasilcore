@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -37,7 +37,7 @@ public:
     [[nodiscard]] virtual AuraScript* GetAuraScript() const { return nullptr; }
 };
 
-namespace Acore::SpellScripts
+namespace Ycore::SpellScripts
 {
     template<typename T>
     using is_SpellScript = std::is_base_of<SpellScript, T>;
@@ -49,9 +49,9 @@ namespace Acore::SpellScripts
 template <typename... Ts>
 class GenericSpellAndAuraScriptLoader : public SpellScriptLoader
 {
-    using SpellScriptType = typename Acore::find_type_if_t<Acore::SpellScripts::is_SpellScript, Ts...>;
-    using AuraScriptType = typename Acore::find_type_if_t<Acore::SpellScripts::is_AuraScript, Ts...>;
-    using ArgsType = typename Acore::find_type_if_t<Acore::is_tuple, Ts...>;
+    using SpellScriptType = typename Ycore::find_type_if_t<Ycore::SpellScripts::is_SpellScript, Ts...>;
+    using AuraScriptType = typename Ycore::find_type_if_t<Ycore::SpellScripts::is_AuraScript, Ts...>;
+    using ArgsType = typename Ycore::find_type_if_t<Ycore::is_tuple, Ts...>;
 
 public:
     GenericSpellAndAuraScriptLoader(char const* name, ArgsType&& args) : SpellScriptLoader(name), _args(std::move(args)) { }
@@ -59,9 +59,9 @@ public:
 private:
     [[nodiscard]] SpellScript* GetSpellScript() const override
     {
-        if constexpr (!std::is_same_v<SpellScriptType, Acore::find_type_end>)
+        if constexpr (!std::is_same_v<SpellScriptType, Ycore::find_type_end>)
         {
-            return Acore::new_from_tuple<SpellScriptType>(_args);
+            return Ycore::new_from_tuple<SpellScriptType>(_args);
         }
         else
         {
@@ -71,9 +71,9 @@ private:
 
     [[nodiscard]] AuraScript* GetAuraScript() const override
     {
-        if constexpr (!std::is_same_v<AuraScriptType, Acore::find_type_end>)
+        if constexpr (!std::is_same_v<AuraScriptType, Ycore::find_type_end>)
         {
-            return Acore::new_from_tuple<AuraScriptType>(_args);
+            return Ycore::new_from_tuple<AuraScriptType>(_args);
         }
         else
         {
@@ -89,7 +89,7 @@ private:
 #define RegisterSpellAndAuraScriptPairWithArgs(script_1, script_2, script_name, ...) new GenericSpellAndAuraScriptLoader<script_1, script_2, decltype(std::make_tuple(__VA_ARGS__))>(script_name, std::make_tuple(__VA_ARGS__))
 #define RegisterSpellAndAuraScriptPair(script_1, script_2) RegisterSpellAndAuraScriptPairWithArgs(script_1, script_2, #script_1)
 
-//namespace Acore::SpellScripts
+//namespace Ycore::SpellScripts
 //{
 //    template<typename T>
 //    using is_SpellScript = std::is_base_of<SpellScript, T>;
@@ -101,9 +101,9 @@ private:
 //template <typename... Ts>
 //class GenericSpellAndAuraScriptLoader : public SpellScriptLoader
 //{
-//    using SpellScriptType = typename Acore::find_type_if_t<Acore::SpellScripts::is_SpellScript, Ts...>;
-//    using AuraScriptType = typename Acore::find_type_if_t<Acore::SpellScripts::is_AuraScript, Ts...>;
-//    using ArgsType = typename Acore::find_type_if_t<Acore::is_tuple, Ts...>;
+//    using SpellScriptType = typename Ycore::find_type_if_t<Ycore::SpellScripts::is_SpellScript, Ts...>;
+//    using AuraScriptType = typename Ycore::find_type_if_t<Ycore::SpellScripts::is_AuraScript, Ts...>;
+//    using ArgsType = typename Ycore::find_type_if_t<Ycore::is_tuple, Ts...>;
 //
 //public:
 //    GenericSpellAndAuraScriptLoader(std::string_view name, ArgsType&& args) : SpellScriptLoader(name), _args(std::move(args)) { }
@@ -111,9 +111,9 @@ private:
 //private:
 //    [[nodiscard]] SpellScript* GetSpellScript() const override
 //    {
-//        if constexpr (!std::is_same_v<SpellScriptType, Acore::find_type_end>)
+//        if constexpr (!std::is_same_v<SpellScriptType, Ycore::find_type_end>)
 //        {
-//            return Acore::new_from_tuple<SpellScriptType>(_args);
+//            return Ycore::new_from_tuple<SpellScriptType>(_args);
 //        }
 //        else
 //        {
@@ -123,9 +123,9 @@ private:
 //
 //    [[nodiscard]] AuraScript* GetAuraScript() const override
 //    {
-//        if constexpr (!std::is_same_v<AuraScriptType, Acore::find_type_end>)
+//        if constexpr (!std::is_same_v<AuraScriptType, Ycore::find_type_end>)
 //        {
-//            return Acore::new_from_tuple<AuraScriptType>(_args);
+//            return Ycore::new_from_tuple<AuraScriptType>(_args);
 //        }
 //        else
 //        {

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -202,7 +202,7 @@ namespace MMAP
 
     void IntermediateValues::generateObjFile(const std::string& dataPath, uint32 mapID, uint32 tileX, uint32 tileY, MeshData& meshData)
     {
-        std::string objFileName = Acore::StringFormat(
+        std::string objFileName = Ycore::StringFormat(
             "{}/meshes/map{:03}{:02}{:02}.obj",
             dataPath,
             mapID, tileY, tileX
@@ -242,7 +242,7 @@ namespace MMAP
         sprintf(tileString, "[%02u,%02u]: ", tileY, tileX);
         printf("%sWriting debug output...                       \r", tileString);
 
-        objFileName = Acore::StringFormat(
+        objFileName = Ycore::StringFormat(
             "{}/meshes/{:03}.map",
             dataPath,
             mapID
@@ -261,7 +261,7 @@ namespace MMAP
         fwrite(&b, sizeof(char), 1, objFile);
         fclose(objFile);
 
-        objFileName = Acore::StringFormat(
+        objFileName = Ycore::StringFormat(
             "{}/meshes/{:03}{:02}{:02}.mesh",
             dataPath,
             mapID, tileY, tileX

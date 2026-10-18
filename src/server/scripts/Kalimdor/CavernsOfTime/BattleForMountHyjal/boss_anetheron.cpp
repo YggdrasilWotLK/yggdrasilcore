@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -148,9 +148,9 @@ class spell_anetheron_sleep : public SpellScript
         if (!targets.empty())
         {
             if (Unit* victim = GetCaster()->GetVictim())
-                targets.remove_if(Acore::ObjectGUIDCheck(victim->GetGUID(), true));
+                targets.remove_if(Ycore::ObjectGUIDCheck(victim->GetGUID(), true));
 
-            Acore::Containers::RandomResize(targets, 3);
+            Ycore::Containers::RandomResize(targets, 3);
         }
     }
 

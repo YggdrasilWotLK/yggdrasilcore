@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -74,7 +74,7 @@ bool WardenPayloadMgr::RegisterPayload(std::string const& payload, uint16 payloa
     wCheck.Str = payload;
     wCheck.CheckId = payloadId;
 
-    std::string idStr = Acore::StringFormat("{:04}", payloadId);
+    std::string idStr = Ycore::StringFormat("{:04}", payloadId);
     ASSERT(idStr.size() == 4);
     std::copy(idStr.begin(), idStr.end(), wCheck.IdStr.begin());
 

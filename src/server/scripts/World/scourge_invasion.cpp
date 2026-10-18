@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -537,7 +537,7 @@ struct npc_necrotic_shard : public ScriptedAI
             return;
 
         // On a fresh camp, first the minions are spawned close to the shard and then further and further out.
-        finderList.sort(Acore::ObjectDistanceOrderPred(me));
+        finderList.sort(Ycore::ObjectDistanceOrderPred(me));
 
         for (Creature* const& finder : finderList)
         {
@@ -862,12 +862,12 @@ struct npc_pallid_horror : public ScriptedAI
 
             std::list<Creature*> targets;
             FlameshockerCheck check;
-            Acore::CreatureListSearcher<FlameshockerCheck> searcher(me, targets, check);
+            Ycore::CreatureListSearcher<FlameshockerCheck> searcher(me, targets, check);
             Cell::VisitObjects(me, searcher, VISIBILITY_DISTANCE_NORMAL);
 
             if (!targets.empty())
             {
-                Creature* target = Acore::Containers::SelectRandomContainerElement(targets);
+                Creature* target = Ycore::Containers::SelectRandomContainerElement(targets);
 
                 float x, y, z;
                 target->GetNearPoint(target, x, y, z, 5.0f, 5.0f, 0.0f);

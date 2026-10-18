@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -42,7 +42,7 @@ template<typename T, class S> struct Finder
 
 void stripLineInvisibleChars(std::string& src);
 
-AC_COMMON_API Optional<int32> MoneyStringToMoney(std::string_view moneyString);
+YC_COMMON_API Optional<int32> MoneyStringToMoney(std::string_view moneyString);
 
 std::string secsToTimeString(uint64 timeInSecs, bool shortText = false);
 uint32 TimeStringToSecs(const std::string& timestring);
@@ -82,20 +82,20 @@ inline T RoundToInterval(T& num, T floor, T ceil)
 }
 
 // UTF8 handling
-AC_COMMON_API bool Utf8toWStr(std::string_view utf8str, std::wstring& wstr);
+YC_COMMON_API bool Utf8toWStr(std::string_view utf8str, std::wstring& wstr);
 
 // in wsize==max size of buffer, out wsize==real string size
-AC_COMMON_API bool Utf8toWStr(char const* utf8str, std::size_t csize, wchar_t* wstr, std::size_t& wsize);
+YC_COMMON_API bool Utf8toWStr(char const* utf8str, std::size_t csize, wchar_t* wstr, std::size_t& wsize);
 
 inline bool Utf8toWStr(std::string_view utf8str, wchar_t* wstr, std::size_t& wsize)
 {
     return Utf8toWStr(utf8str.data(), utf8str.size(), wstr, wsize);
 }
 
-AC_COMMON_API bool WStrToUtf8(std::wstring_view wstr, std::string& utf8str);
+YC_COMMON_API bool WStrToUtf8(std::wstring_view wstr, std::string& utf8str);
 
 // size==real string size
-AC_COMMON_API bool WStrToUtf8(wchar_t const* wstr, std::size_t size, std::string& utf8str);
+YC_COMMON_API bool WStrToUtf8(wchar_t const* wstr, std::size_t size, std::string& utf8str);
 
 // set string to "" if invalid utf8 sequence
 std::size_t utf8length(std::string& utf8str);
@@ -360,34 +360,34 @@ void strToLower(std::string& str);
 
 std::wstring GetMainPartOfName(std::wstring const& wname, uint32 declension);
 
-AC_COMMON_API bool utf8ToConsole(std::string_view utf8str, std::string& conStr);
-AC_COMMON_API bool consoleToUtf8(std::string_view conStr, std::string& utf8str);
-AC_COMMON_API bool Utf8FitTo(std::string_view str, std::wstring_view search);
-AC_COMMON_API void utf8printf(FILE* out, const char* str, ...);
-AC_COMMON_API void vutf8printf(FILE* out, const char* str, va_list* ap);
-AC_COMMON_API bool Utf8ToUpperOnlyLatin(std::string& utf8String);
+YC_COMMON_API bool utf8ToConsole(std::string_view utf8str, std::string& conStr);
+YC_COMMON_API bool consoleToUtf8(std::string_view conStr, std::string& utf8str);
+YC_COMMON_API bool Utf8FitTo(std::string_view str, std::wstring_view search);
+YC_COMMON_API void utf8printf(FILE* out, const char* str, ...);
+YC_COMMON_API void vutf8printf(FILE* out, const char* str, va_list* ap);
+YC_COMMON_API bool Utf8ToUpperOnlyLatin(std::string& utf8String);
 
 bool IsIPAddress(char const* ipaddress);
 
 uint32 CreatePIDFile(const std::string& filename);
 uint32 GetPID();
 
-namespace Acore::Impl
+namespace Ycore::Impl
 {
-    AC_COMMON_API std::string ByteArrayToHexStr(uint8 const* bytes, std::size_t length, bool reverse = false);
-    AC_COMMON_API void HexStrToByteArray(std::string_view str, uint8* out, std::size_t outlen, bool reverse = false);
+    YC_COMMON_API std::string ByteArrayToHexStr(uint8 const* bytes, std::size_t length, bool reverse = false);
+    YC_COMMON_API void HexStrToByteArray(std::string_view str, uint8* out, std::size_t outlen, bool reverse = false);
 }
 
 template<typename Container>
 std::string ByteArrayToHexStr(Container const& c, bool reverse = false)
 {
-    return Acore::Impl::ByteArrayToHexStr(std::data(c), std::size(c), reverse);
+    return Ycore::Impl::ByteArrayToHexStr(std::data(c), std::size(c), reverse);
 }
 
 template<std::size_t Size>
 void HexStrToByteArray(std::string_view str, std::array<uint8, Size>& buf, bool reverse = false)
 {
-    Acore::Impl::HexStrToByteArray(str, buf.data(), Size, reverse);
+    Ycore::Impl::HexStrToByteArray(str, buf.data(), Size, reverse);
 }
 
 template<std::size_t Size>
@@ -398,10 +398,10 @@ std::array<uint8, Size> HexStrToByteArray(std::string_view str, bool reverse = f
     return arr;
 }
 
-AC_COMMON_API bool StringEqualI(std::string_view str1, std::string_view str2);
+YC_COMMON_API bool StringEqualI(std::string_view str1, std::string_view str2);
 inline bool StringStartsWith(std::string_view haystack, std::string_view needle) { return (haystack.substr(0, needle.length()) == needle); }
 inline bool StringStartsWithI(std::string_view haystack, std::string_view needle) { return StringEqualI(haystack.substr(0, needle.length()), needle); }
-AC_COMMON_API bool StringContainsStringI(std::string_view haystack, std::string_view needle);
+YC_COMMON_API bool StringContainsStringI(std::string_view haystack, std::string_view needle);
 
 template <typename T>
 inline bool ValueContainsStringI(std::pair<T, std::string_view> const& haystack, std::string_view needle)
@@ -409,7 +409,7 @@ inline bool ValueContainsStringI(std::pair<T, std::string_view> const& haystack,
     return StringContainsStringI(haystack.second, needle);
 }
 
-AC_COMMON_API bool StringCompareLessI(std::string_view a, std::string_view b);
+YC_COMMON_API bool StringCompareLessI(std::string_view a, std::string_view b);
 
 struct StringCompareLessI_T
 {
@@ -632,7 +632,7 @@ Ret* Coalesce(T1* first, T*... rest)
         return static_cast<Ret*>(first);
 }
 
-AC_COMMON_API std::string GetTypeName(std::type_info const&);
+YC_COMMON_API std::string GetTypeName(std::type_info const&);
 
 template <typename T>
 std::string GetTypeName() { return GetTypeName(typeid(T)); }

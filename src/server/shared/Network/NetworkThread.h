@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -228,7 +228,7 @@ private:
     std::mutex _newSocketsLock;
     SocketContainer _newSockets;
 
-    Acore::Asio::IoContext _ioContext;
+    Ycore::Asio::IoContext _ioContext;
     tcp::socket _acceptSocket;
     boost::asio::steady_timer _updateTimer;
 

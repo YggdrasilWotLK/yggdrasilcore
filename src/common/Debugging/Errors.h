@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,51 +15,51 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _ACORE_ERRORS_H_
-#define _ACORE_ERRORS_H_
+#ifndef _YCORE_ERRORS_H_
+#define _YCORE_ERRORS_H_
 
 #include "StringFormat.h"
 
-namespace Acore
+namespace Ycore
 {
     // Default function
-    [[noreturn]] AC_COMMON_API void Assert(std::string_view file, uint32 line, std::string_view function, std::string_view debugInfo, std::string_view message, std::string_view fmtMessage = {});
-    [[noreturn]] AC_COMMON_API void Fatal(std::string_view file, uint32 line, std::string_view function, std::string_view message, std::string_view fmtMessage = {});
-    [[noreturn]] AC_COMMON_API void Error(std::string_view file, uint32 line, std::string_view function, std::string_view message);
-    [[noreturn]] AC_COMMON_API void Abort(std::string_view file, uint32 line, std::string_view function, std::string_view fmtMessage = {});
+    [[noreturn]] YC_COMMON_API void Assert(std::string_view file, uint32 line, std::string_view function, std::string_view debugInfo, std::string_view message, std::string_view fmtMessage = {});
+    [[noreturn]] YC_COMMON_API void Fatal(std::string_view file, uint32 line, std::string_view function, std::string_view message, std::string_view fmtMessage = {});
+    [[noreturn]] YC_COMMON_API void Error(std::string_view file, uint32 line, std::string_view function, std::string_view message);
+    [[noreturn]] YC_COMMON_API void Abort(std::string_view file, uint32 line, std::string_view function, std::string_view fmtMessage = {});
 
     template<typename... Args>
-    AC_COMMON_API inline void Assert(std::string_view file, uint32 line, std::string_view function, std::string_view debugInfo, std::string_view message, std::string_view fmt, Args&&... args)
+    YC_COMMON_API inline void Assert(std::string_view file, uint32 line, std::string_view function, std::string_view debugInfo, std::string_view message, std::string_view fmt, Args&&... args)
     {
         Assert(file, line, function, debugInfo, message, StringFormat(fmt, std::forward<Args>(args)...));
     }
 
     template<typename... Args>
-    AC_COMMON_API inline void Fatal(std::string_view file, uint32 line, std::string_view function, std::string_view message, std::string_view fmt, Args&&... args)
+    YC_COMMON_API inline void Fatal(std::string_view file, uint32 line, std::string_view function, std::string_view message, std::string_view fmt, Args&&... args)
     {
         Fatal(file, line, function, message, StringFormat(fmt, std::forward<Args>(args)...));
     }
 
     template<typename... Args>
-    AC_COMMON_API inline void Abort(std::string_view file, uint32 line, std::string_view function, std::string_view fmt, Args&&... args)
+    YC_COMMON_API inline void Abort(std::string_view file, uint32 line, std::string_view function, std::string_view fmt, Args&&... args)
     {
         Abort(file, line, function, StringFormat(fmt, std::forward<Args>(args)...));
     }
 
-    AC_COMMON_API void Warning(std::string_view file, uint32 line, std::string_view function, std::string_view message);
+    YC_COMMON_API void Warning(std::string_view file, uint32 line, std::string_view function, std::string_view message);
 
-    [[noreturn]] AC_COMMON_API void AbortHandler(int sigval);
+    [[noreturn]] YC_COMMON_API void AbortHandler(int sigval);
 
-} // namespace Acore
+} // namespace Ycore
 
-AC_COMMON_API std::string GetDebugInfo();
+YC_COMMON_API std::string GetDebugInfo();
 
-#define WPAssert(cond, ...) do { if (!(cond)) Acore::Assert(__FILE__, __LINE__, __FUNCTION__, GetDebugInfo(), #cond, ##__VA_ARGS__); } while(0)
-#define WPAssert_NODEBUGINFO(cond) do { if (!(cond)) Acore::Assert(__FILE__, __LINE__, __FUNCTION__, "", #cond); } while(0)
-#define WPFatal(cond, ...) do { if (!(cond)) Acore::Fatal(__FILE__, __LINE__, __FUNCTION__, #cond, ##__VA_ARGS__); } while(0)
-#define WPError(cond, msg) do { if (!(cond)) Acore::Error(__FILE__, __LINE__, __FUNCTION__, (msg)); } while(0)
-#define WPWarning(cond, msg) do { if (!(cond)) Acore::Warning(__FILE__, __LINE__, __FUNCTION__, (msg)); } while(0)
-#define WPAbort(...) do { Acore::Abort(__FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__); } while(0)
+#define WPAssert(cond, ...) do { if (!(cond)) Ycore::Assert(__FILE__, __LINE__, __FUNCTION__, GetDebugInfo(), #cond, ##__VA_ARGS__); } while(0)
+#define WPAssert_NODEBUGINFO(cond) do { if (!(cond)) Ycore::Assert(__FILE__, __LINE__, __FUNCTION__, "", #cond); } while(0)
+#define WPFatal(cond, ...) do { if (!(cond)) Ycore::Fatal(__FILE__, __LINE__, __FUNCTION__, #cond, ##__VA_ARGS__); } while(0)
+#define WPError(cond, msg) do { if (!(cond)) Ycore::Error(__FILE__, __LINE__, __FUNCTION__, (msg)); } while(0)
+#define WPWarning(cond, msg) do { if (!(cond)) Ycore::Warning(__FILE__, __LINE__, __FUNCTION__, (msg)); } while(0)
+#define WPAbort(...) do { Ycore::Abort(__FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__); } while(0)
 
 #ifdef PERFORMANCE_PROFILING
 #define ASSERT(cond, ...) ((void)0)
@@ -69,7 +69,7 @@ AC_COMMON_API std::string GetDebugInfo();
 #define ASSERT_NODEBUGINFO WPAssert_NODEBUGINFO
 #endif
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
 #define EXCEPTION_ASSERTION_FAILURE 0xC0000420L
 #endif
 

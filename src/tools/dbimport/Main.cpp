@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -32,8 +32,8 @@
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 
-#ifndef _ACORE_DB_IMPORT_CONFIG
-#define _ACORE_DB_IMPORT_CONFIG "dbimport.conf"
+#ifndef _YCORE_DB_IMPORT_CONFIG
+#define _YCORE_DB_IMPORT_CONFIG "dbimport.conf"
 #endif
 
 using namespace boost::program_options;
@@ -46,10 +46,10 @@ variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile);
 /// Launch the db import server
 int main(int argc, char** argv)
 {
-    signal(SIGABRT, &Acore::AbortHandler);
+    signal(SIGABRT, &Ycore::AbortHandler);
 
     // Command line parsing
-    auto configFile = fs::path(sConfigMgr->GetConfigPath() + std::string(_ACORE_DB_IMPORT_CONFIG));
+    auto configFile = fs::path(sConfigMgr->GetConfigPath() + std::string(_YCORE_DB_IMPORT_CONFIG));
     auto vm = GetConsoleArguments(argc, argv, configFile);
 
     // exit if help is enabled
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     // Init logging
     sLog->Initialize();
 
-    Acore::Banner::Show("dbimport",
+    Ycore::Banner::Show("dbimport",
         [](std::string_view text)
         {
             LOG_INFO("dbimport", text);
@@ -109,7 +109,7 @@ bool StartDB()
 
     DatabaseLoader loader =
         modules.empty() ? DatabaseLoader("dbimport") :
-        (modules == "all") ? DatabaseLoader("dbimport", DatabaseLoader::DATABASE_NONE, AC_MODULES_LIST) :
+        (modules == "all") ? DatabaseLoader("dbimport", DatabaseLoader::DATABASE_NONE, YC_MODULES_LIST) :
         DatabaseLoader("dbimport", DatabaseLoader::DATABASE_NONE, modules);
 
     loader
@@ -140,7 +140,7 @@ variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile)
         ("help,h", "print usage message")
         ("version,v", "print version build info")
         ("dry-run,d", "Dry run")
-        ("config,c", value<fs::path>(&configFile)->default_value(fs::path(sConfigMgr->GetConfigPath() + std::string(_ACORE_DB_IMPORT_CONFIG))), "use <arg> as configuration file");
+        ("config,c", value<fs::path>(&configFile)->default_value(fs::path(sConfigMgr->GetConfigPath() + std::string(_YCORE_DB_IMPORT_CONFIG))), "use <arg> as configuration file");
 
     variables_map variablesMap;
 

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -146,7 +146,7 @@ WorldPacket MotdMgr::CreateWorldPacket(std::string motd)
     WorldPacket data(SMSG_MOTD); // new in 2.0.1
 
     // Tokenize the motd string by '@'
-    std::vector<std::string_view> motdTokens = Acore::Tokenize(motd, '@', true);
+    std::vector<std::string_view> motdTokens = Ycore::Tokenize(motd, '@', true);
     data << uint32(motdTokens.size()); // line count
 
     for (std::string_view token : motdTokens)

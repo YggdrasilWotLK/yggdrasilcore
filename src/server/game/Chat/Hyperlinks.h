@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -34,7 +34,7 @@ class SpellInfo;
 class Quest;
 struct TalentEntry;
 
-namespace Acore::Hyperlinks
+namespace Ycore::Hyperlinks
 {
     struct AchievementLinkData
     {
@@ -119,7 +119,7 @@ namespace Acore::Hyperlinks
             template <typename T>
             static std::enable_if_t<std::is_integral_v<T>, bool> StoreTo(T& val, std::string_view data)
             {
-                if (Optional<T> res = Acore::StringTo<T>(data))
+                if (Optional<T> res = Ycore::StringTo<T>(data))
                 {
                     val = *res;
                     return true;
@@ -130,7 +130,7 @@ namespace Acore::Hyperlinks
 
             static bool StoreTo(ObjectGuid& val, std::string_view data)
             {
-                if (Optional<uint64> res = Acore::StringTo<uint64>(data, 16))
+                if (Optional<uint64> res = Ycore::StringTo<uint64>(data, 16))
                 {
                     val.Set(*res);
                     return true;
@@ -156,56 +156,56 @@ namespace Acore::Hyperlinks
         make_base_tag(title, uint32);
     #undef make_base_tag
 
-        struct AC_GAME_API achievement
+        struct YC_GAME_API achievement
         {
             using value_type = AchievementLinkData const&;
             static constexpr std::string_view tag() { return "achievement"; }
             static bool StoreTo(AchievementLinkData& val, std::string_view data);
         };
 
-        struct AC_GAME_API enchant
+        struct YC_GAME_API enchant
         {
             using value_type = SpellInfo const*;
             static constexpr std::string_view tag() { return "enchant"; }
             static bool StoreTo(SpellInfo const*& val, std::string_view data);
         };
 
-        struct AC_GAME_API glyph
+        struct YC_GAME_API glyph
         {
             using value_type = GlyphLinkData const&;
             static constexpr std::string_view tag() { return "glyph"; };
             static bool StoreTo(GlyphLinkData& val, std::string_view data);
         };
 
-        struct AC_GAME_API item
+        struct YC_GAME_API item
         {
             using value_type = ItemLinkData const&;
             static constexpr std::string_view tag() { return "item"; }
             static bool StoreTo(ItemLinkData& val, std::string_view data);
         };
 
-        struct AC_GAME_API quest
+        struct YC_GAME_API quest
         {
             using value_type = QuestLinkData const&;
             static constexpr std::string_view tag() { return "quest"; }
             static bool StoreTo(QuestLinkData& val, std::string_view data);
         };
 
-        struct AC_GAME_API spell
+        struct YC_GAME_API spell
         {
             using value_type = SpellInfo const*;
             static constexpr std::string_view tag() { return "spell"; }
             static bool StoreTo(SpellInfo const*& val, std::string_view data);
         };
 
-        struct AC_GAME_API talent
+        struct YC_GAME_API talent
         {
             using value_type = TalentLinkData const&;
             static constexpr std::string_view tag() { return "talent"; }
             static bool StoreTo(TalentLinkData& val, std::string_view data);
         };
 
-        struct AC_GAME_API trade
+        struct YC_GAME_API trade
         {
             using value_type = TradeskillLinkData const&;
             static constexpr std::string_view tag() { return "trade"; }
@@ -246,8 +246,8 @@ namespace Acore::Hyperlinks
         std::string_view const text;
     };
 
-    HyperlinkInfo AC_GAME_API ParseSingleHyperlink(std::string_view str);
-    bool AC_GAME_API CheckAllLinks(std::string_view str);
+    HyperlinkInfo YC_GAME_API ParseSingleHyperlink(std::string_view str);
+    bool YC_GAME_API CheckAllLinks(std::string_view str);
 }
 
 #endif

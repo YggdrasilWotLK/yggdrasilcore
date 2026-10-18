@@ -39,8 +39,8 @@ fi
 # -v == be verbose
 cp -rnv /azerothcore/env/ref/etc/* "$CONF_DIR"
 
-CONF="$CONF_DIR/$ACORE_COMPONENT.conf"
-CONF_DIST="$CONF_DIR/$ACORE_COMPONENT.conf.dist"
+CONF="$CONF_DIR/$YCORE_COMPONENT.conf"
+CONF_DIST="$CONF_DIR/$YCORE_COMPONENT.conf.dist"
 
 # Copy the "dist" file to the "conf" if the conf doesn't already exist
 if [[ -f "$CONF_DIST" ]]; then
@@ -49,6 +49,6 @@ else
     touch "$CONF"
 fi
 
-echo "Starting $ACORE_COMPONENT..."
+echo "Starting $YCORE_COMPONENT..."
 
 exec "$@"

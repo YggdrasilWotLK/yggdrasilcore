@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AC_SCRIPT_OBJECT_FWD_H_
-#define AC_SCRIPT_OBJECT_FWD_H_
+#ifndef YC_SCRIPT_OBJECT_FWD_H_
+#define YC_SCRIPT_OBJECT_FWD_H_
 
 #include "Define.h"
 
@@ -138,7 +138,7 @@ namespace lfg
     struct LFGDungeonData;
 }
 
-namespace Acore
+namespace Ycore
 {
     namespace Asio
     {

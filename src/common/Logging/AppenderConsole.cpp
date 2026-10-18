@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -23,7 +23,7 @@
 #include "Tokenize.h"
 #include "Util.h"
 
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
 
@@ -49,22 +49,22 @@ void AppenderConsole::InitColors(std::string const& name, std::string_view str)
         return;
     }
 
-    std::vector<std::string_view> colorStrs = Acore::Tokenize(str, ' ', false);
+    std::vector<std::string_view> colorStrs = Ycore::Tokenize(str, ' ', false);
     if (colorStrs.size() != NUM_ENABLED_LOG_LEVELS)
     {
-        throw InvalidAppenderArgsException(Acore::StringFormat("Log::CreateAppenderFromConfig: Invalid color data '{}' for console appender {} (expected {} entries, got {})",
+        throw InvalidAppenderArgsException(Ycore::StringFormat("Log::CreateAppenderFromConfig: Invalid color data '{}' for console appender {} (expected {} entries, got {})",
             str, name, NUM_ENABLED_LOG_LEVELS, colorStrs.size()));
     }
 
     for (uint8 i = 0; i < NUM_ENABLED_LOG_LEVELS; ++i)
     {
-        if (Optional<uint8> color = Acore::StringTo<uint8>(colorStrs[i]); color && EnumUtils::IsValid<ColorTypes>(*color))
+        if (Optional<uint8> color = Ycore::StringTo<uint8>(colorStrs[i]); color && EnumUtils::IsValid<ColorTypes>(*color))
         {
             _colors[i] = static_cast<ColorTypes>(*color);
         }
         else
         {
-            throw InvalidAppenderArgsException(Acore::StringFormat("Log::CreateAppenderFromConfig: Invalid color '{}' for log level {} on console appender {}",
+            throw InvalidAppenderArgsException(Ycore::StringFormat("Log::CreateAppenderFromConfig: Invalid color '{}' for log level {} on console appender {}",
                 colorStrs[i], EnumUtils::ToTitle(static_cast<LogLevel>(i)), name));
         }
     }
@@ -74,7 +74,7 @@ void AppenderConsole::InitColors(std::string const& name, std::string_view str)
 
 void AppenderConsole::SetColor(bool stdout_stream, ColorTypes color)
 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     static WORD WinColorFG[NUM_COLOR_TYPES] =
     {
         0,                                                  // BLACK
@@ -161,7 +161,7 @@ void AppenderConsole::SetColor(bool stdout_stream, ColorTypes color)
 
 void AppenderConsole::ResetColor(bool stdout_stream)
 {
-#if AC_PLATFORM == AC_PLATFORM_WINDOWS
+#if YC_PLATFORM == YC_PLATFORM_WINDOWS
     HANDLE hConsole = GetStdHandle(stdout_stream ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
     SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
 #else

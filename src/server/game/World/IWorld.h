@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AZEROTHCORE_IWORLD_H
-#define AZEROTHCORE_IWORLD_H
+#ifndef YGGDRASILCORE_IWORLD_H
+#define YGGDRASILCORE_IWORLD_H
 
 #include "AsyncCallbackProcessor.h"
 #include "Common.h"
@@ -32,7 +32,7 @@ class WorldSession;
 class Player;
 
 /// Storage class for commands issued for delayed execution
-struct AC_GAME_API CliCommandHolder
+struct YC_GAME_API CliCommandHolder
 {
     using Print = void(*)(void*, std::string_view);
     using CommandFinished = void(*)(void*, bool success);
@@ -117,4 +117,4 @@ public:
     virtual SQLQueryHolderCallback& AddQueryHolderCallback(SQLQueryHolderCallback&& callback) = 0;
 };
 
-#endif //AZEROTHCORE_IWORLD_H
+#endif //YGGDRASILCORE_IWORLD_H

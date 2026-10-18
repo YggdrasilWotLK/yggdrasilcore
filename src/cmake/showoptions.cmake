@@ -1,5 +1,5 @@
 #
-# This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+# This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -12,9 +12,9 @@
 
 # output generic information about the core and buildtype chosen
 message("")
-message("* AzerothCore revision            : ${rev_hash} ${rev_date} (${rev_branch} branch)")
+message("* YggdrasilCore revision            : ${rev_hash} ${rev_date} (${rev_branch} branch)")
 if( UNIX )
-  message("* AzerothCore buildtype           : ${CMAKE_BUILD_TYPE}")
+  message("* YggdrasilCore buildtype           : ${CMAKE_BUILD_TYPE}")
 endif()
 message("")
 
@@ -84,7 +84,7 @@ endif()
 
 if( WITH_COREDEBUG )
   message("* Use coreside debug              : Yes")
-  add_definitions(-DACORE_DEBUG)
+  add_definitions(-DYCORE_DEBUG)
 else()
   message("* Use coreside debug              : No  (default)")
 endif()
@@ -153,7 +153,7 @@ if(WITH_STRICT_DATABASE_TYPE_CHECKS)
   message(" *** WITH_STRICT_DATABASE_TYPE_CHECKS - WARNING!")
   message(" *** Validates uses of database Get***() functions from Field class")
   message(" *** invalid calls will result in returning value 0")
-  add_definitions(-DACORE_STRICT_DATABASE_TYPE_CHECKS)
+  add_definitions(-DYCORE_STRICT_DATABASE_TYPE_CHECKS)
 endif()
 
 if(WITHOUT_METRICS)
@@ -198,7 +198,7 @@ if(BUILD_SHARED_LIBS)
     message("")
     message(" *** Dynamic linking was enforced through a dynamic script module!")
   endif()
-  add_definitions(-DACORE_API_USE_DYNAMIC_LINKING)
+  add_definitions(-DYCORE_API_USE_DYNAMIC_LINKING)
 
   WarnAboutSpacesInBuildPath()
 endif()

@@ -1,5 +1,5 @@
 /*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
+ * This file is part of the YggdrasilCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by the
@@ -19,14 +19,14 @@
 #define _MODULES_LOAD_ORDER_H_
 
 // Load order of a module that does not declare one of its own.
-#define AC_MODULE_DEFAULT_LOAD_ORDER 99
+#define YC_MODULE_DEFAULT_LOAD_ORDER 99
 
 // A module overrides the generated default by defining a strong
 // Addmod_<identifier>LoadOrder() in its own C++ loader.
 #if defined(__GNUC__) || defined(__clang__)
-#  define AC_MODULE_LOAD_ORDER_WEAK __attribute__((weak))
+#  define YC_MODULE_LOAD_ORDER_WEAK __attribute__((weak))
 #else
-#  define AC_MODULE_LOAD_ORDER_WEAK
+#  define YC_MODULE_LOAD_ORDER_WEAK
 #endif
 
 // One module entry, ordered by (loadOrder, name) before its scripts load.
