@@ -132,7 +132,7 @@ void WardenWin::SendPayload()
     buff << uint8(xorByte);
     buff.hexlike();
 
-    auto idstring = [this]() -> std::string
+    auto idstring [[maybe_unused]] = []() -> std::string
     {
         std::stringstream stream;
         stream << idOne << " " << idTwo << " ";

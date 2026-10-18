@@ -272,7 +272,7 @@ public:
             instance->DoRemoveAurasDueToSpellOnPlayers(SPELL_MARK_OF_THE_FALLEN_CHAMPION);
         }
 
-        void JustEngagedWith(Unit* who) override
+        void JustEngagedWith(Unit* who [[maybe_unused]]) override
         {
             if (!_introDone)
             {
